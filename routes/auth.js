@@ -10,8 +10,8 @@ router.post('/register', async (req, res) => {
 
   if (!username || !password)
     return res.status(400).json({ error: 'ユーザー名とパスワードは必須です' });
-  if (username.length < 2 || username.length > 50)
-    return res.status(400).json({ error: 'ユーザー名は2〜50文字で入力してください' });
+  if (username.length < 1 || username.length > 50)
+    return res.status(400).json({ error: 'ユーザー名は1〜50文字で入力してください' });
   if (password.length < 6)
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
 
@@ -76,8 +76,8 @@ router.put('/me', authenticateToken, async (req, res) => {
   const { username, oshi_character, current_password, new_password } = req.body;
 
   if (username !== undefined) {
-    if (username.length < 2 || username.length > 50)
-      return res.status(400).json({ error: 'ユーザー名は2〜50文字で入力してください' });
+    if (username.length < 1 || username.length > 50)
+      return res.status(400).json({ error: 'ユーザー名は1〜50文字で入力してください' });
   }
 
   try {
