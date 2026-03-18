@@ -101,7 +101,25 @@ function renderNav() {
              <a href="/register.html" class="btn btn-primary btn-sm">登録</a>`
         }
       </div>
+      <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="メニュー">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <div class="nav-mobile" id="nav-mobile">
+      <a href="/index.html">イベント一覧</a>
+      ${user ? `<a href="/submit.html">スコア投稿</a>` : ''}
+      ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
+      ${user
+        ? `<a href="/user.html?id=${user.id}">${escHtml(user.username)}</a>
+           <a href="#" onclick="logout();return false;">ログアウト</a>`
+        : `<a href="/login.html">ログイン</a>
+           <a href="/register.html">新規登録</a>`
+      }
     </div>`;
+}
+
+function toggleMobileNav() {
+  document.getElementById('nav-mobile')?.classList.toggle('open');
 }
 
 function logout() {

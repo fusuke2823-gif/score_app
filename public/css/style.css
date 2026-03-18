@@ -475,11 +475,49 @@ main {
 .pending-img-wrap img { max-width: 180px; max-height: 120px; border-radius: 6px; border: 1px solid var(--border); }
 .pending-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
 
+/* ハンバーガーメニュー */
+.nav-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-left: auto;
+  flex-direction: column;
+  gap: 5px;
+}
+.nav-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+.nav-mobile {
+  display: none;
+  flex-direction: column;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  padding: 8px 16px 12px;
+}
+.nav-mobile.open { display: flex; }
+.nav-mobile a {
+  padding: 10px 4px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.95rem;
+}
+.nav-mobile a:last-child { border-bottom: none; }
+.nav-mobile a:hover { color: var(--text-primary); }
+
 /* レスポンシブ */
 @media (max-width: 640px) {
   main { padding: 20px 16px; }
   nav { padding: 0 16px; }
   .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
   .ranking-table th:nth-child(4),
   .ranking-table td:nth-child(4) { display: none; }
 }
