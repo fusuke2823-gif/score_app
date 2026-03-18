@@ -311,7 +311,7 @@ async function loadEvents() {
   const el = document.getElementById('event-list');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const events = await apiFetch('/events');
+    const events = await apiFetch('/admin/events');
     currentEvents = events;
     if (events.length === 0) {
       el.innerHTML = '<div class="empty-state"><p>イベントがありません</p></div>';

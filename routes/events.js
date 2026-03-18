@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
 
-// 全イベント一覧
+// 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events ORDER BY event_number DESC');
+    const result = await pool.query('SELECT * FROM events WHERE is_active = TRUE ORDER BY event_number DESC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);

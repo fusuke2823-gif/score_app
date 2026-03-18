@@ -80,6 +80,17 @@ router.post('/scores/:id/reject', async (req, res) => {
   }
 });
 
+// イベント一覧（管理用：全件）
+router.get('/events', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM events ORDER BY event_number DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // イベント作成
 router.post('/events', async (req, res) => {
   const { event_number, name, description, submission_start, submission_end } = req.body;
