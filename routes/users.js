@@ -63,7 +63,27 @@ router.get('/:id', async (req, res) => {
     const rankMap = {};
     rankResult.rows.forEach((r) => { rankMap[r.event_id] = r.rank; });
 
-    res.json({ ...user, scores: scoresResult.rows, ranks: rankMap });
+    // イベント・属性ごとの順位
+    const attrRankResult = await pool.query(
+      `WITH attr_ranks AS (
+         SELECT
+           event_id,
+           attribute,
+           user_id,
+           RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank
+         FROM scores
+         WHERE approved_score IS NOT NULL
+       )
+       SELECT event_id, attribute, rank
+       FROM attr_ranks
+       WHERE user_id = $1`,
+      [req.params.id]
+    );
+
+    const attrRankMap = {};
+    attrRankResult.rows.forEach((r) => { attrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
+
+    res.json({ ...user, scores: scoresResult.rows, ranks: rankMap, attr_ranks: attrRankMap });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

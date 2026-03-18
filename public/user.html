@@ -93,6 +93,7 @@ async function load() {
           scores: []
         };
       }
+      s.attr_rank = data.attr_ranks[`${s.event_id}_${s.attribute}`] || null;
       eventMap[s.event_id].scores.push(s);
     });
 
@@ -159,6 +160,7 @@ async function load() {
                     <div class="attr-score-item">
                       ${attrBadge(s.attribute, true)}
                       <span class="attr-score-val">${formatScore(s.approved_score)}</span>
+                      ${s.attr_rank ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank}位</span>` : ''}
                       ${s.approved_image_url
                         ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="リザルト" onclick="openModal('${escHtml(s.approved_image_url)}')">`
                         : ''}
