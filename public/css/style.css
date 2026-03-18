@@ -476,7 +476,7 @@ main {
 }
 .pending-info { flex: 1; min-width: 200px; }
 .pending-img-wrap img { max-width: 180px; max-height: 120px; border-radius: 6px; border: 1px solid var(--border); }
-.pending-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.pending-actions { display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
 
 /* ハンバーガーメニュー */
 .nav-hamburger {
