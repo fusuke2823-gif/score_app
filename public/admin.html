@@ -157,11 +157,6 @@
           <label class="form-label">敵画像（任意）</label>
           <input class="form-input" type="file" id="enemy-img" accept="image/*" style="padding:8px">
         </div>
-        <div class="form-group">
-          <label class="form-label">ルール</label>
-          <div id="rules-container"></div>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="addRule()">+ ルール追加</button>
-        </div>
         <div id="enemy-form-alert" style="margin-top:12px"></div>
         <button type="submit" class="btn btn-primary" id="enemy-submit-btn">追加する</button>
       </form>
@@ -196,6 +191,11 @@
             <label class="form-label">投稿終了日時</label>
             <input class="form-input" type="datetime-local" id="edit-event-end">
           </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">ルール</label>
+          <div id="edit-rules-container"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addEditRule()">+ ルール追加</button>
         </div>
         <div class="form-group">
           <label style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -416,7 +416,22 @@ function toLocalDatetime(iso) {
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function openEditEvent(id) {
+let editRulesCount = 0;
+
+function addEditRule(text = '') {
+  editRulesCount++;
+  const id = `edit-rule-${editRulesCount}`;
+  const div = document.createElement('div');
+  div.className = 'rule-item';
+  div.id = `edit-rule-wrap-${editRulesCount}`;
+  div.innerHTML = `
+    <input class="form-input" type="text" id="${id}" value="${escHtml(text)}" placeholder="ルール内容">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('edit-rule-wrap-${editRulesCount}').remove()">×</button>
+  `;
+  document.getElementById('edit-rules-container').appendChild(div);
+}
+
+async function openEditEvent(id) {
   const e = currentEvents.find(ev => ev.id === id);
   if (!e) return;
   document.getElementById('edit-event-id').value = e.id;
@@ -426,6 +441,16 @@ function openEditEvent(id) {
   document.getElementById('edit-event-end').value = toLocalDatetime(e.submission_end);
   document.getElementById('edit-event-active').checked = e.is_active !== false;
   document.getElementById('event-edit-alert').innerHTML = '';
+  document.getElementById('edit-rules-container').innerHTML = '';
+  editRulesCount = 0;
+
+  // 既存ルールを読み込む
+  try {
+    const detail = await apiFetch(`/events/${id}`);
+    (detail.rules || []).forEach(r => addEditRule(r.rule_text));
+  } catch {}
+  if (document.getElementById('edit-rules-container').children.length === 0) addEditRule();
+
   document.getElementById('event-edit-modal').style.display = '';
 }
 
@@ -440,6 +465,8 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
   alertEl.innerHTML = '';
   try {
     const toISO = v => v ? new Date(v).toISOString() : null;
+    const rules = [...document.querySelectorAll('#edit-rules-container input[type="text"]')]
+      .map(i => i.value).filter(v => v.trim());
     await apiFetch(`/admin/events/${id}`, {
       method: 'PUT',
       body: JSON.stringify({
@@ -449,6 +476,10 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
         submission_end: toISO(document.getElementById('edit-event-end').value),
         is_active: document.getElementById('edit-event-active').checked
       })
+    });
+    await apiFetch(`/admin/events/${id}/rules`, {
+      method: 'PUT',
+      body: JSON.stringify({ rules })
     });
     closeEventEditModal();
     loadEvents();

@@ -25,16 +25,11 @@ router.get('/:id', async (req, res) => {
       'SELECT * FROM enemies WHERE event_id = $1 ORDER BY order_index',
       [req.params.id]
     );
-    const enemies = await Promise.all(
-      enemiesResult.rows.map(async (enemy) => {
-        const rulesResult = await pool.query(
-          'SELECT * FROM enemy_rules WHERE enemy_id = $1 ORDER BY order_index',
-          [enemy.id]
-        );
-        return { ...enemy, rules: rulesResult.rows };
-      })
+    const rulesResult = await pool.query(
+      'SELECT * FROM event_rules WHERE event_id = $1 ORDER BY order_index',
+      [req.params.id]
     );
-    res.json({ ...event, enemies });
+    res.json({ ...event, enemies: enemiesResult.rows, rules: rulesResult.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

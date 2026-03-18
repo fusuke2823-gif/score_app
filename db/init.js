@@ -76,10 +76,17 @@ const initDB = async () => {
       }
     }
 
-    // カラム追加（既存DBへのマイグレーション）
+    // カラム追加・テーブル追加（既存DBへのマイグレーション）
     await client.query(`
       ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_start TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_end TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS event_rules (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+        rule_text TEXT NOT NULL,
+        order_index INTEGER NOT NULL DEFAULT 0
+      );
     `);
 
     console.log('データベース初期化完了');

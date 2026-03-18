@@ -123,6 +123,28 @@ router.put('/events/:id', async (req, res) => {
   }
 });
 
+// イベントルール保存（全件置き換え）
+router.put('/events/:id/rules', async (req, res) => {
+  const { rules } = req.body;
+  try {
+    await pool.query('DELETE FROM event_rules WHERE event_id = $1', [req.params.id]);
+    if (rules && rules.length > 0) {
+      for (let i = 0; i < rules.length; i++) {
+        if (rules[i].trim()) {
+          await pool.query(
+            'INSERT INTO event_rules (event_id, rule_text, order_index) VALUES ($1, $2, $3)',
+            [req.params.id, rules[i].trim(), i]
+          );
+        }
+      }
+    }
+    res.json({ message: '保存しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 敵追加
 router.post('/events/:id/enemies', upload.single('image'), async (req, res) => {
   const { name, hp, dp, ep, use_ep, destruction_rate, order_index, rules } = req.body;

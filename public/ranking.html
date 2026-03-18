@@ -109,14 +109,27 @@ async function loadEvent() {
       ${renderSubmissionPeriod(event)}
     `;
 
+    let enemySectionHtml = '';
     if (event.enemies && event.enemies.length > 0) {
-      document.getElementById('enemy-section').innerHTML = `
+      enemySectionHtml += `
         <div class="enemy-section">
           <div class="enemy-section-title">出現する敵</div>
           <div class="enemy-cards">
             ${event.enemies.map(enemy => renderEnemy(enemy)).join('')}
           </div>
         </div>`;
+    }
+    if (event.rules && event.rules.length > 0) {
+      enemySectionHtml += `
+        <div class="enemy-section" style="margin-top:16px">
+          <div class="enemy-section-title">イベントルール</div>
+          <ul class="enemy-rules" style="margin:12px 0 0 0;padding-left:20px">
+            ${event.rules.map(r => `<li style="margin-bottom:6px">${escHtml(r.rule_text)}</li>`).join('')}
+          </ul>
+        </div>`;
+    }
+    if (enemySectionHtml) {
+      document.getElementById('enemy-section').innerHTML = enemySectionHtml;
     }
 
     document.getElementById('filter-section').style.display = '';
@@ -139,10 +152,6 @@ function renderEnemy(enemy) {
       ${hpDpEp}
       ${enemy.destruction_rate ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${escHtml(enemy.destruction_rate)}</span></span>` : ''}
     </div>
-    ${enemy.rules && enemy.rules.length > 0 ? `
-      <ul class="enemy-rules">
-        ${enemy.rules.map(r => `<li>${escHtml(r.rule_text)}</li>`).join('')}
-      </ul>` : ''}
   </div>`;
 }
 
