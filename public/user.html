@@ -98,6 +98,9 @@ async function load() {
 
     const events = Object.values(eventMap).sort((a, b) => b.event_number - a.event_number);
 
+    const me = getUser();
+    const isMe = me && String(me.id) === String(userId);
+
     document.getElementById('content').innerHTML = `
       <div class="user-header">
         <div class="user-avatar">${escHtml(data.username.charAt(0))}</div>
@@ -107,8 +110,37 @@ async function load() {
             ? `<div class="user-oshi">推し: ${escHtml(data.oshi_character)}</div>`
             : ''}
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">参加: ${formatDate(data.created_at)}</div>
+          ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">プロフィール編集</button>` : ''}
         </div>
       </div>
+
+      ${isMe ? `
+      <div id="edit-form-wrap" class="card" style="display:none;margin-bottom:24px">
+        <div style="font-weight:bold;margin-bottom:16px">プロフィール編集</div>
+        <div id="edit-alert"></div>
+        <div class="form-group">
+          <label class="form-label">ユーザー名</label>
+          <input class="form-input" id="edit-username" type="text" value="${escHtml(data.username)}" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label class="form-label">推しキャラクター</label>
+          <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="例: 三司あかり">
+        </div>
+        <details style="margin-bottom:16px">
+          <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">パスワード変更（任意）</summary>
+          <div style="margin-top:12px">
+            <div class="form-group">
+              <label class="form-label">現在のパスワード</label>
+              <input class="form-input" id="edit-current-pw" type="password" autocomplete="current-password">
+            </div>
+            <div class="form-group">
+              <label class="form-label">新しいパスワード（6文字以上）</label>
+              <input class="form-input" id="edit-new-pw" type="password" autocomplete="new-password">
+            </div>
+          </div>
+        </details>
+        <button class="btn btn-primary" onclick="saveProfile()">保存する</button>
+      </div>` : ''}
 
       ${events.length === 0
         ? `<div class="empty-state"><div class="empty-state-icon">📊</div><p>承認済みスコアがありません</p></div>`
@@ -139,6 +171,46 @@ async function load() {
   } catch (err) {
     showAlert('#alert', err.message);
     document.getElementById('content').innerHTML = '';
+  }
+}
+
+function toggleEditForm() {
+  const wrap = document.getElementById('edit-form-wrap');
+  if (wrap) wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
+}
+
+async function saveProfile() {
+  const username = document.getElementById('edit-username')?.value.trim();
+  const oshi = document.getElementById('edit-oshi')?.value.trim();
+  const currentPw = document.getElementById('edit-current-pw')?.value;
+  const newPw = document.getElementById('edit-new-pw')?.value;
+  const alertEl = document.getElementById('edit-alert');
+  alertEl.innerHTML = '';
+
+  const body = { username, oshi_character: oshi || null };
+  if (newPw) { body.current_password = currentPw; body.new_password = newPw; }
+
+  try {
+    const res = await apiFetch('/auth/me', { method: 'PUT', body: JSON.stringify(body) });
+    setAuth(res.token, res.user);
+    renderNav();
+    alertEl.innerHTML = '<div class="alert alert-success">保存しました</div>';
+    // アバター文字を更新
+    const avatar = document.querySelector('.user-avatar');
+    if (avatar) avatar.textContent = res.user.username.charAt(0);
+    document.querySelector('.user-info h2').textContent = res.user.username;
+    const oshiEl = document.querySelector('.user-oshi');
+    if (res.user.oshi_character) {
+      if (oshiEl) oshiEl.textContent = '推し: ' + res.user.oshi_character;
+    } else if (oshiEl) {
+      oshiEl.remove();
+    }
+    if (newPw) {
+      document.getElementById('edit-current-pw').value = '';
+      document.getElementById('edit-new-pw').value = '';
+    }
+  } catch (err) {
+    alertEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
 
