@@ -169,6 +169,47 @@
   </div>
 </div>
 
+<!-- イベント編集モーダル -->
+<div id="event-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;overflow-y:auto">
+  <div style="max-width:500px;margin:40px auto;padding:16px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3>イベント編集</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeEventEditModal()">×</button>
+      </div>
+      <form id="event-edit-form">
+        <input type="hidden" id="edit-event-id">
+        <div class="form-group">
+          <label class="form-label">イベント名</label>
+          <input class="form-input" type="text" id="edit-event-name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">説明（任意）</label>
+          <textarea class="form-textarea" id="edit-event-desc" rows="2"></textarea>
+        </div>
+        <div class="enemy-form-grid">
+          <div class="form-group">
+            <label class="form-label">投稿開始日時</label>
+            <input class="form-input" type="datetime-local" id="edit-event-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">投稿終了日時</label>
+            <input class="form-input" type="datetime-local" id="edit-event-end">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="edit-event-active">
+            <span>ランキングに表示する</span>
+          </label>
+        </div>
+        <div id="event-edit-alert" style="margin-top:12px"></div>
+        <button type="submit" class="btn btn-primary">保存する</button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script src="/js/common.js"></script>
 <script>
 renderNav();
@@ -285,6 +326,7 @@ async function loadEvents() {
             ${!e.is_active ? '<span class="status-badge status-rejected" style="margin-left:8px">非表示</span>' : ''}
           </div>
           <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm" onclick="openEditEvent(${e.id})">編集</button>
             <button class="btn btn-secondary btn-sm collapse-toggle" onclick="toggleEnemies(${e.id})">敵情報</button>
             <button class="btn btn-secondary btn-sm" onclick="openAddEnemy(${e.id})">+ 敵追加</button>
           </div>
@@ -363,6 +405,55 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
     document.getElementById('create-event-form').reset();
     loadEvents();
   } catch (err) { showAlert(alertEl, err.message); }
+});
+
+// ===== イベント編集モーダル =====
+function toLocalDatetime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function openEditEvent(id) {
+  const e = currentEvents.find(ev => ev.id === id);
+  if (!e) return;
+  document.getElementById('edit-event-id').value = e.id;
+  document.getElementById('edit-event-name').value = e.name;
+  document.getElementById('edit-event-desc').value = e.description || '';
+  document.getElementById('edit-event-start').value = toLocalDatetime(e.submission_start);
+  document.getElementById('edit-event-end').value = toLocalDatetime(e.submission_end);
+  document.getElementById('edit-event-active').checked = e.is_active !== false;
+  document.getElementById('event-edit-alert').innerHTML = '';
+  document.getElementById('event-edit-modal').style.display = '';
+}
+
+function closeEventEditModal() {
+  document.getElementById('event-edit-modal').style.display = 'none';
+}
+
+document.getElementById('event-edit-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const id = document.getElementById('edit-event-id').value;
+  const alertEl = document.getElementById('event-edit-alert');
+  alertEl.innerHTML = '';
+  try {
+    await apiFetch(`/admin/events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: document.getElementById('edit-event-name').value,
+        description: document.getElementById('edit-event-desc').value,
+        submission_start: document.getElementById('edit-event-start').value || null,
+        submission_end: document.getElementById('edit-event-end').value || null,
+        is_active: document.getElementById('edit-event-active').checked
+      })
+    });
+    closeEventEditModal();
+    loadEvents();
+    showAlert('#alert', 'イベントを更新しました', 'success');
+  } catch (err) {
+    alertEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
 });
 
 // ===== 敵追加モーダル =====
