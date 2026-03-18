@@ -32,6 +32,16 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     return res.status(400).json({ error: '無効なスコアです' });
 
   try {
+    // 投稿期間チェック
+    const eventResult = await pool.query('SELECT submission_start, submission_end FROM events WHERE id = $1', [event_id]);
+    if (eventResult.rows.length === 0)
+      return res.status(404).json({ error: 'イベントが見つかりません' });
+    const { submission_start, submission_end } = eventResult.rows[0];
+    const now = new Date();
+    if (submission_start && now < new Date(submission_start))
+      return res.status(403).json({ error: 'まだ投稿期間が始まっていません' });
+    if (submission_end && now > new Date(submission_end))
+      return res.status(403).json({ error: '投稿期間が終了しています' });
     let imageUrl = null;
     if (req.file) {
       const uploadResult = await new Promise((resolve, reject) => {

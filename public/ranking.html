@@ -105,7 +105,8 @@ async function loadEvent() {
     document.getElementById('event-header').innerHTML = `
       <a class="back-link" href="/index.html">← イベント一覧</a>
       <h1 class="page-title">${escHtml(event.name)}</h1>
-      ${event.description ? `<p class="page-subtitle">${escHtml(event.description)}</p>` : '<div style="margin-bottom:20px"></div>'}
+      ${event.description ? `<p class="page-subtitle">${escHtml(event.description)}</p>` : ''}
+      ${renderSubmissionPeriod(event)}
     `;
 
     if (event.enemies && event.enemies.length > 0) {
@@ -206,6 +207,26 @@ function closeModal() {
 document.getElementById('img-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
 });
+
+function renderSubmissionPeriod(event) {
+  const start = event.submission_start ? new Date(event.submission_start) : null;
+  const end = event.submission_end ? new Date(event.submission_end) : null;
+  if (!start && !end) return '<div style="margin-bottom:20px"></div>';
+  const now = new Date();
+  const fmt = d => d.toLocaleString('ja-JP', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+  let label, color;
+  if (start && now < start) {
+    label = `投稿期間: ${fmt(start)} 〜 ${end ? fmt(end) : ''}（開始前）`;
+    color = 'var(--text-muted)';
+  } else if (end && now > end) {
+    label = `投稿期間: ${fmt(start || '')} 〜 ${fmt(end)}（終了）`;
+    color = 'var(--text-muted)';
+  } else {
+    label = `投稿受付中: 〜 ${end ? fmt(end) : '期限なし'}`;
+    color = 'var(--accent)';
+  }
+  return `<p style="font-size:0.82rem;color:${color};margin-bottom:20px">${label}</p>`;
+}
 
 loadEvent();
 updateFilterUI();

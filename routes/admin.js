@@ -82,11 +82,11 @@ router.post('/scores/:id/reject', async (req, res) => {
 
 // イベント作成
 router.post('/events', async (req, res) => {
-  const { event_number, name, description } = req.body;
+  const { event_number, name, description, submission_start, submission_end } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO events (event_number, name, description) VALUES ($1, $2, $3) RETURNING *',
-      [event_number, name, description || null]
+      'INSERT INTO events (event_number, name, description, submission_start, submission_end) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [event_number, name, description || null, submission_start || null, submission_end || null]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -99,11 +99,11 @@ router.post('/events', async (req, res) => {
 
 // イベント更新
 router.put('/events/:id', async (req, res) => {
-  const { name, description, is_active } = req.body;
+  const { name, description, is_active, submission_start, submission_end } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE events SET name=$1, description=$2, is_active=$3 WHERE id=$4 RETURNING *',
-      [name, description || null, is_active !== false, req.params.id]
+      'UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5 WHERE id=$6 RETURNING *',
+      [name, description || null, is_active !== false, submission_start || null, submission_end || null, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {

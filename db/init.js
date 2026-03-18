@@ -76,6 +76,12 @@ const initDB = async () => {
       }
     }
 
+    // カラム追加（既存DBへのマイグレーション）
+    await client.query(`
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_start TIMESTAMPTZ;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_end TIMESTAMPTZ;
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();
