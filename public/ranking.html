@@ -101,11 +101,11 @@ document.querySelectorAll('#attr-filter .attr-btn').forEach(btn => {
 async function loadEvent() {
   try {
     const event = await apiFetch(`/events/${eventId}`);
-    document.title = `第${event.event_number}回 ${event.name} - HBR`;
+    document.title = `${event.name} - HBR`;
 
     document.getElementById('event-header').innerHTML = `
       <a class="back-link" href="/index.html">← イベント一覧</a>
-      <h1 class="page-title">第${event.event_number}回 ${escHtml(event.name)}</h1>
+      <h1 class="page-title">${escHtml(event.name)}</h1>
       ${event.description ? `<p class="page-subtitle">${escHtml(event.description)}</p>` : '<div style="margin-bottom:20px"></div>'}
     `;
 
