@@ -391,14 +391,15 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
   const alertEl = '#create-event-alert';
   clearAlert(alertEl);
   try {
+    const toISO = v => v ? new Date(v).toISOString() : null;
     await apiFetch('/admin/events', {
       method: 'POST',
       body: JSON.stringify({
         event_number: parseInt(document.getElementById('event-number').value),
         name: document.getElementById('event-name').value,
         description: document.getElementById('event-desc').value,
-        submission_start: document.getElementById('event-start').value || null,
-        submission_end: document.getElementById('event-end').value || null
+        submission_start: toISO(document.getElementById('event-start').value),
+        submission_end: toISO(document.getElementById('event-end').value)
       })
     });
     showAlert(alertEl, 'イベントを作成しました', 'success');
@@ -438,13 +439,14 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
   const alertEl = document.getElementById('event-edit-alert');
   alertEl.innerHTML = '';
   try {
+    const toISO = v => v ? new Date(v).toISOString() : null;
     await apiFetch(`/admin/events/${id}`, {
       method: 'PUT',
       body: JSON.stringify({
         name: document.getElementById('edit-event-name').value,
         description: document.getElementById('edit-event-desc').value,
-        submission_start: document.getElementById('edit-event-start').value || null,
-        submission_end: document.getElementById('edit-event-end').value || null,
+        submission_start: toISO(document.getElementById('edit-event-start').value),
+        submission_end: toISO(document.getElementById('edit-event-end').value),
         is_active: document.getElementById('edit-event-active').checked
       })
     });
