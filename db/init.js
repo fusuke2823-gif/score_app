@@ -78,6 +78,7 @@ const initDB = async () => {
 
     // カラム追加・テーブル追加（既存DBへのマイグレーション）
     await client.query(`
+      ALTER TABLE enemies ADD COLUMN IF NOT EXISTS weak_attributes TEXT;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_start TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_end TIMESTAMPTZ;
 

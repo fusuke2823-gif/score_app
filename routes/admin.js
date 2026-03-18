@@ -147,7 +147,7 @@ router.put('/events/:id/rules', async (req, res) => {
 
 // 敵追加
 router.post('/events/:id/enemies', upload.single('image'), async (req, res) => {
-  const { name, hp, dp, ep, use_ep, destruction_rate, order_index, rules } = req.body;
+  const { name, hp, dp, ep, use_ep, destruction_rate, order_index, rules, weak_attributes } = req.body;
   try {
     let imageUrl = null;
     if (req.file) {
@@ -163,13 +163,13 @@ router.post('/events/:id/enemies', upload.single('image'), async (req, res) => {
     }
 
     const enemyResult = await pool.query(
-      `INSERT INTO enemies (event_id, name, image_url, hp, dp, ep, use_ep, destruction_rate, order_index)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      `INSERT INTO enemies (event_id, name, image_url, hp, dp, ep, use_ep, destruction_rate, order_index, weak_attributes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
       [
         req.params.id, name, imageUrl,
         hp || null, dp || null, ep || null,
         use_ep === 'true', destruction_rate || null,
-        parseInt(order_index) || 0
+        parseInt(order_index) || 0, weak_attributes || null
       ]
     );
 
@@ -195,7 +195,7 @@ router.post('/events/:id/enemies', upload.single('image'), async (req, res) => {
 
 // 敵更新
 router.put('/enemies/:id', upload.single('image'), async (req, res) => {
-  const { name, hp, dp, ep, use_ep, destruction_rate, order_index, rules } = req.body;
+  const { name, hp, dp, ep, use_ep, destruction_rate, order_index, rules, weak_attributes } = req.body;
   try {
     let imageUrl = null;
     if (req.file) {
@@ -214,16 +214,16 @@ router.put('/enemies/:id', upload.single('image'), async (req, res) => {
     if (imageUrl) {
       result = await pool.query(
         `UPDATE enemies SET name=$1, image_url=$2, hp=$3, dp=$4, ep=$5, use_ep=$6,
-         destruction_rate=$7, order_index=$8 WHERE id=$9 RETURNING *`,
+         destruction_rate=$7, order_index=$8, weak_attributes=$9 WHERE id=$10 RETURNING *`,
         [name, imageUrl, hp || null, dp || null, ep || null, use_ep === 'true',
-         destruction_rate || null, parseInt(order_index) || 0, req.params.id]
+         destruction_rate || null, parseInt(order_index) || 0, weak_attributes || null, req.params.id]
       );
     } else {
       result = await pool.query(
         `UPDATE enemies SET name=$1, hp=$2, dp=$3, ep=$4, use_ep=$5,
-         destruction_rate=$6, order_index=$7 WHERE id=$8 RETURNING *`,
+         destruction_rate=$6, order_index=$7, weak_attributes=$8 WHERE id=$9 RETURNING *`,
         [name, hp || null, dp || null, ep || null, use_ep === 'true',
-         destruction_rate || null, parseInt(order_index) || 0, req.params.id]
+         destruction_rate || null, parseInt(order_index) || 0, weak_attributes || null, req.params.id]
       );
     }
 

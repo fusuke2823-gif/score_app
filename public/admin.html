@@ -171,6 +171,16 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">弱点属性（任意・複数選択可）</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+            <label style="cursor:pointer"><input type="checkbox" name="weak-attr" value="火"> 火</label>
+            <label style="cursor:pointer"><input type="checkbox" name="weak-attr" value="氷"> 氷</label>
+            <label style="cursor:pointer"><input type="checkbox" name="weak-attr" value="雷"> 雷</label>
+            <label style="cursor:pointer"><input type="checkbox" name="weak-attr" value="光"> 光</label>
+            <label style="cursor:pointer"><input type="checkbox" name="weak-attr" value="闇"> 闇</label>
+          </div>
+        </div>
+        <div class="form-group">
           <label class="form-label">敵画像（任意）</label>
           <input class="form-input" type="file" id="enemy-img" accept="image/*" style="padding:8px">
         </div>
@@ -516,6 +526,7 @@ function openAddEnemy(eventId) {
   document.getElementById('enemy-form-alert').innerHTML = '';
   document.getElementById('dp-group').style.display = '';
   document.getElementById('ep-group').style.display = 'none';
+  document.querySelectorAll('input[name="weak-attr"]').forEach(c => c.checked = false);
   document.getElementById('enemy-modal').style.display = '';
 }
 
@@ -540,6 +551,8 @@ document.getElementById('enemy-form').addEventListener('submit', async e => {
   formData.append('use_ep', isEp);
   formData.append('destruction_rate', document.getElementById('enemy-dest').value);
   formData.append('order_index', document.getElementById('enemy-order').value);
+  const weakAttrs = [...document.querySelectorAll('input[name="weak-attr"]:checked')].map(c => c.value).join(',');
+  formData.append('weak_attributes', weakAttrs);
   const imgFile = document.getElementById('enemy-img').files[0];
   if (imgFile) formData.append('image', imgFile);
 

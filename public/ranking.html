@@ -145,6 +145,10 @@ function renderEnemy(enemy) {
     : `<span class="enemy-stat"><span class="enemy-stat-label">HP</span><span class="enemy-stat-val">${enemy.hp ? Number(enemy.hp).toLocaleString() : '-'}</span></span>
        <span class="enemy-stat"><span class="enemy-stat-label">DP</span><span class="enemy-stat-val">${enemy.dp ? Number(enemy.dp).toLocaleString() : '-'}</span></span>`;
 
+  const weakBadges = enemy.weak_attributes
+    ? enemy.weak_attributes.split(',').filter(Boolean).map(a => attrBadge(a)).join('')
+    : '';
+
   return `<div class="enemy-card">
     ${enemy.image_url ? `<img class="enemy-img" src="${escHtml(enemy.image_url)}" alt="${escHtml(enemy.name)}">` : ''}
     <div class="enemy-name">${escHtml(enemy.name)}</div>
@@ -152,6 +156,7 @@ function renderEnemy(enemy) {
       ${hpDpEp}
       ${enemy.destruction_rate ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${escHtml(enemy.destruction_rate)}</span></span>` : ''}
     </div>
+    ${weakBadges ? `<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:0.75rem;color:var(--text-muted);margin-right:2px">弱点</span>${weakBadges}</div>` : ''}
   </div>`;
 }
 
