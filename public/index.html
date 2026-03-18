@@ -31,12 +31,28 @@ async function load() {
       </div>`;
       return;
     }
-    el.innerHTML = `<div class="event-grid">${events.map(e => `
+    const now = new Date();
+    el.innerHTML = `<div class="event-grid">${events.map(e => {
+      const start = e.submission_start ? new Date(e.submission_start) : null;
+      const end = e.submission_end ? new Date(e.submission_end) : null;
+      let statusLabel, statusStyle;
+      if (start && now < start) {
+        statusLabel = '開催前';
+        statusStyle = 'color:var(--text-muted)';
+      } else if (end && now > end) {
+        statusLabel = '終了';
+        statusStyle = 'color:var(--text-muted)';
+      } else {
+        statusLabel = '開催中';
+        statusStyle = 'color:#4caf50;font-weight:bold';
+      }
+      return `
       <a class="event-card" href="/ranking.html?id=${e.id}">
         <div class="event-number">第${e.event_number}回</div>
         <div class="event-name">${escHtml(e.name)}</div>
-        <div class="event-meta">${formatDate(e.created_at)}</div>
-      </a>`).join('')}</div>`;
+        <div class="event-meta" style="${statusStyle}">${statusLabel}</div>
+      </a>`;
+    }).join('')}</div>`;
   } catch (err) {
     showAlert('#alert', err.message);
   }
