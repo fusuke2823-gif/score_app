@@ -365,8 +365,7 @@ async function loadEnemyList(eventId) {
             <div style="font-size:0.75rem;color:var(--text-muted)">
               HP: ${en.hp ? Number(en.hp).toLocaleString() : '-'} /
               ${en.use_ep ? 'EP' : 'DP'}: ${(en.use_ep ? en.ep : en.dp) ? Number(en.use_ep ? en.ep : en.dp).toLocaleString() : '-'} /
-              破壊率: ${en.destruction_rate || '-'} /
-              ルール: ${en.rules.length}件
+              破壊率: ${en.destruction_rate || '-'}
             </div>
           </div>
         </div>
@@ -490,37 +489,20 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
 });
 
 // ===== 敵追加モーダル =====
-let rulesCount = 0;
 function openAddEnemy(eventId) {
   document.getElementById('enemy-event-id').value = eventId;
   document.getElementById('enemy-id').value = '';
   document.getElementById('enemy-modal-title').textContent = '敵を追加';
   document.getElementById('enemy-submit-btn').textContent = '追加する';
   document.getElementById('enemy-form').reset();
-  document.getElementById('rules-container').innerHTML = '';
   document.getElementById('enemy-form-alert').innerHTML = '';
   document.getElementById('dp-group').style.display = '';
   document.getElementById('ep-group').style.display = 'none';
-  rulesCount = 0;
-  addRule(); addRule(); addRule();
   document.getElementById('enemy-modal').style.display = '';
 }
 
 function closeEnemyModal() {
   document.getElementById('enemy-modal').style.display = 'none';
-}
-
-function addRule() {
-  rulesCount++;
-  const id = `rule-${rulesCount}`;
-  const div = document.createElement('div');
-  div.className = 'rule-item';
-  div.id = `rule-wrap-${rulesCount}`;
-  div.innerHTML = `
-    <input class="form-input" type="text" id="${id}" placeholder="ルール内容">
-    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('rule-wrap-${rulesCount}').remove()">×</button>
-  `;
-  document.getElementById('rules-container').appendChild(div);
 }
 
 document.getElementById('enemy-form').addEventListener('submit', async e => {
@@ -530,8 +512,6 @@ document.getElementById('enemy-form').addEventListener('submit', async e => {
   const btn = document.getElementById('enemy-submit-btn');
   btn.disabled = true;
 
-  const rules = [...document.querySelectorAll('#rules-container input[type="text"]')]
-    .map(i => i.value).filter(v => v.trim());
   const isEp = document.querySelector('input[name="dpep"]:checked').value === 'ep';
 
   const formData = new FormData();
@@ -542,7 +522,6 @@ document.getElementById('enemy-form').addEventListener('submit', async e => {
   formData.append('use_ep', isEp);
   formData.append('destruction_rate', document.getElementById('enemy-dest').value);
   formData.append('order_index', document.getElementById('enemy-order').value);
-  formData.append('rules', JSON.stringify(rules));
   const imgFile = document.getElementById('enemy-img').files[0];
   if (imgFile) formData.append('image', imgFile);
 
