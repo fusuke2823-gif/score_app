@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ログイン - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<div class="auth-wrap">
+  <div class="auth-card card">
+    <h1 class="auth-title">ログイン</h1>
+    <div id="alert"></div>
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label">ユーザー名</label>
+        <input class="form-input" type="text" id="username" required autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">パスワード</label>
+        <input class="form-input" type="password" id="password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn">ログイン</button>
+    </form>
+    <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-secondary)">
+      アカウントがない方は <a href="/register.html">新規登録</a>
+    </p>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (getToken()) location.href = '/index.html';
+
+document.getElementById('login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearAlert('#alert');
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'ログイン中...';
+
+  try {
+    const data = await apiFetch('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      })
+    });
+    setAuth(data.token, data.user);
+    location.href = '/index.html';
+  } catch (err) {
+    showAlert('#alert', err.message);
+    btn.disabled = false;
+    btn.textContent = 'ログイン';
+  }
+});
+</script>
+</body>
+</html>

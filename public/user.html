@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ユーザー詳細 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <a class="back-link" href="javascript:history.back()" style="color:var(--text-secondary);font-size:.85rem;display:inline-block;margin-bottom:16px">← 戻る</a>
+  <div id="alert"></div>
+  <div id="content">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+</main>
+
+<style>
+.back-link { text-decoration:none; }
+.back-link:hover { color:var(--text-primary) !important; }
+.score-grid {
+  display: grid;
+  gap: 16px;
+}
+.event-score-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.event-score-header {
+  padding: 12px 16px;
+  background: var(--bg-card2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.event-score-title { font-weight: bold; font-size: 0.95rem; }
+.event-rank-badge {
+  background: var(--accent-dim);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: bold;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.attr-score-list { padding: 12px 16px; display:flex; flex-wrap:wrap; gap:10px; }
+.attr-score-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+.attr-score-val { font-weight: bold; font-variant-numeric: tabular-nums; }
+.attr-score-img { width:32px; height:22px; object-fit:cover; border-radius:3px; cursor:pointer; border:1px solid var(--border); }
+
+#img-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; }
+#img-modal.open { display:flex; }
+#img-modal img { max-width:90vw; max-height:90vh; border-radius:8px; }
+#img-modal-close { position:fixed; top:16px; right:20px; background:none; border:none; color:white; font-size:2rem; cursor:pointer; }
+</style>
+
+<div id="img-modal">
+  <button id="img-modal-close" onclick="closeModal()">×</button>
+  <img id="modal-img" src="" alt="">
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+
+const userId = getParam('id');
+if (!userId) location.href = '/index.html';
+
+async function load() {
+  try {
+    const data = await apiFetch(`/users/${userId}`);
+    document.title = `${data.username} - HBR`;
+
+    // イベントごとにスコアをグループ化
+    const eventMap = {};
+    data.scores.forEach(s => {
+      if (!eventMap[s.event_id]) {
+        eventMap[s.event_id] = {
+          event_id: s.event_id,
+          event_number: s.event_number,
+          event_name: s.event_name,
+          scores: []
+        };
+      }
+      eventMap[s.event_id].scores.push(s);
+    });
+
+    const events = Object.values(eventMap).sort((a, b) => b.event_number - a.event_number);
+
+    document.getElementById('content').innerHTML = `
+      <div class="user-header">
+        <div class="user-avatar">${escHtml(data.username.charAt(0))}</div>
+        <div class="user-info">
+          <h2>${escHtml(data.username)}</h2>
+          ${data.oshi_character
+            ? `<div class="user-oshi">推し: ${escHtml(data.oshi_character)}</div>`
+            : ''}
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">参加: ${formatDate(data.created_at)}</div>
+        </div>
+      </div>
+
+      ${events.length === 0
+        ? `<div class="empty-state"><div class="empty-state-icon">📊</div><p>承認済みスコアがありません</p></div>`
+        : `<div class="score-grid">
+            ${events.map(e => `
+              <div class="event-score-card">
+                <div class="event-score-header">
+                  <div>
+                    <span style="font-size:0.8rem;color:var(--accent);margin-right:8px">第${e.event_number}回</span>
+                    <a href="/ranking.html?id=${e.event_id}" class="event-score-title">${escHtml(e.event_name)}</a>
+                  </div>
+                  ${data.ranks[e.event_id] ? `<span class="event-rank-badge">全属性 ${data.ranks[e.event_id]}位</span>` : ''}
+                </div>
+                <div class="attr-score-list">
+                  ${e.scores.map(s => `
+                    <div class="attr-score-item">
+                      ${attrBadge(s.attribute, true)}
+                      <span class="attr-score-val">${formatScore(s.approved_score)}</span>
+                      ${s.approved_image_url
+                        ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="リザルト" onclick="openModal('${escHtml(s.approved_image_url)}')">`
+                        : ''}
+                    </div>`).join('')}
+                </div>
+              </div>`).join('')}
+          </div>`
+      }
+    `;
+  } catch (err) {
+    showAlert('#alert', err.message);
+    document.getElementById('content').innerHTML = '';
+  }
+}
+
+function openModal(url) {
+  document.getElementById('modal-img').src = url;
+  document.getElementById('img-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('img-modal').classList.remove('open');
+}
+document.getElementById('img-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+load();
+</script>
+</body>
+</html>

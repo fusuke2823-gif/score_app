@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スコア投稿 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title">スコア投稿</h1>
+  <p class="page-subtitle">リザルト画像とともにスコアを投稿してください</p>
+
+  <div class="submit-card">
+    <div id="alert"></div>
+    <div class="card">
+      <form id="submit-form">
+        <div class="form-group">
+          <label class="form-label">イベント</label>
+          <select class="form-select" id="event-select" required>
+            <option value="">選択してください</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">属性</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px" id="attr-select">
+            <!-- 属性ラジオボタン -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">スコア</label>
+          <input class="form-input" type="number" id="score-input" min="0" placeholder="例: 12345678" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">リザルト画像</label>
+          <input class="form-input" type="file" id="image-input" accept="image/*" style="padding:8px">
+          <div class="form-hint">JPG・PNG・WebP対応 / 最大10MB</div>
+          <img id="image-preview" class="img-preview" style="display:none">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn">投稿する</button>
+      </form>
+    </div>
+
+    <!-- 現在の投稿状況 -->
+    <div id="my-scores" style="margin-top:24px"></div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireLogin()) throw new Error('redirect');
+
+// 属性ラジオ生成
+const attrContainer = document.getElementById('attr-select');
+ATTRIBUTES.forEach(attr => {
+  const label = document.createElement('label');
+  label.style.cssText = 'cursor:pointer';
+  label.innerHTML = `
+    <input type="radio" name="attribute" value="${attr}" style="display:none">
+    <span class="attr-btn attr-${attr}">${attr}</span>
+  `;
+  const radio = label.querySelector('input');
+  radio.addEventListener('change', () => {
+    attrContainer.querySelectorAll('.attr-btn').forEach(b => b.classList.remove('active'));
+    if (radio.checked) label.querySelector('.attr-btn').classList.add('active');
+    loadMyScores();
+  });
+  attrContainer.appendChild(label);
+});
+
+// 画像プレビュー
+document.getElementById('image-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  const preview = document.getElementById('image-preview');
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+});
+
+// イベント一覧読み込み
+async function loadEvents() {
+  try {
+    const events = await apiFetch('/events');
+    const sel = document.getElementById('event-select');
+    events.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.textContent = `第${e.event_number}回 ${e.name}`;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', loadMyScores);
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+// 自分のスコア表示
+async function loadMyScores() {
+  const eventId = document.getElementById('event-select').value;
+  const container = document.getElementById('my-scores');
+  if (!eventId) { container.innerHTML = ''; return; }
+
+  try {
+    const scores = await apiFetch(`/scores/my/${eventId}`);
+    if (scores.length === 0) { container.innerHTML = ''; return; }
+
+    container.innerHTML = `
+      <h3 style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">このイベントの投稿状況</h3>
+      <div class="card">
+        <table class="ranking-table">
+          <thead><tr><th>属性</th><th>承認済みスコア</th><th>承認待ちスコア</th><th>状態</th></tr></thead>
+          <tbody>
+            ${scores.map(s => `
+              <tr>
+                <td>${attrBadge(s.attribute)}</td>
+                <td>${formatScore(s.approved_score)}</td>
+                <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
+                <td>${statusBadge(s.status)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch {}
+}
+
+// フォーム送信
+document.getElementById('submit-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearAlert('#alert');
+
+  const eventId = document.getElementById('event-select').value;
+  const attrInput = document.querySelector('input[name="attribute"]:checked');
+  const score = document.getElementById('score-input').value;
+  const imageFile = document.getElementById('image-input').files[0];
+  const btn = document.getElementById('submit-btn');
+
+  if (!eventId) return showAlert('#alert', 'イベントを選択してください');
+  if (!attrInput) return showAlert('#alert', '属性を選択してください');
+  if (!score) return showAlert('#alert', 'スコアを入力してください');
+
+  const formData = new FormData();
+  formData.append('event_id', eventId);
+  formData.append('attribute', attrInput.value);
+  formData.append('score', score);
+  if (imageFile) formData.append('image', imageFile);
+
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+
+  try {
+    const res = await apiFormFetch('/scores', formData);
+    showAlert('#alert', res.message, 'success');
+    document.getElementById('score-input').value = '';
+    document.getElementById('image-input').value = '';
+    document.getElementById('image-preview').style.display = 'none';
+    loadMyScores();
+  } catch (err) {
+    showAlert('#alert', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '投稿する';
+  }
+});
+
+loadEvents();
+</script>
+</body>
+</html>

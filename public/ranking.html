@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ランキング - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <div id="event-header"></div>
+  <div id="alert"></div>
+
+  <!-- 敵情報 -->
+  <div id="enemy-section"></div>
+
+  <!-- 属性フィルター -->
+  <div id="filter-section" style="display:none">
+    <div class="attr-filter" id="attr-filter">
+      <button class="attr-btn attr-btn-all active" data-attr="all">全属性</button>
+      <button class="attr-btn attr-火" data-attr="火">火</button>
+      <button class="attr-btn attr-氷" data-attr="氷">氷</button>
+      <button class="attr-btn attr-雷" data-attr="雷">雷</button>
+      <button class="attr-btn attr-光" data-attr="光">光</button>
+      <button class="attr-btn attr-闇" data-attr="闇">闇</button>
+      <button class="attr-btn attr-無" data-attr="無">無</button>
+    </div>
+  </div>
+
+  <!-- ランキング -->
+  <div class="card">
+    <div id="ranking-content">
+      <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    </div>
+  </div>
+</main>
+
+<style>
+.back-link { color: var(--text-secondary); font-size:0.85rem; margin-bottom:16px; display:inline-block; }
+.back-link:hover { color: var(--text-primary); }
+.result-thumb { width:40px; height:28px; object-fit:cover; border-radius:3px; cursor:pointer; border:1px solid var(--border); vertical-align:middle; }
+
+/* モーダル */
+#img-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; }
+#img-modal.open { display:flex; }
+#img-modal img { max-width:90vw; max-height:90vh; border-radius:8px; }
+#img-modal-close { position:fixed; top:16px; right:20px; background:none; border:none; color:white; font-size:2rem; cursor:pointer; }
+</style>
+
+<div id="img-modal">
+  <button id="img-modal-close" onclick="closeModal()">×</button>
+  <img id="modal-img" src="" alt="">
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+
+const eventId = getParam('id');
+if (!eventId) location.href = '/index.html';
+
+let selectedAttrs = new Set(ATTRIBUTES);
+
+// 属性フィルターの初期化
+document.querySelectorAll('#attr-filter .attr-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const attr = btn.dataset.attr;
+    if (attr === 'all') {
+      selectedAttrs = new Set(ATTRIBUTES);
+      document.querySelectorAll('#attr-filter .attr-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    } else {
+      document.querySelector('[data-attr="all"]').classList.remove('active');
+      if (selectedAttrs.has(attr)) {
+        selectedAttrs.delete(attr);
+        btn.classList.remove('active');
+      } else {
+        selectedAttrs.add(attr);
+        btn.classList.add('active');
+      }
+      if (selectedAttrs.size === 0) {
+        selectedAttrs = new Set(ATTRIBUTES);
+        document.querySelectorAll('#attr-filter .attr-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('[data-attr="all"]').classList.add('active');
+      } else if (selectedAttrs.size === ATTRIBUTES.length) {
+        document.querySelector('[data-attr="all"]').classList.add('active');
+      }
+    }
+    loadRanking();
+  });
+});
+
+// イベント詳細
+async function loadEvent() {
+  try {
+    const event = await apiFetch(`/events/${eventId}`);
+    document.title = `第${event.event_number}回 ${event.name} - HBR`;
+
+    document.getElementById('event-header').innerHTML = `
+      <a class="back-link" href="/index.html">← イベント一覧</a>
+      <h1 class="page-title">第${event.event_number}回 ${escHtml(event.name)}</h1>
+      ${event.description ? `<p class="page-subtitle">${escHtml(event.description)}</p>` : '<div style="margin-bottom:20px"></div>'}
+    `;
+
+    if (event.enemies && event.enemies.length > 0) {
+      document.getElementById('enemy-section').innerHTML = `
+        <div class="enemy-section">
+          <div class="enemy-section-title">出現する敵</div>
+          <div class="enemy-cards">
+            ${event.enemies.map(enemy => renderEnemy(enemy)).join('')}
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('filter-section').style.display = '';
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+function renderEnemy(enemy) {
+  const hpDpEp = enemy.use_ep
+    ? `<span class="enemy-stat"><span class="enemy-stat-label">HP</span><span class="enemy-stat-val">${enemy.hp ? Number(enemy.hp).toLocaleString() : '-'}</span></span>
+       <span class="enemy-stat"><span class="enemy-stat-label">EP</span><span class="enemy-stat-val">${enemy.ep ? Number(enemy.ep).toLocaleString() : '-'}</span></span>`
+    : `<span class="enemy-stat"><span class="enemy-stat-label">HP</span><span class="enemy-stat-val">${enemy.hp ? Number(enemy.hp).toLocaleString() : '-'}</span></span>
+       <span class="enemy-stat"><span class="enemy-stat-label">DP</span><span class="enemy-stat-val">${enemy.dp ? Number(enemy.dp).toLocaleString() : '-'}</span></span>`;
+
+  return `<div class="enemy-card">
+    ${enemy.image_url ? `<img class="enemy-img" src="${escHtml(enemy.image_url)}" alt="${escHtml(enemy.name)}">` : ''}
+    <div class="enemy-name">${escHtml(enemy.name)}</div>
+    <div class="enemy-stats">
+      ${hpDpEp}
+      ${enemy.destruction_rate ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${escHtml(enemy.destruction_rate)}</span></span>` : ''}
+    </div>
+    ${enemy.rules && enemy.rules.length > 0 ? `
+      <ul class="enemy-rules">
+        ${enemy.rules.map(r => `<li>${escHtml(r.rule_text)}</li>`).join('')}
+      </ul>` : ''}
+  </div>`;
+}
+
+// ランキング
+async function loadRanking() {
+  const rankEl = document.getElementById('ranking-content');
+  rankEl.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+
+  try {
+    const attrs = [...selectedAttrs].join(',');
+    const ranking = await apiFetch(`/events/${eventId}/ranking?attributes=${encodeURIComponent(attrs)}`);
+
+    if (ranking.length === 0) {
+      rankEl.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        <p>選択した属性のスコアデータがありません</p>
+      </div>`;
+      return;
+    }
+
+    rankEl.innerHTML = `
+      <table class="ranking-table">
+        <thead>
+          <tr>
+            <th style="width:50px">順位</th>
+            <th style="width:50px">属性</th>
+            <th>プレイヤー</th>
+            <th style="text-align:right">スコア</th>
+            <th style="width:50px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${ranking.map(r => `
+            <tr class="rank-${r.rank}">
+              <td><span class="rank-num">${r.rank}</span></td>
+              <td>${attrBadge(r.attribute)}</td>
+              <td>
+                <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
+                ${r.oshi_character ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">${escHtml(r.oshi_character)}</span>` : ''}
+              </td>
+              <td style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
+              <td style="text-align:center">
+                ${r.approved_image_url
+                  ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="結果" onclick="openModal('${escHtml(r.approved_image_url)}')">`
+                  : ''}
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    rankEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function openModal(url) {
+  document.getElementById('modal-img').src = url;
+  document.getElementById('img-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('img-modal').classList.remove('open');
+}
+document.getElementById('img-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+loadEvent();
+loadRanking();
+</script>
+</body>
+</html>

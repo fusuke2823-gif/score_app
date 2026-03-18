@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理画面 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
+.pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
+.note-input { width:100%; margin-top:6px; }
+.enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
+.rule-item { display:flex; gap:8px; margin-bottom:8px; }
+.rule-item input { flex:1; }
+.rule-item button { flex-shrink:0; }
+.event-list-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+}
+.event-list-item:last-child { border-bottom:none; }
+.collapse-toggle { cursor:pointer; user-select:none; }
+.collapse-content { display:none; padding:16px; border-top:1px solid var(--border); background:var(--bg-primary); border-radius:0 0 10px 10px; }
+.collapse-content.open { display:block; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title">管理画面</h1>
+  <div id="alert"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
+    <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
+    <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
+  </div>
+
+  <!-- 承認待ち -->
+  <div class="tab-content active" id="tab-pending">
+    <div id="pending-list">
+      <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- イベント管理 -->
+  <div class="tab-content" id="tab-events">
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">新規イベント作成</div>
+      <form id="create-event-form">
+        <div class="enemy-form-grid">
+          <div class="form-group">
+            <label class="form-label">イベント番号</label>
+            <input class="form-input" type="number" id="event-number" min="1" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">イベント名</label>
+            <input class="form-input" type="text" id="event-name" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">説明（任意）</label>
+          <textarea class="form-textarea" id="event-desc" rows="2"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">作成</button>
+      </form>
+      <div id="create-event-alert" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">イベント一覧</div>
+      <div id="event-list">
+        <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全スコア一覧 -->
+  <div class="tab-content" id="tab-all-scores">
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select class="form-select" id="filter-event" style="max-width:260px">
+        <option value="">全イベント</option>
+      </select>
+      <select class="form-select" id="filter-status" style="max-width:160px">
+        <option value="">全ステータス</option>
+        <option value="pending">承認待ち</option>
+        <option value="approved">承認済み</option>
+        <option value="rejected">却下</option>
+      </select>
+      <button class="btn btn-secondary" onclick="loadAllScores()">絞り込み</button>
+    </div>
+    <div class="card">
+      <div id="all-scores-list">
+        <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- 敵追加モーダル -->
+<div id="enemy-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;overflow-y:auto">
+  <div style="max-width:600px;margin:40px auto;padding:16px">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 id="enemy-modal-title">敵を追加</h3>
+        <button class="btn btn-secondary btn-sm" onclick="closeEnemyModal()">×</button>
+      </div>
+      <form id="enemy-form">
+        <input type="hidden" id="enemy-event-id">
+        <input type="hidden" id="enemy-id">
+        <div class="enemy-form-grid">
+          <div class="form-group">
+            <label class="form-label">敵名</label>
+            <input class="form-input" type="text" id="enemy-name" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">表示順</label>
+            <input class="form-input" type="number" id="enemy-order" value="0" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">HP</label>
+            <input class="form-input" type="number" id="enemy-hp" min="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">破壊率</label>
+            <input class="form-input" type="text" id="enemy-dest" placeholder="例: 100%">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">DP / EP の選択</label>
+          <div style="display:flex;gap:16px">
+            <label style="cursor:pointer"><input type="radio" name="dpep" value="dp" checked> DP</label>
+            <label style="cursor:pointer"><input type="radio" name="dpep" value="ep"> EP</label>
+          </div>
+        </div>
+        <div class="enemy-form-grid">
+          <div class="form-group" id="dp-group">
+            <label class="form-label">DP</label>
+            <input class="form-input" type="number" id="enemy-dp" min="0">
+          </div>
+          <div class="form-group" id="ep-group" style="display:none">
+            <label class="form-label">EP</label>
+            <input class="form-input" type="number" id="enemy-ep" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">敵画像（任意）</label>
+          <input class="form-input" type="file" id="enemy-img" accept="image/*" style="padding:8px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">ルール</label>
+          <div id="rules-container"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addRule()">+ ルール追加</button>
+        </div>
+        <div id="enemy-form-alert" style="margin-top:12px"></div>
+        <button type="submit" class="btn btn-primary" id="enemy-submit-btn">追加する</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+let currentEvents = [];
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const tabs = ['pending','events','all-scores'];
+    b.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'pending') loadPending();
+  if (name === 'events') loadEvents();
+  if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
+}
+
+// DP/EP切り替え
+document.querySelectorAll('input[name="dpep"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const isEp = document.querySelector('input[name="dpep"]:checked').value === 'ep';
+    document.getElementById('dp-group').style.display = isEp ? 'none' : '';
+    document.getElementById('ep-group').style.display = isEp ? '' : 'none';
+  });
+});
+
+// ===== 承認待ち =====
+async function loadPending() {
+  const el = document.getElementById('pending-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  try {
+    const items = await apiFetch('/admin/pending');
+    document.getElementById('pending-count').textContent = items.length > 0 ? `(${items.length})` : '';
+
+    if (items.length === 0) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>承認待ちのスコアはありません</p></div>';
+      return;
+    }
+
+    el.innerHTML = items.map(item => `
+      <div class="pending-item" id="pending-${item.id}">
+        <div class="pending-info">
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">
+            第${item.event_number}回 ${escHtml(item.event_name)}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            ${attrBadge(item.attribute)}
+            <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
+          </div>
+          <div class="pending-score">${formatScore(item.pending_score)}</div>
+          ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${formatDate(item.updated_at)}</div>
+          <div style="margin-top:8px">
+            <input class="form-input" type="text" placeholder="却下理由（任意）" id="note-${item.id}" style="font-size:0.85rem">
+          </div>
+        </div>
+        ${item.pending_image_url
+          ? `<div class="pending-img-wrap">
+               <img src="${escHtml(item.pending_image_url)}" alt="リザルト" style="cursor:pointer" onclick="window.open('${escHtml(item.pending_image_url)}','_blank')">
+             </div>` : ''}
+        <div class="pending-actions">
+          <button class="btn btn-success btn-sm" onclick="approveScore(${item.id})">承認</button>
+          <button class="btn btn-danger btn-sm" onclick="rejectScore(${item.id})">却下</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function approveScore(id) {
+  try {
+    await apiFetch(`/admin/scores/${id}/approve`, { method: 'POST' });
+    document.getElementById(`pending-${id}`)?.remove();
+    showAlert('#alert', '承認しました', 'success');
+    const cnt = document.querySelectorAll('[id^="pending-"]').length;
+    document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+async function rejectScore(id) {
+  const note = document.getElementById(`note-${id}`)?.value || '';
+  try {
+    await apiFetch(`/admin/scores/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note })
+    });
+    document.getElementById(`pending-${id}`)?.remove();
+    showAlert('#alert', '却下しました', 'info');
+    const cnt = document.querySelectorAll('[id^="pending-"]').length;
+    document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+// ===== イベント管理 =====
+async function loadEvents() {
+  const el = document.getElementById('event-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const events = await apiFetch('/events');
+    currentEvents = events;
+    if (events.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>イベントがありません</p></div>';
+      return;
+    }
+    el.innerHTML = events.map(e => `
+      <div>
+        <div class="event-list-item">
+          <div>
+            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+            <strong>${escHtml(e.name)}</strong>
+            ${!e.is_active ? '<span class="status-badge status-rejected" style="margin-left:8px">非表示</span>' : ''}
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-secondary btn-sm collapse-toggle" onclick="toggleEnemies(${e.id})">敵情報</button>
+            <button class="btn btn-secondary btn-sm" onclick="openAddEnemy(${e.id})">+ 敵追加</button>
+          </div>
+        </div>
+        <div class="collapse-content" id="enemies-${e.id}">
+          <div id="enemy-list-${e.id}">読み込み中...</div>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function toggleEnemies(eventId) {
+  const el = document.getElementById(`enemies-${eventId}`);
+  el.classList.toggle('open');
+  if (el.classList.contains('open')) {
+    loadEnemyList(eventId);
+  }
+}
+
+async function loadEnemyList(eventId) {
+  const el = document.getElementById(`enemy-list-${eventId}`);
+  try {
+    const event = await apiFetch(`/events/${eventId}`);
+    if (event.enemies.length === 0) {
+      el.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem">敵情報がありません</p>';
+      return;
+    }
+    el.innerHTML = event.enemies.map(en => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          ${en.image_url ? `<img src="${escHtml(en.image_url)}" style="width:40px;height:28px;object-fit:cover;border-radius:4px">` : ''}
+          <div>
+            <div style="font-weight:bold;font-size:0.9rem">${escHtml(en.name)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">
+              HP: ${en.hp ? Number(en.hp).toLocaleString() : '-'} /
+              ${en.use_ep ? 'EP' : 'DP'}: ${(en.use_ep ? en.ep : en.dp) ? Number(en.use_ep ? en.ep : en.dp).toLocaleString() : '-'} /
+              破壊率: ${en.destruction_rate || '-'} /
+              ルール: ${en.rules.length}件
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteEnemy(${en.id}, ${eventId})">削除</button>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function deleteEnemy(enemyId, eventId) {
+  if (!confirm('この敵情報を削除しますか？')) return;
+  try {
+    await apiFetch(`/admin/enemies/${enemyId}`, { method: 'DELETE' });
+    loadEnemyList(eventId);
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+// イベント作成
+document.getElementById('create-event-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const alertEl = '#create-event-alert';
+  clearAlert(alertEl);
+  try {
+    await apiFetch('/admin/events', {
+      method: 'POST',
+      body: JSON.stringify({
+        event_number: parseInt(document.getElementById('event-number').value),
+        name: document.getElementById('event-name').value,
+        description: document.getElementById('event-desc').value
+      })
+    });
+    showAlert(alertEl, 'イベントを作成しました', 'success');
+    document.getElementById('create-event-form').reset();
+    loadEvents();
+  } catch (err) { showAlert(alertEl, err.message); }
+});
+
+// ===== 敵追加モーダル =====
+let rulesCount = 0;
+function openAddEnemy(eventId) {
+  document.getElementById('enemy-event-id').value = eventId;
+  document.getElementById('enemy-id').value = '';
+  document.getElementById('enemy-modal-title').textContent = '敵を追加';
+  document.getElementById('enemy-submit-btn').textContent = '追加する';
+  document.getElementById('enemy-form').reset();
+  document.getElementById('rules-container').innerHTML = '';
+  document.getElementById('enemy-form-alert').innerHTML = '';
+  document.getElementById('dp-group').style.display = '';
+  document.getElementById('ep-group').style.display = 'none';
+  rulesCount = 0;
+  addRule(); addRule(); addRule();
+  document.getElementById('enemy-modal').style.display = '';
+}
+
+function closeEnemyModal() {
+  document.getElementById('enemy-modal').style.display = 'none';
+}
+
+function addRule() {
+  rulesCount++;
+  const id = `rule-${rulesCount}`;
+  const div = document.createElement('div');
+  div.className = 'rule-item';
+  div.id = `rule-wrap-${rulesCount}`;
+  div.innerHTML = `
+    <input class="form-input" type="text" id="${id}" placeholder="ルール内容">
+    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('rule-wrap-${rulesCount}').remove()">×</button>
+  `;
+  document.getElementById('rules-container').appendChild(div);
+}
+
+document.getElementById('enemy-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const alertEl = '#enemy-form-alert';
+  const eventId = document.getElementById('enemy-event-id').value;
+  const btn = document.getElementById('enemy-submit-btn');
+  btn.disabled = true;
+
+  const rules = [...document.querySelectorAll('#rules-container input[type="text"]')]
+    .map(i => i.value).filter(v => v.trim());
+  const isEp = document.querySelector('input[name="dpep"]:checked').value === 'ep';
+
+  const formData = new FormData();
+  formData.append('name', document.getElementById('enemy-name').value);
+  formData.append('hp', document.getElementById('enemy-hp').value);
+  formData.append('dp', isEp ? '' : document.getElementById('enemy-dp').value);
+  formData.append('ep', isEp ? document.getElementById('enemy-ep').value : '');
+  formData.append('use_ep', isEp);
+  formData.append('destruction_rate', document.getElementById('enemy-dest').value);
+  formData.append('order_index', document.getElementById('enemy-order').value);
+  formData.append('rules', JSON.stringify(rules));
+  const imgFile = document.getElementById('enemy-img').files[0];
+  if (imgFile) formData.append('image', imgFile);
+
+  try {
+    await apiFormFetch(`/admin/events/${eventId}/enemies`, formData);
+    closeEnemyModal();
+    loadEnemyList(eventId);
+    showAlert('#alert', '敵情報を追加しました', 'success');
+  } catch (err) {
+    document.querySelector(alertEl).innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  } finally { btn.disabled = false; }
+});
+
+// ===== 全スコア一覧 =====
+async function populateEventFilter() {
+  const sel = document.getElementById('filter-event');
+  if (sel.options.length > 1) return;
+  try {
+    const events = await apiFetch('/events');
+    events.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.textContent = `第${e.event_number}回 ${e.name}`;
+      sel.appendChild(opt);
+    });
+  } catch {}
+}
+
+async function loadAllScores() {
+  const el = document.getElementById('all-scores-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const eventId = document.getElementById('filter-event').value;
+  const status = document.getElementById('filter-status').value;
+  let url = '/admin/scores';
+  const params = [];
+  if (eventId) params.push(`event_id=${eventId}`);
+  if (status) params.push(`status=${status}`);
+  if (params.length) url += '?' + params.join('&');
+
+  try {
+    const scores = await apiFetch(url);
+    if (scores.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>スコアがありません</p></div>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="ranking-table">
+        <thead><tr><th>ユーザー</th><th>イベント</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th>状態</th></tr></thead>
+        <tbody>
+          ${scores.map(s => `
+            <tr>
+              <td><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
+              <td style="font-size:0.85rem">第${s.event_number}回</td>
+              <td>${attrBadge(s.attribute, true)}</td>
+              <td>${formatScore(s.approved_score)}</td>
+              <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
+              <td>${statusBadge(s.status)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// 初期ロード
+loadPending();
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HBR スコアアタックランキング</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title">スコアアタックランキング</h1>
+  <p class="page-subtitle">ヘブンバーンズレッド イベントランキング</p>
+  <div id="alert"></div>
+  <div id="content">
+    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+
+async function load() {
+  try {
+    const events = await apiFetch('/events');
+    const el = document.getElementById('content');
+    if (events.length === 0) {
+      el.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <p>現在公開中のイベントはありません</p>
+      </div>`;
+      return;
+    }
+    el.innerHTML = `<div class="event-grid">${events.map(e => `
+      <a class="event-card" href="/ranking.html?id=${e.id}">
+        <div class="event-number">第${e.event_number}回</div>
+        <div class="event-name">${escHtml(e.name)}</div>
+        <div class="event-meta">${formatDate(e.created_at)}</div>
+      </a>`).join('')}</div>`;
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>新規登録 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<div class="auth-wrap">
+  <div class="auth-card card">
+    <h1 class="auth-title">新規登録</h1>
+    <div id="alert"></div>
+    <form id="register-form">
+      <div class="form-group">
+        <label class="form-label">ユーザー名 <span style="color:var(--accent)">*</span></label>
+        <input class="form-input" type="text" id="username" required autofocus minlength="2" maxlength="50">
+        <div class="form-hint">2〜50文字</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">パスワード <span style="color:var(--accent)">*</span></label>
+        <input class="form-input" type="password" id="password" required minlength="6">
+        <div class="form-hint">6文字以上</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">推しキャラクター（任意）</label>
+        <input class="form-input" type="text" id="oshi" maxlength="100" placeholder="例: 茅森月歌">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn">登録する</button>
+    </form>
+    <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-secondary)">
+      すでにアカウントがある方は <a href="/login.html">ログイン</a>
+    </p>
+  </div>
+</div>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (getToken()) location.href = '/index.html';
+
+document.getElementById('register-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  clearAlert('#alert');
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '登録中...';
+
+  try {
+    const data = await apiFetch('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        oshi_character: document.getElementById('oshi').value || undefined
+      })
+    });
+    setAuth(data.token, data.user);
+    location.href = '/index.html';
+  } catch (err) {
+    showAlert('#alert', err.message);
+    btn.disabled = false;
+    btn.textContent = '登録する';
+  }
+});
+</script>
+</body>
+</html>
