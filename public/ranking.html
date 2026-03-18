@@ -47,7 +47,8 @@
 #img-modal img { max-width:90vw; max-height:90vh; border-radius:8px; }
 #img-modal-close { position:fixed; top:16px; right:20px; background:none; border:none; color:white; font-size:2rem; cursor:pointer; }
 @media (max-width: 640px) {
-  .result-thumb { display: none; }
+  .oshi-tag { display: none; }
+  .img-col { display: none; }
 }
 </style>
 
@@ -180,10 +181,10 @@ async function loadRanking() {
               <td>${attrBadge(r.attribute)}</td>
               <td>
                 <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
-                ${r.oshi_character ? `<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">${escHtml(r.oshi_character)}</span>` : ''}
+                ${r.oshi_character ? `<span class="oshi-tag" style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">${escHtml(r.oshi_character)}</span>` : ''}
               </td>
               <td style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
-              <td style="text-align:center">
+              <td class="img-col" style="text-align:center">
                 ${r.approved_image_url
                   ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="結果" onclick="openModal('${escHtml(r.approved_image_url)}')">`
                   : ''}
