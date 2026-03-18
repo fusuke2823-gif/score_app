@@ -62,31 +62,33 @@ if (!eventId) location.href = '/index.html';
 
 let selectedAttrs = new Set(ATTRIBUTES);
 
+function updateFilterUI() {
+  const isAll = selectedAttrs.size === ATTRIBUTES.length;
+  document.querySelectorAll('#attr-filter .attr-btn').forEach(b => {
+    const a = b.dataset.attr;
+    if (a === 'all') {
+      b.classList.toggle('active', isAll);
+    } else {
+      b.classList.toggle('active', isAll || selectedAttrs.has(a));
+    }
+  });
+}
+
 // 属性フィルターの初期化
 document.querySelectorAll('#attr-filter .attr-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const attr = btn.dataset.attr;
     if (attr === 'all') {
       selectedAttrs = new Set(ATTRIBUTES);
-      document.querySelectorAll('#attr-filter .attr-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
     } else {
-      document.querySelector('[data-attr="all"]').classList.remove('active');
       if (selectedAttrs.has(attr)) {
         selectedAttrs.delete(attr);
-        btn.classList.remove('active');
       } else {
         selectedAttrs.add(attr);
-        btn.classList.add('active');
       }
-      if (selectedAttrs.size === 0) {
-        selectedAttrs = new Set(ATTRIBUTES);
-        document.querySelectorAll('#attr-filter .attr-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector('[data-attr="all"]').classList.add('active');
-      } else if (selectedAttrs.size === ATTRIBUTES.length) {
-        document.querySelector('[data-attr="all"]').classList.add('active');
-      }
+      if (selectedAttrs.size === 0) selectedAttrs = new Set(ATTRIBUTES);
     }
+    updateFilterUI();
     loadRanking();
   });
 });
@@ -203,6 +205,7 @@ document.getElementById('img-modal').addEventListener('click', e => {
 });
 
 loadEvent();
+updateFilterUI();
 loadRanking();
 </script>
 </body>
