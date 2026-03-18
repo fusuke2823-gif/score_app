@@ -91,12 +91,23 @@ async function loadEvents() {
   try {
     const events = await apiFetch('/events');
     const sel = document.getElementById('event-select');
-    events.forEach(e => {
-      const opt = document.createElement('option');
-      opt.value = e.id;
-      opt.textContent = `第${e.event_number}回 ${e.name}`;
-      sel.appendChild(opt);
+    const now = new Date();
+    const active = events.filter(e => {
+      if (e.submission_start && now < new Date(e.submission_start)) return false;
+      if (e.submission_end && now > new Date(e.submission_end)) return false;
+      return true;
     });
+    if (active.length === 0) {
+      sel.disabled = true;
+      sel.options[0].textContent = '現在投稿できるイベントがありません';
+    } else {
+      active.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = e.name;
+        sel.appendChild(opt);
+      });
+    }
     sel.addEventListener('change', loadMyScores);
   } catch (err) {
     showAlert('#alert', err.message);
