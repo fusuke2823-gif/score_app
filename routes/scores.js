@@ -4,6 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
+const { sendScoreNotification } = require('../utils/mailer');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -33,7 +34,7 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
 
   try {
     // 投稿期間チェック
-    const eventResult = await pool.query('SELECT submission_start, submission_end FROM events WHERE id = $1', [event_id]);
+    const eventResult = await pool.query('SELECT name, submission_start, submission_end FROM events WHERE id = $1', [event_id]);
     if (eventResult.rows.length === 0)
       return res.status(404).json({ error: 'イベントが見つかりません' });
     const { submission_start, submission_end } = eventResult.rows[0];
@@ -68,6 +69,14 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     );
 
     res.json({ message: 'スコアを投稿しました。管理者の承認をお待ちください。', score: result.rows[0] });
+
+    // メール通知（非同期・失敗してもレスポンスに影響しない）
+    sendScoreNotification({
+      username: req.user.username,
+      eventName: eventResult.rows[0].name,
+      attribute,
+      score: scoreNum
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

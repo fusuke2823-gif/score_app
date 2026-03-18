@@ -258,6 +258,33 @@ router.delete('/enemies/:id', async (req, res) => {
   }
 });
 
+// 通知設定取得
+router.get('/settings', async (req, res) => {
+  try {
+    const result = await pool.query("SELECT value FROM settings WHERE key = 'notify_on_submit'");
+    const enabled = result.rows.length > 0 && result.rows[0].value === 'true';
+    res.json({ notify_on_submit: enabled });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 通知設定更新
+router.put('/settings', async (req, res) => {
+  const { notify_on_submit } = req.body;
+  try {
+    await pool.query(
+      "INSERT INTO settings (key, value) VALUES ('notify_on_submit', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [notify_on_submit ? 'true' : 'false']
+    );
+    res.json({ notify_on_submit: !!notify_on_submit });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 全スコア一覧（管理用）
 router.get('/scores', async (req, res) => {
   const { event_id, status } = req.query;

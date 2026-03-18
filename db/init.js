@@ -87,6 +87,17 @@ const initDB = async () => {
         rule_text TEXT NOT NULL,
         order_index INTEGER NOT NULL DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `);
+
+    // 通知設定の初期値
+    await client.query(`
+      INSERT INTO settings (key, value) VALUES ('notify_on_submit', 'false')
+      ON CONFLICT (key) DO NOTHING
     `);
 
     console.log('データベース初期化完了');

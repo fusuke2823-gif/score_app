@@ -34,6 +34,7 @@
     <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
     <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
     <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
+    <button class="tab-btn" onclick="switchTab('settings')">設定</button>
   </div>
 
   <!-- 承認待ち -->
@@ -82,6 +83,22 @@
       <div id="event-list">
         <div class="loading"><div class="spinner"></div>読み込み中...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- 設定 -->
+  <div class="tab-content" id="tab-settings">
+    <div class="card">
+      <div class="section-title">通知設定</div>
+      <div id="settings-alert" style="margin-bottom:12px"></div>
+      <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+        <input type="checkbox" id="notify-toggle" onchange="saveNotifySetting()" style="width:18px;height:18px">
+        <span>スコアが投稿されたらメールで通知する</span>
+      </label>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
+        送信先: <code id="notify-email-display"></code><br>
+        環境変数 <code>ADMIN_NOTIFY_EMAIL</code> / <code>GMAIL_USER</code> / <code>GMAIL_APP_PASSWORD</code> が設定されている場合のみ機能します。
+      </p>
     </div>
   </div>
 
@@ -219,7 +236,7 @@ let currentEvents = [];
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    const tabs = ['pending','events','all-scores'];
+    const tabs = ['pending','events','all-scores','settings'];
     b.classList.toggle('active', tabs[i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -227,6 +244,7 @@ function switchTab(name) {
   if (name === 'pending') loadPending();
   if (name === 'events') loadEvents();
   if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
+  if (name === 'settings') loadSettings();
 }
 
 // DP/EP切り替え
@@ -584,6 +602,30 @@ async function loadAllScores() {
       </table>`;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// ===== 設定 =====
+async function loadSettings() {
+  try {
+    const s = await apiFetch('/admin/settings');
+    document.getElementById('notify-toggle').checked = s.notify_on_submit;
+    document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
+  } catch (err) {
+    showAlert('#settings-alert', err.message);
+  }
+}
+
+async function saveNotifySetting() {
+  const enabled = document.getElementById('notify-toggle').checked;
+  try {
+    await apiFetch('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ notify_on_submit: enabled })
+    });
+    showAlert('#settings-alert', enabled ? '通知をオンにしました' : '通知をオフにしました', 'success');
+  } catch (err) {
+    showAlert('#settings-alert', err.message);
   }
 }
 
