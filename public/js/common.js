@@ -86,7 +86,7 @@ function renderNav() {
 
   nav.innerHTML = `
     <div class="nav-inner">
-      <a class="nav-logo" href="/index.html">HBR RANKING</a>
+      <a class="nav-logo" href="/index.html">HBR-RB</a>
       <div class="nav-links">
         <a href="/index.html" class="${currentPath === '/' || currentPath === '/index.html' ? 'active' : ''}">イベント一覧</a>
         ${user ? `<a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>` : ''}
