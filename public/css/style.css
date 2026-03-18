@@ -206,15 +206,18 @@ main {
 /* 属性フィルターボタン */
 .attr-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
 .attr-btn {
-  padding: 7px 16px;
+  padding: 6px 16px;
   border-radius: 20px;
-  border: 1px solid;
+  border: 2px solid;
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: bold;
   transition: all 0.2s;
   background: transparent;
+  opacity: 0.45;
 }
+.attr-btn.active, .attr-btn:hover { opacity: 1; }
+.attr-btn.active { box-shadow: 0 0 0 2px currentColor; }
 .attr-btn.attr-火 { border-color: var(--fire); color: var(--fire); }
 .attr-btn.attr-火.active, .attr-btn.attr-火:hover { background: var(--fire-bg); }
 .attr-btn.attr-氷 { border-color: var(--ice); color: var(--ice); }
