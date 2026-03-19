@@ -22,6 +22,8 @@ router.post('/register', async (req, res) => {
       [username, hash, oshi_character || null]
     );
     const user = result.rows[0];
+    await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
+    await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 50, $2)', [user.id, '新規登録ボーナス']);
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
