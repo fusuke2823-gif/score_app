@@ -117,6 +117,25 @@
 
   <!-- ポイント配布 -->
   <div class="tab-content" id="tab-points">
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">手動ポイント付与</div>
+      <div id="grant-alert" style="margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label">対象プレイヤー</label>
+        <select class="form-input" id="grant-user">
+          <option value="">全員</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">付与ポイント数</label>
+        <input class="form-input" id="grant-amount" type="number" min="1" placeholder="例: 50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">理由（任意）</label>
+        <input class="form-input" id="grant-reason" type="text" placeholder="例: キャンペーン報酬" maxlength="100">
+      </div>
+      <button class="btn btn-primary" onclick="grantPoints()">付与する</button>
+    </div>
     <div class="card">
       <div class="section-title">ポイント配布（終了済みイベント）</div>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
@@ -297,7 +316,7 @@ function switchTab(name) {
   if (name === 'events') loadEvents();
   if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
   if (name === 'titles') loadTitles();
-  if (name === 'points') loadDistributable();
+  if (name === 'points') { loadDistributable(); loadGrantUsers(); }
   if (name === 'settings') loadSettings();
 }
 
@@ -713,6 +732,42 @@ async function deleteTitle(id) {
     loadTitles();
   } catch (err) {
     showAlert('#alert', err.message);
+  }
+}
+
+// ===== 手動ポイント付与 =====
+async function loadGrantUsers() {
+  try {
+    const users = await apiFetch('/admin/users');
+    const sel = document.getElementById('grant-user');
+    sel.innerHTML = '<option value="">全員</option>' +
+      users.map(u => `<option value="${u.id}">${escHtml(u.username)}（${u.points}pt）</option>`).join('');
+  } catch {}
+}
+
+async function grantPoints() {
+  const userId = document.getElementById('grant-user').value || null;
+  const amount = document.getElementById('grant-amount').value;
+  const reason = document.getElementById('grant-reason').value.trim();
+  if (!amount || Number(amount) < 1) {
+    showAlert('#grant-alert', '付与ポイント数を入力してください');
+    return;
+  }
+  const target = userId
+    ? document.getElementById('grant-user').selectedOptions[0].text
+    : '全員';
+  if (!confirm(`${target} に ${amount}pt を付与しますか？`)) return;
+  try {
+    const res = await apiFetch('/admin/points/grant', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId ? Number(userId) : null, amount: Number(amount), reason })
+    });
+    showAlert('#grant-alert', res.message, 'success');
+    document.getElementById('grant-amount').value = '';
+    document.getElementById('grant-reason').value = '';
+    loadGrantUsers();
+  } catch (err) {
+    showAlert('#grant-alert', err.message);
   }
 }
 

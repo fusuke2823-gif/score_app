@@ -382,7 +382,10 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     for (const row of rankResult.rows) {
       let pts = 0;
       if (row.rank === 1) pts = 100;
+      else if (row.rank <= 3) pts = 95;
+      else if (row.rank <= 5) pts = 90;
       else if (row.rank <= 10) pts = 80;
+      else if (row.rank <= 15) pts = 60;
       else if (row.rank <= 20) pts = 50;
       else pts = 30;
 
@@ -411,6 +414,54 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     await client.query('COMMIT');
 
     res.json({ message: `${distributed}名にポイントを配布しました` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// ユーザー一覧（管理用）
+router.get('/users', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, points FROM users ORDER BY username ASC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 手動ポイント付与
+router.post('/points/grant', async (req, res) => {
+  const { user_id, amount, reason } = req.body;
+  if (!amount || isNaN(amount)) return res.status(400).json({ error: '付与ポイント数を入力してください' });
+  const pts = parseInt(amount, 10);
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    let count = 0;
+    if (user_id) {
+      // 特定ユーザーに付与
+      await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, user_id]);
+      await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)', [user_id, pts, reason || '管理者付与']);
+      count = 1;
+    } else {
+      // 全員に付与
+      const users = await client.query('SELECT id FROM users');
+      for (const u of users.rows) {
+        await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, u.id]);
+        await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)', [u.id, pts, reason || '管理者付与（全員）']);
+        count++;
+      }
+    }
+    await client.query('COMMIT');
+    res.json({ message: `${count}名に ${pts}pt を付与しました` });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
