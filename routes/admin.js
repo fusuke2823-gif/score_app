@@ -324,6 +324,17 @@ router.put('/titles/:id', async (req, res) => {
   }
 });
 
+router.patch('/titles/:id/description', async (req, res) => {
+  const { description } = req.body;
+  try {
+    await pool.query('UPDATE titles SET description=$1 WHERE id=$2', [description || null, req.params.id]);
+    res.json({ message: '説明を更新しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.patch('/titles/:id/visibility', async (req, res) => {
   const { is_active } = req.body;
   try {
