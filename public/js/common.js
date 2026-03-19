@@ -90,6 +90,7 @@ function renderNav() {
       <div class="nav-links">
         <a href="/index.html" class="${currentPath === '/' || currentPath === '/index.html' ? 'active' : ''}">イベント一覧</a>
         ${user ? `<a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>` : ''}
+        <a href="/shop.html" class="${currentPath === '/shop.html' ? 'active' : ''}">ショップ</a>
         ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">管理</a>` : ''}
       </div>
       <div class="nav-user">
@@ -108,6 +109,7 @@ function renderNav() {
     <div class="nav-mobile" id="nav-mobile">
       <a href="/index.html">イベント一覧</a>
       ${user ? `<a href="/submit.html">スコア投稿</a>` : ''}
+      <a href="/shop.html">ショップ</a>
       ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${escHtml(user.username)}</a>

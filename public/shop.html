@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ショップ - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.points-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 24px;
+}
+.points-label { color: var(--text-secondary); font-size: 0.9rem; }
+.points-value { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
+
+.title-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.title-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.title-card.owned { border-color: var(--accent); }
+.title-card.equipped { background: var(--accent-dim); border-color: var(--accent); }
+.title-name { font-size: 1rem; font-weight: bold; }
+.title-desc { font-size: 0.82rem; color: var(--text-muted); flex: 1; }
+.title-cost { font-size: 0.9rem; color: var(--accent); font-weight: bold; }
+.title-badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
+  background: var(--accent-dim);
+  color: var(--accent);
+  align-self: flex-start;
+}
+
+.tabs { margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title">ショップ</h1>
+  <div id="alert"></div>
+
+  <div id="points-bar" style="display:none" class="points-bar">
+    <span class="points-label">所持ポイント</span>
+    <span class="points-value" id="my-points">0</span>
+    <span class="points-label">pt</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('shop')">称号ショップ</button>
+    <button class="tab-btn" onclick="switchTab('my')">所持称号</button>
+  </div>
+
+  <!-- ショップ -->
+  <div class="tab-content active" id="tab-shop">
+    <div id="shop-list">
+      <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- 所持称号 -->
+  <div class="tab-content" id="tab-my">
+    <div id="my-list">
+      <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+
+const user = getUser();
+let myData = null;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['shop', 'my'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+async function load() {
+  // 購入可能称号
+  try {
+    const titles = await apiFetch('/shop/titles');
+    renderShop(titles);
+  } catch (err) {
+    document.getElementById('shop-list').innerHTML =
+      `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+
+  // ログイン中なら所持情報も取得
+  if (user) {
+    document.getElementById('points-bar').style.display = '';
+    try {
+      myData = await apiFetch('/shop/my');
+      document.getElementById('my-points').textContent = myData.points;
+      renderShop(null); // 所持状態を反映して再描画
+      renderMy();
+    } catch {}
+  }
+}
+
+async function loadShopTitles() {
+  const titles = await apiFetch('/shop/titles');
+  renderShop(titles);
+}
+
+function renderShop(titles) {
+  const el = document.getElementById('shop-list');
+  if (!titles) {
+    // myData更新後の再描画
+    loadShopTitles();
+    return;
+  }
+  if (titles.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>購入できる称号がありません</p></div>';
+    return;
+  }
+  el.innerHTML = `<div class="title-grid">${titles.map(t => {
+    const owned = myData?.titles.some(mt => mt.id === t.id);
+    const equipped = myData?.equipped_title_id === t.id;
+    return `
+      <div class="title-card ${equipped ? 'equipped' : owned ? 'owned' : ''}">
+        <div class="title-name">「${escHtml(t.name)}」</div>
+        ${t.description ? `<div class="title-desc">${escHtml(t.description)}</div>` : '<div class="title-desc"></div>'}
+        <div class="title-cost">${t.point_cost}pt</div>
+        ${equipped
+          ? `<span class="title-badge">装備中</span>
+             <button class="btn btn-secondary btn-sm" onclick="equip(null)">外す</button>`
+          : owned
+            ? `<span class="title-badge">所持済み</span>
+               <button class="btn btn-primary btn-sm" onclick="equip(${t.id})">装備する</button>`
+            : user
+              ? `<button class="btn btn-primary btn-sm" onclick="buy(${t.id}, '${escHtml(t.name)}', ${t.point_cost})">購入する</button>`
+              : `<span style="font-size:0.8rem;color:var(--text-muted)">ログインして購入</span>`
+        }
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function renderMy() {
+  const el = document.getElementById('my-list');
+  if (!myData || myData.titles.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>所持している称号がありません</p></div>';
+    return;
+  }
+  el.innerHTML = `<div class="title-grid">${myData.titles.map(t => {
+    const equipped = myData.equipped_title_id === t.id;
+    return `
+      <div class="title-card ${equipped ? 'equipped' : ''}">
+        <div class="title-name">「${escHtml(t.name)}」</div>
+        ${t.description ? `<div class="title-desc">${escHtml(t.description)}</div>` : ''}
+        ${t.point_cost ? `<div class="title-cost">${t.point_cost}pt で購入</div>` : `<span class="title-badge">称号獲得</span>`}
+        ${equipped
+          ? `<span class="title-badge">装備中</span>
+             <button class="btn btn-secondary btn-sm" onclick="equip(null)">外す</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="equip(${t.id})">装備する</button>`
+        }
+      </div>`;
+  }).join('')}</div>`;
+}
+
+async function buy(id, name, cost) {
+  if (!confirm(`「${name}」を ${cost}pt で購入しますか？`)) return;
+  try {
+    const res = await apiFetch(`/shop/buy/${id}`, { method: 'POST' });
+    showAlert('#alert', res.message, 'success');
+    document.getElementById('my-points').textContent = res.points;
+    myData = await apiFetch('/shop/my');
+    document.getElementById('my-points').textContent = myData.points;
+    loadShopTitles();
+    renderMy();
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+async function equip(id) {
+  try {
+    const res = await apiFetch('/shop/equip', { method: 'POST', body: JSON.stringify({ title_id: id }) });
+    showAlert('#alert', res.message, 'success');
+    myData = await apiFetch('/shop/my');
+    document.getElementById('my-points').textContent = myData.points;
+    loadShopTitles();
+    renderMy();
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

@@ -81,6 +81,9 @@ const initDB = async () => {
       ALTER TABLE enemies ADD COLUMN IF NOT EXISTS weak_attributes TEXT;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_start TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS submission_end TIMESTAMPTZ;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_title_id INTEGER;
 
       CREATE TABLE IF NOT EXISTS event_rules (
         id SERIAL PRIMARY KEY,
@@ -92,6 +95,31 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS settings (
         key VARCHAR(100) PRIMARY KEY,
         value TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS titles (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        point_cost INTEGER,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_titles (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        title_id INTEGER REFERENCES titles(id) ON DELETE CASCADE,
+        acquired_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, title_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS point_history (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        reason TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
       );
     `);
 

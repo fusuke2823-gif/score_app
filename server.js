@@ -15,6 +15,7 @@ app.use('/api/events', require('./routes/events'));
 app.use('/api/scores', require('./routes/scores'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/shop', require('./routes/shop'));
 
 // DB初期化してからサーバー起動
 require('./db/init')()

@@ -195,7 +195,7 @@ async function loadRanking() {
               <td>${attrBadge(r.attribute)}</td>
               <td>
                 <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
-                ${r.oshi_character ? `<span class="oshi-tag" style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">${escHtml(r.oshi_character)}</span>` : ''}
+                ${r.equipped_title ? `<span class="oshi-tag" style="font-size:0.75rem;color:var(--accent);margin-left:6px">「${escHtml(r.equipped_title)}」</span>` : ''}
               </td>
               <td style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
               <td class="img-col" style="text-align:center">

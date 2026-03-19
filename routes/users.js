@@ -14,6 +14,13 @@ router.get('/:id', async (req, res) => {
 
     const user = userResult.rows[0];
 
+    // 装備中称号
+    let equippedTitle = null;
+    if (user.equipped_title_id) {
+      const titleResult = await pool.query('SELECT name FROM titles WHERE id=$1', [user.equipped_title_id]);
+      if (titleResult.rows.length > 0) equippedTitle = titleResult.rows[0].name;
+    }
+
     // 各イベント・各属性の承認済みスコア
     const scoresResult = await pool.query(
       `SELECT
@@ -83,7 +90,7 @@ router.get('/:id', async (req, res) => {
     const attrRankMap = {};
     attrRankResult.rows.forEach((r) => { attrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
 
-    res.json({ ...user, scores: scoresResult.rows, ranks: rankMap, attr_ranks: attrRankMap });
+    res.json({ ...user, equipped_title: equippedTitle, scores: scoresResult.rows, ranks: rankMap, attr_ranks: attrRankMap });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

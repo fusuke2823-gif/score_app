@@ -50,6 +50,7 @@ router.get('/:id/ranking', async (req, res) => {
           s.user_id,
           u.username,
           u.oshi_character,
+          u.equipped_title_id,
           s.attribute,
           s.approved_score,
           s.approved_image_url
@@ -61,15 +62,17 @@ router.get('/:id/ranking', async (req, res) => {
         ORDER BY s.user_id, s.approved_score DESC
       )
       SELECT
-        RANK() OVER (ORDER BY approved_score DESC) AS rank,
-        user_id,
-        username,
-        oshi_character,
-        attribute,
-        approved_score,
-        approved_image_url
-      FROM best_scores
-      ORDER BY approved_score DESC`,
+        RANK() OVER (ORDER BY bs.approved_score DESC) AS rank,
+        bs.user_id,
+        bs.username,
+        bs.oshi_character,
+        t.name AS equipped_title,
+        bs.attribute,
+        bs.approved_score,
+        bs.approved_image_url
+      FROM best_scores bs
+      LEFT JOIN titles t ON bs.equipped_title_id = t.id
+      ORDER BY bs.approved_score DESC`,
       [req.params.id, selectedAttrs]
     );
     res.json(result.rows);

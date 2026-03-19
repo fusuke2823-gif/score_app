@@ -285,6 +285,141 @@ router.put('/settings', async (req, res) => {
   }
 });
 
+// ===== 称号管理 =====
+router.get('/titles', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM titles ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/titles', async (req, res) => {
+  const { name, description, point_cost } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO titles (name, description, point_cost) VALUES ($1, $2, $3) RETURNING *',
+      [name, description || null, point_cost || null]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/titles/:id', async (req, res) => {
+  const { name, description, point_cost, is_active } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE titles SET name=$1, description=$2, point_cost=$3, is_active=$4 WHERE id=$5 RETURNING *',
+      [name, description || null, point_cost || null, is_active !== false, req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/titles/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM titles WHERE id=$1', [req.params.id]);
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ===== ポイント配布 =====
+// ポイント配布可能なイベント一覧（終了済み・未配布）
+router.get('/events/distributable', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM events
+       WHERE points_distributed = FALSE
+         AND submission_end IS NOT NULL
+         AND submission_end < NOW()
+       ORDER BY event_number DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ポイント配布実行
+router.post('/events/:id/distribute-points', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const eventResult = await client.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'イベントが見つかりません' });
+    const event = eventResult.rows[0];
+    if (event.points_distributed) return res.status(409).json({ error: 'すでに配布済みです' });
+
+    // 全属性最高スコアでランキングを計算
+    const rankResult = await client.query(
+      `WITH best AS (
+         SELECT DISTINCT ON (user_id)
+           user_id, approved_score
+         FROM scores
+         WHERE event_id=$1 AND approved_score IS NOT NULL
+         ORDER BY user_id, approved_score DESC
+       )
+       SELECT user_id, approved_score,
+         RANK() OVER (ORDER BY approved_score DESC) AS rank
+       FROM best`,
+      [req.params.id]
+    );
+
+    let distributed = 0;
+    for (const row of rankResult.rows) {
+      let pts = 0;
+      if (row.rank === 1) pts = 100;
+      else if (row.rank <= 10) pts = 80;
+      else if (row.rank <= 20) pts = 50;
+      else pts = 30;
+
+      await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
+      await client.query(
+        'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
+        [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位`]
+      );
+
+      // 1位に優勝称号を自動付与
+      if (row.rank === 1) {
+        const titleName = `${event.name}優勝`;
+        const titleResult = await client.query(
+          'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
+          [titleName, `第${event.event_number}回 ${event.name} 1位達成`]
+        );
+        await client.query(
+          'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [row.user_id, titleResult.rows[0].id]
+        );
+      }
+      distributed++;
+    }
+
+    await client.query('UPDATE events SET points_distributed=TRUE WHERE id=$1', [req.params.id]);
+    await client.query('COMMIT');
+
+    res.json({ message: `${distributed}名にポイントを配布しました` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
 // 全スコア一覧（管理用）
 router.get('/scores', async (req, res) => {
   const { event_id, status } = req.query;

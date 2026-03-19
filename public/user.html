@@ -110,6 +110,9 @@ async function load() {
           ${data.oshi_character
             ? `<div class="user-oshi">推し: ${escHtml(data.oshi_character)}</div>`
             : ''}
+          ${data.equipped_title
+            ? `<div style="font-size:0.85rem;color:var(--accent);margin-top:4px">「${escHtml(data.equipped_title)}」</div>`
+            : ''}
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">参加: ${formatDate(data.created_at)}</div>
           ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">プロフィール編集</button>` : ''}
         </div>
