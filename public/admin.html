@@ -10,7 +10,7 @@
 .pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
 .note-input { width:100%; margin-top:6px; }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
+@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} .hide-mobile{display:none;} }
 .rule-item { display:flex; gap:8px; margin-bottom:8px; }
 .rule-item input { flex:1; }
 .rule-item button { flex-shrink:0; }
@@ -37,7 +37,7 @@
     <button class="tab-btn" onclick="switchTab('titles')">称号管理</button>
     <button class="tab-btn" onclick="switchTab('points')">ポイント配布</button>
     <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
-    <button class="tab-btn" onclick="switchTab('settings')">設定</button>
+    <button class="tab-btn hide-mobile" onclick="switchTab('settings')">設定</button>
   </div>
 
   <!-- 承認待ち -->
