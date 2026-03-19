@@ -446,12 +446,51 @@ router.post('/events/:id/distribute-points', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, points FROM users ORDER BY username ASC'
+      `SELECT u.id, u.username, u.role, u.points, u.created_at,
+              t.name AS equipped_title
+       FROM users u
+       LEFT JOIN titles t ON u.equipped_title_id = t.id
+       ORDER BY u.created_at DESC`
     );
     res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ロール変更
+router.patch('/users/:id/role', async (req, res) => {
+  const { role } = req.body;
+  if (!['user', 'admin'].includes(role)) return res.status(400).json({ error: '無効なロールです' });
+  if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ error: '自分のロールは変更できません' });
+  try {
+    await pool.query('UPDATE users SET role=$1 WHERE id=$2', [role, req.params.id]);
+    res.json({ message: role === 'admin' ? '管理者に変更しました' : '一般ユーザーに変更しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ユーザー削除
+router.delete('/users/:id', async (req, res) => {
+  if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ error: '自分のアカウントは削除できません' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM user_titles WHERE user_id=$1', [req.params.id]);
+    await client.query('DELETE FROM point_history WHERE user_id=$1', [req.params.id]);
+    await client.query('DELETE FROM scores WHERE user_id=$1', [req.params.id]);
+    await client.query('DELETE FROM users WHERE id=$1', [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ message: 'ユーザーを削除しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
   }
 });
 

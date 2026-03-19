@@ -36,6 +36,7 @@
     <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
     <button class="tab-btn" onclick="switchTab('titles')">称号管理</button>
     <button class="tab-btn" onclick="switchTab('points')">ポイント配布</button>
+    <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
     <button class="tab-btn" onclick="switchTab('settings')">設定</button>
   </div>
 
@@ -144,6 +145,15 @@
       </p>
       <div id="points-alert" style="margin-bottom:12px"></div>
       <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ユーザー管理 -->
+  <div class="tab-content" id="tab-users">
+    <div class="card">
+      <div class="section-title">ユーザー一覧</div>
+      <div id="users-alert" style="margin-bottom:12px"></div>
+      <div id="users-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 
@@ -307,7 +317,7 @@ let currentEvents = [];
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    const tabs = ['pending','events','all-scores','titles','points','settings'];
+    const tabs = ['pending','events','all-scores','titles','points','users','settings'];
     b.classList.toggle('active', tabs[i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -317,6 +327,7 @@ function switchTab(name) {
   if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
   if (name === 'titles') loadTitles();
   if (name === 'points') { loadDistributable(); loadGrantUsers(); }
+  if (name === 'users') loadUsers();
   if (name === 'settings') loadSettings();
 }
 
@@ -748,6 +759,75 @@ async function deleteTitle(id) {
     loadTitles();
   } catch (err) {
     showAlert('#alert', err.message);
+  }
+}
+
+// ===== ユーザー管理 =====
+async function loadUsers() {
+  const el = document.getElementById('users-list');
+  try {
+    const users = await apiFetch('/admin/users');
+    if (users.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>ユーザーがいません</p></div>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="ranking-table" style="width:100%">
+        <thead>
+          <tr>
+            <th>ユーザー名</th>
+            <th>ロール</th>
+            <th style="text-align:right">ポイント</th>
+            <th>称号</th>
+            <th>登録日</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.map(u => `
+            <tr>
+              <td><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
+              <td>${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
+              <td style="text-align:right">${u.points}pt</td>
+              <td style="font-size:0.8rem;color:var(--accent)">${u.equipped_title ? `「${escHtml(u.equipped_title)}」` : '-'}</td>
+              <td style="font-size:0.8rem;color:var(--text-muted)">${formatDate(u.created_at)}</td>
+              <td>
+                <div style="display:flex;gap:6px;justify-content:flex-end">
+                  <button class="btn btn-secondary btn-sm" onclick="toggleUserRole(${u.id}, '${u.role}')">
+                    ${u.role === 'admin' ? '管理者解除' : '管理者にする'}
+                  </button>
+                  <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">削除</button>
+                </div>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function toggleUserRole(id, currentRole) {
+  const newRole = currentRole === 'admin' ? 'user' : 'admin';
+  const label = newRole === 'admin' ? '管理者にしますか？' : '管理者を解除しますか？';
+  if (!confirm(label)) return;
+  try {
+    const res = await apiFetch(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role: newRole }) });
+    showAlert('#users-alert', res.message, 'success');
+    loadUsers();
+  } catch (err) {
+    showAlert('#users-alert', err.message);
+  }
+}
+
+async function deleteUser(id, name) {
+  if (!confirm(`「${name}」を削除しますか？スコアや称号履歴も全て削除されます。`)) return;
+  try {
+    const res = await apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
+    showAlert('#users-alert', res.message, 'success');
+    loadUsers();
+  } catch (err) {
+    showAlert('#users-alert', err.message);
   }
 }
 
