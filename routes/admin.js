@@ -324,13 +324,32 @@ router.put('/titles/:id', async (req, res) => {
   }
 });
 
-router.delete('/titles/:id', async (req, res) => {
+router.patch('/titles/:id/visibility', async (req, res) => {
+  const { is_active } = req.body;
   try {
-    await pool.query('DELETE FROM titles WHERE id=$1', [req.params.id]);
-    res.json({ message: '削除しました' });
+    await pool.query('UPDATE titles SET is_active=$1 WHERE id=$2', [is_active, req.params.id]);
+    res.json({ message: is_active ? 'ショップに表示しました' : 'ショップから非表示にしました' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/titles/:id', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE users SET equipped_title_id=NULL WHERE equipped_title_id=$1', [req.params.id]);
+    await client.query('DELETE FROM user_titles WHERE title_id=$1', [req.params.id]);
+    await client.query('DELETE FROM titles WHERE id=$1', [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
   }
 });
 

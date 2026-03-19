@@ -698,7 +698,10 @@ async function loadTitles() {
           ${!t.is_active ? '<span class="status-badge status-rejected" style="margin-left:8px">非表示</span>' : ''}
           ${t.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(t.description)}</div>` : ''}
         </div>
-        <button class="btn btn-danger btn-sm" onclick="deleteTitle(${t.id})">削除</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="toggleTitleVisibility(${t.id}, ${!t.is_active})">${t.is_active ? '非表示' : '表示'}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTitle(${t.id})">削除</button>
+        </div>
       </div>`).join('');
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
@@ -725,8 +728,21 @@ async function createTitle() {
   }
 }
 
+async function toggleTitleVisibility(id, makeActive) {
+  try {
+    const res = await apiFetch(`/admin/titles/${id}/visibility`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: makeActive })
+    });
+    showAlert('#alert', res.message, 'success');
+    loadTitles();
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
 async function deleteTitle(id) {
-  if (!confirm('この称号を削除しますか？所持しているユーザーからも削除されます。')) return;
+  if (!confirm('この称号を完全削除しますか？購入済みユーザーからも削除されます。')) return;
   try {
     await apiFetch(`/admin/titles/${id}`, { method: 'DELETE' });
     loadTitles();
