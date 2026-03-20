@@ -215,22 +215,31 @@
       <div class="section-title">バージョン表示</div>
       <div id="version-alert" style="margin-bottom:12px"></div>
       <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="changeVer(0,-1)">－</button>
-          <span id="ver0" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">0</span>
-          <button class="btn btn-secondary btn-sm" onclick="changeVer(0,1)">＋</button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(0,-1)">－</button>
+            <span id="ver0" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">0</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(0,1)">＋</button>
+          </div>
+          <button class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:var(--bg-card2);color:var(--text-muted);border:1px solid var(--border)" onclick="resetVer(0)">0に戻す</button>
         </div>
         <span style="color:var(--text-muted);font-size:1.2rem">.</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="changeVer(1,-1)">－</button>
-          <span id="ver1" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
-          <button class="btn btn-secondary btn-sm" onclick="changeVer(1,1)">＋</button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(1,-1)">－</button>
+            <span id="ver1" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(1,1)">＋</button>
+          </div>
+          <button class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:var(--bg-card2);color:var(--text-muted);border:1px solid var(--border)" onclick="resetVer(1)">0に戻す</button>
         </div>
         <span style="color:var(--text-muted);font-size:1.2rem">.</span>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn btn-secondary btn-sm" onclick="changeVer(2,-1)">－</button>
-          <span id="ver2" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
-          <button class="btn btn-secondary btn-sm" onclick="changeVer(2,1)">＋</button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(2,-1)">－</button>
+            <span id="ver2" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(2,1)">＋</button>
+          </div>
+          <button class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:var(--bg-card2);color:var(--text-muted);border:1px solid var(--border)" onclick="resetVer(2)">0に戻す</button>
         </div>
         <button class="btn btn-primary btn-sm" onclick="saveVersion()">保存</button>
       </div>
@@ -1127,6 +1136,13 @@ function renderVersionFields() {
 
 function changeVer(idx, delta) {
   verNums[idx] = Math.max(0, verNums[idx] + delta);
+  renderVersionFields();
+}
+
+function resetVer(idx) {
+  const labels = ['第1', '第2', '第3'];
+  if (!confirm(`${labels[idx]}の数字を 0 に戻しますか？`)) return;
+  verNums[idx] = 0;
   renderVersionFields();
 }
 
