@@ -265,34 +265,57 @@ main {
 .ranking-table tr:last-child td { border-bottom: none; }
 .ranking-table tr:hover td { background: var(--bg-card2); }
 
-/* ランキングフレーム */
-/* PC: 名前セルのみ囲む（属性列はフレームなし） */
-.ranking-table tr.has-frame .frame-name  { border: 3px solid var(--frame-color); border-radius: 6px; }
+/* ランキングフレーム - カラー変数 */
+.frame-gold      { --frame-color: #ffd700; }
+.frame-silver    { --frame-color: #c0c0c0; }
+.frame-neon-blue { --frame-color: #00cfff; }
+.frame-neon-pink { --frame-color: #ff4dd2; }
+.frame-fire      { --frame-color: #ff6a00; }
+.frame-rainbow   { --frame-color: #ff4d4d; }
+
+/* PC: 名前セルのみ box-shadow でフレーム＋グロー */
+.ranking-table tr.has-frame .frame-name { border-radius: 6px; }
+
+.ranking-table tr.frame-gold      .frame-name { box-shadow: 0 0 0 3px #ffd700, 0 0 14px 3px rgba(255,215,0,0.5); }
+.ranking-table tr.frame-silver    .frame-name { box-shadow: 0 0 0 3px #c0c0c0, 0 0 10px 2px rgba(200,200,200,0.4); }
+.ranking-table tr.frame-neon-blue .frame-name { animation: neon-blue-pulse 2s ease-in-out infinite; }
+.ranking-table tr.frame-neon-pink .frame-name { animation: neon-pink-pulse 2s ease-in-out infinite; }
+.ranking-table tr.frame-fire      .frame-name { animation: fire-flicker 1.8s ease-in-out infinite; }
+.ranking-table tr.frame-rainbow   .frame-name { animation: rainbow-frame 3s linear infinite; }
+
+@keyframes neon-blue-pulse {
+  0%,100% { box-shadow: 0 0 0 3px #00cfff, 0 0 10px 2px rgba(0,207,255,0.55); }
+  50%     { box-shadow: 0 0 0 3px #00cfff, 0 0 22px 7px rgba(0,207,255,0.85); }
+}
+@keyframes neon-pink-pulse {
+  0%,100% { box-shadow: 0 0 0 3px #ff4dd2, 0 0 10px 2px rgba(255,77,210,0.55); }
+  50%     { box-shadow: 0 0 0 3px #ff4dd2, 0 0 22px 7px rgba(255,77,210,0.85); }
+}
+@keyframes fire-flicker {
+  0%,100% { box-shadow: 0 0 0 3px #ff6a00, 0 0 12px 3px rgba(255,106,0,0.6); }
+  40%     { box-shadow: 0 0 0 3px #ffaa00, 0 0 20px 6px rgba(255,170,0,0.7); }
+  70%     { box-shadow: 0 0 0 3px #ee0979, 0 0 16px 4px rgba(238,9,121,0.65); }
+}
+@keyframes rainbow-frame {
+  0%   { box-shadow: 0 0 0 3px #ff4d4d, 0 0 14px 3px rgba(255,77,77,0.5); }
+  16%  { box-shadow: 0 0 0 3px #ff9a00, 0 0 14px 3px rgba(255,154,0,0.5); }
+  33%  { box-shadow: 0 0 0 3px #ffe600, 0 0 14px 3px rgba(255,230,0,0.5); }
+  50%  { box-shadow: 0 0 0 3px #4dff6e, 0 0 14px 3px rgba(77,255,110,0.5); }
+  66%  { box-shadow: 0 0 0 3px #00cfff, 0 0 14px 3px rgba(0,207,255,0.5); }
+  83%  { box-shadow: 0 0 0 3px #b44dff, 0 0 14px 3px rgba(180,77,255,0.5); }
+  100% { box-shadow: 0 0 0 3px #ff4d4d, 0 0 14px 3px rgba(255,77,77,0.5); }
+}
+
 /* スマホ: 属性セルが左端、名前→スコア/画像/タイトルまで延長 */
 @media (max-width: 640px) {
   .ranking-table tr.has-frame .frame-start { border-left: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 6px 0 0 6px; }
-  .ranking-table tr.has-frame .frame-name  { border: none; border-radius: 0; border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
+  .ranking-table tr.has-frame .frame-name  { box-shadow: none; animation: none; border-radius: 0; border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
   .ranking-table tr.has-frame .frame-score { border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
   .ranking-table tr.has-frame .frame-img   { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
   /* 称号モード時 */
   .ranking-table.show-title tr.has-frame .frame-score,
   .ranking-table.show-title tr.has-frame .frame-img { border: none; border-radius: 0; }
   .ranking-table.show-title tr.has-frame .frame-title { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
-}
-.frame-gold      { --frame-color: #ffd700; }
-.frame-silver    { --frame-color: #c0c0c0; }
-.frame-neon-blue { --frame-color: #00cfff; }
-.frame-neon-pink { --frame-color: #ff4dd2; }
-.frame-fire      { --frame-color: #ff6a00; }
-.frame-rainbow   { animation: rainbow-border 2s linear infinite; }
-@keyframes rainbow-border {
-  0%   { --frame-color: #ff4d4d; }
-  16%  { --frame-color: #ff9a00; }
-  33%  { --frame-color: #ffe600; }
-  50%  { --frame-color: #4dff6e; }
-  66%  { --frame-color: #00cfff; }
-  83%  { --frame-color: #b44dff; }
-  100% { --frame-color: #ff4d4d; }
 }
 
 .rank-num { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); min-width: 36px; }
