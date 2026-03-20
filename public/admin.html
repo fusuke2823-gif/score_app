@@ -214,8 +214,24 @@
     <div class="card" style="margin-bottom:16px">
       <div class="section-title">バージョン表示</div>
       <div id="version-alert" style="margin-bottom:12px"></div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <input class="form-input" id="version-input" type="text" placeholder="例: 4.00.65" style="max-width:200px">
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="changeVer(0,-1)">－</button>
+          <span id="ver0" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">0</span>
+          <button class="btn btn-secondary btn-sm" onclick="changeVer(0,1)">＋</button>
+        </div>
+        <span style="color:var(--text-muted);font-size:1.2rem">.</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="changeVer(1,-1)">－</button>
+          <span id="ver1" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
+          <button class="btn btn-secondary btn-sm" onclick="changeVer(1,1)">＋</button>
+        </div>
+        <span style="color:var(--text-muted);font-size:1.2rem">.</span>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn btn-secondary btn-sm" onclick="changeVer(2,-1)">－</button>
+          <span id="ver2" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
+          <button class="btn btn-secondary btn-sm" onclick="changeVer(2,1)">＋</button>
+        </div>
         <button class="btn btn-primary btn-sm" onclick="saveVersion()">保存</button>
       </div>
       <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
@@ -1085,15 +1101,37 @@ async function loadSettings() {
     const s = await apiFetch('/admin/settings');
     document.getElementById('notify-toggle').checked = s.notify_on_submit;
     document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
-    document.getElementById('version-input').value = s.app_version || '';
+    setVersionFields(s.app_version || '4.00.65');
   } catch (err) {
     showAlert('#settings-alert', err.message);
   }
 }
 
+let verNums = [4, 0, 65];
+
+function setVersionFields(str) {
+  const parts = String(str).split('.');
+  verNums = [
+    parseInt(parts[0]) || 0,
+    parseInt(parts[1]) || 0,
+    parseInt(parts[2]) || 0
+  ];
+  renderVersionFields();
+}
+
+function renderVersionFields() {
+  document.getElementById('ver0').textContent = verNums[0];
+  document.getElementById('ver1').textContent = String(verNums[1]).padStart(2, '0');
+  document.getElementById('ver2').textContent = String(verNums[2]).padStart(2, '0');
+}
+
+function changeVer(idx, delta) {
+  verNums[idx] = Math.max(0, verNums[idx] + delta);
+  renderVersionFields();
+}
+
 async function saveVersion() {
-  const v = document.getElementById('version-input').value.trim();
-  if (!v) return;
+  const v = `${verNums[0]}.${String(verNums[1]).padStart(2,'0')}.${String(verNums[2]).padStart(2,'0')}`;
   try {
     await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ app_version: v }) });
     showAlert('#version-alert', `バージョンを ${v} に更新しました`, 'success');
