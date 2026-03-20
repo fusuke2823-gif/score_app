@@ -329,19 +329,27 @@ main {
   .ranking-table.show-title tr.has-frame .frame-img { border: none; border-radius: 0; padding-top: 12px; padding-bottom: 12px; }
   .ranking-table.show-title tr.has-frame .frame-title { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
 
-  /* スマホ: フレーム種別グロー（border-colorは固定、box-shadowのみアニメーション） */
-  .ranking-table tr.frame-gold .frame-start,
-  .ranking-table tr.frame-gold .frame-name,
-  .ranking-table tr.frame-gold .frame-score,
-  .ranking-table tr.frame-gold .frame-img,
-  .ranking-table tr.frame-gold .frame-title { box-shadow: inset 0 0 8px 2px rgba(255,215,0,0.45); }
+  /* スマホ: 上下方向のみシャドー（左右に広がらず縦線が出ない） */
+  /* 端セル用: 端方向+上下 / 中間セル用: 上下のみ */
+  --gs: inset 0 5px 8px -4px var(--frame-glow), inset 0 -5px 8px -4px var(--frame-glow);
 
-  .ranking-table tr.frame-silver .frame-start,
-  .ranking-table tr.frame-silver .frame-name,
-  .ranking-table tr.frame-silver .frame-score,
-  .ranking-table tr.frame-silver .frame-img,
-  .ranking-table tr.frame-silver .frame-title { box-shadow: inset 0 0 6px 1px rgba(192,192,192,0.35); }
+  .ranking-table tr.frame-gold      { --frame-glow: rgba(255,215,0,0.5); }
+  .ranking-table tr.frame-silver    { --frame-glow: rgba(192,192,192,0.4); }
+  .ranking-table tr.frame-neon-blue { --frame-glow: rgba(0,207,255,0.55); }
+  .ranking-table tr.frame-neon-pink { --frame-glow: rgba(255,77,210,0.55); }
+  .ranking-table tr.frame-fire      { --frame-glow: rgba(255,106,0,0.55); }
+  .ranking-table tr.frame-rainbow   { --frame-glow: rgba(255,77,77,0.5); }
 
+  /* 上下方向のみのglow（左右ゼロ） */
+  .ranking-table tr.has-frame .frame-start,
+  .ranking-table tr.has-frame .frame-name,
+  .ranking-table tr.has-frame .frame-score,
+  .ranking-table tr.has-frame .frame-img,
+  .ranking-table tr.has-frame .frame-title {
+    box-shadow: inset 0 5px 8px -4px var(--frame-glow), inset 0 -5px 8px -4px var(--frame-glow);
+  }
+
+  /* ネオン・ファイア・レインボーはパルスアニメーション */
   .ranking-table tr.frame-neon-blue .frame-start,
   .ranking-table tr.frame-neon-blue .frame-name,
   .ranking-table tr.frame-neon-blue .frame-score,
@@ -366,28 +374,27 @@ main {
   .ranking-table tr.frame-rainbow .frame-img,
   .ranking-table tr.frame-rainbow .frame-title { animation: rainbow-mobile 3s linear infinite; }
 
-  /* box-shadowのみアニメーション（border-colorは変えず色ズレを防ぐ） */
   @keyframes neon-blue-mobile {
-    0%,100% { box-shadow: inset 0 0 6px 1px rgba(0,207,255,0.45); }
-    50%     { box-shadow: inset 0 0 16px 4px rgba(0,207,255,0.8); }
+    0%,100% { box-shadow: inset 0 5px 6px -4px rgba(0,207,255,0.5),  inset 0 -5px 6px -4px rgba(0,207,255,0.5); }
+    50%     { box-shadow: inset 0 5px 14px -3px rgba(0,207,255,0.85), inset 0 -5px 14px -3px rgba(0,207,255,0.85); }
   }
   @keyframes neon-pink-mobile {
-    0%,100% { box-shadow: inset 0 0 6px 1px rgba(255,77,210,0.45); }
-    50%     { box-shadow: inset 0 0 16px 4px rgba(255,77,210,0.8); }
+    0%,100% { box-shadow: inset 0 5px 6px -4px rgba(255,77,210,0.5),  inset 0 -5px 6px -4px rgba(255,77,210,0.5); }
+    50%     { box-shadow: inset 0 5px 14px -3px rgba(255,77,210,0.85), inset 0 -5px 14px -3px rgba(255,77,210,0.85); }
   }
   @keyframes fire-mobile {
-    0%,100% { box-shadow: inset 0 0 8px 2px rgba(255,106,0,0.5); }
-    40%     { box-shadow: inset 0 0 14px 4px rgba(255,170,0,0.65); }
-    70%     { box-shadow: inset 0 0 10px 3px rgba(238,9,121,0.55); }
+    0%,100% { box-shadow: inset 0 5px 8px -4px rgba(255,106,0,0.55),  inset 0 -5px 8px -4px rgba(255,106,0,0.55); }
+    40%     { box-shadow: inset 0 5px 12px -3px rgba(255,170,0,0.7),  inset 0 -5px 12px -3px rgba(255,170,0,0.7); }
+    70%     { box-shadow: inset 0 5px 10px -3px rgba(238,9,121,0.6),  inset 0 -5px 10px -3px rgba(238,9,121,0.6); }
   }
   @keyframes rainbow-mobile {
-    0%   { box-shadow: inset 0 0 8px 2px rgba(255,77,77,0.5); }
-    16%  { box-shadow: inset 0 0 8px 2px rgba(255,154,0,0.5); }
-    33%  { box-shadow: inset 0 0 8px 2px rgba(255,230,0,0.5); }
-    50%  { box-shadow: inset 0 0 8px 2px rgba(77,255,110,0.5); }
-    66%  { box-shadow: inset 0 0 8px 2px rgba(0,207,255,0.5); }
-    83%  { box-shadow: inset 0 0 8px 2px rgba(180,77,255,0.5); }
-    100% { box-shadow: inset 0 0 8px 2px rgba(255,77,77,0.5); }
+    0%   { box-shadow: inset 0 5px 8px -4px rgba(255,77,77,0.55),  inset 0 -5px 8px -4px rgba(255,77,77,0.55); }
+    16%  { box-shadow: inset 0 5px 8px -4px rgba(255,154,0,0.55),  inset 0 -5px 8px -4px rgba(255,154,0,0.55); }
+    33%  { box-shadow: inset 0 5px 8px -4px rgba(255,230,0,0.55),  inset 0 -5px 8px -4px rgba(255,230,0,0.55); }
+    50%  { box-shadow: inset 0 5px 8px -4px rgba(77,255,110,0.55), inset 0 -5px 8px -4px rgba(77,255,110,0.55); }
+    66%  { box-shadow: inset 0 5px 8px -4px rgba(0,207,255,0.55),  inset 0 -5px 8px -4px rgba(0,207,255,0.55); }
+    83%  { box-shadow: inset 0 5px 8px -4px rgba(180,77,255,0.55), inset 0 -5px 8px -4px rgba(180,77,255,0.55); }
+    100% { box-shadow: inset 0 5px 8px -4px rgba(255,77,77,0.55),  inset 0 -5px 8px -4px rgba(255,77,77,0.55); }
   }
 }
 
