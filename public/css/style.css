@@ -294,7 +294,7 @@ main {
 @keyframes fire-flicker {
   0%,100% { border-color: #ff6a00; box-shadow: inset 0 0 12px 3px rgba(255,106,0,0.45); }
   40%     { border-color: #ffaa00; box-shadow: inset 0 0 20px 5px rgba(255,170,0,0.55); }
-  70%     { border-color: #ee0979; box-shadow: inset 0 0 14px 3px rgba(238,9,121,0.5); }
+  70%     { border-color: #ee0909; box-shadow: inset 0 0 14px 3px rgba(238,9,121,0.5); }
 }
 @keyframes rainbow-frame {
   0%   { border-color: #ff4d4d; box-shadow: inset 0 0 14px 3px rgba(255,77,77,0.4); }
