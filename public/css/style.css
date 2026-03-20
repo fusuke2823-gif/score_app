@@ -273,8 +273,8 @@ main {
 .frame-fire      { --frame-color: #ff6a00; }
 .frame-rainbow   { --frame-color: #ff4d4d; }
 
-/* PC: 名前セルのみ box-shadow でフレーム＋グロー */
-.ranking-table tr.has-frame .frame-name { border-radius: 6px; }
+/* PC: 名前セルのみ box-shadow でフレーム＋グロー、上下に内側余白 */
+.ranking-table tr.has-frame .frame-name { border-radius: 6px; padding-top: 18px; padding-bottom: 18px; }
 
 .ranking-table tr.frame-gold      .frame-name { box-shadow: 0 0 0 3px #ffd700, 0 0 14px 3px rgba(255,215,0,0.5); }
 .ranking-table tr.frame-silver    .frame-name { box-shadow: 0 0 0 3px #c0c0c0, 0 0 10px 2px rgba(200,200,200,0.4); }
@@ -308,14 +308,81 @@ main {
 
 /* スマホ: 属性セルが左端、名前→スコア/画像/タイトルまで延長 */
 @media (max-width: 640px) {
+  /* 上下内側余白 */
+  .ranking-table tr.has-frame .frame-start,
+  .ranking-table tr.has-frame .frame-name,
+  .ranking-table tr.has-frame .frame-score,
+  .ranking-table tr.has-frame .frame-img,
+  .ranking-table tr.has-frame .frame-title { padding-top: 16px; padding-bottom: 16px; }
+
   .ranking-table tr.has-frame .frame-start { border-left: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 6px 0 0 6px; }
-  .ranking-table tr.has-frame .frame-name  { box-shadow: none; animation: none; border-radius: 0; border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
+  .ranking-table tr.has-frame .frame-name  { border-radius: 0; border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
   .ranking-table tr.has-frame .frame-score { border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
   .ranking-table tr.has-frame .frame-img   { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
   /* 称号モード時 */
   .ranking-table.show-title tr.has-frame .frame-score,
-  .ranking-table.show-title tr.has-frame .frame-img { border: none; border-radius: 0; }
+  .ranking-table.show-title tr.has-frame .frame-img { border: none; border-radius: 0; padding-top: 12px; padding-bottom: 12px; }
   .ranking-table.show-title tr.has-frame .frame-title { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
+
+  /* スマホ: フレーム種別グロー・アニメーション */
+  .ranking-table tr.frame-gold .frame-start,
+  .ranking-table tr.frame-gold .frame-name,
+  .ranking-table tr.frame-gold .frame-score,
+  .ranking-table tr.frame-gold .frame-img,
+  .ranking-table tr.frame-gold .frame-title { box-shadow: 0 0 8px 2px rgba(255,215,0,0.45); }
+
+  .ranking-table tr.frame-silver .frame-start,
+  .ranking-table tr.frame-silver .frame-name,
+  .ranking-table tr.frame-silver .frame-score,
+  .ranking-table tr.frame-silver .frame-img,
+  .ranking-table tr.frame-silver .frame-title { box-shadow: 0 0 6px 1px rgba(192,192,192,0.35); }
+
+  .ranking-table tr.frame-neon-blue .frame-start,
+  .ranking-table tr.frame-neon-blue .frame-name,
+  .ranking-table tr.frame-neon-blue .frame-score,
+  .ranking-table tr.frame-neon-blue .frame-img,
+  .ranking-table tr.frame-neon-blue .frame-title { animation: neon-blue-mobile 2s ease-in-out infinite; }
+
+  .ranking-table tr.frame-neon-pink .frame-start,
+  .ranking-table tr.frame-neon-pink .frame-name,
+  .ranking-table tr.frame-neon-pink .frame-score,
+  .ranking-table tr.frame-neon-pink .frame-img,
+  .ranking-table tr.frame-neon-pink .frame-title { animation: neon-pink-mobile 2s ease-in-out infinite; }
+
+  .ranking-table tr.frame-fire .frame-start,
+  .ranking-table tr.frame-fire .frame-name,
+  .ranking-table tr.frame-fire .frame-score,
+  .ranking-table tr.frame-fire .frame-img,
+  .ranking-table tr.frame-fire .frame-title { animation: fire-mobile 1.8s ease-in-out infinite; }
+
+  .ranking-table tr.frame-rainbow .frame-start,
+  .ranking-table tr.frame-rainbow .frame-name,
+  .ranking-table tr.frame-rainbow .frame-score,
+  .ranking-table tr.frame-rainbow .frame-img,
+  .ranking-table tr.frame-rainbow .frame-title { animation: rainbow-mobile 3s linear infinite; }
+
+  @keyframes neon-blue-mobile {
+    0%,100% { box-shadow: 0 0 6px 1px rgba(0,207,255,0.5); border-color: #00cfff; }
+    50%     { box-shadow: 0 0 16px 4px rgba(0,207,255,0.85); border-color: #00cfff; }
+  }
+  @keyframes neon-pink-mobile {
+    0%,100% { box-shadow: 0 0 6px 1px rgba(255,77,210,0.5); border-color: #ff4dd2; }
+    50%     { box-shadow: 0 0 16px 4px rgba(255,77,210,0.85); border-color: #ff4dd2; }
+  }
+  @keyframes fire-mobile {
+    0%,100% { box-shadow: 0 0 8px 2px rgba(255,106,0,0.6);   border-color: #ff6a00; }
+    40%     { box-shadow: 0 0 14px 4px rgba(255,170,0,0.7);  border-color: #ffaa00; }
+    70%     { box-shadow: 0 0 10px 3px rgba(238,9,121,0.65); border-color: #ee0979; }
+  }
+  @keyframes rainbow-mobile {
+    0%   { box-shadow: 0 0 8px 2px rgba(255,77,77,0.5);   border-color: #ff4d4d; }
+    16%  { box-shadow: 0 0 8px 2px rgba(255,154,0,0.5);   border-color: #ff9a00; }
+    33%  { box-shadow: 0 0 8px 2px rgba(255,230,0,0.5);   border-color: #ffe600; }
+    50%  { box-shadow: 0 0 8px 2px rgba(77,255,110,0.5);  border-color: #4dff6e; }
+    66%  { box-shadow: 0 0 8px 2px rgba(0,207,255,0.5);   border-color: #00cfff; }
+    83%  { box-shadow: 0 0 8px 2px rgba(180,77,255,0.5);  border-color: #b44dff; }
+    100% { box-shadow: 0 0 8px 2px rgba(255,77,77,0.5);   border-color: #ff4d4d; }
+  }
 }
 
 .rank-num { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); min-width: 36px; }
