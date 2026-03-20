@@ -68,6 +68,7 @@ router.get('/:id/ranking', async (req, res) => {
         bs.username,
         bs.oshi_character,
         t.name AS equipped_title,
+        t.description AS equipped_title_desc,
         f.css_class AS equipped_frame,
         bs.attribute,
         bs.approved_score,

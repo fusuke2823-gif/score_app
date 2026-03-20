@@ -111,7 +111,7 @@ async function load() {
             ? `<div class="user-oshi">推し: ${escHtml(data.oshi_character)}</div>`
             : ''}
           ${data.equipped_title
-            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">称号: </span><span style="color:var(--accent)">「${escHtml(data.equipped_title)}」</span></div>`
+            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">称号: </span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
             : ''}
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">参加: ${formatDate(data.created_at)}</div>
           ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">プロフィール編集</button>` : ''}
@@ -228,6 +228,18 @@ function closeModal() {
 }
 document.getElementById('img-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
+});
+
+// 称号ツールチップ（タップ）
+document.addEventListener('click', e => {
+  const wrap = e.target.closest('.title-tooltip-wrap');
+  document.querySelectorAll('.title-tooltip-wrap.tt-open').forEach(el => {
+    if (el !== wrap) el.classList.remove('tt-open');
+  });
+  if (wrap && wrap.querySelector('.title-tooltip')) {
+    wrap.classList.toggle('tt-open');
+    e.stopPropagation();
+  }
 });
 
 load();

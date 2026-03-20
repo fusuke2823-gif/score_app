@@ -235,7 +235,7 @@ async function loadRanking() {
               <td class="${fc ? 'frame-start' : ''}">${attrBadge(r.attribute)}</td>
               <td class="${fc ? 'frame-name' : ''}">
                 <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
-                ${r.equipped_title ? `<span class="oshi-tag" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」</span>` : ''}
+                ${r.equipped_title ? `<span class="oshi-tag title-tooltip-wrap" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : ''}
               </td>
               <td class="col-score ${fc ? 'frame-score' : ''}" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
               <td class="col-img img-col ${fc ? 'frame-img' : ''}" style="text-align:center">
@@ -243,7 +243,7 @@ async function loadRanking() {
                   ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="結果" onclick="openModal('${escHtml(r.approved_image_url)}')">`
                   : ''}
               </td>
-              <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `「${escHtml(r.equipped_title)}」` : '-'}</td>
+              <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -291,6 +291,18 @@ function renderSubmissionPeriod(event) {
   }
   return `<p style="font-size:0.82rem;color:${color};margin-bottom:20px">${label}</p>`;
 }
+
+// 称号ツールチップ（タップ）
+document.addEventListener('click', e => {
+  const wrap = e.target.closest('.title-tooltip-wrap');
+  document.querySelectorAll('.title-tooltip-wrap.tt-open').forEach(el => {
+    if (el !== wrap) el.classList.remove('tt-open');
+  });
+  if (wrap && wrap.querySelector('.title-tooltip')) {
+    wrap.classList.toggle('tt-open');
+    e.stopPropagation();
+  }
+});
 
 loadEvent();
 updateFilterUI();

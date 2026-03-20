@@ -309,6 +309,57 @@ main {
 /* スマホ: PCと同じく frame-name のみ囲む（border-box で収まる） */
 /* PC の .frame-name スタイルがそのまま適用される。スマホ固有の上書きは不要 */
 
+/* 称号ツールチップ */
+.title-tooltip-wrap {
+  position: relative;
+  display: inline-block;
+  cursor: default;
+}
+.title-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card2);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: normal;
+  width: 200px;
+  z-index: 500;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+  pointer-events: none;
+  line-height: 1.6;
+  text-align: left;
+  font-weight: normal;
+}
+.title-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: var(--border-light);
+}
+.title-tooltip::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-2px);
+  border: 5px solid transparent;
+  border-top-color: var(--bg-card2);
+  z-index: 1;
+}
+.title-tooltip-wrap:hover .title-tooltip,
+.title-tooltip-wrap.tt-open .title-tooltip {
+  display: block;
+}
+
 .rank-num { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); min-width: 36px; }
 .rank-1 .rank-num { color: #ffd700; }
 .rank-2 .rank-num { color: #c0c0c0; }
