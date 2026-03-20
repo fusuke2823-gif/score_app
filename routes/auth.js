@@ -124,4 +124,54 @@ router.put('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// ログインボーナス状態確認
+router.get('/login-bonus', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]
+    );
+    const { last_login_date, login_streak } = result.rows[0];
+    const today = new Date().toISOString().slice(0, 10);
+    const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
+    res.json({ already_claimed: lastDate === today, streak: login_streak || 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ログインボーナス受け取り
+router.post('/login-bonus', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]
+    );
+    const { last_login_date, login_streak } = result.rows[0];
+    const today = new Date().toISOString().slice(0, 10);
+    const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
+
+    if (lastDate === today) return res.status(409).json({ error: '本日分はすでに受け取り済みです' });
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+
+    let newStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
+    const points = newStreak === 7 ? 4 : 1;
+
+    await pool.query(
+      'UPDATE users SET last_login_date=$1, login_streak=$2, points=points+$3 WHERE id=$4',
+      [today, newStreak, points, req.user.id]
+    );
+    await pool.query(
+      'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
+      [req.user.id, points, `ログインボーナス ${newStreak}日目`]
+    );
+    res.json({ streak: newStreak, points_earned: points });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;

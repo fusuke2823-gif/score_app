@@ -84,6 +84,8 @@ const initDB = async () => {
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed BOOLEAN DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_title_id INTEGER;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date DATE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS login_streak INTEGER DEFAULT 0;
 
       CREATE TABLE IF NOT EXISTS event_rules (
         id SERIAL PRIMARY KEY,

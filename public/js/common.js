@@ -124,6 +124,13 @@ function toggleMobileNav() {
   document.getElementById('nav-mobile')?.classList.toggle('open');
 }
 
+// renderNav後に自動でログインボーナスチェック
+const _origRenderNav = renderNav;
+renderNav = function() {
+  _origRenderNav();
+  if (!document.getElementById('login-bonus-modal')) initLoginBonus();
+};
+
 function logout() {
   clearAuth();
   location.href = '/index.html';
@@ -148,4 +155,78 @@ function requireAdmin() {
 
 function getParam(name) {
   return new URLSearchParams(location.search).get(name);
+}
+
+// ===== ログインボーナス =====
+async function initLoginBonus() {
+  if (!getToken()) return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #login-bonus-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
+    #login-bonus-modal.open { display:flex; }
+    #login-bonus-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px 24px; max-width:340px; width:90%; text-align:center; }
+    #login-bonus-box h3 { margin:0 0 6px; font-size:1.1rem; }
+    #login-bonus-box .bonus-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
+    .bonus-days { display:flex; gap:6px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
+    .bonus-day { width:38px; height:48px; border-radius:8px; border:1px solid var(--border); background:var(--bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.7rem; color:var(--text-muted); gap:2px; }
+    .bonus-day.done { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
+    .bonus-day.today { border-color:var(--accent); background:var(--accent); color:#fff; font-weight:bold; }
+    .bonus-day .day-pt { font-size:0.78rem; font-weight:bold; }
+    #login-bonus-pts { font-size:2rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+    #login-bonus-msg { font-size:0.85rem; color:var(--text-muted); margin-bottom:18px; }
+  `;
+  document.head.appendChild(style);
+
+  const modal = document.createElement('div');
+  modal.id = 'login-bonus-modal';
+  modal.innerHTML = `
+    <div id="login-bonus-box">
+      <h3>ログインボーナス</h3>
+      <div class="bonus-sub">毎日ログインでポイント獲得！</div>
+      <div class="bonus-days" id="bonus-days"></div>
+      <div id="login-bonus-pts"></div>
+      <div id="login-bonus-msg"></div>
+      <button class="btn btn-primary" id="bonus-claim-btn" onclick="claimLoginBonus()">受け取る</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  try {
+    const status = await apiFetch('/auth/login-bonus');
+    if (status.already_claimed) return;
+    renderBonusDays(status.streak + 1);
+    document.getElementById('login-bonus-modal').classList.add('open');
+  } catch {}
+}
+
+function renderBonusDays(todayDay) {
+  const pts = [1,1,1,1,1,1,4];
+  const daysEl = document.getElementById('bonus-days');
+  daysEl.innerHTML = pts.map((p, i) => {
+    const day = i + 1;
+    const done = day < todayDay;
+    const isToday = day === todayDay;
+    return `<div class="bonus-day ${done ? 'done' : isToday ? 'today' : ''}">
+      <span>${day}日目</span>
+      <span class="day-pt">${p}pt</span>
+    </div>`;
+  }).join('');
+  const todayPt = pts[Math.min(todayDay, 7) - 1];
+  document.getElementById('login-bonus-pts').textContent = `+${todayPt}pt`;
+  document.getElementById('login-bonus-msg').textContent = `${todayDay}日目のボーナス`;
+}
+
+async function claimLoginBonus() {
+  const btn = document.getElementById('bonus-claim-btn');
+  btn.disabled = true;
+  try {
+    const res = await apiFetch('/auth/login-bonus', { method: 'POST' });
+    document.getElementById('login-bonus-pts').textContent = `+${res.points_earned}pt 獲得！`;
+    document.getElementById('login-bonus-msg').textContent = `${res.streak}日目 達成！${res.streak === 7 ? ' 🎉 7日達成！' : ''}`;
+    btn.textContent = '閉じる';
+    btn.onclick = () => document.getElementById('login-bonus-modal').classList.remove('open');
+    btn.disabled = false;
+  } catch (err) {
+    btn.disabled = false;
+  }
 }
