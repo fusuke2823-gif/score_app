@@ -10,6 +10,7 @@
 <nav id="nav"></nav>
 <main>
   <h1 class="page-title">ヘブバン ランキングボード</h1>
+  <p id="app-version" style="font-size:0.8rem;color:var(--text-muted);margin:-8px 0 4px"></p>
   <p class="page-subtitle">制作:つんつく</p>
   <div id="alert"></div>
   <div id="content">
@@ -19,6 +20,11 @@
 <script src="/js/common.js"></script>
 <script>
 renderNav();
+
+apiFetch('/version').then(d => {
+  const el = document.getElementById('app-version');
+  if (el && d.version) el.textContent = 'ver ' + d.version;
+}).catch(() => {});
 
 async function load() {
   try {

@@ -261,9 +261,13 @@ router.delete('/enemies/:id', async (req, res) => {
 // 通知設定取得
 router.get('/settings', async (req, res) => {
   try {
-    const result = await pool.query("SELECT value FROM settings WHERE key = 'notify_on_submit'");
-    const enabled = result.rows.length > 0 && result.rows[0].value === 'true';
-    res.json({ notify_on_submit: enabled });
+    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('notify_on_submit', 'app_version')");
+    const map = {};
+    result.rows.forEach(r => { map[r.key] = r.value; });
+    res.json({
+      notify_on_submit: map['notify_on_submit'] === 'true',
+      app_version: map['app_version'] || '4.00.65'
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -272,13 +276,21 @@ router.get('/settings', async (req, res) => {
 
 // 通知設定更新
 router.put('/settings', async (req, res) => {
-  const { notify_on_submit } = req.body;
+  const { notify_on_submit, app_version } = req.body;
   try {
-    await pool.query(
-      "INSERT INTO settings (key, value) VALUES ('notify_on_submit', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-      [notify_on_submit ? 'true' : 'false']
-    );
-    res.json({ notify_on_submit: !!notify_on_submit });
+    if (notify_on_submit !== undefined) {
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ('notify_on_submit', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [notify_on_submit ? 'true' : 'false']
+      );
+    }
+    if (app_version !== undefined) {
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ('app_version', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [String(app_version)]
+      );
+    }
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

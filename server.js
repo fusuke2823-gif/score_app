@@ -17,6 +17,17 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/shop', require('./routes/shop'));
 
+// 公開設定（バージョン等）
+const pool = require('./db/index');
+app.get('/api/version', async (req, res) => {
+  try {
+    const result = await pool.query("SELECT value FROM settings WHERE key = 'app_version'");
+    res.json({ version: result.rows[0]?.value || '4.00.65' });
+  } catch {
+    res.json({ version: '4.00.65' });
+  }
+});
+
 // DB初期化してからサーバー起動
 require('./db/init')()
   .then(() => {

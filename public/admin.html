@@ -211,6 +211,17 @@
 
   <!-- 設定 -->
   <div class="tab-content" id="tab-settings">
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">バージョン表示</div>
+      <div id="version-alert" style="margin-bottom:12px"></div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <input class="form-input" id="version-input" type="text" placeholder="例: 4.00.65" style="max-width:200px">
+        <button class="btn btn-primary btn-sm" onclick="saveVersion()">保存</button>
+      </div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
+        トップページのタイトル下に表示されるバージョン番号を設定します。
+      </p>
+    </div>
     <div class="card">
       <div class="section-title">通知設定</div>
       <div id="settings-alert" style="margin-bottom:12px"></div>
@@ -1074,8 +1085,20 @@ async function loadSettings() {
     const s = await apiFetch('/admin/settings');
     document.getElementById('notify-toggle').checked = s.notify_on_submit;
     document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
+    document.getElementById('version-input').value = s.app_version || '';
   } catch (err) {
     showAlert('#settings-alert', err.message);
+  }
+}
+
+async function saveVersion() {
+  const v = document.getElementById('version-input').value.trim();
+  if (!v) return;
+  try {
+    await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ app_version: v }) });
+    showAlert('#version-alert', `バージョンを ${v} に更新しました`, 'success');
+  } catch (err) {
+    showAlert('#version-alert', err.message);
   }
 }
 
