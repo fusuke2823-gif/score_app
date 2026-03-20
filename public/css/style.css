@@ -316,7 +316,7 @@ main {
   .ranking-table tr.has-frame .frame-title { padding-top: 16px; padding-bottom: 16px; }
 
   .ranking-table tr.has-frame .frame-start { border-left: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 6px 0 0 6px; }
-  .ranking-table tr.has-frame .frame-name  { border-radius: 0; border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
+  .ranking-table tr.has-frame .frame-name  { border-radius: 0; border-left: none; border-right: none; border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
   .ranking-table tr.has-frame .frame-score { border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
   .ranking-table tr.has-frame .frame-img   { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
   /* 称号モード時 */
@@ -329,13 +329,13 @@ main {
   .ranking-table tr.frame-gold .frame-name,
   .ranking-table tr.frame-gold .frame-score,
   .ranking-table tr.frame-gold .frame-img,
-  .ranking-table tr.frame-gold .frame-title { box-shadow: 0 0 8px 2px rgba(255,215,0,0.45); }
+  .ranking-table tr.frame-gold .frame-title { box-shadow: inset 0 0 8px 2px rgba(255,215,0,0.45); }
 
   .ranking-table tr.frame-silver .frame-start,
   .ranking-table tr.frame-silver .frame-name,
   .ranking-table tr.frame-silver .frame-score,
   .ranking-table tr.frame-silver .frame-img,
-  .ranking-table tr.frame-silver .frame-title { box-shadow: 0 0 6px 1px rgba(192,192,192,0.35); }
+  .ranking-table tr.frame-silver .frame-title { box-shadow: inset 0 0 6px 1px rgba(192,192,192,0.35); }
 
   .ranking-table tr.frame-neon-blue .frame-start,
   .ranking-table tr.frame-neon-blue .frame-name,
