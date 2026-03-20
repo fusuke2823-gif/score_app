@@ -30,6 +30,10 @@
 
   <!-- ランキング -->
   <div class="card">
+    <div id="col-toggle">
+      <button class="active" onclick="setColMode('score')">スコア</button>
+      <button onclick="setColMode('title')">称号</button>
+    </div>
     <div id="ranking-content">
       <div class="loading"><div class="spinner"></div>読み込み中...</div>
     </div>
@@ -48,6 +52,36 @@
 #img-modal-close { position:fixed; top:16px; right:20px; background:none; border:none; color:white; font-size:2rem; cursor:pointer; }
 @media (max-width: 640px) {
   .oshi-tag { display: none; }
+}
+/* スマホ表示切替 */
+#col-toggle { display:none; }
+@media (max-width: 640px) {
+  #col-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+  }
+  #col-toggle button {
+    padding: 5px 14px;
+    font-size: 0.8rem;
+    background: var(--bg-card);
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+  #col-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: bold;
+  }
+  .col-title { display: none; }
+  .ranking-table.show-title .col-score,
+  .ranking-table.show-title .col-img { display: none; }
+  .ranking-table.show-title .col-title { display: table-cell; }
 }
 </style>
 
@@ -184,8 +218,9 @@ async function loadRanking() {
             <th style="width:50px">順位</th>
             <th style="width:50px">属性</th>
             <th>プレイヤー</th>
-            <th style="text-align:right">スコア</th>
-            <th style="width:50px"></th>
+            <th class="col-score" style="text-align:right">スコア</th>
+            <th class="col-img" style="width:50px"></th>
+            <th class="col-title" style="font-size:0.8rem">称号</th>
           </tr>
         </thead>
         <tbody>
@@ -197,18 +232,27 @@ async function loadRanking() {
                 <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
                 ${r.equipped_title ? `<span class="oshi-tag" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」</span>` : ''}
               </td>
-              <td style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
-              <td class="img-col" style="text-align:center">
+              <td class="col-score" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
+              <td class="col-img img-col" style="text-align:center">
                 ${r.approved_image_url
                   ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="結果" onclick="openModal('${escHtml(r.approved_image_url)}')">`
                   : ''}
               </td>
+              <td class="col-title" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `「${escHtml(r.equipped_title)}」` : '-'}</td>
             </tr>`).join('')}
         </tbody>
       </table>`;
   } catch (err) {
     rankEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+
+function setColMode(mode) {
+  const table = document.querySelector('.ranking-table');
+  if (table) table.classList.toggle('show-title', mode === 'title');
+  document.querySelectorAll('#col-toggle button').forEach((b, i) => {
+    b.classList.toggle('active', ['score', 'title'][i] === mode);
+  });
 }
 
 function openModal(url) {
