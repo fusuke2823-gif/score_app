@@ -62,6 +62,8 @@
 .frame-rainbow   { background: linear-gradient(90deg,#ff4d4d,#ff9a00,#ffe600,#4dff6e,#00cfff,#b44dff); }
 
 .tabs { margin-bottom: 20px; }
+.shop-tab-content { display: none; }
+.shop-tab-content.active { display: block; }
 .section-label { font-size: 0.82rem; font-weight: bold; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>
 </head>
@@ -77,17 +79,23 @@
     <span class="points-label">pt</span>
   </div>
 
-  <div class="tabs">
+  <div class="tabs" id="outer-tabs">
     <button class="tab-btn active" onclick="switchTab('shop')">ショップ</button>
     <button class="tab-btn" onclick="switchTab('equip')">装備</button>
   </div>
 
-  <!-- ショップ（称号＋フレーム） -->
+  <!-- ショップ（称号・フレームのサブタブ） -->
   <div class="tab-content active" id="tab-shop">
-    <div class="section-label">称号</div>
-    <div id="shop-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
-    <div class="section-label" style="margin-top:28px">フレーム</div>
-    <div id="shop-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    <div class="tabs" id="shop-tabs" style="margin-bottom:16px">
+      <button class="tab-btn active" onclick="switchShopTab('titles')">称号</button>
+      <button class="tab-btn" onclick="switchShopTab('frames')">フレーム</button>
+    </div>
+    <div class="shop-tab-content active" id="shop-tab-titles">
+      <div id="shop-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    </div>
+    <div class="shop-tab-content" id="shop-tab-frames">
+      <div id="shop-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    </div>
   </div>
 
   <!-- 装備（所持称号＋フレーム） -->
@@ -107,11 +115,20 @@ const user = getUser();
 let myData = null;
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+  document.querySelectorAll('#outer-tabs .tab-btn').forEach((b, i) => {
     b.classList.toggle('active', ['shop','equip'][i] === name);
   });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
+  ['shop','equip'].forEach(n => {
+    document.getElementById('tab-' + n).classList.toggle('active', n === name);
+  });
+}
+
+function switchShopTab(name) {
+  document.querySelectorAll('#shop-tabs .tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['titles','frames'][i] === name);
+  });
+  document.querySelectorAll('.shop-tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('shop-tab-' + name).classList.add('active');
 }
 
 async function load() {
