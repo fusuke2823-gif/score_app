@@ -580,4 +580,65 @@ router.get('/scores', async (req, res) => {
   }
 });
 
+// ===== フレーム管理 =====
+const FRAME_CLASSES = ['frame-gold','frame-silver','frame-neon-blue','frame-neon-pink','frame-fire','frame-rainbow'];
+
+router.get('/frames', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM frames ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.get('/frames/classes', (req, res) => {
+  res.json(FRAME_CLASSES);
+});
+
+router.post('/frames', async (req, res) => {
+  const { name, description, point_cost, css_class } = req.body;
+  if (!name || !point_cost || !css_class) return res.status(400).json({ error: '必須項目が不足しています' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO frames (name, description, point_cost, css_class) VALUES ($1,$2,$3,$4) RETURNING *',
+      [name, description || null, point_cost, css_class]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.patch('/frames/:id/visibility', async (req, res) => {
+  const { is_active } = req.body;
+  try {
+    await pool.query('UPDATE frames SET is_active=$1 WHERE id=$2', [is_active, req.params.id]);
+    res.json({ message: is_active ? 'ショップに表示しました' : 'ショップから非表示にしました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/frames/:id', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE users SET equipped_frame_id=NULL WHERE equipped_frame_id=$1', [req.params.id]);
+    await client.query('DELETE FROM user_frames WHERE frame_id=$1', [req.params.id]);
+    await client.query('DELETE FROM frames WHERE id=$1', [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

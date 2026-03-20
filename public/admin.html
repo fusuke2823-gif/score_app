@@ -34,7 +34,7 @@
     <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
     <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
     <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
-    <button class="tab-btn" onclick="switchTab('titles')">称号管理</button>
+    <button class="tab-btn" onclick="switchTab('titles')">装備管理</button>
     <button class="tab-btn" onclick="switchTab('points')">ポイント配布</button>
     <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
     <button class="tab-btn hide-mobile" onclick="switchTab('settings')">設定</button>
@@ -89,7 +89,7 @@
     </div>
   </div>
 
-  <!-- 称号管理 -->
+  <!-- 装備管理 -->
   <div class="tab-content" id="tab-titles">
     <div class="card" style="margin-bottom:24px">
       <div class="section-title">称号を追加</div>
@@ -128,6 +128,43 @@
     <div class="card">
       <div class="section-title">称号一覧</div>
       <div id="title-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <div class="card" style="margin-top:24px;margin-bottom:24px">
+      <div class="section-title">フレームを追加</div>
+      <div id="frame-create-alert" style="margin-bottom:12px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">フレーム名</label>
+          <input class="form-input" type="text" id="frame-name" placeholder="例: ゴールドフレーム">
+        </div>
+        <div class="form-group">
+          <label class="form-label">価格（pt）</label>
+          <input class="form-input" type="number" id="frame-cost" min="1" placeholder="例: 200">
+        </div>
+      </div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">スタイル</label>
+          <select class="form-input" id="frame-class">
+            <option value="frame-gold">ゴールド</option>
+            <option value="frame-silver">シルバー</option>
+            <option value="frame-neon-blue">ネオンブルー</option>
+            <option value="frame-neon-pink">ネオンピンク</option>
+            <option value="frame-fire">ファイア</option>
+            <option value="frame-rainbow">レインボー</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">説明（任意）</label>
+          <input class="form-input" type="text" id="frame-desc">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="createFrame()">追加する</button>
+    </div>
+    <div class="card">
+      <div class="section-title">フレーム一覧</div>
+      <div id="frame-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 
@@ -340,7 +377,7 @@ function switchTab(name) {
   if (name === 'pending') loadPending();
   if (name === 'events') loadEvents();
   if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
-  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); }
+  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadFrames(); }
   if (name === 'points') { loadDistributable(); loadGrantUsers(); }
   if (name === 'users') loadUsers();
   if (name === 'settings') loadSettings();
@@ -901,6 +938,65 @@ async function deleteUser(id, name) {
   } catch (err) {
     showAlert('#users-alert', err.message);
   }
+}
+
+// ===== フレーム管理 =====
+const FRAME_LABELS = { 'frame-gold':'ゴールド','frame-silver':'シルバー','frame-neon-blue':'ネオンブルー','frame-neon-pink':'ネオンピンク','frame-fire':'ファイア','frame-rainbow':'レインボー' };
+
+async function loadFrames() {
+  const el = document.getElementById('frame-list');
+  try {
+    const frames = await apiFetch('/admin/frames');
+    if (frames.length === 0) { el.innerHTML = '<div class="empty-state"><p>フレームがありません</p></div>'; return; }
+    el.innerHTML = frames.map(f => `
+      <div class="event-list-item">
+        <div>
+          <strong>${escHtml(f.name)}</strong>
+          <span style="font-size:0.8rem;color:var(--accent);margin-left:8px">${f.point_cost}pt</span>
+          <span style="font-size:0.8rem;color:var(--text-muted);margin-left:8px">${FRAME_LABELS[f.css_class] || f.css_class}</span>
+          ${!f.is_active ? '<span class="status-badge status-rejected" style="margin-left:8px">非表示</span>' : ''}
+          ${f.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(f.description)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? '非表示' : '表示'}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteFrame(${f.id})">削除</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function createFrame() {
+  const name = document.getElementById('frame-name').value.trim();
+  const cost = document.getElementById('frame-cost').value;
+  const css_class = document.getElementById('frame-class').value;
+  const desc = document.getElementById('frame-desc').value.trim();
+  if (!name || !cost) return showAlert('#frame-create-alert', '名前と価格は必須です');
+  try {
+    await apiFetch('/admin/frames', { method: 'POST', body: JSON.stringify({ name, description: desc, point_cost: parseInt(cost), css_class }) });
+    document.getElementById('frame-name').value = '';
+    document.getElementById('frame-cost').value = '';
+    document.getElementById('frame-desc').value = '';
+    showAlert('#frame-create-alert', '追加しました', 'success');
+    loadFrames();
+  } catch (err) { showAlert('#frame-create-alert', err.message); }
+}
+
+async function toggleFrameVisibility(id, makeActive) {
+  try {
+    const res = await apiFetch(`/admin/frames/${id}/visibility`, { method: 'PATCH', body: JSON.stringify({ is_active: makeActive }) });
+    showAlert('#alert', res.message, 'success');
+    loadFrames();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+async function deleteFrame(id) {
+  if (!confirm('このフレームを削除しますか？所持ユーザーからも削除されます。')) return;
+  try {
+    await apiFetch(`/admin/frames/${id}`, { method: 'DELETE' });
+    loadFrames();
+  } catch (err) { showAlert('#alert', err.message); }
 }
 
 // ===== 手動ポイント付与 =====

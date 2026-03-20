@@ -48,7 +48,21 @@
   align-self: flex-start;
 }
 
+/* フレームプレビュー */
+.frame-preview {
+  height: 6px;
+  border-radius: 3px;
+  margin-bottom: 4px;
+}
+.frame-gold      { background: #ffd700; }
+.frame-silver    { background: #c0c0c0; }
+.frame-neon-blue { background: #00cfff; }
+.frame-neon-pink { background: #ff4dd2; }
+.frame-fire      { background: linear-gradient(90deg,#ff6a00,#ee0979); }
+.frame-rainbow   { background: linear-gradient(90deg,#ff4d4d,#ff9a00,#ffe600,#4dff6e,#00cfff,#b44dff); }
+
 .tabs { margin-bottom: 20px; }
+.section-label { font-size: 0.82rem; font-weight: bold; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
 </style>
 </head>
 <body>
@@ -64,22 +78,24 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('shop')">称号ショップ</button>
-    <button class="tab-btn" onclick="switchTab('my')">所持称号</button>
+    <button class="tab-btn active" onclick="switchTab('shop')">ショップ</button>
+    <button class="tab-btn" onclick="switchTab('equip')">装備</button>
   </div>
 
-  <!-- ショップ -->
+  <!-- ショップ（称号＋フレーム） -->
   <div class="tab-content active" id="tab-shop">
-    <div id="shop-list">
-      <div class="loading"><div class="spinner"></div>読み込み中...</div>
-    </div>
+    <div class="section-label">称号</div>
+    <div id="shop-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    <div class="section-label" style="margin-top:28px">フレーム</div>
+    <div id="shop-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
   </div>
 
-  <!-- 所持称号 -->
-  <div class="tab-content" id="tab-my">
-    <div id="my-list">
-      <div class="loading"><div class="spinner"></div>読み込み中...</div>
-    </div>
+  <!-- 装備（所持称号＋フレーム） -->
+  <div class="tab-content" id="tab-equip">
+    <div class="section-label">称号</div>
+    <div id="my-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    <div class="section-label" style="margin-top:28px">フレーム</div>
+    <div id="my-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
   </div>
 </main>
 
@@ -92,47 +108,41 @@ let myData = null;
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['shop', 'my'][i] === name);
+    b.classList.toggle('active', ['shop','equip'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
 }
 
 async function load() {
-  // 購入可能称号
   try {
-    const titles = await apiFetch('/shop/titles');
-    renderShop(titles);
-  } catch (err) {
-    document.getElementById('shop-list').innerHTML =
-      `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-
-  // ログイン中なら所持情報も取得
-  if (user) {
-    document.getElementById('points-bar').style.display = '';
-    try {
+    const [titles, frames] = await Promise.all([
+      apiFetch('/shop/titles'),
+      apiFetch('/shop/frames')
+    ]);
+    if (user) {
+      document.getElementById('points-bar').style.display = '';
       myData = await apiFetch('/shop/my');
       document.getElementById('my-points').textContent = myData.points;
-      renderShop(null); // 所持状態を反映して再描画
-      renderMy();
-    } catch {}
+      renderMyTitles();
+      renderMyFrames();
+    }
+    renderShopTitles(titles);
+    renderShopFrames(frames);
+  } catch (err) {
+    showAlert('#alert', err.message);
   }
 }
 
-async function loadShopTitles() {
-  const titles = await apiFetch('/shop/titles');
-  renderShop(titles);
+async function refreshMyData() {
+  myData = await apiFetch('/shop/my');
+  document.getElementById('my-points').textContent = myData.points;
 }
 
-function renderShop(titles) {
-  const el = document.getElementById('shop-list');
-  if (!titles) {
-    // myData更新後の再描画
-    loadShopTitles();
-    return;
-  }
-  if (titles.length === 0) {
+// ===== 称号 =====
+function renderShopTitles(titles) {
+  const el = document.getElementById('shop-titles');
+  if (!titles || titles.length === 0) {
     el.innerHTML = '<div class="empty-state"><p>購入できる称号がありません</p></div>';
     return;
   }
@@ -145,22 +155,20 @@ function renderShop(titles) {
         ${t.description ? `<div class="title-desc">${escHtml(t.description)}</div>` : '<div class="title-desc"></div>'}
         <div class="title-cost">${t.point_cost}pt</div>
         ${equipped
-          ? `<span class="title-badge">装備中</span>
-             <button class="btn btn-secondary btn-sm" onclick="equip(null)">外す</button>`
+          ? `<span class="title-badge">装備中</span>`
           : owned
-            ? `<span class="title-badge">所持済み</span>
-               <button class="btn btn-primary btn-sm" onclick="equip(${t.id})">装備する</button>`
+            ? `<span class="title-badge">所持済み</span>`
             : user
-              ? `<button class="btn btn-primary btn-sm" onclick="buy(${t.id}, '${escHtml(t.name)}', ${t.point_cost})">購入する</button>`
+              ? `<button class="btn btn-primary btn-sm" onclick="buyTitle(${t.id},'${escHtml(t.name)}',${t.point_cost})">購入する</button>`
               : `<span style="font-size:0.8rem;color:var(--text-muted)">ログインして購入</span>`
         }
       </div>`;
   }).join('')}</div>`;
 }
 
-function renderMy() {
-  const el = document.getElementById('my-list');
-  if (!myData || myData.titles.length === 0) {
+function renderMyTitles() {
+  const el = document.getElementById('my-titles');
+  if (!myData?.titles?.length) {
     el.innerHTML = '<div class="empty-state"><p>所持している称号がありません</p></div>';
     return;
   }
@@ -170,42 +178,120 @@ function renderMy() {
       <div class="title-card ${equipped ? 'equipped' : ''}">
         <div class="title-name">「${escHtml(t.name)}」</div>
         ${t.description ? `<div class="title-desc">${escHtml(t.description)}</div>` : ''}
-        ${t.point_cost ? `<div class="title-cost">${t.point_cost}pt で購入</div>` : `<span class="title-badge">称号獲得</span>`}
+        ${t.point_cost ? `<div class="title-cost">${t.point_cost}pt</div>` : `<span class="title-badge">称号獲得</span>`}
         ${equipped
           ? `<span class="title-badge">装備中</span>
-             <button class="btn btn-secondary btn-sm" onclick="equip(null)">外す</button>`
-          : `<button class="btn btn-primary btn-sm" onclick="equip(${t.id})">装備する</button>`
+             <button class="btn btn-secondary btn-sm" onclick="equipTitle(null)">外す</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="equipTitle(${t.id})">装備する</button>`
         }
       </div>`;
   }).join('')}</div>`;
 }
 
-async function buy(id, name, cost) {
+async function buyTitle(id, name, cost) {
   if (!confirm(`「${name}」を ${cost}pt で購入しますか？`)) return;
   try {
     const res = await apiFetch(`/shop/buy/${id}`, { method: 'POST' });
     showAlert('#alert', res.message, 'success');
-    document.getElementById('my-points').textContent = res.points;
-    myData = await apiFetch('/shop/my');
-    document.getElementById('my-points').textContent = myData.points;
-    loadShopTitles();
-    renderMy();
-  } catch (err) {
-    showAlert('#alert', err.message);
-  }
+    await refreshMyData();
+    const titles = await apiFetch('/shop/titles');
+    renderShopTitles(titles);
+    renderMyTitles();
+  } catch (err) { showAlert('#alert', err.message); }
 }
 
-async function equip(id) {
+async function equipTitle(id) {
   try {
     const res = await apiFetch('/shop/equip', { method: 'POST', body: JSON.stringify({ title_id: id }) });
     showAlert('#alert', res.message, 'success');
-    myData = await apiFetch('/shop/my');
-    document.getElementById('my-points').textContent = myData.points;
-    loadShopTitles();
-    renderMy();
-  } catch (err) {
-    showAlert('#alert', err.message);
+    await refreshMyData();
+    const titles = await apiFetch('/shop/titles');
+    renderShopTitles(titles);
+    renderMyTitles();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+// ===== フレーム =====
+const FRAME_LABELS = {
+  'frame-gold': 'ゴールド',
+  'frame-silver': 'シルバー',
+  'frame-neon-blue': 'ネオンブルー',
+  'frame-neon-pink': 'ネオンピンク',
+  'frame-fire': 'ファイア',
+  'frame-rainbow': 'レインボー'
+};
+
+function renderShopFrames(frames) {
+  const el = document.getElementById('shop-frames');
+  if (!frames || frames.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>購入できるフレームがありません</p></div>';
+    return;
   }
+  el.innerHTML = `<div class="title-grid">${frames.map(f => {
+    const owned = myData?.frames?.some(mf => mf.id === f.id);
+    const equipped = myData?.equipped_frame_id === f.id;
+    return `
+      <div class="title-card ${equipped ? 'equipped' : owned ? 'owned' : ''}">
+        <div class="frame-preview ${escHtml(f.css_class)}"></div>
+        <div class="title-name">${escHtml(f.name)}</div>
+        ${f.description ? `<div class="title-desc">${escHtml(f.description)}</div>` : '<div class="title-desc"></div>'}
+        <div class="title-cost">${f.point_cost}pt</div>
+        ${equipped
+          ? `<span class="title-badge">装備中</span>`
+          : owned
+            ? `<span class="title-badge">所持済み</span>`
+            : user
+              ? `<button class="btn btn-primary btn-sm" onclick="buyFrame(${f.id},'${escHtml(f.name)}',${f.point_cost})">購入する</button>`
+              : `<span style="font-size:0.8rem;color:var(--text-muted)">ログインして購入</span>`
+        }
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function renderMyFrames() {
+  const el = document.getElementById('my-frames');
+  if (!myData?.frames?.length) {
+    el.innerHTML = '<div class="empty-state"><p>所持しているフレームがありません</p></div>';
+    return;
+  }
+  el.innerHTML = `<div class="title-grid">${myData.frames.map(f => {
+    const equipped = myData.equipped_frame_id === f.id;
+    return `
+      <div class="title-card ${equipped ? 'equipped' : ''}">
+        <div class="frame-preview ${escHtml(f.css_class)}"></div>
+        <div class="title-name">${escHtml(f.name)}</div>
+        ${f.description ? `<div class="title-desc">${escHtml(f.description)}</div>` : ''}
+        <div class="title-cost">${f.point_cost}pt</div>
+        ${equipped
+          ? `<span class="title-badge">装備中</span>
+             <button class="btn btn-secondary btn-sm" onclick="equipFrame(null)">外す</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="equipFrame(${f.id})">装備する</button>`
+        }
+      </div>`;
+  }).join('')}</div>`;
+}
+
+async function buyFrame(id, name, cost) {
+  if (!confirm(`「${name}」を ${cost}pt で購入しますか？`)) return;
+  try {
+    const res = await apiFetch(`/shop/frames/buy/${id}`, { method: 'POST' });
+    showAlert('#alert', res.message, 'success');
+    await refreshMyData();
+    const frames = await apiFetch('/shop/frames');
+    renderShopFrames(frames);
+    renderMyFrames();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+async function equipFrame(id) {
+  try {
+    const res = await apiFetch('/shop/frames/equip', { method: 'POST', body: JSON.stringify({ frame_id: id }) });
+    showAlert('#alert', res.message, 'success');
+    await refreshMyData();
+    const frames = await apiFetch('/shop/frames');
+    renderShopFrames(frames);
+    renderMyFrames();
+  } catch (err) { showAlert('#alert', err.message); }
 }
 
 load();

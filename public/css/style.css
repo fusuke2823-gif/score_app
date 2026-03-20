@@ -264,6 +264,26 @@ main {
 .ranking-table tr:last-child td { border-bottom: none; }
 .ranking-table tr:hover td { background: var(--bg-card2); }
 
+/* ランキングフレーム */
+.ranking-table tr.has-frame .frame-start { border-left: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 6px 0 0 6px; }
+.ranking-table tr.has-frame .frame-end   { border-right: 3px solid var(--frame-color); border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); border-radius: 0 6px 6px 0; }
+.ranking-table tr.has-frame .frame-mid   { border-top: 3px solid var(--frame-color); border-bottom: 3px solid var(--frame-color); }
+.frame-gold      { --frame-color: #ffd700; }
+.frame-silver    { --frame-color: #c0c0c0; }
+.frame-neon-blue { --frame-color: #00cfff; }
+.frame-neon-pink { --frame-color: #ff4dd2; }
+.frame-fire      { --frame-color: #ff6a00; }
+.frame-rainbow   { animation: rainbow-border 2s linear infinite; }
+@keyframes rainbow-border {
+  0%   { --frame-color: #ff4d4d; }
+  16%  { --frame-color: #ff9a00; }
+  33%  { --frame-color: #ffe600; }
+  50%  { --frame-color: #4dff6e; }
+  66%  { --frame-color: #00cfff; }
+  83%  { --frame-color: #b44dff; }
+  100% { --frame-color: #ff4d4d; }
+}
+
 .rank-num { font-size: 1.1rem; font-weight: bold; color: var(--text-secondary); min-width: 36px; }
 .rank-1 .rank-num { color: #ffd700; }
 .rank-2 .rank-num { color: #c0c0c0; }

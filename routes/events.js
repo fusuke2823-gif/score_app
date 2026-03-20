@@ -51,6 +51,7 @@ router.get('/:id/ranking', async (req, res) => {
           u.username,
           u.oshi_character,
           u.equipped_title_id,
+          u.equipped_frame_id,
           s.attribute,
           s.approved_score,
           s.approved_image_url
@@ -67,11 +68,13 @@ router.get('/:id/ranking', async (req, res) => {
         bs.username,
         bs.oshi_character,
         t.name AS equipped_title,
+        f.css_class AS equipped_frame,
         bs.attribute,
         bs.approved_score,
         bs.approved_image_url
       FROM best_scores bs
       LEFT JOIN titles t ON bs.equipped_title_id = t.id
+      LEFT JOIN frames f ON bs.equipped_frame_id = f.id
       ORDER BY bs.approved_score DESC`,
       [req.params.id, selectedAttrs]
     );

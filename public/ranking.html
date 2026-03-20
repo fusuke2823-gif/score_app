@@ -224,22 +224,26 @@ async function loadRanking() {
           </tr>
         </thead>
         <tbody>
-          ${ranking.map(r => `
-            <tr class="rank-${r.rank}">
+          ${ranking.map(r => {
+            const fc = r.equipped_frame || '';
+            const fr = fc ? `has-frame ${fc}` : '';
+            return `
+            <tr class="rank-${r.rank} ${fr}">
               <td><span class="rank-num">${r.rank}</span></td>
-              <td>${attrBadge(r.attribute)}</td>
-              <td>
+              <td class="${fc ? 'frame-start' : ''}">${attrBadge(r.attribute)}</td>
+              <td class="${fc ? 'frame-mid' : ''}">
                 <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
                 ${r.equipped_title ? `<span class="oshi-tag" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」</span>` : ''}
               </td>
-              <td class="col-score" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
-              <td class="col-img img-col" style="text-align:center">
+              <td class="col-score ${fc ? 'frame-mid' : ''}" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
+              <td class="col-img img-col ${fc ? 'frame-end' : ''}" style="text-align:center">
                 ${r.approved_image_url
                   ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="結果" onclick="openModal('${escHtml(r.approved_image_url)}')">`
                   : ''}
               </td>
-              <td class="col-title" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `「${escHtml(r.equipped_title)}」` : '-'}</td>
-            </tr>`).join('')}
+              <td class="col-title ${fc ? 'frame-end' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `「${escHtml(r.equipped_title)}」` : '-'}</td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>`;
   } catch (err) {

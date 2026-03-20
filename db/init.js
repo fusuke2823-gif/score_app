@@ -86,6 +86,25 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_title_id INTEGER;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date DATE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS login_streak INTEGER DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_frame_id INTEGER;
+
+      CREATE TABLE IF NOT EXISTS frames (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        point_cost INTEGER NOT NULL,
+        css_class VARCHAR(50) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_frames (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        frame_id INTEGER REFERENCES frames(id) ON DELETE CASCADE,
+        acquired_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, frame_id)
+      );
 
       CREATE TABLE IF NOT EXISTS event_rules (
         id SERIAL PRIMARY KEY,
