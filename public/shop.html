@@ -79,11 +79,6 @@
     <span class="points-label">pt</span>
   </div>
 
-  <div class="tabs" id="outer-tabs">
-    <button class="tab-btn active" onclick="switchTab('shop')">ショップ</button>
-    <button class="tab-btn" onclick="switchTab('equip')">装備</button>
-  </div>
-
   <!-- ショップ（称号・フレームのサブタブ） -->
   <div class="tab-content active" id="tab-shop">
     <div class="tabs" id="shop-tabs" style="margin-bottom:16px">
@@ -311,6 +306,7 @@ async function equipFrame(id) {
   } catch (err) { showAlert('#alert', err.message); }
 }
 
+switchTab(getParam('tab') || 'shop');
 load();
 </script>
 </body>
