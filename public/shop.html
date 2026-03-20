@@ -70,7 +70,7 @@
 <body>
 <nav id="nav"></nav>
 <main>
-  <h1 class="page-title">ショップ</h1>
+  <h1 class="page-title" id="page-title">ショップ</h1>
   <div id="alert"></div>
 
   <div id="points-bar" style="display:none" class="points-bar">
@@ -93,12 +93,18 @@
     </div>
   </div>
 
-  <!-- 装備（所持称号＋フレーム） -->
+  <!-- 装備（所持称号＋フレームのサブタブ） -->
   <div class="tab-content" id="tab-equip">
-    <div class="section-label">称号</div>
-    <div id="my-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
-    <div class="section-label" style="margin-top:28px">フレーム</div>
-    <div id="my-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    <div class="tabs" id="equip-tabs" style="margin-bottom:16px">
+      <button class="tab-btn active" onclick="switchEquipTab('titles')">称号</button>
+      <button class="tab-btn" onclick="switchEquipTab('frames')">フレーム</button>
+    </div>
+    <div class="shop-tab-content active" id="equip-tab-titles">
+      <div id="my-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    </div>
+    <div class="shop-tab-content" id="equip-tab-frames">
+      <div id="my-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    </div>
   </div>
 </main>
 
@@ -110,12 +116,18 @@ const user = getUser();
 let myData = null;
 
 function switchTab(name) {
-  document.querySelectorAll('#outer-tabs .tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['shop','equip'][i] === name);
-  });
   ['shop','equip'].forEach(n => {
     document.getElementById('tab-' + n).classList.toggle('active', n === name);
   });
+  document.getElementById('page-title').textContent = name === 'equip' ? '装備' : 'ショップ';
+}
+
+function switchEquipTab(name) {
+  document.querySelectorAll('#equip-tabs .tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['titles','frames'][i] === name);
+  });
+  document.getElementById('equip-tab-titles').classList.toggle('active', name === 'titles');
+  document.getElementById('equip-tab-frames').classList.toggle('active', name === 'frames');
 }
 
 function switchShopTab(name) {
