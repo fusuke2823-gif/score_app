@@ -484,6 +484,24 @@ router.patch('/users/:id/role', async (req, res) => {
   }
 });
 
+// 称号付与
+router.post('/users/:id/grant-title', async (req, res) => {
+  const { title_id } = req.body;
+  if (!title_id) return res.status(400).json({ error: '称号を選択してください' });
+  try {
+    const titleResult = await pool.query('SELECT * FROM titles WHERE id=$1', [title_id]);
+    if (titleResult.rows.length === 0) return res.status(404).json({ error: '称号が見つかりません' });
+    await pool.query(
+      'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT (user_id, title_id) DO NOTHING',
+      [req.params.id, title_id]
+    );
+    res.json({ message: `「${titleResult.rows[0].name}」を付与しました` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // ユーザー削除
 router.delete('/users/:id', async (req, res) => {
   if (String(req.params.id) === String(req.user.id)) return res.status(400).json({ error: '自分のアカウントは削除できません' });

@@ -110,6 +110,21 @@
       </div>
       <button class="btn btn-primary" onclick="createTitle()">追加する</button>
     </div>
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">ユーザーに称号を付与</div>
+      <div id="grant-title-alert" style="margin-bottom:12px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">対象ユーザー</label>
+          <select class="form-input" id="grant-title-user"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">称号</label>
+          <select class="form-input" id="grant-title-id"></select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="grantTitleToUser()">付与する</button>
+    </div>
     <div class="card">
       <div class="section-title">称号一覧</div>
       <div id="title-list"><div class="loading"><div class="spinner"></div></div></div>
@@ -325,7 +340,7 @@ function switchTab(name) {
   if (name === 'pending') loadPending();
   if (name === 'events') loadEvents();
   if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
-  if (name === 'titles') loadTitles();
+  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); }
   if (name === 'points') { loadDistributable(); loadGrantUsers(); }
   if (name === 'users') loadUsers();
   if (name === 'settings') loadSettings();
@@ -689,6 +704,35 @@ async function loadAllScores() {
       </table>`;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// ===== 称号付与 =====
+async function loadGrantTitleSelectors() {
+  try {
+    const [users, titles] = await Promise.all([
+      apiFetch('/admin/users'),
+      apiFetch('/admin/titles')
+    ]);
+    document.getElementById('grant-title-user').innerHTML =
+      users.map(u => `<option value="${u.id}">${escHtml(u.username)}</option>`).join('');
+    document.getElementById('grant-title-id').innerHTML =
+      titles.map(t => `<option value="${t.id}">「${escHtml(t.name)}」</option>`).join('');
+  } catch {}
+}
+
+async function grantTitleToUser() {
+  const userId = document.getElementById('grant-title-user').value;
+  const titleId = document.getElementById('grant-title-id').value;
+  if (!userId || !titleId) return;
+  try {
+    const res = await apiFetch(`/admin/users/${userId}/grant-title`, {
+      method: 'POST',
+      body: JSON.stringify({ title_id: Number(titleId) })
+    });
+    showAlert('#grant-title-alert', res.message, 'success');
+  } catch (err) {
+    showAlert('#grant-title-alert', err.message);
   }
 }
 
