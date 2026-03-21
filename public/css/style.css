@@ -639,7 +639,7 @@ main {
   .ranking-table .attr-badge { width: 26px; height: 26px; font-size: 0.75rem; }
   .ranking-table .col-score { white-space: nowrap; }
   .ranking-table .col-img { white-space: nowrap; }
-  .ranking-table td:nth-child(4) { vertical-align: middle; }
+  .ranking-table td:nth-child(4) { text-align: center; }
   .rank-num { font-size: 0.9rem; min-width: unset; }
   .score-val { font-size: 0.9rem; }
 }
