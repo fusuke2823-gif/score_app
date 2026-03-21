@@ -505,7 +505,19 @@ function getCroppedDataUrl() {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 256;
   const ctx = c.getContext('2d');
-  ctx.beginPath(); ctx.arc(128, 128, 128, 0, Math.PI * 2); ctx.clip();
+  const r = 51; // 角丸半径（256の20%）
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(256 - r, 0);
+  ctx.arcTo(256, 0, 256, r, r);
+  ctx.lineTo(256, 256 - r);
+  ctx.arcTo(256, 256, 256 - r, 256, r);
+  ctx.lineTo(r, 256);
+  ctx.arcTo(0, 256, 0, 256 - r, r);
+  ctx.lineTo(0, r);
+  ctx.arcTo(0, 0, r, 0, r);
+  ctx.closePath();
+  ctx.clip();
   ctx.drawImage(cropState.img, cropState.x, cropState.y, cropState.size, cropState.size, 0, 0, 256, 256);
   return c.toDataURL('image/png');
 }
