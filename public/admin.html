@@ -30,14 +30,16 @@
   <h1 class="page-title">管理画面</h1>
   <div id="alert"></div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
-    <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
-    <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
-    <button class="tab-btn" onclick="switchTab('titles')">装備管理</button>
-    <button class="tab-btn" onclick="switchTab('points')">ポイント配布</button>
-    <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
-    <button class="tab-btn hide-mobile" onclick="switchTab('settings')">設定</button>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:0">
+    <div class="tabs" style="margin-bottom:0;flex:1;min-width:0">
+      <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
+      <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
+      <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
+      <button class="tab-btn" onclick="switchTab('titles')">装備管理</button>
+      <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
+      <button class="tab-btn hide-mobile" onclick="switchTab('settings')">設定</button>
+    </div>
+    <a href="/admin2.html" class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0">管理画面 2 →</a>
   </div>
 
   <!-- 承認待ち -->
@@ -165,38 +167,6 @@
     <div class="card">
       <div class="section-title">フレーム一覧</div>
       <div id="frame-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-
-  <!-- ポイント配布 -->
-  <div class="tab-content" id="tab-points">
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title">手動ポイント付与</div>
-      <div id="grant-alert" style="margin-bottom:12px"></div>
-      <div class="form-group">
-        <label class="form-label">対象プレイヤー</label>
-        <select class="form-input" id="grant-user">
-          <option value="">全員</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">付与ポイント数</label>
-        <input class="form-input" id="grant-amount" type="number" min="1" placeholder="例: 50">
-      </div>
-      <div class="form-group">
-        <label class="form-label">理由（任意）</label>
-        <input class="form-input" id="grant-reason" type="text" placeholder="例: キャンペーン報酬" maxlength="100">
-      </div>
-      <button class="btn btn-primary" onclick="grantPoints()">付与する</button>
-    </div>
-    <div class="card">
-      <div class="section-title">ポイント配布（終了済みイベント）</div>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
-        1位: 100pt / 2〜3位: 95pt / 4〜5位: 90pt / 6〜10位: 80pt / 11〜15位:60pt / 16〜20位: 50pt / 21位以降: 30pt<br>
-        1位のプレイヤーには「[イベント名]優勝」称号も自動付与されます。
-      </p>
-      <div id="points-alert" style="margin-bottom:12px"></div>
-      <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 
@@ -405,7 +375,7 @@ let currentEvents = [];
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b,i) => {
-    const tabs = ['pending','events','all-scores','titles','points','users','settings'];
+    const tabs = ['pending','events','all-scores','titles','users','settings'];
     b.classList.toggle('active', tabs[i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -414,7 +384,6 @@ function switchTab(name) {
   if (name === 'events') loadEvents();
   if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
   if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadFrames(); }
-  if (name === 'points') { loadDistributable(); loadGrantUsers(); }
   if (name === 'users') loadUsers();
   if (name === 'settings') loadSettings();
 }
@@ -1035,75 +1004,6 @@ async function deleteFrame(id) {
     await apiFetch(`/admin/frames/${id}`, { method: 'DELETE' });
     loadFrames();
   } catch (err) { showAlert('#alert', err.message); }
-}
-
-// ===== 手動ポイント付与 =====
-async function loadGrantUsers() {
-  try {
-    const users = await apiFetch('/admin/users');
-    const sel = document.getElementById('grant-user');
-    sel.innerHTML = '<option value="">全員</option>' +
-      users.map(u => `<option value="${u.id}">${escHtml(u.username)}（${u.points}pt）</option>`).join('');
-  } catch {}
-}
-
-async function grantPoints() {
-  const userId = document.getElementById('grant-user').value || null;
-  const amount = document.getElementById('grant-amount').value;
-  const reason = document.getElementById('grant-reason').value.trim();
-  if (!amount || Number(amount) < 1) {
-    showAlert('#grant-alert', '付与ポイント数を入力してください');
-    return;
-  }
-  const target = userId
-    ? document.getElementById('grant-user').selectedOptions[0].text
-    : '全員';
-  if (!confirm(`${target} に ${amount}pt を付与しますか？`)) return;
-  try {
-    const res = await apiFetch('/admin/points/grant', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: userId ? Number(userId) : null, amount: Number(amount), reason })
-    });
-    showAlert('#grant-alert', res.message, 'success');
-    document.getElementById('grant-amount').value = '';
-    document.getElementById('grant-reason').value = '';
-    loadGrantUsers();
-  } catch (err) {
-    showAlert('#grant-alert', err.message);
-  }
-}
-
-// ===== ポイント配布 =====
-async function loadDistributable() {
-  const el = document.getElementById('distributable-list');
-  try {
-    const events = await apiFetch('/admin/events/distributable');
-    if (events.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>配布可能なイベントがありません</p></div>';
-      return;
-    }
-    el.innerHTML = events.map(e => `
-      <div class="event-list-item">
-        <div>
-          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
-          <strong>${escHtml(e.name)}</strong>
-        </div>
-        <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id}, '${escHtml(e.name)}')">配布する</button>
-      </div>`).join('');
-  } catch (err) {
-    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-async function distributePoints(id, name) {
-  if (!confirm(`「${name}」のポイントを配布しますか？\nこの操作は取り消せません。`)) return;
-  try {
-    const res = await apiFetch(`/admin/events/${id}/distribute-points`, { method: 'POST' });
-    showAlert('#points-alert', res.message, 'success');
-    loadDistributable();
-  } catch (err) {
-    showAlert('#points-alert', err.message);
-  }
 }
 
 // ===== 設定 =====

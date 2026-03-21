@@ -143,12 +143,36 @@ const initDB = async () => {
         reason TEXT,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_icon_id INTEGER;
+
+      CREATE TABLE IF NOT EXISTS gacha_icons (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        rarity VARCHAR(5) NOT NULL,
+        image_url TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_icons (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        icon_id INTEGER REFERENCES gacha_icons(id) ON DELETE CASCADE,
+        acquired_at TIMESTAMP DEFAULT NOW(),
+        UNIQUE(user_id, icon_id)
+      );
     `);
 
-    // 通知設定の初期値
+    // 通知・ガチャ設定の初期値
     await client.query(`
-      INSERT INTO settings (key, value) VALUES ('notify_on_submit', 'false')
-      ON CONFLICT (key) DO NOTHING
+      INSERT INTO settings (key, value) VALUES ('notify_on_submit', 'false') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_ss_rate', '3') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_s_rate', '15') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_a_rate', '82') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_single_cost', '50') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_multi_cost', '450') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_show_nav', 'false') ON CONFLICT (key) DO NOTHING;
     `);
 
     console.log('データベース初期化完了');

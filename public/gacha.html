@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ガチャ - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.gacha-hero { text-align:center; padding:28px 0 8px; }
+.gacha-points-display { font-size:1.5rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+.gacha-pull-btns { display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:20px 0 28px; }
+.gacha-btn {
+  padding:14px 32px; font-size:1rem; font-weight:bold;
+  border-radius:14px; border:none; cursor:pointer;
+  transition:transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.gacha-btn:hover:not(:disabled) { transform:translateY(-3px); box-shadow:0 8px 24px rgba(0,0,0,0.35); }
+.gacha-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
+.gacha-btn-single { background:var(--accent); color:#fff; }
+.gacha-btn-multi { background:linear-gradient(135deg,#ffd700 0%,#ff8c00 100%); color:#000; }
+.gacha-btn .gcost { font-size:0.78rem; opacity:0.85; }
+
+/* カードステージ */
+.gacha-stage {
+  min-height:200px; display:flex; align-items:center; justify-content:center;
+  margin-bottom:16px;
+}
+.gacha-cards { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; max-width:600px; margin:0 auto; }
+
+/* カード */
+.g-card { width:88px; height:122px; perspective:700px; flex-shrink:0; }
+.g-card-inner {
+  width:100%; height:100%; position:relative;
+  transform-style:preserve-3d;
+  transition:transform 0.65s cubic-bezier(.4,2,.55,1);
+}
+.g-card-inner.flipped { transform:rotateY(180deg); }
+.g-card-front, .g-card-back {
+  position:absolute; inset:0; backface-visibility:hidden;
+  border-radius:10px; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:5px;
+}
+.g-card-front {
+  background:var(--bg-card); border:2px solid var(--border); font-size:2.4rem;
+}
+.g-card-back { transform:rotateY(180deg); background:var(--bg-card2); padding:8px 4px; }
+.g-card-back img { width:56px; height:56px; border-radius:50%; object-fit:cover; }
+.g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
+.g-rarity-tag { font-size:0.65rem; font-weight:bold; padding:1px 7px; border-radius:4px; }
+
+/* レアリティ枠 */
+.rarity-SS .g-card-back {
+  border:2px solid transparent;
+  background:linear-gradient(var(--bg-card2),var(--bg-card2)) padding-box,
+             linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
+  animation:ssGlow 1.8s linear infinite;
+}
+.rarity-S .g-card-back { border:2px solid #ffd700; box-shadow:0 0 12px rgba(255,215,0,0.65); }
+.rarity-A .g-card-back { border:2px solid #4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.4); }
+.g-rarity-tag.r-SS { background:#ffd700; color:#000; }
+.g-rarity-tag.r-S  { background:#e0c060; color:#000; }
+.g-rarity-tag.r-A  { background:#4fc3f7; color:#000; }
+
+@keyframes ssGlow {
+  0%   { box-shadow:0 0 18px #ffd700; }
+  33%  { box-shadow:0 0 18px #ff66cc; }
+  66%  { box-shadow:0 0 18px #00eeff; }
+  100% { box-shadow:0 0 18px #ffd700; }
+}
+
+/* 結果サマリー */
+.result-summary { display:flex; gap:20px; justify-content:center; flex-wrap:wrap; padding:12px 0; }
+.result-count { text-align:center; }
+.result-count .rnum { font-size:1.5rem; font-weight:bold; }
+.result-count .rlabel { font-size:0.75rem; }
+
+/* 所持アイコン */
+.icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(76px,1fr)); gap:12px; }
+.icon-item { text-align:center; padding:4px; }
+.icon-item img {
+  width:58px; height:58px; border-radius:50%; object-fit:cover;
+  border:2px solid var(--border); cursor:pointer;
+  transition:border-color 0.2s, box-shadow 0.2s;
+  display:block; margin:0 auto 4px;
+}
+.icon-item img:hover { border-color:var(--accent); }
+.icon-item img.equipped { border-color:var(--accent); box-shadow:0 0 10px var(--accent); }
+.icon-item .iname { font-size:0.68rem; color:var(--text-secondary); word-break:break-all; line-height:1.2; }
+.irarity { font-size:0.62rem; font-weight:bold; padding:1px 5px; border-radius:3px; display:inline-block; margin-bottom:3px; }
+.irarity-SS { background:#ffd700; color:#000; }
+.irarity-S  { background:#e0c060; color:#000; }
+.irarity-A  { background:#4fc3f7; color:#000; }
+
+.section-title { font-size:1rem; font-weight:bold; margin-bottom:14px; color:var(--text-primary); }
+.rate-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.85rem; }
+.rate-row:last-child { border-bottom:none; }
+
+@media(max-width:480px) {
+  .g-card { width:66px; height:92px; }
+  .g-card-back img { width:42px; height:42px; }
+  .g-card-back .g-name { font-size:0.58rem; }
+  .gacha-cards { gap:5px; }
+  .gacha-btn { padding:12px 22px; }
+}
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <div id="alert"></div>
+
+  <div class="gacha-hero">
+    <h1 class="page-title" style="margin-bottom:6px">ガチャ</h1>
+    <div class="gacha-points-display" id="my-points">--- pt</div>
+    <div style="font-size:0.8rem;color:var(--text-muted)" id="cost-info">読み込み中...</div>
+  </div>
+
+  <div class="gacha-pull-btns">
+    <button class="gacha-btn gacha-btn-single" id="btn-single" onclick="doPull('single')" disabled>
+      単発ガチャ
+      <span class="gcost" id="single-cost-label"></span>
+    </button>
+    <button class="gacha-btn gacha-btn-multi" id="btn-multi" onclick="doPull('multi')" disabled>
+      10連ガチャ
+      <span class="gcost" id="multi-cost-label">Sレア以上確定</span>
+    </button>
+  </div>
+
+  <!-- アニメーション領域 -->
+  <div class="gacha-stage" id="gacha-stage">
+    <div style="text-align:center;color:var(--text-muted);font-size:0.9rem">ガチャを引いてアイコンをゲット！</div>
+  </div>
+
+  <!-- 結果サマリー -->
+  <div id="result-summary" style="display:none;margin-bottom:20px"></div>
+
+  <!-- 排出率 -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title">排出率</div>
+    <div id="rate-info"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- 所持アイコン -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="section-title" style="margin:0">所持アイコン</div>
+      <span style="font-size:0.8rem;color:var(--text-muted)">タップで装備</span>
+    </div>
+    <div id="my-icons"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireLogin()) throw new Error('redirect');
+
+let gSettings = null;
+let isPulling = false;
+
+async function init() {
+  try {
+    const [settings, myData] = await Promise.all([
+      apiFetch('/gacha/settings'),
+      apiFetch('/gacha/my')
+    ]);
+    gSettings = settings;
+    updatePointsDisplay(myData.points);
+
+    document.getElementById('single-cost-label').textContent = `${settings.single_cost}pt`;
+    document.getElementById('multi-cost-label').textContent = `${settings.multi_cost}pt　Sレア以上確定`;
+    document.getElementById('cost-info').textContent =
+      `単発 ${settings.single_cost}pt ／ 10連 ${settings.multi_cost}pt（最後の1枚Sレア以上確定）`;
+
+    document.getElementById('rate-info').innerHTML = `
+      <div class="rate-row">
+        <span><span class="irarity irarity-SS">SS</span></span>
+        <span style="font-weight:bold;color:#ffd700">${settings.ss_rate}%</span>
+      </div>
+      <div class="rate-row">
+        <span><span class="irarity irarity-S">S</span></span>
+        <span style="font-weight:bold;color:#e0c060">${settings.s_rate}%</span>
+      </div>
+      <div class="rate-row">
+        <span><span class="irarity irarity-A">A</span></span>
+        <span style="font-weight:bold;color:#4fc3f7">${settings.a_rate}%</span>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center">
+        レアリティ内の確率は均等。10連最後の1枚はAがSに変換。
+      </p>`;
+
+    document.getElementById('btn-single').disabled = false;
+    document.getElementById('btn-multi').disabled = false;
+
+    renderMyIcons(myData.icons);
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+function updatePointsDisplay(pts) {
+  document.getElementById('my-points').textContent = Number(pts).toLocaleString('ja-JP') + ' pt';
+}
+
+function renderMyIcons(icons) {
+  const el = document.getElementById('my-icons');
+  if (!icons || icons.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎰</div><p>まだアイコンを所持していません</p></div>';
+    return;
+  }
+  el.innerHTML = `<div class="icon-grid">${icons.map(icon => `
+    <div class="icon-item">
+      <span class="irarity irarity-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
+      <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"
+           class="${icon.is_equipped ? 'equipped' : ''}"
+           onclick="equipIcon(${icon.id}, this)"
+           title="${escHtml(icon.name)}">
+      <div class="iname">${escHtml(icon.name)}</div>
+    </div>`).join('')}</div>`;
+}
+
+async function equipIcon(iconId, imgEl) {
+  try {
+    const res = await apiFetch('/gacha/equip', { method: 'POST', body: JSON.stringify({ icon_id: iconId }) });
+    document.querySelectorAll('#my-icons img').forEach(el => el.classList.remove('equipped'));
+    imgEl.classList.add('equipped');
+    showAlert('#alert', res.message, 'success');
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+async function doPull(type) {
+  if (isPulling) return;
+  isPulling = true;
+  const btnS = document.getElementById('btn-single');
+  const btnM = document.getElementById('btn-multi');
+  btnS.disabled = true;
+  btnM.disabled = true;
+  document.getElementById('result-summary').style.display = 'none';
+  clearAlert('#alert');
+
+  try {
+    const res = await apiFetch(`/gacha/pull/${type}`, { method: 'POST' });
+    updatePointsDisplay(res.new_points);
+    await animatePull(res.results);
+    showResultSummary(res.results);
+    // リロードして所持アイコン更新
+    const myData = await apiFetch('/gacha/my');
+    renderMyIcons(myData.icons);
+  } catch (err) {
+    showAlert('#alert', err.message);
+  } finally {
+    isPulling = false;
+    btnS.disabled = false;
+    btnM.disabled = false;
+  }
+}
+
+async function animatePull(results) {
+  const stage = document.getElementById('gacha-stage');
+  stage.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'gacha-cards';
+  stage.appendChild(wrap);
+
+  // カード生成（裏向き）
+  results.forEach((icon, i) => {
+    const card = document.createElement('div');
+    card.className = `g-card rarity-${icon.rarity}`;
+    card.innerHTML = `
+      <div class="g-card-inner" id="gc-${i}">
+        <div class="g-card-front">🎴</div>
+        <div class="g-card-back">
+          <span class="g-rarity-tag r-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span>
+          <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}">
+          <div class="g-name">${escHtml(icon.name)}</div>
+        </div>
+      </div>`;
+    wrap.appendChild(card);
+  });
+
+  // 順にめくる
+  const initDelay = 350;
+  const stagger = results.length === 1 ? 0 : 180;
+
+  for (let i = 0; i < results.length; i++) {
+    await new Promise(r => setTimeout(r, i === 0 ? initDelay : stagger));
+    document.getElementById(`gc-${i}`).classList.add('flipped');
+  }
+
+  // 最後のカードのアニメーション完了を待つ
+  await new Promise(r => setTimeout(r, 700));
+}
+
+function showResultSummary(results) {
+  const counts = { SS: 0, S: 0, A: 0 };
+  results.forEach(r => { counts[r.rarity] = (counts[r.rarity] || 0) + 1; });
+
+  const colors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
+  const parts = Object.entries(counts)
+    .filter(([, n]) => n > 0)
+    .map(([rarity, n]) => `
+      <div class="result-count">
+        <div class="rnum" style="color:${colors[rarity]}">${n}</div>
+        <div class="rlabel"><span class="irarity irarity-${rarity}">${rarity}</span></div>
+      </div>`);
+
+  const el = document.getElementById('result-summary');
+  el.innerHTML = `<div class="result-summary">${parts.join('')}</div>`;
+  el.style.display = '';
+}
+
+init();
+</script>
+</body>
+</html>

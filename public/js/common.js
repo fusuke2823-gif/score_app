@@ -92,6 +92,7 @@ function renderNav() {
         ${user ? `<a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>` : ''}
         <a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">ショップ</a>
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">装備</a>` : ''}
+        <span id="nav-gacha-desktop"></span>
         ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">管理</a>` : ''}
       </div>
       <div class="nav-user">
@@ -112,6 +113,7 @@ function renderNav() {
       ${user ? `<a href="/submit.html">スコア投稿</a>` : ''}
       <a href="/shop.html">ショップ</a>
       ${user ? `<a href="/shop.html?tab=equip">装備</a>` : ''}
+      <span id="nav-gacha-mobile"></span>
       ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${escHtml(user.username)}</a>
@@ -126,12 +128,38 @@ function toggleMobileNav() {
   document.getElementById('nav-mobile')?.classList.toggle('open');
 }
 
-// renderNav後に自動でログインボーナスチェック
+// renderNav後に自動でログインボーナスチェック＋ガチャナビ更新
 const _origRenderNav = renderNav;
 renderNav = function() {
   _origRenderNav();
   if (!document.getElementById('login-bonus-modal')) initLoginBonus();
+  updateGachaNav();
 };
+
+async function updateGachaNav() {
+  try {
+    // キャッシュチェック（5分）
+    const cached = localStorage.getItem('gacha_show_nav');
+    const cachedAt = parseInt(localStorage.getItem('gacha_nav_cached_at') || '0');
+    let show = false;
+    if (cached !== null && Date.now() - cachedAt < 5 * 60 * 1000) {
+      show = cached === 'true';
+    } else {
+      const s = await apiFetch('/gacha/settings');
+      show = s.show_nav;
+      localStorage.setItem('gacha_show_nav', show ? 'true' : 'false');
+      localStorage.setItem('gacha_nav_cached_at', Date.now());
+    }
+    if (!show) return;
+    const currentPath = location.pathname;
+    const isActive = currentPath === '/gacha.html';
+    const linkHtml = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>ガチャ</a>`;
+    const d = document.getElementById('nav-gacha-desktop');
+    const m = document.getElementById('nav-gacha-mobile');
+    if (d) d.innerHTML = linkHtml;
+    if (m) m.innerHTML = linkHtml;
+  } catch {}
+}
 
 function logout() {
   clearAuth();

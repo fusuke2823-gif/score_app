@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理画面 2 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
+.enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
+.event-list-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:12px 16px; border-bottom:1px solid var(--border);
+}
+.event-list-item:last-child { border-bottom:none; }
+
+/* アイコングリッド */
+.admin-icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:12px; }
+.admin-icon-card {
+  background:var(--bg-primary); border:1px solid var(--border); border-radius:10px;
+  padding:12px 8px; text-align:center;
+}
+.admin-icon-card img { width:60px; height:60px; border-radius:50%; object-fit:cover; border:2px solid var(--border); }
+.admin-icon-card .iname { font-size:0.75rem; margin-top:6px; word-break:break-all; }
+.admin-icon-card .ibtns { display:flex; gap:4px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
+.rarity-badge { font-size:0.68rem; font-weight:bold; padding:2px 7px; border-radius:4px; display:inline-block; margin-bottom:4px; }
+.rarity-badge-SS { background:#ffd700; color:#000; }
+.rarity-badge-S  { background:#e0c060; color:#000; }
+.rarity-badge-A  { background:#4fc3f7; color:#000; }
+
+/* Canvas cropper */
+#crop-wrap { position:relative; }
+#crop-canvas { display:block; max-width:100%; border-radius:8px; cursor:crosshair; touch-action:none; }
+#crop-section { margin-top:16px; display:none; }
+.crop-row { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; margin-bottom:12px; }
+#crop-preview { border-radius:50%; border:3px solid var(--accent); display:block; flex-shrink:0; }
+.crop-controls { display:flex; align-items:center; gap:10px; margin-top:8px; }
+.crop-controls label { font-size:0.82rem; color:var(--text-muted); white-space:nowrap; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;flex-wrap:wrap">
+    <h1 class="page-title" style="margin:0">管理画面 2</h1>
+    <a href="/admin.html" style="font-size:0.85rem;color:var(--text-muted)">← 管理画面 1</a>
+  </div>
+  <div id="alert"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('points')">ポイント配布</button>
+    <button class="tab-btn" onclick="switchTab('gacha')">ガチャ管理</button>
+  </div>
+
+  <!-- ポイント配布 -->
+  <div class="tab-content active" id="tab-points">
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">手動ポイント付与</div>
+      <div id="grant-alert" style="margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label">対象プレイヤー</label>
+        <select class="form-input" id="grant-user"><option value="">全員</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">付与ポイント数</label>
+        <input class="form-input" id="grant-amount" type="number" min="1" placeholder="例: 50">
+      </div>
+      <div class="form-group">
+        <label class="form-label">理由（任意）</label>
+        <input class="form-input" id="grant-reason" type="text" placeholder="例: キャンペーン報酬" maxlength="100">
+      </div>
+      <button class="btn btn-primary" onclick="grantPoints()">付与する</button>
+    </div>
+    <div class="card">
+      <div class="section-title">ポイント配布（終了済みイベント）</div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
+        1位: 100pt / 2〜3位: 95pt / 4〜5位: 90pt / 6〜10位: 80pt / 11〜15位:60pt / 16〜20位: 50pt / 21位以降: 30pt<br>
+        1位のプレイヤーには「[イベント名]優勝」称号も自動付与されます。
+      </p>
+      <div id="points-alert" style="margin-bottom:12px"></div>
+      <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- ガチャ管理 -->
+  <div class="tab-content" id="tab-gacha">
+
+    <!-- ガチャ設定 -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">ガチャ設定</div>
+      <div id="gacha-settings-alert" style="margin-bottom:12px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">SS確率（%）</label>
+          <input class="form-input" type="number" id="gs-ss" min="0" max="100" step="0.1" placeholder="例: 3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">S確率（%）</label>
+          <input class="form-input" type="number" id="gs-s" min="0" max="100" step="0.1" placeholder="例: 15">
+        </div>
+        <div class="form-group">
+          <label class="form-label">A確率（%）<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px">自動計算</span></label>
+          <input class="form-input" type="number" id="gs-a" readonly style="background:var(--bg-primary);color:var(--text-muted)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">単発コスト（pt）</label>
+          <input class="form-input" type="number" id="gs-single" min="1" placeholder="例: 50">
+        </div>
+        <div class="form-group">
+          <label class="form-label">10連コスト（pt）</label>
+          <input class="form-input" type="number" id="gs-multi" min="1" placeholder="例: 450">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:4px">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" id="gs-show-nav" style="width:18px;height:18px">
+          <span>ナビゲーションバーにガチャを表示する</span>
+        </label>
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="saveGachaSettings()">保存する</button>
+    </div>
+
+    <!-- アイコン追加 -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">アイコン追加</div>
+      <div id="gacha-icon-alert" style="margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label">画像を選択</label>
+        <input class="form-input" type="file" id="icon-file" accept="image/*" style="padding:8px" onchange="handleIconFile(this)">
+      </div>
+
+      <!-- キャンバスクロッパー -->
+      <div id="crop-section">
+        <div class="crop-row">
+          <div style="flex:1;min-width:200px">
+            <canvas id="crop-canvas"></canvas>
+            <div class="crop-controls">
+              <label>サイズ</label>
+              <input type="range" id="crop-size-slider" min="20" max="100" value="80" style="flex:1" oninput="onCropSizeChange(this.value)">
+            </div>
+          </div>
+          <div style="text-align:center">
+            <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px">プレビュー</p>
+            <canvas id="crop-preview" width="80" height="80"></canvas>
+          </div>
+        </div>
+        <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px">
+          白い枠をドラッグして切り取り位置を調整してください
+        </p>
+      </div>
+
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">アイコン名</label>
+          <input class="form-input" type="text" id="icon-name" placeholder="例: ハルカ">
+        </div>
+        <div class="form-group">
+          <label class="form-label">レアリティ</label>
+          <select class="form-input" id="icon-rarity">
+            <option value="SS">SS</option>
+            <option value="S" selected>S</option>
+            <option value="A">A</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="add-icon-btn" onclick="addGachaIcon()">追加する</button>
+    </div>
+
+    <!-- アイコン一覧 -->
+    <div class="card">
+      <div class="section-title">アイコン一覧</div>
+      <div id="gacha-icon-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['points', 'gacha'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'points') { loadDistributable(); loadGrantUsers(); }
+  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); }
+}
+
+// ===== 手動ポイント付与 =====
+async function loadGrantUsers() {
+  try {
+    const users = await apiFetch('/admin/users');
+    const sel = document.getElementById('grant-user');
+    sel.innerHTML = '<option value="">全員</option>' +
+      users.map(u => `<option value="${u.id}">${escHtml(u.username)}（${u.points}pt）</option>`).join('');
+  } catch {}
+}
+
+async function grantPoints() {
+  const userId = document.getElementById('grant-user').value || null;
+  const amount = document.getElementById('grant-amount').value;
+  const reason = document.getElementById('grant-reason').value.trim();
+  if (!amount || Number(amount) < 1) { showAlert('#grant-alert', '付与ポイント数を入力してください'); return; }
+  const target = userId ? document.getElementById('grant-user').selectedOptions[0].text : '全員';
+  if (!confirm(`${target} に ${amount}pt を付与しますか？`)) return;
+  try {
+    const res = await apiFetch('/admin/points/grant', {
+      method: 'POST',
+      body: JSON.stringify({ user_id: userId ? Number(userId) : null, amount: Number(amount), reason })
+    });
+    showAlert('#grant-alert', res.message, 'success');
+    document.getElementById('grant-amount').value = '';
+    document.getElementById('grant-reason').value = '';
+    loadGrantUsers();
+  } catch (err) { showAlert('#grant-alert', err.message); }
+}
+
+// ===== ポイント配布 =====
+async function loadDistributable() {
+  const el = document.getElementById('distributable-list');
+  try {
+    const events = await apiFetch('/admin/events/distributable');
+    if (events.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>配布可能なイベントがありません</p></div>';
+      return;
+    }
+    el.innerHTML = events.map(e => `
+      <div class="event-list-item">
+        <div>
+          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+          <strong>${escHtml(e.name)}</strong>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id}, '${escHtml(e.name)}')">配布する</button>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function distributePoints(id, name) {
+  if (!confirm(`「${name}」のポイントを配布しますか？\nこの操作は取り消せません。`)) return;
+  try {
+    const res = await apiFetch(`/admin/events/${id}/distribute-points`, { method: 'POST' });
+    showAlert('#points-alert', res.message, 'success');
+    loadDistributable();
+  } catch (err) { showAlert('#points-alert', err.message); }
+}
+
+// ===== ガチャ設定 =====
+async function loadGachaSettings() {
+  try {
+    const s = await apiFetch('/admin/gacha/settings');
+    document.getElementById('gs-ss').value = s.ss_rate;
+    document.getElementById('gs-s').value = s.s_rate;
+    document.getElementById('gs-a').value = (100 - parseFloat(s.ss_rate) - parseFloat(s.s_rate)).toFixed(1);
+    document.getElementById('gs-single').value = s.single_cost;
+    document.getElementById('gs-multi').value = s.multi_cost;
+    document.getElementById('gs-show-nav').checked = s.show_nav;
+  } catch (err) { showAlert('#gacha-settings-alert', err.message); }
+}
+
+// SS/S変更時にA確率を自動更新
+['gs-ss', 'gs-s'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    const ss = parseFloat(document.getElementById('gs-ss').value) || 0;
+    const s  = parseFloat(document.getElementById('gs-s').value) || 0;
+    document.getElementById('gs-a').value = Math.max(0, 100 - ss - s).toFixed(1);
+  });
+});
+
+async function saveGachaSettings() {
+  const ss = parseFloat(document.getElementById('gs-ss').value);
+  const s  = parseFloat(document.getElementById('gs-s').value);
+  if (isNaN(ss) || isNaN(s) || ss < 0 || s < 0 || ss + s > 100) {
+    showAlert('#gacha-settings-alert', '確率の合計が100%を超えています');
+    return;
+  }
+  const a = 100 - ss - s;
+  try {
+    await apiFetch('/admin/gacha/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        ss_rate: ss, s_rate: s, a_rate: parseFloat(a.toFixed(1)),
+        single_cost: parseInt(document.getElementById('gs-single').value),
+        multi_cost: parseInt(document.getElementById('gs-multi').value),
+        show_nav: document.getElementById('gs-show-nav').checked
+      })
+    });
+    showAlert('#gacha-settings-alert', '設定を保存しました', 'success');
+    // ナビ表示設定のキャッシュをクリア
+    localStorage.removeItem('gacha_show_nav');
+  } catch (err) { showAlert('#gacha-settings-alert', err.message); }
+}
+
+// ===== キャンバスクロッパー =====
+let cropState = { img: null, x: 0, y: 0, size: 100, scale: 1, dragging: false, dx: 0, dy: 0 };
+
+function handleIconFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      cropState.img = img;
+      const maxD = Math.min(img.width, img.height);
+      cropState.size = maxD * 0.8;
+      cropState.x = (img.width - cropState.size) / 2;
+      cropState.y = (img.height - cropState.size) / 2;
+      // スライダーの範囲設定
+      const slider = document.getElementById('crop-size-slider');
+      slider.max = maxD;
+      slider.min = Math.max(20, Math.floor(maxD * 0.1));
+      slider.value = Math.floor(cropState.size);
+      document.getElementById('crop-section').style.display = '';
+      drawCrop();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function drawCrop() {
+  const canvas = document.getElementById('crop-canvas');
+  const ctx = canvas.getContext('2d');
+  const img = cropState.img;
+
+  const container = canvas.parentElement.clientWidth || 360;
+  const maxW = Math.min(img.width, container - 16);
+  const scale = maxW / img.width;
+  cropState.scale = scale;
+  canvas.width  = img.width  * scale;
+  canvas.height = img.height * scale;
+
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const sx = cropState.x * scale, sy = cropState.y * scale, ss = cropState.size * scale;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(sx, sy, ss, ss); ctx.clip();
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+  ctx.strokeRect(sx, sy, ss, ss);
+
+  // コーナーハンドル
+  const hw = 9;
+  ctx.fillStyle = '#fff';
+  [[sx, sy], [sx+ss-hw, sy], [sx, sy+ss-hw], [sx+ss-hw, sy+ss-hw]]
+    .forEach(([cx, cy]) => ctx.fillRect(cx, cy, hw, hw));
+
+  drawPreview();
+}
+
+function drawPreview() {
+  const c = document.getElementById('crop-preview');
+  const ctx = c.getContext('2d');
+  c.width = 80; c.height = 80;
+  ctx.clearRect(0, 0, 80, 80);
+  ctx.beginPath(); ctx.arc(40, 40, 40, 0, Math.PI * 2); ctx.clip();
+  ctx.drawImage(cropState.img, cropState.x, cropState.y, cropState.size, cropState.size, 0, 0, 80, 80);
+}
+
+function getCanvasXY(e) {
+  const rect = document.getElementById('crop-canvas').getBoundingClientRect();
+  const clientX = e.clientX ?? e.touches[0].clientX;
+  const clientY = e.clientY ?? e.touches[0].clientY;
+  return { x: (clientX - rect.left) / cropState.scale, y: (clientY - rect.top) / cropState.scale };
+}
+
+const cc = document.getElementById('crop-canvas');
+cc.addEventListener('mousedown',  e => startDrag(getCanvasXY(e)));
+cc.addEventListener('mousemove',  e => { if (cropState.dragging) moveDrag(getCanvasXY(e)); });
+cc.addEventListener('mouseup',    () => { cropState.dragging = false; });
+cc.addEventListener('mouseleave', () => { cropState.dragging = false; });
+cc.addEventListener('touchstart', e => { e.preventDefault(); startDrag(getCanvasXY(e)); }, { passive: false });
+cc.addEventListener('touchmove',  e => { e.preventDefault(); if (cropState.dragging) moveDrag(getCanvasXY(e)); }, { passive: false });
+cc.addEventListener('touchend',   () => { cropState.dragging = false; });
+
+function startDrag(p) {
+  if (p.x >= cropState.x && p.x <= cropState.x + cropState.size &&
+      p.y >= cropState.y && p.y <= cropState.y + cropState.size) {
+    cropState.dragging = true;
+    cropState.dx = p.x - cropState.x;
+    cropState.dy = p.y - cropState.y;
+  }
+}
+function moveDrag(p) {
+  const img = cropState.img;
+  cropState.x = Math.max(0, Math.min(img.width  - cropState.size, p.x - cropState.dx));
+  cropState.y = Math.max(0, Math.min(img.height - cropState.size, p.y - cropState.dy));
+  drawCrop();
+}
+
+function onCropSizeChange(val) {
+  if (!cropState.img) return;
+  cropState.size = Number(val);
+  cropState.x = Math.min(cropState.x, cropState.img.width  - cropState.size);
+  cropState.y = Math.min(cropState.y, cropState.img.height - cropState.size);
+  cropState.x = Math.max(0, cropState.x);
+  cropState.y = Math.max(0, cropState.y);
+  drawCrop();
+}
+
+function getCroppedDataUrl() {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 256;
+  const ctx = c.getContext('2d');
+  ctx.beginPath(); ctx.arc(128, 128, 128, 0, Math.PI * 2); ctx.clip();
+  ctx.drawImage(cropState.img, cropState.x, cropState.y, cropState.size, cropState.size, 0, 0, 256, 256);
+  return c.toDataURL('image/png');
+}
+
+async function addGachaIcon() {
+  if (!cropState.img) { showAlert('#gacha-icon-alert', '画像を選択してください'); return; }
+  const name = document.getElementById('icon-name').value.trim();
+  const rarity = document.getElementById('icon-rarity').value;
+  if (!name) { showAlert('#gacha-icon-alert', 'アイコン名を入力してください'); return; }
+
+  const btn = document.getElementById('add-icon-btn');
+  btn.disabled = true;
+  try {
+    const image_base64 = getCroppedDataUrl();
+    await apiFetch('/admin/gacha/icons', {
+      method: 'POST',
+      body: JSON.stringify({ name, rarity, image_base64 })
+    });
+    showAlert('#gacha-icon-alert', '追加しました', 'success');
+    document.getElementById('icon-name').value = '';
+    document.getElementById('icon-file').value = '';
+    document.getElementById('crop-section').style.display = 'none';
+    cropState.img = null;
+    loadGachaIcons();
+  } catch (err) {
+    showAlert('#gacha-icon-alert', err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ===== アイコン一覧 =====
+async function loadGachaIcons() {
+  const el = document.getElementById('gacha-icon-list');
+  try {
+    const icons = await apiFetch('/admin/gacha/icons');
+    if (icons.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>アイコンがありません</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="admin-icon-grid">${icons.map(icon => `
+      <div class="admin-icon-card">
+        <span class="rarity-badge rarity-badge-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
+        <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"
+             ${!icon.is_active ? 'style="opacity:0.4"' : ''}>
+        <div class="iname">${escHtml(icon.name)}</div>
+        <div class="ibtns">
+          <button class="btn btn-secondary btn-sm" onclick="toggleIconVisibility(${icon.id}, ${!icon.is_active})">
+            ${icon.is_active ? '非表示' : '表示'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="deleteGachaIcon(${icon.id})">削除</button>
+        </div>
+      </div>`).join('')}</div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function toggleIconVisibility(id, makeActive) {
+  try {
+    const res = await apiFetch(`/admin/gacha/icons/${id}/visibility`, {
+      method: 'PATCH', body: JSON.stringify({ is_active: makeActive })
+    });
+    showAlert('#alert', res.message, 'success');
+    loadGachaIcons();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+async function deleteGachaIcon(id) {
+  if (!confirm('このアイコンを削除しますか？所持ユーザーからも削除されます。')) return;
+  try {
+    await apiFetch(`/admin/gacha/icons/${id}`, { method: 'DELETE' });
+    loadGachaIcons();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+// 初期ロード
+loadDistributable();
+loadGrantUsers();
+</script>
+</body>
+</html>

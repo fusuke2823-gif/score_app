@@ -653,4 +653,110 @@ router.delete('/frames/:id', async (req, res) => {
   }
 });
 
+// ===== ガチャアイコン管理 =====
+router.get('/gacha/icons', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM gacha_icons ORDER BY rarity ASC, created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/gacha/icons', async (req, res) => {
+  const { name, rarity, image_base64 } = req.body;
+  if (!name || !rarity || !image_base64)
+    return res.status(400).json({ error: '必須項目が不足しています' });
+  if (!['SS', 'S', 'A'].includes(rarity))
+    return res.status(400).json({ error: '無効なレアリティです' });
+  try {
+    const uploadResult = await cloudinary.uploader.upload(image_base64, {
+      folder: 'hbr-ranking/gacha-icons',
+      resource_type: 'image'
+    });
+    const result = await pool.query(
+      'INSERT INTO gacha_icons (name, rarity, image_url) VALUES ($1,$2,$3) RETURNING *',
+      [name, rarity, uploadResult.secure_url]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.patch('/gacha/icons/:id/visibility', async (req, res) => {
+  const { is_active } = req.body;
+  try {
+    await pool.query('UPDATE gacha_icons SET is_active=$1 WHERE id=$2', [is_active, req.params.id]);
+    res.json({ message: is_active ? 'ガチャに表示しました' : 'ガチャから非表示にしました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/gacha/icons/:id', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE users SET equipped_icon_id=NULL WHERE equipped_icon_id=$1', [req.params.id]);
+    await client.query('DELETE FROM user_icons WHERE icon_id=$1', [req.params.id]);
+    await client.query('DELETE FROM gacha_icons WHERE id=$1', [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+router.get('/gacha/settings', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_a_rate','gacha_single_cost','gacha_multi_cost','gacha_show_nav')"
+    );
+    const map = {};
+    result.rows.forEach(r => { map[r.key] = r.value; });
+    res.json({
+      ss_rate: map.gacha_ss_rate || '3',
+      s_rate: map.gacha_s_rate || '15',
+      a_rate: map.gacha_a_rate || '82',
+      single_cost: map.gacha_single_cost || '50',
+      multi_cost: map.gacha_multi_cost || '450',
+      show_nav: map.gacha_show_nav === 'true'
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/gacha/settings', async (req, res) => {
+  const { ss_rate, s_rate, a_rate, single_cost, multi_cost, show_nav } = req.body;
+  try {
+    const updates = {
+      gacha_ss_rate: ss_rate, gacha_s_rate: s_rate, gacha_a_rate: a_rate,
+      gacha_single_cost: single_cost, gacha_multi_cost: multi_cost,
+      gacha_show_nav: show_nav !== undefined ? String(show_nav) : undefined
+    };
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        await pool.query(
+          'INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2',
+          [key, String(value)]
+        );
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;
