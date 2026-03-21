@@ -65,6 +65,22 @@
 .shop-tab-content { display: none; }
 .shop-tab-content.active { display: block; }
 .section-label { font-size: 0.82rem; font-weight: bold; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* アイコングリッド（装備タブ） */
+.equip-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
+.equip-icon-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 8px; text-align: center; cursor: pointer; transition: border-color 0.15s;
+}
+.equip-icon-card.equipped { background: var(--accent-dim); border-color: var(--accent); }
+.equip-icon-card img { width: 56px; height: 56px; border-radius: 20%; object-fit: cover; }
+.equip-icon-card .iname { font-size: 0.72rem; margin-top: 6px; word-break: break-all; color: var(--text-secondary); }
+.equip-icon-none {
+  background: var(--bg-card); border: 1px dashed var(--border); border-radius: 10px;
+  padding: 10px 8px; text-align: center; cursor: pointer; transition: border-color 0.15s;
+}
+.equip-icon-none.equipped { border-color: var(--accent); background: var(--accent-dim); }
+.equip-icon-none .iname { font-size: 0.72rem; margin-top: 6px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -93,17 +109,21 @@
     </div>
   </div>
 
-  <!-- 装備（所持称号＋フレームのサブタブ） -->
+  <!-- 装備（所持称号＋フレーム＋アイコンのサブタブ） -->
   <div class="tab-content" id="tab-equip">
     <div class="tabs" id="equip-tabs" style="margin-bottom:16px">
       <button class="tab-btn active" onclick="switchEquipTab('titles')">称号</button>
       <button class="tab-btn" onclick="switchEquipTab('frames')">フレーム</button>
+      <button class="tab-btn" onclick="switchEquipTab('icons')">アイコン</button>
     </div>
     <div class="shop-tab-content active" id="equip-tab-titles">
       <div id="my-titles"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
     </div>
     <div class="shop-tab-content" id="equip-tab-frames">
       <div id="my-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+    </div>
+    <div class="shop-tab-content" id="equip-tab-icons">
+      <div id="my-icons"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
     </div>
   </div>
 </main>
@@ -124,10 +144,11 @@ function switchTab(name) {
 
 function switchEquipTab(name) {
   document.querySelectorAll('#equip-tabs .tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['titles','frames'][i] === name);
+    b.classList.toggle('active', ['titles','frames','icons'][i] === name);
   });
-  document.getElementById('equip-tab-titles').classList.toggle('active', name === 'titles');
-  document.getElementById('equip-tab-frames').classList.toggle('active', name === 'frames');
+  ['titles','frames','icons'].forEach(n => {
+    document.getElementById('equip-tab-' + n).classList.toggle('active', n === name);
+  });
 }
 
 function switchShopTab(name) {
@@ -150,6 +171,7 @@ async function load() {
       document.getElementById('my-points').textContent = myData.points;
       renderMyTitles();
       renderMyFrames();
+      await renderMyIcons();
     }
     renderShopTitles(titles);
     renderShopFrames(frames);
@@ -315,6 +337,51 @@ async function equipFrame(id) {
     const frames = await apiFetch('/shop/frames');
     renderShopFrames(frames);
     renderMyFrames();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+// ===== アイコン =====
+let myIconData = null; // { icons, equipped_icon_id }
+
+async function renderMyIcons() {
+  const el = document.getElementById('my-icons');
+  try {
+    myIconData = await apiFetch('/gacha/my');
+    const icons = myIconData.icons || [];
+    const equippedId = myIconData.equipped_icon_id ?? null;
+    if (icons.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>所持しているアイコンがありません<br><a href="/gacha.html" style="color:var(--accent)">ガチャでゲットしよう</a></p></div>';
+      return;
+    }
+    const noneEquipped = equippedId === null;
+    el.innerHTML = `<div class="equip-icon-grid">
+      <div class="equip-icon-none${noneEquipped ? ' equipped' : ''}" onclick="equipIcon(null)">
+        <div style="width:56px;height:56px;border-radius:20%;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.4rem">✕</div>
+        <div class="iname">なし</div>
+        ${noneEquipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
+      </div>
+      ${icons.map(icon => {
+        const equipped = icon.id === equippedId || icon.is_equipped;
+        return `<div class="equip-icon-card${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})">
+          <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
+          <div class="iname">${escHtml(icon.name)}</div>
+          ${equipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function equipIcon(id) {
+  try {
+    const res = await apiFetch('/gacha/equip', { method: 'POST', body: JSON.stringify({ icon_id: id }) });
+    showAlert('#alert', res.message, 'success');
+    await renderMyIcons();
+    // localStorageのユーザー情報のequipped_icon_idを更新
+    const u = getUser();
+    if (u) { u.equipped_icon_id = id; setAuth(getToken(), u); }
   } catch (err) { showAlert('#alert', err.message); }
 }
 
