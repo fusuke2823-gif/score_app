@@ -176,6 +176,13 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('gacha_dup_ss_pts', '30') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_dup_s_pts', '10') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_dup_a_pts', '3') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_1', '100') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_2_3', '95') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_4_5', '90') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_6_10', '80') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_11_15', '60') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_16_20', '50') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_21plus', '30') ON CONFLICT (key) DO NOTHING;
     `);
 
     console.log('データベース初期化完了');

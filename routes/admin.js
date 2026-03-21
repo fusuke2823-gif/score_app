@@ -420,16 +420,24 @@ router.post('/events/:id/distribute-points', async (req, res) => {
       [req.params.id]
     );
 
+    const rpResult = await client.query(
+      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21plus')"
+    );
+    const rp = {};
+    rpResult.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
+    const rankPts = (rank) => {
+      if (rank === 1)       return rp.rank_pts_1      ?? 100;
+      if (rank <= 3)        return rp.rank_pts_2_3    ?? 95;
+      if (rank <= 5)        return rp.rank_pts_4_5    ?? 90;
+      if (rank <= 10)       return rp.rank_pts_6_10   ?? 80;
+      if (rank <= 15)       return rp.rank_pts_11_15  ?? 60;
+      if (rank <= 20)       return rp.rank_pts_16_20  ?? 50;
+      return rp.rank_pts_21plus ?? 30;
+    };
+
     let distributed = 0;
     for (const row of rankResult.rows) {
-      let pts = 0;
-      if (row.rank === 1) pts = 100;
-      else if (row.rank <= 3) pts = 95;
-      else if (row.rank <= 5) pts = 90;
-      else if (row.rank <= 10) pts = 80;
-      else if (row.rank <= 15) pts = 60;
-      else if (row.rank <= 20) pts = 50;
-      else pts = 30;
+      let pts = rankPts(Number(row.rank));
 
       await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
       await client.query(
@@ -650,6 +658,47 @@ router.delete('/frames/:id', async (req, res) => {
     res.status(500).json({ error: 'サーバーエラー' });
   } finally {
     client.release();
+  }
+});
+
+// ===== 順位ポイント設定 =====
+router.get('/settings/rank-pts', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21plus')"
+    );
+    const map = {};
+    result.rows.forEach(r => { map[r.key] = parseInt(r.value); });
+    res.json({
+      rank_pts_1:      map.rank_pts_1      ?? 100,
+      rank_pts_2_3:    map.rank_pts_2_3    ?? 95,
+      rank_pts_4_5:    map.rank_pts_4_5    ?? 90,
+      rank_pts_6_10:   map.rank_pts_6_10   ?? 80,
+      rank_pts_11_15:  map.rank_pts_11_15  ?? 60,
+      rank_pts_16_20:  map.rank_pts_16_20  ?? 50,
+      rank_pts_21plus: map.rank_pts_21plus ?? 30
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/settings/rank-pts', async (req, res) => {
+  const keys = ['rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21plus'];
+  try {
+    for (const key of keys) {
+      if (req.body[key] !== undefined) {
+        await pool.query(
+          'INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2',
+          [key, String(parseInt(req.body[key]) || 0)]
+        );
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 
