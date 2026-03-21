@@ -6,7 +6,10 @@ const pool = require('../db/index');
 router.get('/:id', async (req, res) => {
   try {
     const userResult = await pool.query(
-      'SELECT id, username, oshi_character, created_at, equipped_title_id FROM users WHERE id = $1',
+      `SELECT u.id, u.username, u.oshi_character, u.created_at, u.equipped_title_id, gi.image_url AS equipped_icon_url
+       FROM users u
+       LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
+       WHERE u.id = $1`,
       [req.params.id]
     );
     if (userResult.rows.length === 0)

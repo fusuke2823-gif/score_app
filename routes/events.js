@@ -52,6 +52,7 @@ router.get('/:id/ranking', async (req, res) => {
           u.oshi_character,
           u.equipped_title_id,
           u.equipped_frame_id,
+          u.equipped_icon_id,
           s.attribute,
           s.approved_score,
           s.approved_image_url
@@ -70,12 +71,14 @@ router.get('/:id/ranking', async (req, res) => {
         t.name AS equipped_title,
         t.description AS equipped_title_desc,
         f.css_class AS equipped_frame,
+        gi.image_url AS equipped_icon_url,
         bs.attribute,
         bs.approved_score,
         bs.approved_image_url
       FROM best_scores bs
       LEFT JOIN titles t ON bs.equipped_title_id = t.id
       LEFT JOIN frames f ON bs.equipped_frame_id = f.id
+      LEFT JOIN gacha_icons gi ON bs.equipped_icon_id = gi.id
       ORDER BY bs.approved_score DESC`,
       [req.params.id, selectedAttrs]
     );
