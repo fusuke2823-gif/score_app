@@ -196,7 +196,7 @@ async function initLoginBonus() {
   style.textContent = `
     #login-bonus-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
     #login-bonus-modal.open { display:flex; }
-    #login-bonus-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px 24px; max-width:340px; width:90%; text-align:center; }
+    #login-bonus-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
     #login-bonus-box h3 { margin:0 0 6px; font-size:1.1rem; }
     #login-bonus-box .bonus-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
     .bonus-days { display:flex; gap:6px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
@@ -206,6 +206,13 @@ async function initLoginBonus() {
     .bonus-day .day-pt { font-size:0.78rem; font-weight:bold; }
     #login-bonus-pts { font-size:2rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
     #login-bonus-msg { font-size:0.85rem; color:var(--text-muted); margin-bottom:18px; }
+    .special-bonus-list { margin-top:18px; border-top:1px solid var(--border); padding-top:14px; text-align:left; }
+    .special-bonus-list h4 { font-size:0.85rem; color:var(--text-muted); margin:0 0 10px; text-align:center; }
+    .special-bonus-item { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .special-bonus-info { flex:1; min-width:0; }
+    .special-bonus-title { font-size:0.88rem; font-weight:bold; margin-bottom:2px; }
+    .special-bonus-meta { font-size:0.72rem; color:var(--text-muted); }
+    .special-bonus-btn { flex-shrink:0; }
   `;
   document.head.appendChild(style);
 
@@ -219,19 +226,33 @@ async function initLoginBonus() {
       <div id="login-bonus-pts"></div>
       <div id="login-bonus-msg"></div>
       <button class="btn btn-primary" id="bonus-claim-btn" onclick="claimLoginBonus()">受け取る</button>
+      <div id="special-bonus-section"></div>
     </div>`;
   document.body.appendChild(modal);
 
   try {
-    const status = await apiFetch('/auth/login-bonus');
-    if (status.already_claimed) return;
-    renderBonusDays(status.streak + 1);
+    const [status, specials] = await Promise.all([
+      apiFetch('/auth/login-bonus'),
+      apiFetch('/auth/special-bonuses').catch(() => [])
+    ]);
+
+    const hasUnclaimed = specials.some(b => b.claimed_count < b.max_claims && b.last_claimed_date !== new Date().toISOString().slice(0, 10));
+
+    if (status.already_claimed && !hasUnclaimed) return;
+
+    if (!status.already_claimed) {
+      renderBonusDays(status.streak + 1, status.day_pts || [1,1,1,1,1,1,4]);
+    } else {
+      document.getElementById('bonus-claim-btn').style.display = 'none';
+      document.getElementById('login-bonus-pts').textContent = '本日分受取済み';
+    }
+
+    if (specials.length > 0) renderSpecialBonuses(specials);
     document.getElementById('login-bonus-modal').classList.add('open');
   } catch {}
 }
 
-function renderBonusDays(todayDay) {
-  const pts = [1,1,1,1,1,1,4];
+function renderBonusDays(todayDay, pts) {
   const daysEl = document.getElementById('bonus-days');
   daysEl.innerHTML = pts.map((p, i) => {
     const day = i + 1;
@@ -245,6 +266,41 @@ function renderBonusDays(todayDay) {
   const todayPt = pts[Math.min(todayDay, 7) - 1];
   document.getElementById('login-bonus-pts').textContent = `+${todayPt}pt`;
   document.getElementById('login-bonus-msg').textContent = `${todayDay}日目のボーナス`;
+}
+
+function renderSpecialBonuses(bonuses) {
+  const today = new Date().toISOString().slice(0, 10);
+  const el = document.getElementById('special-bonus-section');
+  const items = bonuses.map(b => {
+    const remaining = b.max_claims - b.claimed_count;
+    const claimedToday = b.last_claimed_date && b.last_claimed_date.slice(0, 10) === today;
+    const canClaim = remaining > 0 && !claimedToday;
+    return `<div class="special-bonus-item">
+      <div class="special-bonus-info">
+        <div class="special-bonus-title">${escHtml(b.title)}</div>
+        <div class="special-bonus-meta">${escHtml(b.end_date.slice(0,10))}まで ・ ${b.points_per_claim}pt ・ 残り${remaining}回</div>
+      </div>
+      <button class="btn btn-primary btn-sm special-bonus-btn" ${canClaim ? '' : 'disabled'}
+        onclick="claimSpecialBonus(${b.id}, this)">
+        ${claimedToday ? '受取済' : remaining <= 0 ? '上限達成' : '受け取る'}
+      </button>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="special-bonus-list"><h4>特別ボーナス</h4>${items}</div>`;
+}
+
+async function claimSpecialBonus(bonusId, btn) {
+  btn.disabled = true;
+  try {
+    const res = await apiFetch(`/auth/special-bonuses/${bonusId}/claim`, { method: 'POST' });
+    btn.textContent = '受取済';
+    const meta = btn.closest('.special-bonus-item').querySelector('.special-bonus-meta');
+    const remaining = res.max_claims - res.claimed_count;
+    if (meta) meta.textContent = meta.textContent.replace(/残り\d+回/, `残り${remaining}回`);
+  } catch (err) {
+    btn.disabled = false;
+    alert(err.message);
+  }
 }
 
 async function claimLoginBonus() {

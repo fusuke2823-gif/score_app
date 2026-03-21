@@ -812,4 +812,91 @@ router.put('/gacha/settings', async (req, res) => {
   }
 });
 
+// ===== ログインボーナス設定 =====
+router.get('/login-bonus-settings', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key LIKE 'login_bonus_day%' ORDER BY key"
+    );
+    const pts = { day1:1, day2:1, day3:1, day4:1, day5:1, day6:1, day7:4 };
+    result.rows.forEach(r => { pts[r.key.replace('login_bonus_', '')] = parseInt(r.value); });
+    res.json(pts);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/login-bonus-settings', async (req, res) => {
+  const days = ['day1','day2','day3','day4','day5','day6','day7'];
+  try {
+    for (const d of days) {
+      const v = parseInt(req.body[d]);
+      if (isNaN(v) || v < 0) return res.status(400).json({ error: '無効な値です' });
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2",
+        [`login_bonus_${d}`, String(v)]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ===== 特別ログインボーナス =====
+router.get('/special-bonuses', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM special_login_bonuses ORDER BY created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/special-bonuses', async (req, res) => {
+  const { title, start_date, end_date, max_claims, points_per_claim } = req.body;
+  if (!title || !start_date || !end_date || !max_claims || !points_per_claim)
+    return res.status(400).json({ error: '全項目を入力してください' });
+  try {
+    const result = await pool.query(
+      'INSERT INTO special_login_bonuses (title, start_date, end_date, max_claims, points_per_claim) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [title, start_date, end_date, parseInt(max_claims), parseInt(points_per_claim)]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/special-bonuses/:id', async (req, res) => {
+  const { title, start_date, end_date, max_claims, points_per_claim, is_active } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE special_login_bonuses SET title=$1, start_date=$2, end_date=$3, max_claims=$4, points_per_claim=$5, is_active=$6 WHERE id=$7 RETURNING *',
+      [title, start_date, end_date, parseInt(max_claims), parseInt(points_per_claim), is_active, req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/special-bonuses/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM special_login_bonuses WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;

@@ -51,6 +51,7 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('points')">ポイント配布</button>
     <button class="tab-btn" onclick="switchTab('gacha')">ガチャ管理</button>
+    <button class="tab-btn" onclick="switchTab('loginbonus')">ログインボーナス</button>
   </div>
 
   <!-- ポイント配布 -->
@@ -223,6 +224,40 @@
     </div>
 
   </div>
+
+  <!-- ログインボーナス管理 -->
+  <div class="tab-content" id="tab-loginbonus">
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">通常ログインボーナス設定</div>
+      <div id="lb-alert" style="margin-bottom:12px"></div>
+      <div id="lb-day-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px"></div>
+      <button class="btn btn-primary" onclick="saveLBSettings()">保存</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">特別ログインボーナス</div>
+      <div id="sb-alert" style="margin-bottom:12px"></div>
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:0.85rem;font-weight:bold;margin-bottom:12px;color:var(--text-muted)">新規作成</div>
+        <div class="form-group"><label class="form-label">題名</label>
+          <input class="form-input" id="sb-title" placeholder="例: GW特別ボーナス"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group"><label class="form-label">開始日</label>
+            <input class="form-input" id="sb-start" type="date"></div>
+          <div class="form-group"><label class="form-label">終了日</label>
+            <input class="form-input" id="sb-end" type="date"></div>
+          <div class="form-group"><label class="form-label">獲得可能回数</label>
+            <input class="form-input" id="sb-max" type="number" min="1" value="1"></div>
+          <div class="form-group"><label class="form-label">1回のpt</label>
+            <input class="form-input" id="sb-pts" type="number" min="1" value="5"></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:4px" onclick="createSpecialBonus()">作成</button>
+      </div>
+      <div id="sb-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -232,12 +267,13 @@ if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['points', 'gacha'][i] === name);
+    b.classList.toggle('active', ['points', 'gacha', 'loginbonus'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'points') { loadRankPts(); loadDistributable(); loadGrantUsers(); }
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); }
+  if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
 }
 
 // ===== 手動ポイント付与 =====
@@ -598,6 +634,94 @@ async function deleteGachaIcon(id) {
 loadRankPts();
 loadDistributable();
 loadGrantUsers();
+
+// ===== ログインボーナス設定 =====
+async function loadLBSettings() {
+  try {
+    const data = await apiFetch('/admin/login-bonus-settings');
+    const days = ['day1','day2','day3','day4','day5','day6','day7'];
+    document.getElementById('lb-day-inputs').innerHTML = days.map(d => `
+      <div>
+        <label class="form-label">${d.replace('day','')}日目</label>
+        <input class="form-input" id="lb-${d}" type="number" min="0" value="${data[d] ?? 1}">
+      </div>`).join('');
+  } catch (err) { showAlert('#lb-alert', err.message); }
+}
+
+async function saveLBSettings() {
+  const days = ['day1','day2','day3','day4','day5','day6','day7'];
+  const body = {};
+  for (const d of days) body[d] = document.getElementById(`lb-${d}`)?.value;
+  try {
+    await apiFetch('/admin/login-bonus-settings', { method: 'PUT', body: JSON.stringify(body) });
+    showAlert('#lb-alert', '保存しました', 'success');
+  } catch (err) { showAlert('#lb-alert', err.message); }
+}
+
+// ===== 特別ログインボーナス =====
+async function loadSpecialBonuses() {
+  const el = document.getElementById('sb-list');
+  try {
+    const list = await apiFetch('/admin/special-bonuses');
+    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">特別ボーナスなし</div>'; return; }
+    el.innerHTML = list.map(b => `
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:bold;margin-bottom:2px">${escHtml(b.title)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">${escHtml(b.start_date.slice(0,10))} 〜 ${escHtml(b.end_date.slice(0,10))} ／ 上限${b.max_claims}回 ／ ${b.points_per_claim}pt</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:0.72rem;padding:2px 8px;border-radius:10px;background:${b.is_active ? 'var(--accent-dim)' : 'var(--bg-card)'};color:${b.is_active ? 'var(--accent)' : 'var(--text-muted)'}">${b.is_active ? '有効' : '無効'}</span>
+            <button class="btn btn-secondary btn-sm" onclick="toggleSB(${b.id},${!b.is_active},this)">${b.is_active ? '無効化' : '有効化'}</button>
+            <button class="btn btn-secondary btn-sm" onclick="deleteSB(${b.id},this)" style="color:#f87171">削除</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
+}
+
+async function createSpecialBonus() {
+  const body = {
+    title: document.getElementById('sb-title').value,
+    start_date: document.getElementById('sb-start').value,
+    end_date: document.getElementById('sb-end').value,
+    max_claims: document.getElementById('sb-max').value,
+    points_per_claim: document.getElementById('sb-pts').value,
+  };
+  try {
+    await apiFetch('/admin/special-bonuses', { method: 'POST', body: JSON.stringify(body) });
+    showAlert('#sb-alert', '作成しました', 'success');
+    ['sb-title','sb-start','sb-end'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sb-max').value = '1';
+    document.getElementById('sb-pts').value = '5';
+    loadSpecialBonuses();
+  } catch (err) { showAlert('#sb-alert', err.message); }
+}
+
+async function toggleSB(id, newActive, btn) {
+  btn.disabled = true;
+  try {
+    const item = btn.closest('div[style*="background"]');
+    const title = item.querySelector('[style*="font-weight:bold"]').textContent;
+    const meta = item.querySelector('[style*="font-size:0.75rem"]').textContent;
+    const parts = meta.match(/(\S+) 〜 (\S+) ／ 上限(\d+)回 ／ (\d+)pt/);
+    await apiFetch(`/admin/special-bonuses/${id}`, { method: 'PUT', body: JSON.stringify({
+      title, start_date: parts[1], end_date: parts[2],
+      max_claims: parseInt(parts[3]), points_per_claim: parseInt(parts[4]), is_active: newActive
+    })});
+    loadSpecialBonuses();
+  } catch (err) { showAlert('#sb-alert', err.message); btn.disabled = false; }
+}
+
+async function deleteSB(id, btn) {
+  if (!confirm('削除しますか？')) return;
+  btn.disabled = true;
+  try {
+    await apiFetch(`/admin/special-bonuses/${id}`, { method: 'DELETE' });
+    loadSpecialBonuses();
+  } catch (err) { showAlert('#sb-alert', err.message); btn.disabled = false; }
+}
 </script>
 </body>
 </html>

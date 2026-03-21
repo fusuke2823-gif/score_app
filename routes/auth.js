@@ -133,15 +133,29 @@ router.put('/me', authenticateToken, async (req, res) => {
 });
 
 // ログインボーナス状態確認
+// ログインボーナス日別pt設定を取得するヘルパー
+async function getLoginBonusPts() {
+  const result = await pool.query(
+    "SELECT key, value FROM settings WHERE key LIKE 'login_bonus_day%'"
+  );
+  const pts = [1,1,1,1,1,1,4];
+  result.rows.forEach(r => {
+    const day = parseInt(r.key.replace('login_bonus_day', ''));
+    if (day >= 1 && day <= 7) pts[day - 1] = parseInt(r.value) || 0;
+  });
+  return pts;
+}
+
 router.get('/login-bonus', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]
-    );
-    const { last_login_date, login_streak } = result.rows[0];
+    const [userResult, pts] = await Promise.all([
+      pool.query('SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]),
+      getLoginBonusPts()
+    ]);
+    const { last_login_date, login_streak } = userResult.rows[0];
     const today = new Date().toISOString().slice(0, 10);
     const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
-    res.json({ already_claimed: lastDate === today, streak: login_streak || 0 });
+    res.json({ already_claimed: lastDate === today, streak: login_streak || 0, day_pts: pts });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -151,10 +165,11 @@ router.get('/login-bonus', authenticateToken, async (req, res) => {
 // ログインボーナス受け取り
 router.post('/login-bonus', authenticateToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]
-    );
-    const { last_login_date, login_streak } = result.rows[0];
+    const [userResult, pts] = await Promise.all([
+      pool.query('SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]),
+      getLoginBonusPts()
+    ]);
+    const { last_login_date, login_streak } = userResult.rows[0];
     const today = new Date().toISOString().slice(0, 10);
     const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
 
@@ -165,7 +180,7 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
 
     let newStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
-    const points = newStreak === 7 ? 4 : 1;
+    const points = pts[newStreak - 1] ?? 1;
 
     await pool.query(
       'UPDATE users SET last_login_date=$1, login_streak=$2, points=points+$3, total_login_days=total_login_days+1 WHERE id=$4',
@@ -176,6 +191,76 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
       [req.user.id, points, `ログインボーナス ${newStreak}日目`]
     );
     res.json({ streak: newStreak, points_earned: points });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 特別ログインボーナス一覧（有効期間中のもの + ユーザーの受取状況）
+router.get('/special-bonuses', authenticateToken, async (req, res) => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const result = await pool.query(
+      `SELECT b.id, b.title, b.start_date, b.end_date, b.max_claims, b.points_per_claim,
+              COALESCE(c.claimed_count, 0) AS claimed_count,
+              c.last_claimed_date
+       FROM special_login_bonuses b
+       LEFT JOIN special_login_bonus_claims c ON c.bonus_id = b.id AND c.user_id = $1
+       WHERE b.is_active = TRUE AND b.start_date <= $2 AND b.end_date >= $2
+       ORDER BY b.created_at DESC`,
+      [req.user.id, today]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 特別ログインボーナス受け取り
+router.post('/special-bonuses/:id/claim', authenticateToken, async (req, res) => {
+  const bonusId = parseInt(req.params.id);
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const bonusRes = await pool.query(
+      'SELECT * FROM special_login_bonuses WHERE id=$1 AND is_active=TRUE AND start_date<=$2 AND end_date>=$2',
+      [bonusId, today]
+    );
+    if (bonusRes.rows.length === 0) return res.status(404).json({ error: 'ボーナスが見つかりません' });
+    const bonus = bonusRes.rows[0];
+
+    const claimRes = await pool.query(
+      'SELECT * FROM special_login_bonus_claims WHERE user_id=$1 AND bonus_id=$2',
+      [req.user.id, bonusId]
+    );
+    const claim = claimRes.rows[0];
+
+    if (claim) {
+      if (claim.claimed_count >= bonus.max_claims)
+        return res.status(409).json({ error: '受取上限に達しています' });
+      const lastDate = claim.last_claimed_date ? claim.last_claimed_date.toISOString().slice(0, 10) : null;
+      if (lastDate === today)
+        return res.status(409).json({ error: '本日分はすでに受け取り済みです' });
+      await pool.query(
+        'UPDATE special_login_bonus_claims SET claimed_count=claimed_count+1, last_claimed_date=$1 WHERE user_id=$2 AND bonus_id=$3',
+        [today, req.user.id, bonusId]
+      );
+    } else {
+      await pool.query(
+        'INSERT INTO special_login_bonus_claims (user_id, bonus_id, claimed_count, last_claimed_date) VALUES ($1,$2,1,$3)',
+        [req.user.id, bonusId, today]
+      );
+    }
+
+    await pool.query('UPDATE users SET points=points+$1 WHERE id=$2', [bonus.points_per_claim, req.user.id]);
+    await pool.query(
+      'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
+      [req.user.id, bonus.points_per_claim, `特別ボーナス「${bonus.title}」`]
+    );
+
+    const newCount = (claim?.claimed_count || 0) + 1;
+    res.json({ points_earned: bonus.points_per_claim, claimed_count: newCount, max_claims: bonus.max_claims });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

@@ -162,6 +162,26 @@ const initDB = async () => {
         acquired_at TIMESTAMP DEFAULT NOW(),
         UNIQUE(user_id, icon_id)
       );
+
+      CREATE TABLE IF NOT EXISTS special_login_bonuses (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(100) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        max_claims INTEGER NOT NULL DEFAULT 1,
+        points_per_claim INTEGER NOT NULL DEFAULT 1,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS special_login_bonus_claims (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        bonus_id INTEGER REFERENCES special_login_bonuses(id) ON DELETE CASCADE,
+        claimed_count INTEGER DEFAULT 0,
+        last_claimed_date DATE,
+        UNIQUE(user_id, bonus_id)
+      );
     `);
 
     // 通知・ガチャ設定の初期値
@@ -183,6 +203,13 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('rank_pts_11_15', '60') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('rank_pts_16_20', '50') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('rank_pts_21plus', '30') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day1', '1') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day2', '1') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day3', '1') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day4', '1') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day5', '1') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day6', '1') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
     `);
 
     console.log('データベース初期化完了');
