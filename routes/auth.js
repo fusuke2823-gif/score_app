@@ -16,6 +16,9 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
 
   try {
+    const existing = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
+    if (existing.rows.length > 0)
+      return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (username, password_hash, oshi_character) VALUES ($1, $2, $3) RETURNING id, username, role, oshi_character',
@@ -83,6 +86,11 @@ router.put('/me', authenticateToken, async (req, res) => {
   }
 
   try {
+    if (username) {
+      const existing = await pool.query('SELECT 1 FROM users WHERE username = $1 AND id != $2', [username, req.user.id]);
+      if (existing.rows.length > 0)
+        return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
+    }
     // パスワード変更がある場合は現在のパスワードを確認
     if (new_password) {
       if (new_password.length < 6)
