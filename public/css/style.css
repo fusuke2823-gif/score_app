@@ -635,9 +635,11 @@ main {
   .ranking-table th:first-child, .ranking-table td:first-child { width: 18px; }
   .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 18px; }
   .ranking-table .col-avatar { width: 28px; }
-  .ranking-table .col-avatar .rank-avatar { width: 24px; height: 24px; font-size: 0.7rem; }
+  .ranking-table .col-avatar .rank-avatar { width: 26px; height: 26px; font-size: 0.72rem; }
+  .ranking-table .attr-badge { width: 26px; height: 26px; font-size: 0.75rem; }
   .ranking-table .col-score { white-space: nowrap; }
   .ranking-table .col-img { white-space: nowrap; }
+  .ranking-table td:nth-child(4) { vertical-align: middle; }
   .rank-num { font-size: 0.9rem; min-width: unset; }
   .score-val { font-size: 0.9rem; }
 }
