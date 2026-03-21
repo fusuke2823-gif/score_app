@@ -909,7 +909,7 @@ async function loadUsers() {
               <td style="font-size:0.8rem;color:var(--accent)" class="hide-mobile">${u.equipped_title ? `「${escHtml(u.equipped_title)}」` : '-'}</td>
               <td style="font-size:0.8rem;color:var(--text-muted)" class="hide-mobile">${formatDate(u.created_at)}</td>
               <td>
-                <div style="display:flex;gap:6px;justify-content:flex-end">
+                <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
                   <button class="btn btn-secondary btn-sm" onclick="toggleUserRole(${u.id}, '${u.role}')">
                     ${u.role === 'admin' ? '管理者解除' : '管理者にする'}
                   </button>
