@@ -147,6 +147,7 @@
   <div class="gacha-hero">
     <h1 class="page-title" style="margin-bottom:6px">ガチャ</h1>
     <div class="gacha-points-display" id="my-points">--- pt</div>
+    <div id="dup-indicator" style="font-size:0.82rem;font-weight:bold;color:#4fc3f7;height:1.3em;opacity:0;transition:opacity 0.3s;text-align:center;margin-bottom:2px"></div>
     <div style="font-size:0.8rem;color:var(--text-muted)" id="cost-info">読み込み中...</div>
   </div>
 
@@ -206,6 +207,7 @@ if (!requireLogin()) throw new Error('redirect');
 
 let gSettings = null;
 let isPulling = false;
+let currentPoints = 0;
 
 async function init() {
   try {
@@ -214,7 +216,8 @@ async function init() {
       apiFetch('/gacha/my')
     ]);
     gSettings = settings;
-    updatePointsDisplay(myData.points);
+    currentPoints = myData.points;
+    updatePointsDisplay(currentPoints);
 
     document.getElementById('single-cost-label').textContent = `${settings.single_cost}pt`;
     document.getElementById('multi-cost-label').textContent = `${settings.multi_cost}pt　Sレア以上確定`;
@@ -249,6 +252,30 @@ async function init() {
 
 function updatePointsDisplay(pts) {
   document.getElementById('my-points').textContent = Number(pts).toLocaleString('ja-JP') + ' pt';
+}
+
+function animateCount(from, to, duration) {
+  return new Promise(resolve => {
+    const start = performance.now();
+    const diff = to - from;
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+      updatePointsDisplay(Math.round(from + diff * ease));
+      if (t < 1) requestAnimationFrame(step);
+      else { updatePointsDisplay(to); resolve(); }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+async function showDupReturn(from, to, dupTotal) {
+  const ind = document.getElementById('dup-indicator');
+  ind.textContent = `+${dupTotal}pt 重複補償`;
+  ind.style.opacity = '1';
+  await animateCount(from, to, 700);
+  await new Promise(r => setTimeout(r, 1400));
+  ind.style.opacity = '0';
 }
 
 function renderMyIcons(icons) {
@@ -291,10 +318,21 @@ async function doPull(type) {
 
   try {
     const res = await apiFetch(`/gacha/pull/${type}`, { method: 'POST' });
-    updatePointsDisplay(res.new_points);
+    // コスト分を即座に減らす
+    const dupTotal = res.results.reduce((s, r) => s + (r.dup_pts || 0), 0);
+    const afterCost = res.new_points - dupTotal;
+    await animateCount(currentPoints, afterCost, 350);
+    currentPoints = afterCost;
+
     await animatePull(res.results);
     showResultSummary(res.results);
-    // リロードして所持アイコン更新
+
+    // 重複補償を返却
+    if (dupTotal > 0) {
+      await showDupReturn(currentPoints, res.new_points, dupTotal);
+    }
+    currentPoints = res.new_points;
+
     const myData = await apiFetch('/gacha/my');
     renderMyIcons(myData.icons);
   } catch (err) {
