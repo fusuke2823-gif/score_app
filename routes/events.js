@@ -72,6 +72,7 @@ router.get('/:id/ranking', async (req, res) => {
         t.description AS equipped_title_desc,
         f.css_class AS equipped_frame,
         gi.image_url AS equipped_icon_url,
+        gi.rarity AS equipped_icon_rarity,
         bs.attribute,
         bs.approved_score,
         bs.approved_image_url
