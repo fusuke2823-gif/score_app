@@ -88,6 +88,14 @@
 }
 .icon-item img:hover { border-color:var(--accent); }
 .icon-item img.equipped { border-color:var(--accent); box-shadow:0 0 10px var(--accent); }
+.icon-none-btn {
+  width:58px; height:58px; border-radius:20%; border:2px solid var(--border); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; margin:0 auto 4px;
+  font-size:1.4rem; color:var(--text-muted); background:var(--bg-primary);
+  transition:border-color 0.2s, box-shadow 0.2s;
+}
+.icon-none-btn:hover { border-color:var(--accent); }
+.icon-none-btn.equipped { border-color:var(--accent); box-shadow:0 0 10px var(--accent); }
 .icon-item .iname { font-size:0.68rem; color:var(--text-secondary); word-break:break-all; line-height:1.2; }
 .irarity { font-size:0.62rem; font-weight:bold; padding:1px 5px; border-radius:3px; display:inline-block; margin-bottom:3px; }
 .irarity-SS { background:#ffd700; color:#000; }
@@ -284,6 +292,7 @@ function renderMyIcons(icons) {
     el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎰</div><p>まだアイコンを所持していません</p></div>';
     return;
   }
+  const anyEquipped = icons.some(i => i.is_equipped);
   el.innerHTML = `<div class="icon-grid">${icons.map(icon => `
     <div class="icon-item">
       <span class="irarity irarity-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
@@ -292,14 +301,33 @@ function renderMyIcons(icons) {
            onclick="equipIcon(${icon.id}, this)"
            title="${escHtml(icon.name)}">
       <div class="iname">${escHtml(icon.name)}</div>
-    </div>`).join('')}</div>`;
+    </div>`).join('')}
+    <div class="icon-item">
+      <span class="irarity" style="visibility:hidden">-</span><br>
+      <div class="icon-none-btn ${anyEquipped ? '' : 'equipped'}" onclick="unequipIcon(this)" title="何もつけない">✕</div>
+      <div class="iname">何もつけない</div>
+    </div>
+  </div>`;
 }
 
 async function equipIcon(iconId, imgEl) {
   try {
     const res = await apiFetch('/gacha/equip', { method: 'POST', body: JSON.stringify({ icon_id: iconId }) });
     document.querySelectorAll('#my-icons img').forEach(el => el.classList.remove('equipped'));
+    document.querySelectorAll('#my-icons .icon-none-btn').forEach(el => el.classList.remove('equipped'));
     imgEl.classList.add('equipped');
+    showAlert('#alert', res.message, 'success');
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+async function unequipIcon(el) {
+  try {
+    const res = await apiFetch('/gacha/equip', { method: 'POST', body: JSON.stringify({ icon_id: null }) });
+    document.querySelectorAll('#my-icons img').forEach(e => e.classList.remove('equipped'));
+    document.querySelectorAll('#my-icons .icon-none-btn').forEach(e => e.classList.remove('equipped'));
+    el.classList.add('equipped');
     showAlert('#alert', res.message, 'success');
   } catch (err) {
     showAlert('#alert', err.message);

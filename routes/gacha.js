@@ -49,7 +49,7 @@ router.get('/my', authenticateToken, async (req, res) => {
          JOIN gacha_icons gi ON ui.icon_id = gi.id
          JOIN users u ON u.id = $1
          WHERE ui.user_id = $1
-         ORDER BY gi.rarity ASC, ui.acquired_at DESC`,
+         ORDER BY CASE gi.rarity WHEN 'SS' THEN 1 WHEN 'S' THEN 2 ELSE 3 END, ui.acquired_at DESC`,
         [req.user.id]
       ),
       pool.query('SELECT points FROM users WHERE id=$1', [req.user.id])
