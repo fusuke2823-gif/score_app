@@ -145,6 +145,7 @@ const initDB = async () => {
       );
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_icon_id INTEGER;
+      ALTER TABLE gacha_icons ADD COLUMN IF NOT EXISTS unit VARCHAR(10);
 
       CREATE TABLE IF NOT EXISTS gacha_icons (
         id SERIAL PRIMARY KEY,

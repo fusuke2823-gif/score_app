@@ -124,7 +124,7 @@
     </div>
     <div class="shop-tab-content" id="equip-tab-icons">
       <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button class="btn btn-secondary btn-sm" id="icon-sort-impl" onclick="setIconSort('impl')" style="opacity:1">実装順</button>
+        <button class="btn btn-secondary btn-sm" id="icon-sort-impl" onclick="setIconSort('impl')" style="opacity:1">部隊順</button>
         <button class="btn btn-secondary btn-sm" id="icon-sort-acq" onclick="setIconSort('acq')" style="opacity:0.45">入手順</button>
       </div>
       <div id="my-icons"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
@@ -356,41 +356,70 @@ function setIconSort(mode) {
   renderMyIcons();
 }
 
-function sortedIcons(icons) {
-  if (iconSort === 'acq') return [...icons].sort((a, b) => new Date(a.acquired_at) - new Date(b.acquired_at));
-  const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
-  return [...icons].sort((a, b) => {
-    const rd = rarityOrder(a.rarity) - rarityOrder(b.rarity);
-    return rd !== 0 ? rd : a.id - b.id;
-  });
+const UNIT_ORDER = ['31A','31B','31C','31D','31E','31F','30G','31X'];
+const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
+
+function iconCardHtml(icon, equippedId) {
+  const equipped = icon.id === equippedId || icon.is_equipped;
+  return `<div class="equip-icon-card${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})">
+    <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
+    <div class="iname">${escHtml(icon.name)}</div>
+    ${equipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
+  </div>`;
+}
+
+function renderIconsUnit(icons, equippedId) {
+  const noneEquipped = equippedId === null;
+  const noneCard = `<div class="equip-icon-none${noneEquipped ? ' equipped' : ''}" onclick="equipIcon(null)">
+    <div style="width:56px;height:56px;border-radius:20%;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.4rem">✕</div>
+    <div class="iname">なし</div>
+    ${noneEquipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
+  </div>`;
+
+  // 部隊ごとにグループ化
+  const groups = {};
+  for (const u of UNIT_ORDER) groups[u] = [];
+  groups[''] = [];
+  for (const icon of icons) groups[icon.unit || ''].push(icon);
+
+  // 各グループ内でSS→S→A順
+  let html = noneCard;
+  for (const u of [...UNIT_ORDER, '']) {
+    const group = groups[u];
+    if (!group.length) continue;
+    group.sort((a, b) => rarityOrder(a.rarity) - rarityOrder(b.rarity));
+    html += `</div><div style="font-size:0.78rem;font-weight:bold;color:var(--text-muted);margin:16px 0 6px">${u || '部隊なし'}</div><div class="equip-icon-grid">`;
+    html += group.map(ic => iconCardHtml(ic, equippedId)).join('');
+  }
+  return `<div class="equip-icon-grid">${html}</div>`;
+}
+
+function renderIconsAcq(icons, equippedId) {
+  const noneEquipped = equippedId === null;
+  const sorted = [...icons].sort((a, b) => new Date(a.acquired_at) - new Date(b.acquired_at));
+  return `<div class="equip-icon-grid">
+    <div class="equip-icon-none${noneEquipped ? ' equipped' : ''}" onclick="equipIcon(null)">
+      <div style="width:56px;height:56px;border-radius:20%;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.4rem">✕</div>
+      <div class="iname">なし</div>
+      ${noneEquipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
+    </div>
+    ${sorted.map(ic => iconCardHtml(ic, equippedId)).join('')}
+  </div>`;
 }
 
 async function renderMyIcons() {
   const el = document.getElementById('my-icons');
   try {
     if (!myIconData) myIconData = await apiFetch('/gacha/my');
-    const icons = sortedIcons(myIconData.icons || []);
+    const icons = myIconData.icons || [];
     const equippedId = myIconData.equipped_icon_id ?? null;
     if (icons.length === 0) {
       el.innerHTML = '<div class="empty-state"><p>所持しているアイコンがありません<br><a href="/gacha.html" style="color:var(--accent)">ガチャでゲットしよう</a></p></div>';
       return;
     }
-    const noneEquipped = equippedId === null;
-    el.innerHTML = `<div class="equip-icon-grid">
-      <div class="equip-icon-none${noneEquipped ? ' equipped' : ''}" onclick="equipIcon(null)">
-        <div style="width:56px;height:56px;border-radius:20%;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.4rem">✕</div>
-        <div class="iname">なし</div>
-        ${noneEquipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
-      </div>
-      ${icons.map(icon => {
-        const equipped = icon.id === equippedId || icon.is_equipped;
-        return `<div class="equip-icon-card${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})">
-          <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
-          <div class="iname">${escHtml(icon.name)}</div>
-          ${equipped ? '<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">装備中</div>' : ''}
-        </div>`;
-      }).join('')}
-    </div>`;
+    el.innerHTML = iconSort === 'acq'
+      ? renderIconsAcq(icons, equippedId)
+      : renderIconsUnit(icons, equippedId);
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }

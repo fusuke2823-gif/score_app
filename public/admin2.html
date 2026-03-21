@@ -620,12 +620,17 @@ async function loadGachaIcons() {
       el.innerHTML = '<div class="empty-state"><p>アイコンがありません</p></div>';
       return;
     }
+    const UNITS = ['','31A','31B','31C','31D','31E','31F','30G','31X'];
     el.innerHTML = `<div class="admin-icon-grid">${icons.map(icon => `
       <div class="admin-icon-card">
         <span class="rarity-badge rarity-badge-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
         <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"
              ${!icon.is_active ? 'style="opacity:0.4"' : ''}>
         <div class="iname">${escHtml(icon.name)}</div>
+        <select class="form-input" style="font-size:0.75rem;padding:3px 6px;margin-top:6px"
+          onchange="setIconUnit(${icon.id}, this.value)">
+          ${UNITS.map(u => `<option value="${u}" ${icon.unit === u || (!icon.unit && u === '') ? 'selected' : ''}>${u || '部隊なし'}</option>`).join('')}
+        </select>
         <div class="ibtns">
           <button class="btn btn-secondary btn-sm" onclick="toggleIconVisibility(${icon.id}, ${!icon.is_active})">
             ${icon.is_active ? '非表示' : '表示'}
@@ -636,6 +641,12 @@ async function loadGachaIcons() {
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+
+async function setIconUnit(id, unit) {
+  try {
+    await apiFetch(`/admin/gacha/icons/${id}/unit`, { method: 'PATCH', body: JSON.stringify({ unit }) });
+  } catch (err) { showAlert('#alert', err.message); }
 }
 
 async function toggleIconVisibility(id, makeActive) {

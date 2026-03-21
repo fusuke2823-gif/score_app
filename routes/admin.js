@@ -738,7 +738,7 @@ router.put('/settings/rank-pts', async (req, res) => {
 // ===== ガチャアイコン管理 =====
 router.get('/gacha/icons', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM gacha_icons ORDER BY rarity ASC, created_at DESC');
+    const result = await pool.query('SELECT * FROM gacha_icons ORDER BY id ASC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
@@ -762,6 +762,19 @@ router.post('/gacha/icons', async (req, res) => {
       [name, rarity, uploadResult.secure_url]
     );
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.patch('/gacha/icons/:id/unit', async (req, res) => {
+  const { unit } = req.body;
+  const VALID_UNITS = ['31A','31B','31C','31D','31E','31F','30G','31X',null,''];
+  if (!VALID_UNITS.includes(unit)) return res.status(400).json({ error: '無効な部隊です' });
+  try {
+    await pool.query('UPDATE gacha_icons SET unit=$1 WHERE id=$2', [unit || null, req.params.id]);
+    res.json({ message: '部隊を更新しました' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

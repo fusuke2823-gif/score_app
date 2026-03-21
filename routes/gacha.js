@@ -43,13 +43,13 @@ router.get('/my', authenticateToken, async (req, res) => {
   try {
     const [iconsResult, userResult] = await Promise.all([
       pool.query(
-        `SELECT gi.id, gi.name, gi.rarity, gi.image_url, ui.acquired_at,
+        `SELECT gi.id, gi.name, gi.rarity, gi.unit, gi.image_url, ui.acquired_at,
                 (u.equipped_icon_id = gi.id) AS is_equipped
          FROM user_icons ui
          JOIN gacha_icons gi ON ui.icon_id = gi.id
          JOIN users u ON u.id = $1
          WHERE ui.user_id = $1
-         ORDER BY CASE gi.rarity WHEN 'SS' THEN 1 WHEN 'S' THEN 2 ELSE 3 END, ui.acquired_at DESC`,
+         ORDER BY gi.id ASC`,
         [req.user.id]
       ),
       pool.query('SELECT points FROM users WHERE id=$1', [req.user.id])
