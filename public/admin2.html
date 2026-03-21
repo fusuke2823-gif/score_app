@@ -120,9 +120,7 @@
 
     <div class="card">
       <div class="section-title">ポイント配布（終了済みイベント）</div>
-      <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
-        1位のプレイヤーには「[イベント名]優勝」称号も自動付与されます。
-      </p>
+      <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
       <div id="points-alert" style="margin-bottom:12px"></div>
       <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
@@ -358,7 +356,7 @@ async function loadRankPts() {
 
 function updateRankPtsSummary(r) {
   document.getElementById('rank-pts-summary').textContent =
-    `1位: ${r.rank_pts_1}pt / 2〜3位: ${r.rank_pts_2_3}pt / 4〜5位: ${r.rank_pts_4_5}pt / 6〜10位: ${r.rank_pts_6_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21〜25位: ${r.rank_pts_21_25}pt / 26〜30位: ${r.rank_pts_26_30}pt / 31位以降: ${r.rank_pts_31plus}pt　※1位に優勝称号も付与`;
+    `1位: ${r.rank_pts_1}pt / 2〜3位: ${r.rank_pts_2_3}pt / 4〜5位: ${r.rank_pts_4_5}pt / 6〜10位: ${r.rank_pts_6_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21〜25位: ${r.rank_pts_21_25}pt / 26〜30位: ${r.rank_pts_26_30}pt / 31位以降: ${r.rank_pts_31plus}pt`;
 }
 
 async function saveRankPts() {
@@ -390,22 +388,47 @@ async function loadDistributable() {
       return;
     }
     el.innerHTML = events.map(e => `
-      <div class="event-list-item">
-        <div>
-          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
-          <strong>${escHtml(e.name)}</strong>
+      <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+            <strong>${escHtml(e.name)}</strong>
+          </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id}, '${escHtml(e.name)}')">配布する</button>
+        <div style="font-size:0.82rem;color:var(--text-muted)">称号付与（任意）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:0.85rem">
+          <label><input type="checkbox" id="t-r1-${e.id}" checked> 優勝（1位）</label>
+          <label><input type="checkbox" id="t-r2-${e.id}"> 準優勝（2位）</label>
+          <label><input type="checkbox" id="t-r3-${e.id}"> 3位</label>
+          <span style="color:var(--border);margin:0 4px">|</span>
+          ${AWARD_ATTRS.map(a => `<label><input type="checkbox" id="t-a${a}-${e.id}"> ${a}属性1位</label>`).join('')}
+        </div>
+        <div style="text-align:right">
+          <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id})">配布する</button>
+        </div>
       </div>`).join('');
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
 
-async function distributePoints(id, name) {
-  if (!confirm(`「${name}」のポイントを配布しますか？\nこの操作は取り消せません。`)) return;
+const AWARD_ATTRS = ['火', '氷', '雷', '光', '闇', '無'];
+
+async function distributePoints(id) {
+  if (!confirm('ポイントを配布しますか？\nこの操作は取り消せません。')) return;
+  const award_titles = {
+    rank1: document.getElementById(`t-r1-${id}`)?.checked || false,
+    rank2: document.getElementById(`t-r2-${id}`)?.checked || false,
+    rank3: document.getElementById(`t-r3-${id}`)?.checked || false,
+  };
+  for (const a of AWARD_ATTRS) {
+    award_titles[`attr_${a}`] = document.getElementById(`t-a${a}-${id}`)?.checked || false;
+  }
   try {
-    const res = await apiFetch(`/admin/events/${id}/distribute-points`, { method: 'POST' });
+    const res = await apiFetch(`/admin/events/${id}/distribute-points`, {
+      method: 'POST',
+      body: JSON.stringify({ award_titles })
+    });
     showAlert('#points-alert', res.message, 'success');
     loadDistributable();
   } catch (err) { showAlert('#points-alert', err.message); }

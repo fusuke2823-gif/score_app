@@ -399,6 +399,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const { award_titles = {} } = req.body || {};
 
     const eventResult = await client.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
     if (eventResult.rows.length === 0) return res.status(404).json({ error: 'イベントが見つかりません' });
@@ -440,32 +441,65 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     let distributed = 0;
     for (const row of rankResult.rows) {
       let pts = rankPts(Number(row.rank));
-
       await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
       await client.query(
         'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
         [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位`]
       );
+      distributed++;
+    }
 
-      // 1位に優勝称号を自動付与
-      if (row.rank === 1) {
-        const titleName = `${event.name}優勝`;
-        const titleResult = await client.query(
+    // 称号付与
+    const awardedTitles = [];
+    const rankTitleDefs = [
+      { key: 'rank1', rank: 1, label: '優勝' },
+      { key: 'rank2', rank: 2, label: '準優勝' },
+      { key: 'rank3', rank: 3, label: '3位' },
+    ];
+    for (const def of rankTitleDefs) {
+      if (!award_titles[def.key]) continue;
+      const targets = rankResult.rows.filter(r => Number(r.rank) === def.rank);
+      for (const row of targets) {
+        const titleName = `${event.name}${def.label}`;
+        const tr = await client.query(
           'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
-          [titleName, `第${event.event_number}回 ${event.name} 1位達成`]
+          [titleName, `第${event.event_number}回 ${event.name} ${def.rank}位達成`]
         );
         await client.query(
           'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [row.user_id, titleResult.rows[0].id]
+          [row.user_id, tr.rows[0].id]
         );
+        if (!awardedTitles.includes(titleName)) awardedTitles.push(titleName);
       }
-      distributed++;
+    }
+    const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
+    for (const attr of ATTRIBUTES) {
+      if (!award_titles[`attr_${attr}`]) continue;
+      const attrResult = await client.query(
+        `SELECT DISTINCT ON (user_id) user_id, approved_score FROM scores
+         WHERE event_id=$1 AND approved_score IS NOT NULL AND attribute=$2
+         ORDER BY user_id, approved_score DESC`,
+        [req.params.id, attr]
+      );
+      if (attrResult.rows.length === 0) continue;
+      const best = attrResult.rows.reduce((a, b) => b.approved_score > a.approved_score ? b : a);
+      const titleName = `${event.name} ${attr}属性1位`;
+      const tr = await client.query(
+        'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
+        [titleName, `第${event.event_number}回 ${event.name} ${attr}属性 1位達成`]
+      );
+      await client.query(
+        'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [best.user_id, tr.rows[0].id]
+      );
+      awardedTitles.push(titleName);
     }
 
     await client.query('UPDATE events SET points_distributed=TRUE WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
 
-    res.json({ message: `${distributed}名にポイントを配布しました` });
+    const titleMsg = awardedTitles.length ? `　称号付与: ${awardedTitles.join(', ')}` : '';
+    res.json({ message: `${distributed}名にポイントを配布しました${titleMsg}` });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
