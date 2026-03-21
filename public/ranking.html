@@ -219,6 +219,7 @@ async function loadRanking() {
           <tr>
             <th style="width:50px">順位</th>
             <th style="width:50px">属性</th>
+            <th class="col-avatar"></th>
             <th>プレイヤー</th>
             <th class="col-score" style="text-align:right">スコア</th>
             <th class="col-img" style="width:50px"></th>
@@ -233,6 +234,7 @@ async function loadRanking() {
             <tr class="rank-${r.rank} ${fr}">
               <td><span class="rank-num">${r.rank}</span></td>
               <td class="${fc ? 'frame-start' : ''}">${attrBadge(r.attribute)}</td>
+              <td class="col-avatar"><a class="rank-avatar" href="/user.html?id=${r.user_id}">${escHtml(r.username.charAt(0))}</a></td>
               <td class="${fc ? 'frame-name' : ''}">
                 <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
                 ${r.equipped_title ? `<span class="oshi-tag title-tooltip-wrap" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : ''}
