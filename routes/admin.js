@@ -421,7 +421,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     );
 
     const rpResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21plus')"
+      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus')"
     );
     const rp = {};
     rpResult.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
@@ -432,7 +432,9 @@ router.post('/events/:id/distribute-points', async (req, res) => {
       if (rank <= 10)       return rp.rank_pts_6_10   ?? 80;
       if (rank <= 15)       return rp.rank_pts_11_15  ?? 60;
       if (rank <= 20)       return rp.rank_pts_16_20  ?? 50;
-      return rp.rank_pts_21plus ?? 30;
+      if (rank <= 25)       return rp.rank_pts_21_25  ?? 30;
+      if (rank <= 30)       return rp.rank_pts_26_30  ?? 20;
+      return rp.rank_pts_31plus ?? 10;
     };
 
     let distributed = 0;
@@ -698,7 +700,7 @@ router.delete('/frames/:id', async (req, res) => {
 router.get('/settings/rank-pts', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21plus')"
+      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus')"
     );
     const map = {};
     result.rows.forEach(r => { map[r.key] = parseInt(r.value); });
@@ -709,7 +711,9 @@ router.get('/settings/rank-pts', async (req, res) => {
       rank_pts_6_10:   map.rank_pts_6_10   ?? 80,
       rank_pts_11_15:  map.rank_pts_11_15  ?? 60,
       rank_pts_16_20:  map.rank_pts_16_20  ?? 50,
-      rank_pts_21plus: map.rank_pts_21plus ?? 30
+      rank_pts_21_25:  map.rank_pts_21_25  ?? 30,
+      rank_pts_26_30:  map.rank_pts_26_30  ?? 20,
+      rank_pts_31plus: map.rank_pts_31plus ?? 10
     });
   } catch (err) {
     console.error(err);
@@ -718,7 +722,7 @@ router.get('/settings/rank-pts', async (req, res) => {
 });
 
 router.put('/settings/rank-pts', async (req, res) => {
-  const keys = ['rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21plus'];
+  const keys = ['rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus'];
   try {
     for (const key of keys) {
       if (req.body[key] !== undefined) {
@@ -738,7 +742,7 @@ router.put('/settings/rank-pts', async (req, res) => {
 // ===== ガチャアイコン管理 =====
 router.get('/gacha/icons', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM gacha_icons ORDER BY id ASC');
+    const result = await pool.query('SELECT * FROM gacha_icons ORDER BY id DESC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);

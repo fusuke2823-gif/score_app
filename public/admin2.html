@@ -103,8 +103,16 @@
           <input class="form-input" type="number" id="rp-16-20" min="0" placeholder="50">
         </div>
         <div class="form-group">
-          <label class="form-label">21位以降（pt）</label>
-          <input class="form-input" type="number" id="rp-21plus" min="0" placeholder="30">
+          <label class="form-label">21〜25位（pt）</label>
+          <input class="form-input" type="number" id="rp-21-25" min="0" placeholder="30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">26〜30位（pt）</label>
+          <input class="form-input" type="number" id="rp-26-30" min="0" placeholder="20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">31位以降（pt）</label>
+          <input class="form-input" type="number" id="rp-31plus" min="0" placeholder="10">
         </div>
       </div>
       <button class="btn btn-primary" onclick="saveRankPts()">保存する</button>
@@ -341,14 +349,16 @@ async function loadRankPts() {
     document.getElementById('rp-6-10').value   = result.rank_pts_6_10;
     document.getElementById('rp-11-15').value  = result.rank_pts_11_15;
     document.getElementById('rp-16-20').value  = result.rank_pts_16_20;
-    document.getElementById('rp-21plus').value = result.rank_pts_21plus;
+    document.getElementById('rp-21-25').value  = result.rank_pts_21_25;
+    document.getElementById('rp-26-30').value  = result.rank_pts_26_30;
+    document.getElementById('rp-31plus').value = result.rank_pts_31plus;
     updateRankPtsSummary(result);
   } catch (err) { showAlert('#rank-pts-alert', err.message); }
 }
 
 function updateRankPtsSummary(r) {
   document.getElementById('rank-pts-summary').textContent =
-    `1位: ${r.rank_pts_1}pt / 2〜3位: ${r.rank_pts_2_3}pt / 4〜5位: ${r.rank_pts_4_5}pt / 6〜10位: ${r.rank_pts_6_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21位以降: ${r.rank_pts_21plus}pt　※1位に優勝称号も付与`;
+    `1位: ${r.rank_pts_1}pt / 2〜3位: ${r.rank_pts_2_3}pt / 4〜5位: ${r.rank_pts_4_5}pt / 6〜10位: ${r.rank_pts_6_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21〜25位: ${r.rank_pts_21_25}pt / 26〜30位: ${r.rank_pts_26_30}pt / 31位以降: ${r.rank_pts_31plus}pt　※1位に優勝称号も付与`;
 }
 
 async function saveRankPts() {
@@ -359,7 +369,9 @@ async function saveRankPts() {
     rank_pts_6_10:   parseInt(document.getElementById('rp-6-10').value),
     rank_pts_11_15:  parseInt(document.getElementById('rp-11-15').value),
     rank_pts_16_20:  parseInt(document.getElementById('rp-16-20').value),
-    rank_pts_21plus: parseInt(document.getElementById('rp-21plus').value)
+    rank_pts_21_25:  parseInt(document.getElementById('rp-21-25').value),
+    rank_pts_26_30:  parseInt(document.getElementById('rp-26-30').value),
+    rank_pts_31plus: parseInt(document.getElementById('rp-31plus').value)
   };
   try {
     await apiFetch('/admin/settings/rank-pts', { method: 'PUT', body: JSON.stringify(body) });
