@@ -264,6 +264,9 @@ main {
 }
 .ranking-table tr:last-child td { border-bottom: none; }
 .ranking-table tr:hover td { background: var(--bg-card2); }
+.ranking-table th:first-child, .ranking-table td:first-child { width: 50px; }
+.ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 50px; }
+.ranking-table .col-img { width: 50px; }
 
 /* ランキングフレーム - カラー変数 */
 .frame-gold      { --frame-color: #ffd700; }
@@ -629,8 +632,8 @@ main {
   .nav-hamburger { display: flex; }
   .ranking-table { font-size: 0.82rem; }
   .ranking-table th, .ranking-table td { padding: 8px 3px; }
-  .ranking-table th:first-child, .ranking-table td:first-child { padding-left: 2px; padding-right: 0; width: 10px; }
-  .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 10px; padding-left: 0; padding-right: 0; }
+  .ranking-table th:first-child, .ranking-table td:first-child { padding-left: 2px; padding-right: 0; width: 18px; }
+  .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 18px; padding-left: 0; padding-right: 0; }
   .ranking-table .col-avatar { width: 28px; padding-left: 2px; padding-right: 2px; }
   .ranking-table .col-avatar .rank-avatar { width: 24px; height: 24px; font-size: 0.7rem; }
   .ranking-table .col-score { white-space: nowrap; padding-right: 2px; }
