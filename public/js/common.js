@@ -289,6 +289,15 @@ function renderSpecialBonuses(bonuses) {
   el.innerHTML = `<div class="special-bonus-list"><h4>特別ボーナス</h4>${items}</div>`;
 }
 
+function checkAndCloseModal() {
+  const loginBtn = document.getElementById('bonus-claim-btn');
+  const loginDone = !loginBtn || loginBtn.style.display === 'none' || loginBtn.disabled || loginBtn.textContent === '閉じる' || loginBtn.textContent === '受取済み';
+  const anySpecialLeft = [...document.querySelectorAll('.special-bonus-btn')].some(b => !b.disabled);
+  if (loginDone && !anySpecialLeft) {
+    setTimeout(() => document.getElementById('login-bonus-modal')?.classList.remove('open'), 800);
+  }
+}
+
 async function claimSpecialBonus(bonusId, btn) {
   btn.disabled = true;
   try {
@@ -297,6 +306,7 @@ async function claimSpecialBonus(bonusId, btn) {
     const meta = btn.closest('.special-bonus-item').querySelector('.special-bonus-meta');
     const remaining = res.max_claims - res.claimed_count;
     if (meta) meta.textContent = meta.textContent.replace(/残り\d+回/, `残り${remaining}回`);
+    checkAndCloseModal();
   } catch (err) {
     btn.disabled = false;
     alert(err.message);
@@ -313,6 +323,7 @@ async function claimLoginBonus() {
     btn.textContent = '閉じる';
     btn.onclick = () => document.getElementById('login-bonus-modal').classList.remove('open');
     btn.disabled = false;
+    checkAndCloseModal();
   } catch (err) {
     btn.disabled = false;
   }
