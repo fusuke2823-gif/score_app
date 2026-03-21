@@ -52,6 +52,7 @@
     <button class="tab-btn active" onclick="switchTab('points')">ポイント配布</button>
     <button class="tab-btn" onclick="switchTab('gacha')">ガチャ管理</button>
     <button class="tab-btn" onclick="switchTab('loginbonus')">ログインボーナス</button>
+    <button class="tab-btn" onclick="switchTab('history')">ポイント履歴</button>
   </div>
 
   <!-- ポイント配布 -->
@@ -258,6 +259,28 @@
     </div>
 
   </div>
+
+  <!-- ポイント履歴 -->
+  <div class="tab-content" id="tab-history">
+    <div class="card">
+      <div class="section-title">ポイント履歴</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+        <select class="form-input" id="ph-user" style="max-width:220px" onchange="loadHistory(true)">
+          <option value="">全ユーザー</option>
+        </select>
+        <span id="ph-total" style="font-size:0.82rem;color:var(--text-muted)"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table" id="ph-table">
+          <thead><tr><th>日時</th><th>ユーザー</th><th style="text-align:right">pt</th><th>理由</th></tr></thead>
+          <tbody id="ph-body"></tbody>
+        </table>
+      </div>
+      <div id="ph-more" style="text-align:center;margin-top:16px;display:none">
+        <button class="btn btn-secondary" onclick="loadHistoryMore()">さらに読み込む</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -265,15 +288,18 @@
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
+const TAB_NAMES = ['points', 'gacha', 'loginbonus', 'history'];
+
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['points', 'gacha', 'loginbonus'][i] === name);
+    b.classList.toggle('active', TAB_NAMES[i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'points') { loadRankPts(); loadDistributable(); loadGrantUsers(); }
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
+  if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
 }
 
 // ===== 手動ポイント付与 =====
@@ -722,6 +748,45 @@ async function deleteSB(id, btn) {
     loadSpecialBonuses();
   } catch (err) { showAlert('#sb-alert', err.message); btn.disabled = false; }
 }
+
+// ===== ポイント履歴 =====
+let _phOffset = 0;
+const PH_LIMIT = 50;
+
+async function loadHistoryUsers() {
+  try {
+    const users = await apiFetch('/admin/users');
+    const sel = document.getElementById('ph-user');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">全ユーザー</option>' +
+      users.map(u => `<option value="${u.id}"${String(u.id) === cur ? ' selected' : ''}>${escHtml(u.username)}</option>`).join('');
+  } catch {}
+}
+
+async function loadHistory(reset = false) {
+  if (reset) _phOffset = 0;
+  const userId = document.getElementById('ph-user').value;
+  const params = new URLSearchParams({ limit: PH_LIMIT, offset: _phOffset });
+  if (userId) params.set('user_id', userId);
+  try {
+    const data = await apiFetch('/admin/point-history?' + params);
+    const tbody = document.getElementById('ph-body');
+    if (reset) tbody.innerHTML = '';
+    tbody.innerHTML += data.rows.map(r => `
+      <tr>
+        <td style="white-space:nowrap;font-size:0.82rem">${escHtml(new Date(r.created_at).toLocaleString('ja-JP'))}</td>
+        <td><a href="/user.html?id=${r.user_id}" style="color:var(--accent)">${escHtml(r.username)}</a></td>
+        <td style="text-align:right;font-weight:bold;color:${r.amount >= 0 ? 'var(--accent)' : '#f87171'}">${r.amount >= 0 ? '+' : ''}${r.amount}</td>
+        <td style="font-size:0.85rem;color:var(--text-muted)">${escHtml(r.reason || '')}</td>
+      </tr>`).join('');
+    document.getElementById('ph-total').textContent = `全 ${data.total} 件`;
+    _phOffset += data.rows.length;
+    document.getElementById('ph-more').style.display =
+      _phOffset < data.total ? 'block' : 'none';
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+function loadHistoryMore() { loadHistory(false); }
 </script>
 </body>
 </html>

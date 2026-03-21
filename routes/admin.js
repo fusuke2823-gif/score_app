@@ -578,6 +578,39 @@ router.post('/points/grant', async (req, res) => {
   }
 });
 
+// ポイント履歴一覧（管理用）
+router.get('/point-history', async (req, res) => {
+  const { user_id, limit = 50, offset = 0 } = req.query;
+  try {
+    const params = [];
+    let where = '';
+    if (user_id) {
+      params.push(user_id);
+      where = `WHERE ph.user_id = $${params.length}`;
+    }
+    params.push(parseInt(limit, 10), parseInt(offset, 10));
+    const [rows, countRow] = await Promise.all([
+      pool.query(
+        `SELECT ph.id, ph.user_id, u.username, ph.amount, ph.reason, ph.created_at
+         FROM point_history ph
+         JOIN users u ON ph.user_id = u.id
+         ${where}
+         ORDER BY ph.created_at DESC
+         LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM point_history ph ${where}`,
+        user_id ? [user_id] : []
+      )
+    ]);
+    res.json({ rows: rows.rows, total: parseInt(countRow.rows[0].count, 10) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 全スコア一覧（管理用）
 router.get('/scores', async (req, res) => {
   const { event_id, status } = req.query;
