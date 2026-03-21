@@ -123,6 +123,10 @@
       <div id="my-frames"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
     </div>
     <div class="shop-tab-content" id="equip-tab-icons">
+      <div style="display:flex;gap:6px;margin-bottom:12px">
+        <button class="btn btn-secondary btn-sm" id="icon-sort-impl" onclick="setIconSort('impl')" style="opacity:1">実装順</button>
+        <button class="btn btn-secondary btn-sm" id="icon-sort-acq" onclick="setIconSort('acq')" style="opacity:0.45">入手順</button>
+      </div>
       <div id="my-icons"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
     </div>
   </div>
@@ -171,6 +175,7 @@ async function load() {
       document.getElementById('my-points').textContent = myData.points;
       renderMyTitles();
       renderMyFrames();
+      myIconData = null;
       await renderMyIcons();
     }
     renderShopTitles(titles);
@@ -342,12 +347,30 @@ async function equipFrame(id) {
 
 // ===== アイコン =====
 let myIconData = null; // { icons, equipped_icon_id }
+let iconSort = 'impl'; // 'impl' | 'acq'
+
+function setIconSort(mode) {
+  iconSort = mode;
+  document.getElementById('icon-sort-impl').style.opacity = mode === 'impl' ? '1' : '0.45';
+  document.getElementById('icon-sort-acq').style.opacity  = mode === 'acq'  ? '1' : '0.45';
+  renderMyIcons();
+}
+
+function sortedIcons(icons) {
+  const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
+  return [...icons].sort((a, b) => {
+    const rd = rarityOrder(a.rarity) - rarityOrder(b.rarity);
+    if (rd !== 0) return rd;
+    if (iconSort === 'acq') return new Date(a.acquired_at) - new Date(b.acquired_at);
+    return a.id - b.id; // 実装順
+  });
+}
 
 async function renderMyIcons() {
   const el = document.getElementById('my-icons');
   try {
-    myIconData = await apiFetch('/gacha/my');
-    const icons = myIconData.icons || [];
+    if (!myIconData) myIconData = await apiFetch('/gacha/my');
+    const icons = sortedIcons(myIconData.icons || []);
     const equippedId = myIconData.equipped_icon_id ?? null;
     if (icons.length === 0) {
       el.innerHTML = '<div class="empty-state"><p>所持しているアイコンがありません<br><a href="/gacha.html" style="color:var(--accent)">ガチャでゲットしよう</a></p></div>';
@@ -378,8 +401,9 @@ async function equipIcon(id) {
   try {
     const res = await apiFetch('/gacha/equip', { method: 'POST', body: JSON.stringify({ icon_id: id }) });
     showAlert('#alert', res.message, 'success');
-    await renderMyIcons();
-    // localStorageのユーザー情報のequipped_icon_idを更新
+    myIconData.equipped_icon_id = id ?? null;
+    myIconData.icons.forEach(ic => { ic.is_equipped = ic.id === id; });
+    renderMyIcons();
     const u = getUser();
     if (u) { u.equipped_icon_id = id; setAuth(getToken(), u); }
   } catch (err) { showAlert('#alert', err.message); }
