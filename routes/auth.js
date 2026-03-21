@@ -160,7 +160,7 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
     const points = newStreak === 7 ? 4 : 1;
 
     await pool.query(
-      'UPDATE users SET last_login_date=$1, login_streak=$2, points=points+$3 WHERE id=$4',
+      'UPDATE users SET last_login_date=$1, login_streak=$2, points=points+$3, total_login_days=total_login_days+1 WHERE id=$4',
       [today, newStreak, points, req.user.id]
     );
     await pool.query(

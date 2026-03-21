@@ -87,6 +87,7 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date DATE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS login_streak INTEGER DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_frame_id INTEGER;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS total_login_days INTEGER NOT NULL DEFAULT 0;
 
       CREATE TABLE IF NOT EXISTS frames (
         id SERIAL PRIMARY KEY,
