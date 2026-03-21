@@ -428,12 +428,14 @@ async function animatePull(results) {
   const stagger = results.length === 1 ? 0 : 180;
   for (let i = 0; i < results.length; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, stagger));
-    if (dispRarities[i] !== results[i].rarity) {
-      const actual = results[i].rarity;
+    const actual = results[i].rarity;
+    const isFakeout = dispRarities[i] !== actual;
+    if (isFakeout || actual === 'SS' || actual === 'S') {
       const card = cardEls[i];
-      // display rarityを実際のrarityへ差し替えてアニメーション開始
-      card.classList.remove(`display-rarity-${dispRarities[i]}`);
-      card.classList.add(`display-rarity-${actual}`);
+      if (isFakeout) {
+        card.classList.remove(`display-rarity-${dispRarities[i]}`);
+        card.classList.add(`display-rarity-${actual}`);
+      }
       card.classList.add(`reveal-${actual}`);
       // SSはピーク時に画面フラッシュ
       if (actual === 'SS') {
