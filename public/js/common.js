@@ -92,7 +92,7 @@ function renderNav() {
         ${user ? `<a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>` : ''}
         <a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">ショップ</a>
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">装備</a>` : ''}
-        <span id="nav-gacha-desktop"></span>
+        <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">管理</a>` : ''}
       </div>
       <div class="nav-user">
@@ -113,7 +113,7 @@ function renderNav() {
       ${user ? `<a href="/submit.html">スコア投稿</a>` : ''}
       <a href="/shop.html">ショップ</a>
       ${user ? `<a href="/shop.html?tab=equip">装備</a>` : ''}
-      <span id="nav-gacha-mobile"></span>
+      <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${escHtml(user.username)}</a>
