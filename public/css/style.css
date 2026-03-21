@@ -622,6 +622,7 @@ main {
   font-size: 0.95rem;
 }
 .nav-mobile a:last-child { border-bottom: none; }
+.nav-mobile span[style*="contents"] a { border-bottom: 1px solid var(--border); }
 .nav-mobile a:hover { color: var(--text-primary); }
 
 /* レスポンシブ */
