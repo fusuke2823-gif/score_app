@@ -357,12 +357,11 @@ function setIconSort(mode) {
 }
 
 function sortedIcons(icons) {
+  if (iconSort === 'acq') return [...icons].sort((a, b) => new Date(a.acquired_at) - new Date(b.acquired_at));
   const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
   return [...icons].sort((a, b) => {
     const rd = rarityOrder(a.rarity) - rarityOrder(b.rarity);
-    if (rd !== 0) return rd;
-    if (iconSort === 'acq') return new Date(a.acquired_at) - new Date(b.acquired_at);
-    return a.id - b.id; // 実装順
+    return rd !== 0 ? rd : a.id - b.id;
   });
 }
 
