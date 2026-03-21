@@ -150,7 +150,8 @@ async function updateGachaNav() {
       localStorage.setItem('gacha_show_nav', show ? 'true' : 'false');
       localStorage.setItem('gacha_nav_cached_at', Date.now());
     }
-    if (!show) return;
+    const user = getUser();
+    if (!show && !(user && user.role === 'admin')) return;
     const currentPath = location.pathname;
     const isActive = currentPath === '/gacha.html';
     const linkHtml = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>ガチャ</a>`;
