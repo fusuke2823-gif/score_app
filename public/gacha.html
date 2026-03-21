@@ -43,6 +43,7 @@
 }
 .g-card-front {
   background:var(--bg-card); border:2px solid var(--border); font-size:2.4rem;
+  transition: box-shadow 0.4s;
 }
 .g-card-back { transform:rotateY(180deg); background:var(--bg-card2); padding:8px 4px; }
 .g-card-back img { width:52px; height:52px; border-radius:20%; object-fit:cover; }
@@ -326,26 +327,28 @@ async function animatePull(results) {
     wrap.appendChild(card);
   });
 
-  // タップするまで待機
+  // タップするまで待機（文字なし）
+  const cardEls = wrap.querySelectorAll('.g-card');
   await new Promise(resolve => {
-    const prompt = document.createElement('div');
-    prompt.textContent = 'タップしてめくる';
-    prompt.style.cssText = 'text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:12px;animation:tapPulse 1.2s ease-in-out infinite;';
-    stage.appendChild(prompt);
     stage.style.cursor = 'pointer';
     const handler = () => {
       stage.removeEventListener('click', handler);
       stage.style.cursor = '';
-      prompt.remove();
       resolve();
     };
     stage.addEventListener('click', handler);
   });
 
-  // 順にめくる
+  // 順にめくる（めくる直前にレアリティ変更演出）
   const stagger = results.length === 1 ? 0 : 180;
   for (let i = 0; i < results.length; i++) {
     if (i > 0) await new Promise(r => setTimeout(r, stagger));
+    // めくる直前にdisplay rarityを実際のrarityへ変更
+    if (dispRarities[i] !== results[i].rarity) {
+      cardEls[i].classList.remove(`display-rarity-${dispRarities[i]}`);
+      cardEls[i].classList.add(`display-rarity-${results[i].rarity}`);
+      await new Promise(r => setTimeout(r, 380));
+    }
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
 
