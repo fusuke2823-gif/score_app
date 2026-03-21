@@ -173,6 +173,9 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('gacha_single_cost', '50') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_multi_cost', '450') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_show_nav', 'false') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_dup_ss_pts', '30') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_dup_s_pts', '10') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('gacha_dup_a_pts', '3') ON CONFLICT (key) DO NOTHING;
     `);
 
     console.log('データベース初期化完了');

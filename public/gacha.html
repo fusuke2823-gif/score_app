@@ -45,7 +45,8 @@
   background:var(--bg-card); border:2px solid var(--border); font-size:2.4rem;
 }
 .g-card-back { transform:rotateY(180deg); background:var(--bg-card2); padding:8px 4px; }
-.g-card-back img { width:56px; height:56px; border-radius:50%; object-fit:cover; }
+.g-card-back img { width:52px; height:52px; border-radius:50%; object-fit:cover; }
+.g-dup { font-size:0.6rem; background:rgba(255,255,255,0.18); color:#fff; padding:1px 5px; border-radius:3px; }
 .g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
 .g-rarity-tag { font-size:0.65rem; font-weight:bold; padding:1px 7px; border-radius:4px; }
 
@@ -277,6 +278,7 @@ async function animatePull(results) {
           <span class="g-rarity-tag r-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span>
           <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}">
           <div class="g-name">${escHtml(icon.name)}</div>
+          ${icon.is_dup ? `<span class="g-dup">重複+${icon.dup_pts}pt</span>` : ''}
         </div>
       </div>`;
     wrap.appendChild(card);

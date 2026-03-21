@@ -718,7 +718,7 @@ router.delete('/gacha/icons/:id', async (req, res) => {
 router.get('/gacha/settings', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_a_rate','gacha_single_cost','gacha_multi_cost','gacha_show_nav')"
+      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_a_rate','gacha_single_cost','gacha_multi_cost','gacha_show_nav','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
     );
     const map = {};
     result.rows.forEach(r => { map[r.key] = r.value; });
@@ -728,7 +728,10 @@ router.get('/gacha/settings', async (req, res) => {
       a_rate: map.gacha_a_rate || '82',
       single_cost: map.gacha_single_cost || '50',
       multi_cost: map.gacha_multi_cost || '450',
-      show_nav: map.gacha_show_nav === 'true'
+      show_nav: map.gacha_show_nav === 'true',
+      dup_ss_pts: map.gacha_dup_ss_pts || '30',
+      dup_s_pts: map.gacha_dup_s_pts || '10',
+      dup_a_pts: map.gacha_dup_a_pts || '3'
     });
   } catch (err) {
     console.error(err);
@@ -737,12 +740,13 @@ router.get('/gacha/settings', async (req, res) => {
 });
 
 router.put('/gacha/settings', async (req, res) => {
-  const { ss_rate, s_rate, a_rate, single_cost, multi_cost, show_nav } = req.body;
+  const { ss_rate, s_rate, a_rate, single_cost, multi_cost, show_nav, dup_ss_pts, dup_s_pts, dup_a_pts } = req.body;
   try {
     const updates = {
       gacha_ss_rate: ss_rate, gacha_s_rate: s_rate, gacha_a_rate: a_rate,
       gacha_single_cost: single_cost, gacha_multi_cost: multi_cost,
-      gacha_show_nav: show_nav !== undefined ? String(show_nav) : undefined
+      gacha_show_nav: show_nav !== undefined ? String(show_nav) : undefined,
+      gacha_dup_ss_pts: dup_ss_pts, gacha_dup_s_pts: dup_s_pts, gacha_dup_a_pts: dup_a_pts
     };
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined) {

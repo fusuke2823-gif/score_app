@@ -87,6 +87,24 @@ async function pickIcon(client, rarity) {
   return null;
 }
 
+// 共通: アイコン獲得処理（重複チェック＋補償ポイント付与）
+async function acquireIcon(client, userId, icon, dupMap) {
+  const ins = await client.query(
+    'INSERT INTO user_icons (user_id, icon_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+    [userId, icon.id]
+  );
+  const isDup = ins.rowCount === 0;
+  const dupPts = isDup ? (dupMap[icon.rarity] || 0) : 0;
+  if (dupPts > 0) {
+    await client.query('UPDATE users SET points=points+$1 WHERE id=$2', [dupPts, userId]);
+    await client.query(
+      'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
+      [userId, dupPts, `ガチャ重複補償（${icon.rarity}）`]
+    );
+  }
+  return { ...icon, is_dup: isDup, dup_pts: dupPts };
+}
+
 // 単発ガチャ
 router.post('/pull/single', authenticateToken, async (req, res) => {
   const client = await pool.connect();
@@ -94,13 +112,14 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const settingsResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_single_cost')"
+      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_single_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
     );
     const sm = {};
     settingsResult.rows.forEach(r => { sm[r.key] = r.value; });
     const ss_rate = parseFloat(sm.gacha_ss_rate || '3');
-    const s_rate = parseFloat(sm.gacha_s_rate || '15');
-    const cost = parseInt(sm.gacha_single_cost || '50');
+    const s_rate  = parseFloat(sm.gacha_s_rate  || '15');
+    const cost    = parseInt(sm.gacha_single_cost || '50');
+    const dupMap  = { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') };
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     if (userResult.rows[0].points < cost) {
@@ -109,26 +128,16 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     }
 
     await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [cost, req.user.id]);
-    await client.query(
-      'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
-      [req.user.id, -cost, 'ガチャ（単発）']
-    );
+    await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -cost, 'ガチャ（単発）']);
 
     const rarity = pickRarity(ss_rate, s_rate);
     const icon = await pickIcon(client, rarity);
-    if (!icon) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: '排出可能なアイコンがありません' });
-    }
+    if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
 
-    await client.query(
-      'INSERT INTO user_icons (user_id, icon_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
-      [req.user.id, icon.id]
-    );
-
-    const newPoints = userResult.rows[0].points - cost;
+    const result = await acquireIcon(client, req.user.id, icon, dupMap);
+    const newPoints = userResult.rows[0].points - cost + result.dup_pts;
     await client.query('COMMIT');
-    res.json({ results: [icon], new_points: newPoints });
+    res.json({ results: [result], new_points: newPoints });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -145,13 +154,14 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     const settingsResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_multi_cost')"
+      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_multi_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
     );
     const sm = {};
     settingsResult.rows.forEach(r => { sm[r.key] = r.value; });
     const ss_rate = parseFloat(sm.gacha_ss_rate || '3');
-    const s_rate = parseFloat(sm.gacha_s_rate || '15');
-    const cost = parseInt(sm.gacha_multi_cost || '450');
+    const s_rate  = parseFloat(sm.gacha_s_rate  || '15');
+    const cost    = parseInt(sm.gacha_multi_cost || '450');
+    const dupMap  = { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') };
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     if (userResult.rows[0].points < cost) {
@@ -160,28 +170,21 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     }
 
     await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [cost, req.user.id]);
-    await client.query(
-      'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
-      [req.user.id, -cost, 'ガチャ（10連）']
-    );
+    await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -cost, 'ガチャ（10連）']);
 
     const results = [];
+    let totalDupPts = 0;
     for (let i = 0; i < 10; i++) {
-      const forceS = (i === 9); // 最後はAをSに
+      const forceS = (i === 9);
       const rarity = pickRarity(ss_rate, s_rate, forceS);
       const icon = await pickIcon(client, rarity);
-      if (!icon) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: '排出可能なアイコンがありません' });
-      }
-      results.push(icon);
-      await client.query(
-        'INSERT INTO user_icons (user_id, icon_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
-        [req.user.id, icon.id]
-      );
+      if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
+      const result = await acquireIcon(client, req.user.id, icon, dupMap);
+      results.push(result);
+      totalDupPts += result.dup_pts;
     }
 
-    const newPoints = userResult.rows[0].points - cost;
+    const newPoints = userResult.rows[0].points - cost + totalDupPts;
     await client.query('COMMIT');
     res.json({ results, new_points: newPoints });
   } catch (err) {

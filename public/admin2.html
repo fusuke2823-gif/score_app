@@ -112,6 +112,20 @@
           <input class="form-input" type="number" id="gs-multi" min="1" placeholder="例: 450">
         </div>
       </div>
+      <div class="enemy-form-grid" style="margin-top:4px">
+        <div class="form-group">
+          <label class="form-label">SS重複補償（pt）</label>
+          <input class="form-input" type="number" id="gs-dup-ss" min="0" placeholder="例: 30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">S重複補償（pt）</label>
+          <input class="form-input" type="number" id="gs-dup-s" min="0" placeholder="例: 10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">A重複補償（pt）</label>
+          <input class="form-input" type="number" id="gs-dup-a" min="0" placeholder="例: 3">
+        </div>
+      </div>
       <div class="form-group" style="margin-top:4px">
         <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
           <input type="checkbox" id="gs-show-nav" style="width:18px;height:18px">
@@ -261,6 +275,9 @@ async function loadGachaSettings() {
     document.getElementById('gs-single').value = s.single_cost;
     document.getElementById('gs-multi').value = s.multi_cost;
     document.getElementById('gs-show-nav').checked = s.show_nav;
+    document.getElementById('gs-dup-ss').value = s.dup_ss_pts;
+    document.getElementById('gs-dup-s').value  = s.dup_s_pts;
+    document.getElementById('gs-dup-a').value  = s.dup_a_pts;
   } catch (err) { showAlert('#gacha-settings-alert', err.message); }
 }
 
@@ -288,7 +305,10 @@ async function saveGachaSettings() {
         ss_rate: ss, s_rate: s, a_rate: parseFloat(a.toFixed(1)),
         single_cost: parseInt(document.getElementById('gs-single').value),
         multi_cost: parseInt(document.getElementById('gs-multi').value),
-        show_nav: document.getElementById('gs-show-nav').checked
+        show_nav: document.getElementById('gs-show-nav').checked,
+        dup_ss_pts: parseInt(document.getElementById('gs-dup-ss').value) || 0,
+        dup_s_pts:  parseInt(document.getElementById('gs-dup-s').value)  || 0,
+        dup_a_pts:  parseInt(document.getElementById('gs-dup-a').value)  || 0
       })
     });
     showAlert('#gacha-settings-alert', '設定を保存しました', 'success');
