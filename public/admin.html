@@ -890,7 +890,7 @@ async function loadUsers() {
         <thead>
           <tr>
             <th>ユーザー名</th>
-            <th class="hide-mobile">ロール</th>
+            <th>ロール</th>
             <th style="text-align:right">ポイント</th>
             <th style="text-align:right" class="hide-mobile">累計ログイン</th>
             <th class="hide-mobile">称号</th>
@@ -901,8 +901,8 @@ async function loadUsers() {
         <tbody>
           ${users.map(u => `
             <tr>
-              <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
-              <td class="hide-mobile">${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
+              <td style="max-width:120px;word-break:break-all"><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
+              <td>${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
               <td style="text-align:right">${u.points}pt</td>
               <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.total_login_days || 0}日</td>
               <td style="font-size:0.8rem;color:var(--accent)" class="hide-mobile">${u.equipped_title ? `「${escHtml(u.equipped_title)}」` : '-'}</td>
