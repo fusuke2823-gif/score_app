@@ -93,6 +93,19 @@
 .irarity-S  { background:#e0c060; color:#000; }
 .irarity-A  { background:#4fc3f7; color:#000; }
 
+/* めくる前カード裏面の表示レアリティ演出 */
+.display-rarity-SS .g-card-front {
+  border:2px solid transparent;
+  background:linear-gradient(var(--bg-card2),var(--bg-card2)) padding-box,
+             linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
+  animation:ssGlow 1.8s linear infinite;
+}
+.display-rarity-S .g-card-front {
+  border:2px solid #ffd700;
+  box-shadow:0 0 12px rgba(255,215,0,0.65);
+}
+@keyframes tapPulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
 .section-title { font-size:1rem; font-weight:bold; margin-bottom:14px; color:var(--text-primary); }
 .rate-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.85rem; }
 .rate-row:last-child { border-bottom:none; }
@@ -281,10 +294,25 @@ async function animatePull(results) {
   wrap.className = 'gacha-cards';
   stage.appendChild(wrap);
 
-  // カード生成（裏向き）
+  // めくる前に表示する演出レアリティを決定
+  // SS: 50%→虹, 25%→金, 25%→通常
+  // S:  75%→金, 25%→通常
+  // A:  100%→通常
+  const dispRarities = results.map(icon => {
+    if (icon.rarity === 'SS') {
+      const r = Math.random();
+      if (r < 0.50) return 'SS';
+      if (r < 0.75) return 'S';
+      return 'A';
+    }
+    if (icon.rarity === 'S') return Math.random() < 0.75 ? 'S' : 'A';
+    return 'A';
+  });
+
+  // カード生成（裏向き・表示レアリティ付き）
   results.forEach((icon, i) => {
     const card = document.createElement('div');
-    card.className = `g-card rarity-${icon.rarity}`;
+    card.className = `g-card rarity-${icon.rarity} display-rarity-${dispRarities[i]}`;
     card.innerHTML = `
       <div class="g-card-inner" id="gc-${i}">
         <div class="g-card-front">🎴</div>
@@ -298,12 +326,26 @@ async function animatePull(results) {
     wrap.appendChild(card);
   });
 
-  // 順にめくる
-  const initDelay = 350;
-  const stagger = results.length === 1 ? 0 : 180;
+  // タップするまで待機
+  await new Promise(resolve => {
+    const prompt = document.createElement('div');
+    prompt.textContent = 'タップしてめくる';
+    prompt.style.cssText = 'text-align:center;color:var(--text-muted);font-size:0.85rem;margin-top:12px;animation:tapPulse 1.2s ease-in-out infinite;';
+    stage.appendChild(prompt);
+    stage.style.cursor = 'pointer';
+    const handler = () => {
+      stage.removeEventListener('click', handler);
+      stage.style.cursor = '';
+      prompt.remove();
+      resolve();
+    };
+    stage.addEventListener('click', handler);
+  });
 
+  // 順にめくる
+  const stagger = results.length === 1 ? 0 : 180;
   for (let i = 0; i < results.length; i++) {
-    await new Promise(r => setTimeout(r, i === 0 ? initDelay : stagger));
+    if (i > 0) await new Promise(r => setTimeout(r, stagger));
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
 
