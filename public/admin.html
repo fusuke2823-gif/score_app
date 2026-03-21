@@ -10,8 +10,8 @@
 .pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
 .note-input { width:100%; margin-top:6px; }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} .hide-mobile{display:none;} .user-name-cell .name-inner{display:block;max-width:6ch;word-break:break-all;} }
-@media(min-width:601px){ .user-name-cell .name-inner{white-space:nowrap;} }
+@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} .hide-mobile{display:none;} }
+.user-name-cell{ word-break:break-all; }
 .rule-item { display:flex; gap:8px; margin-bottom:8px; }
 .rule-item input { flex:1; }
 .rule-item button { flex-shrink:0; }
@@ -736,7 +736,7 @@ async function loadAllScores() {
         <tbody>
           ${scores.map(s => `
             <tr>
-              <td class="user-name-cell"><a href="/user.html?id=${s.user_id}" target="_blank" class="name-inner">${escHtml(s.username)}</a></td>
+              <td class="user-name-cell"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
               <td style="font-size:0.85rem;white-space:nowrap">第${s.event_number}回<span class="hide-mobile"> ${escHtml(s.event_name)}</span></td>
               <td>${attrBadge(s.attribute, true)}</td>
               <td>${formatScore(s.approved_score)}</td>
@@ -902,7 +902,7 @@ async function loadUsers() {
         <tbody>
           ${users.map(u => `
             <tr>
-              <td class="user-name-cell"><a href="/user.html?id=${u.id}" target="_blank" class="name-inner">${escHtml(u.username)}</a></td>
+              <td class="user-name-cell"><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
               <td>${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
               <td style="text-align:right">${u.points}pt</td>
               <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.total_login_days || 0}日</td>
