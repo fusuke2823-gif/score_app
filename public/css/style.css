@@ -371,7 +371,7 @@ main {
 
 /* ランキング ユーザーアイコン */
 .rank-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 28px; height: 28px; border-radius: 20%;
   background: var(--accent-dim); color: var(--accent);
   font-size: 0.75rem; font-weight: bold;
   display: inline-flex; align-items: center; justify-content: center;
@@ -534,7 +534,7 @@ main {
 }
 .user-avatar {
   width: 64px; height: 64px;
-  border-radius: 50%;
+  border-radius: 20%;
   background: var(--accent-dim);
   border: 2px solid var(--accent);
   display: flex;
