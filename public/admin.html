@@ -889,24 +889,24 @@ async function loadUsers() {
       <table class="ranking-table" style="width:100%">
         <thead>
           <tr>
-            <th style="min-width:180px">ユーザー名</th>
-            <th>ロール</th>
+            <th>ユーザー名</th>
+            <th class="hide-mobile">ロール</th>
             <th style="text-align:right">ポイント</th>
-            <th style="text-align:right">累計ログイン</th>
-            <th>称号</th>
-            <th>登録日</th>
+            <th style="text-align:right" class="hide-mobile">累計ログイン</th>
+            <th class="hide-mobile">称号</th>
+            <th class="hide-mobile">登録日</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
           ${users.map(u => `
             <tr>
-              <td><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
-              <td>${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
+              <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
+              <td class="hide-mobile">${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
               <td style="text-align:right">${u.points}pt</td>
-              <td style="text-align:right;font-size:0.85rem">${u.total_login_days || 0}日</td>
-              <td style="font-size:0.8rem;color:var(--accent)">${u.equipped_title ? `「${escHtml(u.equipped_title)}」` : '-'}</td>
-              <td style="font-size:0.8rem;color:var(--text-muted)">${formatDate(u.created_at)}</td>
+              <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.total_login_days || 0}日</td>
+              <td style="font-size:0.8rem;color:var(--accent)" class="hide-mobile">${u.equipped_title ? `「${escHtml(u.equipped_title)}」` : '-'}</td>
+              <td style="font-size:0.8rem;color:var(--text-muted)" class="hide-mobile">${formatDate(u.created_at)}</td>
               <td>
                 <div style="display:flex;gap:6px;justify-content:flex-end">
                   <button class="btn btn-secondary btn-sm" onclick="toggleUserRole(${u.id}, '${u.role}')">
