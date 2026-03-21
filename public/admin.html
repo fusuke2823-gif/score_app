@@ -12,6 +12,11 @@
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} .hide-mobile{display:none;} }
 .user-name-cell{ word-break:break-all; }
+@media(max-width:600px){
+  #users-table td:nth-child(2){ font-size:0.72rem; white-space:nowrap; }
+  #users-table td:nth-child(3){ font-size:0.72rem; white-space:nowrap; }
+  #users-table .btn-sm{ font-size:0.68rem; padding:2px 5px; }
+}
 .rule-item { display:flex; gap:8px; margin-bottom:8px; }
 .rule-item input { flex:1; }
 .rule-item button { flex-shrink:0; }
@@ -887,7 +892,7 @@ async function loadUsers() {
       return;
     }
     el.innerHTML = `
-      <table class="ranking-table" style="width:100%">
+      <table class="ranking-table" id="users-table" style="width:100%">
         <thead>
           <tr>
             <th>ユーザー名</th>
