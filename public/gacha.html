@@ -26,7 +26,7 @@
   min-height:200px; display:flex; align-items:center; justify-content:center;
   margin-bottom:16px;
 }
-.gacha-cards { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; width:calc(5*88px + 4*8px); max-width:100%; margin:0 auto; }
+.gacha-cards { display:flex; flex-wrap:wrap; column-gap:8px; row-gap:36px; justify-content:center; width:calc(5*88px + 4*8px); max-width:100%; margin:0 auto; }
 
 /* カード */
 .g-card { width:88px; height:122px; perspective:700px; flex-shrink:0; }
@@ -45,11 +45,11 @@
   background:var(--bg-card); border:2px solid var(--border);
   transition: box-shadow 0.4s;
 }
-.g-card-back { transform:rotateY(180deg); background:var(--bg-card2); padding:8px 4px; }
+.g-card-back { transform:rotateY(180deg); background:var(--bg-card2); padding:4px; overflow:visible; }
 .g-card-back img { width:52px; height:52px; border-radius:20%; object-fit:cover; }
-.g-dup { font-size:0.6rem; background:rgba(255,255,255,0.18); color:#fff; padding:1px 5px; border-radius:3px; }
+.g-dup { position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.6rem; background:rgba(100,180,255,0.25); color:#7dd3fc; padding:1px 7px; border-radius:3px; }
 .g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
-.g-rarity-tag { font-size:0.65rem; font-weight:bold; padding:1px 7px; border-radius:4px; }
+.g-rarity-tag { position:absolute; top:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.65rem; font-weight:bold; padding:1px 7px; border-radius:4px; }
 
 /* レアリティ枠 */
 .rarity-SS .g-card-back {
@@ -142,7 +142,7 @@
   .g-card { width:66px; height:92px; }
   .g-card-back img { width:42px; height:42px; }
   .g-card-back .g-name { font-size:0.58rem; }
-  .gacha-cards { width:calc(5*66px + 4*5px); column-gap:5px; row-gap:12px; }
+  .gacha-cards { width:calc(5*66px + 4*5px); column-gap:5px; row-gap:36px; }
   .gacha-btn { padding:12px 22px; }
 }
 </style>
