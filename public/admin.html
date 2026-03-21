@@ -27,19 +27,19 @@
 <body>
 <nav id="nav"></nav>
 <main>
-  <h1 class="page-title">管理画面</h1>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+    <h1 class="page-title" style="margin:0">管理画面</h1>
+    <a href="/admin2.html" class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0">管理画面 2 →</a>
+  </div>
   <div id="alert"></div>
 
-  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:0">
-    <div class="tabs" style="margin-bottom:0;flex:1;min-width:0">
-      <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
-      <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
-      <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
-      <button class="tab-btn" onclick="switchTab('titles')">装備管理</button>
-      <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
-      <button class="tab-btn hide-mobile" onclick="switchTab('settings')">設定</button>
-    </div>
-    <a href="/admin2.html" class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0">管理画面 2 →</a>
+  <div class="tabs" style="margin-bottom:0">
+    <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
+    <button class="tab-btn" onclick="switchTab('events')">イベント管理</button>
+    <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
+    <button class="tab-btn" onclick="switchTab('titles')">装備管理</button>
+    <button class="tab-btn" onclick="switchTab('users')">ユーザー管理</button>
+    <button class="tab-btn hide-mobile" onclick="switchTab('settings')">設定</button>
   </div>
 
   <!-- 承認待ち -->
