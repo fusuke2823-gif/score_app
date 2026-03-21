@@ -11,11 +11,18 @@
 .note-input { width:100%; margin-top:6px; }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} .hide-mobile{display:none;} }
-.user-name-cell{ word-break:break-all; }
+.user-name-cell{ white-space:nowrap; }
+#users-table td,#users-table th{ padding:6px 4px; }
+#users-table td:nth-child(2),#users-table th:nth-child(2){ white-space:nowrap; width:1%; }
+#users-table td:nth-child(3),#users-table th:nth-child(3){ white-space:nowrap; width:1%; }
+#users-table td:nth-child(4),#users-table th:nth-child(4){ white-space:nowrap; width:1%; font-size:0.8rem; }
+#users-table td:nth-child(5),#users-table th:nth-child(5){ white-space:nowrap; width:1%; font-size:0.8rem; }
+#users-table td:nth-child(6),#users-table th:nth-child(6){ white-space:nowrap; width:1%; font-size:0.8rem; }
+#users-table td:last-child,#users-table th:last-child{ width:1%; }
 @media(max-width:600px){
-  #users-table td:nth-child(2),#users-table th:nth-child(2){ font-size:0.72rem; white-space:nowrap; width:1%; }
-  #users-table td:nth-child(3),#users-table th:nth-child(3){ font-size:0.72rem; white-space:nowrap; width:1%; }
-  #users-table td:last-child,#users-table th:last-child{ width:1%; }
+  #users-table .user-name-cell{ white-space:normal; word-break:break-all; }
+  #users-table td:nth-child(2),#users-table th:nth-child(2){ font-size:0.72rem; }
+  #users-table td:nth-child(3),#users-table th:nth-child(3){ font-size:0.72rem; }
   #users-table .btn-sm{ font-size:0.68rem; padding:2px 5px; white-space:nowrap; }
 }
 .rule-item { display:flex; gap:8px; margin-bottom:8px; }
