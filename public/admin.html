@@ -731,22 +731,20 @@ async function loadAllScores() {
       return;
     }
     el.innerHTML = `
-      <div style="overflow-x:auto">
       <table class="ranking-table">
         <thead><tr><th>ユーザー</th><th>イベント</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th>状態</th></tr></thead>
         <tbody>
           ${scores.map(s => `
             <tr>
-              <td style="white-space:nowrap"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
-              <td style="font-size:0.85rem;white-space:nowrap">第${s.event_number}回 ${escHtml(s.event_name)}</td>
+              <td style="max-width:6ch;word-break:break-all"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
+              <td style="font-size:0.85rem;max-width:6ch;word-break:break-all">第${s.event_number}回 ${escHtml(s.event_name)}</td>
               <td>${attrBadge(s.attribute, true)}</td>
               <td>${formatScore(s.approved_score)}</td>
               <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
               <td>${statusBadge(s.status)}</td>
             </tr>`).join('')}
         </tbody>
-      </table>
-      </div>`;
+      </table>`;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
