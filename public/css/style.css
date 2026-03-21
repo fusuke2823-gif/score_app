@@ -379,6 +379,17 @@ main {
 }
 .ranking-table .col-avatar { width: 36px; padding-left: 4px; padding-right: 4px; }
 
+/* アイコンレアリティ枠 */
+.icon-rarity-A  { border: 2px solid #4fc3f7 !important; }
+.icon-rarity-S  { border: 2px solid #ffd700 !important; }
+.icon-rarity-SS { border: 2px solid #ffd700 !important; animation: iconSsGlow 1.8s linear infinite; }
+@keyframes iconSsGlow {
+  0%   { border-color: #ffd700; }
+  33%  { border-color: #ff66cc; }
+  66%  { border-color: #00eeff; }
+  100% { border-color: #ffd700; }
+}
+
 /* イベントカード */
 .event-grid {
   display: grid;
