@@ -493,6 +493,32 @@ router.post('/events/:id/distribute-points', async (req, res) => {
         [best.user_id, tr.rows[0].id]
       );
       awardedTitles.push(titleName);
+
+      // 属性1位3回達成で「X神」称号付与
+      const countResult = await client.query(
+        `SELECT COUNT(*) FROM user_titles ut
+         JOIN titles t ON t.id = ut.title_id
+         WHERE ut.user_id = $1 AND t.name LIKE $2`,
+        [best.user_id, `%${attr}属性1位`]
+      );
+      if (parseInt(countResult.rows[0].count) >= 3) {
+        const godTitle = `${attr}神`;
+        const already = await client.query(
+          `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id WHERE ut.user_id=$1 AND t.name=$2`,
+          [best.user_id, godTitle]
+        );
+        if (already.rows.length === 0) {
+          const godTr = await client.query(
+            'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
+            [godTitle, `${attr}属性1位を3回達成`]
+          );
+          await client.query(
+            'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [best.user_id, godTr.rows[0].id]
+          );
+          awardedTitles.push(godTitle);
+        }
+      }
     }
 
     await client.query('UPDATE events SET points_distributed=TRUE WHERE id=$1', [req.params.id]);
