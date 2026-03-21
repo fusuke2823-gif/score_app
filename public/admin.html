@@ -737,7 +737,7 @@ async function loadAllScores() {
           ${scores.map(s => `
             <tr>
               <td style="max-width:6ch;word-break:break-all"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
-              <td style="font-size:0.85rem;max-width:6ch;word-break:break-all">第${s.event_number}回 ${escHtml(s.event_name)}</td>
+              <td style="font-size:0.85rem;white-space:nowrap">第${s.event_number}回<span class="hide-mobile"> ${escHtml(s.event_name)}</span></td>
               <td>${attrBadge(s.attribute, true)}</td>
               <td>${formatScore(s.approved_score)}</td>
               <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
