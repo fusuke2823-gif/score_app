@@ -631,12 +631,12 @@ main {
   .nav-links { display: none; }
   .nav-hamburger { display: flex; }
   .ranking-table { font-size: 0.82rem; }
-  .ranking-table th, .ranking-table td { padding: 8px 3px; }
-  .ranking-table th:first-child, .ranking-table td:first-child { padding-left: 2px; padding-right: 0; width: 18px; }
-  .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 18px; padding-left: 0; padding-right: 0; }
-  .ranking-table .col-avatar { width: 28px; padding-left: 2px; padding-right: 2px; }
+  .ranking-table th, .ranking-table td { padding: 8px 2px; }
+  .ranking-table th:first-child, .ranking-table td:first-child { width: 18px; }
+  .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 18px; }
+  .ranking-table .col-avatar { width: 28px; }
   .ranking-table .col-avatar .rank-avatar { width: 24px; height: 24px; font-size: 0.7rem; }
-  .ranking-table .col-score { white-space: nowrap; padding-right: 2px; }
+  .ranking-table .col-score { white-space: nowrap; }
   .ranking-table .col-img { white-space: nowrap; }
   .rank-num { font-size: 0.9rem; min-width: unset; }
   .score-val { font-size: 0.9rem; }
