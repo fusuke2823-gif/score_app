@@ -629,8 +629,8 @@ main {
   .nav-hamburger { display: flex; }
   .ranking-table { font-size: 0.82rem; }
   .ranking-table th, .ranking-table td { padding: 8px 3px; }
-  .ranking-table th:first-child, .ranking-table td:first-child { padding-left: 2px; padding-right: 2px; width: 26px; }
-  .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 26px; padding-left: 2px; padding-right: 0; }
+  .ranking-table th:first-child, .ranking-table td:first-child { padding-left: 2px; padding-right: 0; width: 22px; }
+  .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 22px; padding-left: 1px; padding-right: 0; }
   .ranking-table .col-avatar { width: 28px; padding-left: 0; padding-right: 2px; }
   .ranking-table .col-avatar .rank-avatar { width: 24px; height: 24px; font-size: 0.7rem; }
   .ranking-table th:nth-child(5), .ranking-table td:nth-child(5) { padding-right: 2px; }
