@@ -355,9 +355,6 @@ function renderPoolSelector(pools) {
       background:var(--bg-card);cursor:pointer;width:100%;
       transition:border-color 0.15s,background 0.15s;font-family:inherit
     " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-      ${p.image_url
-        ? `<img src="${escHtml(p.image_url)}" style="width:64px;height:64px;border-radius:12px;object-fit:cover;flex-shrink:0">`
-        : `<div style="width:64px;height:64px;border-radius:12px;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.8rem">🎰</div>`}
       <div style="min-width:0">
         <div style="font-size:1rem;font-weight:bold;color:var(--text-primary)">${escHtml(p.name)}</div>
         ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
@@ -377,7 +374,11 @@ function selectPool(poolId) {
   document.getElementById('selected-pool-label').textContent = p ? p.name : '';
   document.getElementById('btn-back-pool').style.display = gPools.length > 1 ? '' : 'none';
   // 排出率をピックアップ対応に更新
-  if (gSettings) updateRateInfo(gSettings, p ? (p.pickup_icons || []) : []);
+  const pickupIcons = p ? (p.pickup_icons || []) : [];
+  if (gSettings) updateRateInfo(gSettings, pickupIcons);
+  // GP交換リストをピックアップ対応に更新
+  const pickupIds = pickupIcons.length > 0 ? pickupIcons.map(pu => pu.id) : null;
+  loadExchangeList(pickupIds);
   showGachaMain();
   // 排出対象モーダルキャッシュリセット
   _lastPoolModalPoolId = Symbol();
@@ -408,12 +409,16 @@ function showGpToast(html, isError = false) {
   }, 3000);
 }
 
-async function loadExchangeList() {
+async function loadExchangeList(pickupIds = null) {
   const container = document.getElementById('exchange-ss-list');
   try {
     const [icons, myData] = await Promise.all([apiFetch('/gacha/icons'), apiFetch('/gacha/my')]);
     const ownedIds = new Set((myData.icons || []).map(i => i.id));
-    const ss = icons.filter(i => i.rarity === 'SS' && !ownedIds.has(i.id));
+    let ss = icons.filter(i => i.rarity === 'SS' && !ownedIds.has(i.id));
+    if (pickupIds && pickupIds.length > 0) {
+      const pickupSet = new Set(pickupIds);
+      ss = ss.filter(i => pickupSet.has(i.id));
+    }
     if (ss.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">交換可能なSSアイコンがありません</div>'; return; }
     container.innerHTML = ss.map(i => `
       <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}')">

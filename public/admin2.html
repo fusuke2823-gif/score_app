@@ -165,19 +165,20 @@
     <!-- アイコン設定モーダル -->
     <div id="pool-icon-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:600px;width:100%;margin:auto;position:relative">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
           <div style="font-weight:bold" id="pool-modal-title">アイコン設定</div>
-          <button onclick="closePoolIconModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <button class="btn btn-secondary btn-sm" onclick="closePoolIconModal()">キャンセル</button>
+            <button class="btn btn-primary btn-sm" onclick="savePoolIcons()">保存する</button>
+            <button onclick="closePoolIconModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px">×</button>
+          </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
           <p style="font-size:0.82rem;color:var(--text-muted);margin:0;flex:1">このガチャに含めるアイコンを選択してください（レアリティ別に表示）</p>
+          <button class="btn btn-secondary btn-sm" id="btn-toggle-ss" onclick="toggleAllSS()">SS全選択</button>
           <button class="btn btn-secondary btn-sm" id="btn-toggle-as" onclick="toggleAllAS()">A・S全選択</button>
         </div>
         <div id="pool-modal-icons"></div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
-          <button class="btn btn-secondary" onclick="closePoolIconModal()">キャンセル</button>
-          <button class="btn btn-primary" onclick="savePoolIcons()">保存する</button>
-        </div>
       </div>
     </div>
 
@@ -625,6 +626,7 @@ async function openPoolIconModal(poolId, poolName) {
     const grouped = { SS: [], S: [], A: [] };
     allIcons.forEach(ic => { if (grouped[ic.rarity]) grouped[ic.rarity].push(ic); });
     const rarityColors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
+    document.getElementById('btn-toggle-ss').textContent = 'SS全選択';
     document.getElementById('btn-toggle-as').textContent = 'A・S全選択';
     document.getElementById('pool-modal-icons').innerHTML = rarityOrder.map(r => {
       if (!grouped[r].length) return '';
@@ -658,6 +660,22 @@ function toggleIconCard(labelEl, iconId, color) {
 }
 
 const _rarityColors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
+function toggleAllSS() {
+  const labels = document.querySelectorAll('#pool-modal-icons label');
+  const ssIcons = Array.from(labels).filter(label => {
+    const cb = label.querySelector('input[type=checkbox]');
+    const icon = _allIcons.find(i => i.id === parseInt(cb?.dataset.iconId));
+    return icon && icon.rarity === 'SS';
+  });
+  const allChecked = ssIcons.every(label => label.querySelector('input[type=checkbox]').checked);
+  ssIcons.forEach(label => {
+    const cb = label.querySelector('input[type=checkbox]');
+    cb.checked = !allChecked;
+    label.style.borderColor = (!allChecked) ? _rarityColors['SS'] : 'var(--border)';
+  });
+  document.getElementById('btn-toggle-ss').textContent = allChecked ? 'SS全選択' : 'SS全解除';
+}
+
 function toggleAllAS() {
   const labels = document.querySelectorAll('#pool-modal-icons label');
   const asIcons = Array.from(labels).filter(label => {
