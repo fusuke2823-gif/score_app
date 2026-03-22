@@ -290,9 +290,6 @@ function updatePointsDisplay(pts) {
 }
 function updateGpDisplay(gp) {
   document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
-  document.querySelectorAll('.exchange-icon-btn').forEach(btn => {
-    btn.disabled = isPulling || gp < 200;
-  });
 }
 
 async function loadExchangeList() {
@@ -305,7 +302,6 @@ async function loadExchangeList() {
       <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id})">
         <img src="${escHtml(i.image_url)}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
         <div style="font-size:0.7rem;color:#ffd700;word-break:break-all">${escHtml(i.name)}</div>
-        <button class="btn btn-primary btn-sm exchange-icon-btn" style="margin-top:4px;font-size:0.7rem;padding:2px 6px" ${currentGp < 200 ? 'disabled' : ''}>200GP</button>
       </div>
     `).join('');
   } catch (e) {
@@ -319,7 +315,7 @@ async function doExchange(iconId) {
   updateGpDisplay(currentGp);
   document.getElementById('exchange-result').textContent = '';
   try {
-    const res = await apiFetch('/gacha/exchange', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ icon_id: iconId }) });
+    const res = await apiFetch('/gacha/exchange', { method: 'POST', body: JSON.stringify({ icon_id: iconId }) });
     currentGp = res.new_gp;
     updateGpDisplay(currentGp);
     const r = res.result;
