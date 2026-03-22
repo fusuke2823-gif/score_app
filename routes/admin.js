@@ -539,7 +539,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.username, u.role, u.points, u.created_at, u.total_login_days,
+      `SELECT u.id, u.username, u.role, u.points, u.gp, u.created_at, u.total_login_days,
               t.name AS equipped_title
        FROM users u
        LEFT JOIN titles t ON u.equipped_title_id = t.id
