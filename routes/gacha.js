@@ -201,6 +201,42 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
   }
 });
 
+// GP交換（200GP → SSアイコン1枚）
+router.post('/exchange', authenticateToken, async (req, res) => {
+  const GP_COST = 200;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const userResult = await client.query('SELECT gp FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
+    if (userResult.rows[0].gp < GP_COST) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: `GPが不足しています（必要: ${GP_COST}GP）` });
+    }
+
+    const settingsResult = await client.query(
+      "SELECT key, value FROM settings WHERE key IN ('gacha_dup_ss_pts')"
+    );
+    const sm = {};
+    settingsResult.rows.forEach(r => { sm[r.key] = r.value; });
+    const dupMap = { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: 0, A: 0 };
+
+    const icon = await pickIcon(client, 'SS');
+    if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なSSアイコンがありません' }); }
+
+    await client.query('UPDATE users SET gp=gp-$1 WHERE id=$2', [GP_COST, req.user.id]);
+    const result = await acquireIcon(client, req.user.id, icon, dupMap);
+    const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
+    await client.query('COMMIT');
+    res.json({ result, new_gp: gpResult.rows[0].gp });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
 // アイコン装備
 router.post('/equip', authenticateToken, async (req, res) => {
   const { icon_id } = req.body;

@@ -188,6 +188,16 @@
     <div id="rate-info"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 
+  <!-- GP交換 -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="section-title" style="margin-bottom:12px">GP交換</div>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:0.9rem;color:var(--text-muted)">200GP → SSアイコン1枚</div>
+      <button class="btn btn-primary btn-sm" id="btn-exchange" onclick="doExchange()">交換する</button>
+    </div>
+    <div id="exchange-result" style="margin-top:10px;font-size:0.9rem"></div>
+  </div>
+
   <!-- 排出対象モーダル -->
   <div id="pool-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:520px;width:100%;margin:auto;position:relative">
@@ -267,6 +277,31 @@ function updatePointsDisplay(pts) {
 }
 function updateGpDisplay(gp) {
   document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
+  document.getElementById('btn-exchange').disabled = gp < 200;
+}
+
+async function doExchange() {
+  if (isPulling) return;
+  if (currentGp < 200) return;
+  isPulling = true;
+  document.getElementById('btn-exchange').disabled = true;
+  document.getElementById('exchange-result').textContent = '';
+  try {
+    const res = await apiFetch('/gacha/exchange', { method: 'POST' });
+    currentGp = res.new_gp;
+    updateGpDisplay(currentGp);
+    const r = res.result;
+    const label = r.is_dup ? `（重複 +${r.dup_pts}pt補償）` : '（NEW！）';
+    document.getElementById('exchange-result').innerHTML =
+      `<span style="color:var(--rarity-ss,#ffd700)">【SS】${escHtml(r.name)}</span> ${label}`;
+    const myData = await apiFetch('/gacha/my');
+    renderMyIcons(myData.icons);
+  } catch (err) {
+    document.getElementById('exchange-result').textContent = err.message || 'エラーが発生しました';
+  } finally {
+    isPulling = false;
+    updateGpDisplay(currentGp);
+  }
 }
 
 function animateCount(from, to, duration) {
