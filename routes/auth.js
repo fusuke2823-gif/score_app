@@ -49,6 +49,22 @@ router.post('/login', async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password_hash)))
       return res.status(401).json({ error: 'ユーザー名またはパスワードが間違っています' });
 
+    // GP移行（初回ログイン時のみ）
+    if (!user.gp_migrated) {
+      const histResult = await pool.query(
+        `SELECT reason, COUNT(*) AS cnt FROM point_history
+         WHERE user_id=$1 AND reason IN ('ガチャ（単発）','ガチャ（10連）')
+         GROUP BY reason`,
+        [user.id]
+      );
+      let gp = 0;
+      for (const row of histResult.rows) {
+        if (row.reason === 'ガチャ（単発）') gp += parseInt(row.cnt);
+        if (row.reason === 'ガチャ（10連）') gp += parseInt(row.cnt) * 10;
+      }
+      await pool.query('UPDATE users SET gp=gp+$1, gp_migrated=TRUE WHERE id=$2', [gp, user.id]);
+    }
+
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
       process.env.JWT_SECRET,
