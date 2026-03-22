@@ -52,11 +52,12 @@ router.get('/my', authenticateToken, async (req, res) => {
          ORDER BY gi.id ASC`,
         [req.user.id]
       ),
-      pool.query('SELECT points FROM users WHERE id=$1', [req.user.id])
+      pool.query('SELECT points, gp FROM users WHERE id=$1', [req.user.id])
     ]);
     res.json({
       icons: iconsResult.rows,
-      points: userResult.rows[0]?.points || 0
+      points: userResult.rows[0]?.points || 0,
+      gp: userResult.rows[0]?.gp || 0
     });
   } catch (err) {
     console.error(err);
@@ -135,9 +136,11 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
 
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
+    await client.query('UPDATE users SET gp=gp+1 WHERE id=$1', [req.user.id]);
     const newPoints = userResult.rows[0].points - cost + result.dup_pts;
+    const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
-    res.json({ results: [result], new_points: newPoints });
+    res.json({ results: [result], new_points: newPoints, new_gp: gpResult.rows[0].gp });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -184,9 +187,11 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
       totalDupPts += result.dup_pts;
     }
 
+    await client.query('UPDATE users SET gp=gp+10 WHERE id=$1', [req.user.id]);
     const newPoints = userResult.rows[0].points - cost + totalDupPts;
+    const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
-    res.json({ results, new_points: newPoints });
+    res.json({ results, new_points: newPoints, new_gp: gpResult.rows[0].gp });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
