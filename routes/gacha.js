@@ -32,16 +32,14 @@ router.get('/pools', async (req, res) => {
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
-                json_agg(
-                  jsonb_build_object('id', pu_gi.id, 'name', pu_gi.name, 'image_url', pu_gi.image_url)
-                  ORDER BY pu_gi.id
-                ) FILTER (WHERE gpp.icon_id IS NOT NULL),
+                (SELECT json_agg(jsonb_build_object('id', gi.id, 'name', gi.name, 'image_url', gi.image_url) ORDER BY gi.id)
+                 FROM gacha_pool_pickups gpp
+                 JOIN gacha_icons gi ON gi.id = gpp.icon_id AND gi.is_active = TRUE
+                 WHERE gpp.pool_id = gp.id),
                 '[]'::json
               ) AS pickup_icons
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
-       LEFT JOIN gacha_pool_pickups gpp ON gp.id = gpp.pool_id
-       LEFT JOIN gacha_icons pu_gi ON gpp.icon_id = pu_gi.id AND pu_gi.is_active = TRUE
        WHERE gp.is_active = TRUE
        GROUP BY gp.id
        ORDER BY gp.order_index ASC, gp.id ASC`
