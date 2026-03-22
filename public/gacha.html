@@ -337,6 +337,8 @@ async function doExchange(iconId, iconName) {
     currentGp = res.new_gp;
     updateGpDisplay(currentGp);
     const r = res.result;
+    document.getElementById('gacha-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await animatePull([r]);
     const label = r.is_dup ? `（重複 +${r.dup_pts}pt補償）` : '（NEW！）';
     showGpToast(`<span style="color:#ffd700">【SS】${escHtml(r.name)}</span> ${label}`);
     const myData = await apiFetch('/gacha/my');
