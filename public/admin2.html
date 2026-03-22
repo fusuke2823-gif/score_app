@@ -489,6 +489,7 @@ async function distributePoints(id) {
 // ===== ガチャプール管理 =====
 let _poolIconModalId = null;
 let _allIcons = [];
+let _pickupSet = new Set(); // SS ピックアップ中のアイコンID
 
 async function loadPools() {
   try {
@@ -606,17 +607,20 @@ async function deletePool(id, name) {
 
 async function openPoolIconModal(poolId, poolName) {
   _poolIconModalId = poolId;
+  _pickupSet = new Set();
   document.getElementById('pool-modal-title').textContent = `アイコン設定：${poolName}`;
   const modal = document.getElementById('pool-icon-modal');
   modal.style.display = 'flex';
   document.getElementById('pool-modal-icons').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const [allIcons, currentIds] = await Promise.all([
+    const [allIcons, currentIds, pickupIds] = await Promise.all([
       apiFetch('/admin/gacha/icons'),
-      apiFetch(`/admin/gacha/pools/${poolId}/icons`)
+      apiFetch(`/admin/gacha/pools/${poolId}/icons`),
+      apiFetch(`/admin/gacha/pools/${poolId}/pickups`)
     ]);
     _allIcons = allIcons;
     const selectedSet = new Set(currentIds);
+    pickupIds.forEach(id => _pickupSet.add(id));
     const rarityOrder = ['SS', 'S', 'A'];
     const grouped = { SS: [], S: [], A: [] };
     allIcons.forEach(ic => { if (grouped[ic.rarity]) grouped[ic.rarity].push(ic); });
@@ -626,13 +630,18 @@ async function openPoolIconModal(poolId, poolName) {
       if (!grouped[r].length) return '';
       return `
         <div style="margin-bottom:18px">
-          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア</div>
+          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア${r === 'SS' ? '<span style="font-size:0.7rem;color:var(--text-muted);margin-left:8px">★ = ピックアップ（各0.75%）</span>' : ''}</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px">
             ${grouped[r].map(ic => `
-              <label style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid ${selectedSet.has(ic.id) ? rarityColors[r] : 'var(--border)'};background:var(--bg-primary);transition:border-color 0.15s" onclick="toggleIconCard(this,${ic.id},'${rarityColors[r]}')">
+              <label style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid ${selectedSet.has(ic.id) ? rarityColors[r] : 'var(--border)'};background:var(--bg-primary);transition:border-color 0.15s;position:relative" onclick="toggleIconCard(this,${ic.id},'${rarityColors[r]}')">
                 <input type="checkbox" data-icon-id="${ic.id}" ${selectedSet.has(ic.id) ? 'checked' : ''} style="display:none">
                 <img src="${escHtml(ic.image_url)}" style="width:52px;height:52px;border-radius:20%;object-fit:cover">
                 <div style="font-size:0.65rem;text-align:center;word-break:break-all;line-height:1.2">${escHtml(ic.name)}</div>
+                ${r === 'SS' ? `<button type="button" data-pu-id="${ic.id}"
+                  onclick="event.stopPropagation();togglePickup(this,${ic.id})"
+                  style="margin-top:2px;padding:1px 6px;border-radius:4px;font-size:0.68rem;cursor:pointer;border:1px solid ${_pickupSet.has(ic.id)?'#ffd700':'var(--border)'};background:none;color:${_pickupSet.has(ic.id)?'#ffd700':'var(--text-muted)'}">
+                  ${_pickupSet.has(ic.id)?'★PU':'☆PU'}
+                </button>` : ''}
               </label>`).join('')}
           </div>
         </div>`;
@@ -666,6 +675,20 @@ function toggleAllAS() {
   document.getElementById('btn-toggle-as').textContent = allChecked ? 'A・S全選択' : 'A・S全解除';
 }
 
+function togglePickup(btn, iconId) {
+  if (_pickupSet.has(iconId)) {
+    _pickupSet.delete(iconId);
+    btn.textContent = '☆PU';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--text-muted)';
+  } else {
+    _pickupSet.add(iconId);
+    btn.textContent = '★PU';
+    btn.style.borderColor = '#ffd700';
+    btn.style.color = '#ffd700';
+  }
+}
+
 function closePoolIconModal() {
   document.getElementById('pool-icon-modal').style.display = 'none';
   _poolIconModalId = null;
@@ -675,8 +698,13 @@ async function savePoolIcons() {
   if (!_poolIconModalId) return;
   const checkboxes = document.querySelectorAll('#pool-modal-icons input[type=checkbox]');
   const icon_ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.iconId));
+  // ピックアップはプールに含まれているSSのみ有効
+  const pickup_ids = [..._pickupSet].filter(id => icon_ids.includes(id));
   try {
-    await apiFetch(`/admin/gacha/pools/${_poolIconModalId}/icons`, { method: 'PUT', body: JSON.stringify({ icon_ids }) });
+    await Promise.all([
+      apiFetch(`/admin/gacha/pools/${_poolIconModalId}/icons`, { method: 'PUT', body: JSON.stringify({ icon_ids }) }),
+      apiFetch(`/admin/gacha/pools/${_poolIconModalId}/pickups`, { method: 'PUT', body: JSON.stringify({ icon_ids: pickup_ids }) })
+    ]);
     showAlert('#pool-alert', 'アイコン設定を保存しました', 'success');
     closePoolIconModal();
     loadPools();

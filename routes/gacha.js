@@ -30,9 +30,18 @@ router.get('/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
-              COUNT(gpi.icon_id)::int AS icon_count
+              COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
+              COALESCE(
+                json_agg(
+                  jsonb_build_object('id', pu_gi.id, 'name', pu_gi.name, 'image_url', pu_gi.image_url)
+                  ORDER BY pu_gi.id
+                ) FILTER (WHERE gpp.icon_id IS NOT NULL),
+                '[]'::json
+              ) AS pickup_icons
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
+       LEFT JOIN gacha_pool_pickups gpp ON gp.id = gpp.pool_id
+       LEFT JOIN gacha_icons pu_gi ON gpp.icon_id = pu_gi.id AND pu_gi.is_active = TRUE
        WHERE gp.is_active = TRUE
        GROUP BY gp.id
        ORDER BY gp.order_index ASC, gp.id ASC`
@@ -48,9 +57,11 @@ router.get('/pools', async (req, res) => {
 router.get('/pools/:id/icons', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT gi.id, gi.name, gi.rarity, gi.image_url
+      `SELECT gi.id, gi.name, gi.rarity, gi.image_url,
+              (gpp.icon_id IS NOT NULL) AS is_pickup
        FROM gacha_icons gi
        JOIN gacha_pool_icons gpi ON gi.id = gpi.icon_id
+       LEFT JOIN gacha_pool_pickups gpp ON gi.id = gpp.icon_id AND gpp.pool_id = $1
        WHERE gpi.pool_id = $1 AND gi.is_active = TRUE
        ORDER BY gi.rarity ASC, gi.id ASC`,
       [req.params.id]
@@ -111,9 +122,58 @@ function pickRarity(ss_rate, s_rate, forceAtLeastS = false) {
 }
 
 // レアリティからアイコンをランダム選択（なければ下位レアリティにフォールバック）
-async function pickIcon(client, rarity, poolId) {
+// SS かつ poolId ありの場合、ピックアップアイコンは各 PICKUP_RATE % の確率で当選
+const PICKUP_RATE_PER_ICON = 0.75;
+
+async function pickIcon(client, rarity, poolId, ssRate) {
   const fallback = rarity === 'SS' ? ['SS', 'S', 'A'] : rarity === 'S' ? ['S', 'A'] : ['A'];
   for (const r of fallback) {
+    // SS + poolId の場合はピックアップ重み付き抽選
+    if (r === 'SS' && poolId && ssRate !== undefined) {
+      const res = await client.query(
+        `SELECT gi.id, gi.name, gi.rarity, gi.image_url,
+                (gpp.icon_id IS NOT NULL) AS is_pickup
+         FROM gacha_icons gi
+         JOIN gacha_pool_icons gpi ON gi.id = gpi.icon_id
+         LEFT JOIN gacha_pool_pickups gpp ON gi.id = gpp.icon_id AND gpp.pool_id = $1
+         WHERE gi.is_active=TRUE AND gi.rarity='SS' AND gpi.pool_id=$1`,
+        [poolId]
+      );
+      if (res.rows.length === 0) continue; // SSアイコンなし → S/Aへフォールバック
+
+      const pickups = res.rows.filter(ic => ic.is_pickup);
+      const normals = res.rows.filter(ic => !ic.is_pickup);
+
+      if (pickups.length === 0) {
+        // ピックアップなし → 均等抽選
+        return res.rows[Math.floor(Math.random() * res.rows.length)];
+      }
+
+      const totalPickupWeight = pickups.length * PICKUP_RATE_PER_ICON;
+      const normalWeight = Math.max(0, ssRate - totalPickupWeight);
+
+      if (normals.length === 0 || normalWeight <= 0) {
+        // 通常SSなし or ピックアップが確率を超過 → ピックアップのみ均等
+        return pickups[Math.floor(Math.random() * pickups.length)];
+      }
+
+      const normalWeightEach = normalWeight / normals.length;
+      const allIcons = [...pickups, ...normals];
+      const weights = [
+        ...pickups.map(() => PICKUP_RATE_PER_ICON),
+        ...normals.map(() => normalWeightEach)
+      ];
+      const total = weights.reduce((a, b) => a + b, 0);
+      const rand = Math.random() * total;
+      let cum = 0;
+      for (let i = 0; i < allIcons.length; i++) {
+        cum += weights[i];
+        if (rand < cum) return allIcons[i];
+      }
+      return allIcons[allIcons.length - 1];
+    }
+
+    // SS以外 or poolIdなし → 通常抽選
     let result;
     if (poolId) {
       result = await client.query(
@@ -187,7 +247,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -cost, 'ガチャ（単発）']);
 
     const rarity = pickRarity(ss_rate, s_rate);
-    const icon = await pickIcon(client, rarity, pool_id || null);
+    const icon = await pickIcon(client, rarity, pool_id || null, ss_rate);
     if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
 
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
@@ -243,7 +303,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     for (let i = 0; i < 10; i++) {
       const forceS = (i === 9);
       const rarity = pickRarity(ss_rate, s_rate, forceS);
-      const icon = await pickIcon(client, rarity, pool_id || null);
+      const icon = await pickIcon(client, rarity, pool_id || null, ss_rate);
       if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
       const result = await acquireIcon(client, req.user.id, icon, dupMap);
       results.push(result);

@@ -1040,6 +1040,45 @@ router.put('/gacha/pools/:id/icons', async (req, res) => {
   }
 });
 
+// プールのピックアップアイコン取得
+router.get('/gacha/pools/:id/pickups', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT icon_id FROM gacha_pool_pickups WHERE pool_id=$1',
+      [req.params.id]
+    );
+    res.json(result.rows.map(r => r.icon_id));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// プールのピックアップアイコン一括更新
+router.put('/gacha/pools/:id/pickups', async (req, res) => {
+  const { icon_ids } = req.body;
+  if (!Array.isArray(icon_ids)) return res.status(400).json({ error: 'icon_ids が必要です' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM gacha_pool_pickups WHERE pool_id=$1', [req.params.id]);
+    for (const iconId of icon_ids) {
+      await client.query(
+        'INSERT INTO gacha_pool_pickups (pool_id, icon_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [req.params.id, iconId]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ message: 'ピックアップ設定を更新しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
 // ===== ログインボーナス設定 =====
 router.get('/login-bonus-settings', async (req, res) => {
   try {

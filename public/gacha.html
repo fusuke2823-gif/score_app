@@ -282,22 +282,7 @@ async function init() {
     document.getElementById('cost-info').textContent =
       `単発 ${settings.single_cost}pt ／ 10連 ${settings.multi_cost}pt（最後の1枚Sレア以上確定）`;
 
-    document.getElementById('rate-info').innerHTML = `
-      <div class="rate-row">
-        <span><span class="irarity irarity-SS">SS</span></span>
-        <span style="font-weight:bold;color:#ffd700">${settings.ss_rate}%</span>
-      </div>
-      <div class="rate-row">
-        <span><span class="irarity irarity-S">S</span></span>
-        <span style="font-weight:bold;color:#e0c060">${settings.s_rate}%</span>
-      </div>
-      <div class="rate-row">
-        <span><span class="irarity irarity-A">A</span></span>
-        <span style="font-weight:bold;color:#4fc3f7">${settings.a_rate}%</span>
-      </div>
-      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center">
-        レアリティ内の確率は均等。10連最後の1枚はAがSに変換。
-      </p>`;
+    updateRateInfo(settings, []);
 
     document.getElementById('btn-single').disabled = false;
     document.getElementById('btn-multi').disabled = false;
@@ -306,6 +291,38 @@ async function init() {
   } catch (err) {
     showAlert('#alert', err.message);
   }
+}
+
+function updateRateInfo(settings, pickupIcons) {
+  const ssRate = settings.ss_rate;
+  const puCount = pickupIcons.length;
+  let ssDetail = '';
+  if (puCount > 0) {
+    const puTotalRate = (puCount * 0.75).toFixed(2);
+    const normalRate = Math.max(0, ssRate - puCount * 0.75);
+    ssDetail = `
+      <div style="margin:4px 0 0 16px;font-size:0.75rem;color:var(--text-muted)">
+        <span style="color:#ffd700">★PickUp</span>：${pickupIcons.map(p => escHtml(p.name)).join('・')}（各0.75%）<br>
+        通常SS：${normalRate.toFixed(2)}%（均等）
+      </div>`;
+  }
+  document.getElementById('rate-info').innerHTML = `
+    <div class="rate-row">
+      <span><span class="irarity irarity-SS">SS</span></span>
+      <span style="font-weight:bold;color:#ffd700">${ssRate}%</span>
+    </div>
+    ${ssDetail}
+    <div class="rate-row" style="margin-top:${puCount>0?'6px':'0'}">
+      <span><span class="irarity irarity-S">S</span></span>
+      <span style="font-weight:bold;color:#e0c060">${settings.s_rate}%</span>
+    </div>
+    <div class="rate-row">
+      <span><span class="irarity irarity-A">A</span></span>
+      <span style="font-weight:bold;color:#4fc3f7">${settings.a_rate}%</span>
+    </div>
+    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center">
+      ${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}レアリティ内の確率は均等。10連最後の1枚はAがSに変換。
+    </p>`;
 }
 
 function updatePointsDisplay(pts) {
@@ -324,7 +341,14 @@ function renderPoolSelector(pools) {
   }
   // プール選択画面を表示
   const list = document.getElementById('pool-pick-list');
-  list.innerHTML = pools.map(p => `
+  list.innerHTML = pools.map(p => {
+    const pickupRow = p.pickup_icons && p.pickup_icons.length > 0 ? `
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px">
+        <span style="font-size:0.68rem;color:#ffd700;font-weight:bold">★PU</span>
+        ${p.pickup_icons.slice(0,5).map(pu => `<img src="${escHtml(pu.image_url)}" title="${escHtml(pu.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid #ffd700">`).join('')}
+        ${p.pickup_icons.length > 5 ? `<span style="font-size:0.68rem;color:var(--text-muted)">+${p.pickup_icons.length - 5}</span>` : ''}
+      </div>` : '';
+    return `
     <button class="pool-pick-btn" onclick="selectPool(${p.id})" style="
       display:flex;align-items:center;gap:14px;text-align:left;
       padding:14px 18px;border-radius:14px;border:2px solid var(--border);
@@ -338,18 +362,22 @@ function renderPoolSelector(pools) {
         <div style="font-size:1rem;font-weight:bold;color:var(--text-primary)">${escHtml(p.name)}</div>
         ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${p.icon_count}種のアイコン</div>
+        ${pickupRow}
       </div>
-    </button>`).join('');
+    </button>`;
+  }).join('');
   document.getElementById('pool-select-screen').style.display = '';
   document.getElementById('gacha-main').style.display = 'none';
 }
 
 function selectPool(poolId) {
   selectedPoolId = poolId;
-  const pool = gPools.find(p => p.id === poolId);
+  const p = gPools.find(p => p.id === poolId);
   // ラベル・戻るボタン設定
-  document.getElementById('selected-pool-label').textContent = pool ? pool.name : '';
+  document.getElementById('selected-pool-label').textContent = p ? p.name : '';
   document.getElementById('btn-back-pool').style.display = gPools.length > 1 ? '' : 'none';
+  // 排出率をピックアップ対応に更新
+  if (gSettings) updateRateInfo(gSettings, p ? (p.pickup_icons || []) : []);
   showGachaMain();
   // 排出対象モーダルキャッシュリセット
   _lastPoolModalPoolId = Symbol();
@@ -668,9 +696,10 @@ async function openPoolModal() {
           <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア（${grouped[r].length}種）</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px">
             ${grouped[r].map(ic => `
-              <div style="text-align:center">
+              <div style="text-align:center;position:relative">
+                ${ic.is_pickup ? `<span style="position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:0.6rem;font-weight:bold;color:#ffd700;background:rgba(0,0,0,0.6);border-radius:3px;padding:0 3px;white-space:nowrap;z-index:1">★PU</span>` : ''}
                 <img src="${escHtml(ic.image_url)}" alt="${escHtml(ic.name)}"
-                     style="width:54px;height:54px;border-radius:20%;object-fit:cover;border:2px solid ${rarityColors[r]};display:block;margin:0 auto 4px">
+                     style="width:54px;height:54px;border-radius:20%;object-fit:cover;border:2px solid ${ic.is_pickup ? '#ffd700' : rarityColors[r]};display:block;margin:0 auto 4px;${ic.is_pickup ? 'box-shadow:0 0 6px #ffd700aa' : ''}">
                 <div style="font-size:0.62rem;color:var(--text-secondary);word-break:break-all;line-height:1.2">${escHtml(ic.name)}</div>
               </div>`).join('')}
           </div>
