@@ -148,6 +148,7 @@
 </style>
 </head>
 <body>
+<div id="gp-toast" style="display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:3000;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 22px;font-size:0.95rem;box-shadow:0 4px 18px rgba(0,0,0,0.5);text-align:center;max-width:90vw;pointer-events:none"></div>
 <nav id="nav"></nav>
 <main>
   <div id="alert"></div>
@@ -195,7 +196,6 @@
     <div id="exchange-ss-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:10px">
       <div class="loading"><div class="spinner"></div></div>
     </div>
-    <div id="exchange-result" style="font-size:0.9rem"></div>
   </div>
 
   <!-- 排出対象モーダル -->
@@ -248,9 +248,7 @@ async function init() {
       if (!migRes.already_done && migRes.gp_awarded > 0) {
         currentGp = migRes.new_gp;
         updateGpDisplay(currentGp);
-        const el = document.getElementById('exchange-result');
-        el.style.color = 'var(--accent)';
-        el.textContent = `GP補填：過去のガチャ分 ${migRes.gp_awarded}GP を付与しました！`;
+        showGpToast(`GP補填：過去のガチャ分 ${migRes.gp_awarded}GP を付与しました！`);
       }
     } catch (_) {}
 
@@ -292,6 +290,21 @@ function updateGpDisplay(gp) {
   document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
 }
 
+let _gpToastTimer = null;
+function showGpToast(html, isError = false) {
+  const el = document.getElementById('gp-toast');
+  el.style.color = isError ? '#f66' : 'var(--accent, #4fc3f7)';
+  el.innerHTML = html;
+  el.style.display = 'block';
+  el.style.opacity = '1';
+  if (_gpToastTimer) clearTimeout(_gpToastTimer);
+  _gpToastTimer = setTimeout(() => {
+    el.style.transition = 'opacity 0.5s';
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; el.style.transition = ''; }, 500);
+  }, 3000);
+}
+
 async function loadExchangeList() {
   const container = document.getElementById('exchange-ss-list');
   try {
@@ -312,26 +325,23 @@ async function loadExchangeList() {
 async function doExchange(iconId, iconName) {
   if (isPulling) return;
   if (currentGp < 200) {
-    document.getElementById('exchange-result').style.color = 'var(--error, #f44)';
-    document.getElementById('exchange-result').textContent = `GPが不足しています（現在: ${currentGp}GP／必要: 200GP）`;
+    showGpToast(`GPが不足しています（現在: ${currentGp}GP／必要: 200GP）`, true);
     return;
   }
   if (!confirm(`【SS】${iconName} を200GPで交換しますか？`)) return;
   isPulling = true;
   updateGpDisplay(currentGp);
-  document.getElementById('exchange-result').textContent = '';
   try {
     const res = await apiFetch('/gacha/exchange', { method: 'POST', body: JSON.stringify({ icon_id: iconId }) });
     currentGp = res.new_gp;
     updateGpDisplay(currentGp);
     const r = res.result;
     const label = r.is_dup ? `（重複 +${r.dup_pts}pt補償）` : '（NEW！）';
-    document.getElementById('exchange-result').innerHTML =
-      `<span style="color:#ffd700">【SS】${escHtml(r.name)}</span> ${label}`;
+    showGpToast(`<span style="color:#ffd700">【SS】${escHtml(r.name)}</span> ${label}`);
     const myData = await apiFetch('/gacha/my');
     renderMyIcons(myData.icons);
   } catch (err) {
-    document.getElementById('exchange-result').textContent = err.message || 'エラーが発生しました';
+    showGpToast(err.message || 'エラーが発生しました', true);
   } finally {
     isPulling = false;
     updateGpDisplay(currentGp);
