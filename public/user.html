@@ -8,8 +8,11 @@
 </head>
 <body>
 <nav id="nav"></nav>
-<main>
+<main style="position:relative">
   <a class="back-link" href="javascript:history.back()" style="color:var(--text-secondary);font-size:.85rem;display:inline-block;margin-bottom:16px">← 戻る</a>
+  <div id="delete-btn-wrap" style="display:none;position:absolute;top:0;right:0">
+    <button class="btn btn-sm" onclick="openDeleteModal()" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e57373;font-size:0.78rem">アカウント削除</button>
+  </div>
   <div id="alert"></div>
   <div id="content">
     <div class="loading"><div class="spinner"></div>読み込み中...</div>
@@ -70,6 +73,23 @@
   <img id="modal-img" src="" alt="">
 </div>
 
+<!-- アカウント削除モーダル -->
+<div id="delete-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center">
+  <div class="card" style="width:min(360px,90vw);padding:24px">
+    <div style="font-weight:bold;font-size:1rem;color:#e57373;margin-bottom:8px">アカウント削除</div>
+    <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">この操作は取り消せません。パスワードを入力して確認してください。</div>
+    <div id="delete-alert"></div>
+    <div class="form-group">
+      <label class="form-label">パスワード</label>
+      <input class="form-input" id="delete-pw" type="password" placeholder="パスワードを入力">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeDeleteModal()">キャンセル</button>
+      <button class="btn" style="flex:1;background:#c62828;color:#fff;border:none" onclick="doDeleteAccount()">削除する</button>
+    </div>
+  </div>
+</div>
+
 <script src="/js/common.js"></script>
 <script>
 renderNav();
@@ -101,6 +121,7 @@ async function load() {
 
     const me = getUser();
     const isMe = me && String(me.id) === String(userId);
+    if (isMe) document.getElementById('delete-btn-wrap').style.display = '';
 
     document.getElementById('content').innerHTML = `
       <div class="user-header">
@@ -214,6 +235,27 @@ async function saveProfile() {
       document.getElementById('edit-current-pw').value = '';
       document.getElementById('edit-new-pw').value = '';
     }
+  } catch (err) {
+    alertEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function openDeleteModal() {
+  document.getElementById('delete-pw').value = '';
+  document.getElementById('delete-alert').innerHTML = '';
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+function closeDeleteModal() {
+  document.getElementById('delete-modal').style.display = 'none';
+}
+async function doDeleteAccount() {
+  const pw = document.getElementById('delete-pw').value;
+  const alertEl = document.getElementById('delete-alert');
+  alertEl.innerHTML = '';
+  try {
+    await apiFetch('/auth/me', { method: 'DELETE', body: JSON.stringify({ password: pw }) });
+    logout();
+    location.href = '/login.html';
   } catch (err) {
     alertEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }

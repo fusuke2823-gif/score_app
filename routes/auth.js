@@ -132,6 +132,23 @@ router.put('/me', authenticateToken, async (req, res) => {
   }
 });
 
+// アカウント削除（自分自身）
+router.delete('/me', authenticateToken, async (req, res) => {
+  const { password } = req.body;
+  if (!password) return res.status(400).json({ error: 'パスワードを入力してください' });
+  try {
+    const userRow = await pool.query('SELECT password_hash FROM users WHERE id=$1', [req.user.id]);
+    if (!userRow.rows[0]) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+    const ok = await bcrypt.compare(password, userRow.rows[0].password_hash);
+    if (!ok) return res.status(401).json({ error: 'パスワードが間違っています' });
+    await pool.query('DELETE FROM users WHERE id=$1', [req.user.id]);
+    res.json({ message: 'アカウントを削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // ログインボーナス状態確認
 // ログインボーナス日別pt設定を取得するヘルパー
 async function getLoginBonusPts() {
