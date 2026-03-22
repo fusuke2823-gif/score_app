@@ -693,12 +693,15 @@ async function openPoolModal() {
     const grouped = {};
     order.forEach(r => grouped[r] = []);
     icons.forEach(ic => { if (grouped[ic.rarity]) grouped[ic.rarity].push(ic); });
+    // ピックアップを各レアリティ内の先頭へ
+    order.forEach(r => grouped[r].sort((a, b) => (b.is_pickup ? 1 : 0) - (a.is_pickup ? 1 : 0)));
     const rarityColors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
     document.getElementById('pool-list').innerHTML = order.map(r => {
       if (!grouped[r].length) return '';
+      const pickupCount = grouped[r].filter(ic => ic.is_pickup).length;
       return `
         <div style="margin-bottom:18px">
-          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア（${grouped[r].length}種）</div>
+          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア（${grouped[r].length}種）${pickupCount > 0 ? `<span style="font-size:0.72rem;color:#ffd700;margin-left:8px">★PickUp ${pickupCount}枚</span>` : ''}</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px">
             ${grouped[r].map(ic => `
               <div style="text-align:center;position:relative">
