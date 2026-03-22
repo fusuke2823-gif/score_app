@@ -30,6 +30,7 @@ router.get('/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
+              gp.start_at, gp.end_at,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
                 (SELECT json_agg(jsonb_build_object('id', gi.id, 'name', gi.name, 'image_url', gi.image_url) ORDER BY gi.id)
