@@ -927,6 +927,7 @@ router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.is_active, gp.order_index, gp.created_at,
+              gp.start_at, gp.end_at,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
@@ -941,17 +942,12 @@ router.get('/gacha/pools', async (req, res) => {
 });
 
 router.post('/gacha/pools', async (req, res) => {
-  const { name, description, order_index, image_base64 } = req.body;
+  const { name, description, order_index, start_at, end_at } = req.body;
   if (!name) return res.status(400).json({ error: 'ガチャ名を入力してください' });
   try {
-    let image_url = null;
-    if (image_base64) {
-      const up = await cloudinary.uploader.upload(image_base64, { folder: 'hbr-ranking/gacha-pools', resource_type: 'image' });
-      image_url = up.secure_url;
-    }
     const result = await pool.query(
-      'INSERT INTO gacha_pools (name, description, image_url, order_index) VALUES ($1,$2,$3,$4) RETURNING *',
-      [name, description || null, image_url, parseInt(order_index) || 0]
+      'INSERT INTO gacha_pools (name, description, order_index, start_at, end_at) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [name, description || null, parseInt(order_index) || 0, start_at || null, end_at || null]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -974,15 +970,30 @@ router.patch('/gacha/pools/:id/image', async (req, res) => {
 });
 
 router.put('/gacha/pools/:id', async (req, res) => {
-  const { name, description, is_active, order_index } = req.body;
+  const { name, description, is_active, order_index, start_at, end_at } = req.body;
   if (!name) return res.status(400).json({ error: 'ガチャ名を入力してください' });
   try {
     const result = await pool.query(
-      'UPDATE gacha_pools SET name=$1, description=$2, is_active=$3, order_index=$4 WHERE id=$5 RETURNING *',
-      [name, description || null, is_active !== false, parseInt(order_index) || 0, req.params.id]
+      'UPDATE gacha_pools SET name=$1, description=$2, is_active=$3, order_index=$4, start_at=$5, end_at=$6 WHERE id=$7 RETURNING *',
+      [name, description || null, is_active !== false, parseInt(order_index) || 0, start_at || null, end_at || null, req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// プール期間のみ更新
+router.patch('/gacha/pools/:id/period', async (req, res) => {
+  const { start_at, end_at } = req.body;
+  try {
+    await pool.query(
+      'UPDATE gacha_pools SET start_at=$1, end_at=$2 WHERE id=$3',
+      [start_at || null, end_at || null, req.params.id]
+    );
+    res.json({ message: '期間を更新しました' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

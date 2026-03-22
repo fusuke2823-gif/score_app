@@ -149,6 +149,16 @@
           <label class="form-label">説明（任意）</label>
           <input class="form-input" id="pool-desc" placeholder="例: SSレアリティ強化！">
         </div>
+        <div class="enemy-form-grid">
+          <div class="form-group">
+            <label class="form-label">開始日時（任意）</label>
+            <input class="form-input" type="datetime-local" id="pool-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">終了日時（任意）</label>
+            <input class="form-input" type="datetime-local" id="pool-end">
+          </div>
+        </div>
         <button class="btn btn-primary" onclick="createPool()">作成する</button>
       </div>
       <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
@@ -171,6 +181,29 @@
           <button class="btn btn-secondary btn-sm" id="btn-toggle-as" onclick="toggleAllAS()">A・S全選択</button>
         </div>
         <div id="pool-modal-icons"></div>
+      </div>
+    </div>
+
+    <!-- 期間設定モーダル -->
+    <div id="pool-period-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;padding:24px 12px">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:420px;width:100%">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+          <div style="font-weight:bold" id="period-modal-title">期間設定</div>
+          <button onclick="closePeriodModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>
+        </div>
+        <div id="period-modal-alert" style="margin-bottom:10px"></div>
+        <div class="form-group">
+          <label class="form-label">開始日時<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">空欄で制限なし</span></label>
+          <input class="form-input" type="datetime-local" id="period-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">終了日時<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">空欄で制限なし</span></label>
+          <input class="form-input" type="datetime-local" id="period-end">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+          <button class="btn btn-secondary" onclick="closePeriodModal()">キャンセル</button>
+          <button class="btn btn-primary" onclick="savePeriod()">保存する</button>
+        </div>
       </div>
     </div>
 
@@ -499,12 +532,15 @@ async function loadPools() {
             <div style="min-width:0">
               <div style="font-weight:bold;font-size:0.95rem">${escHtml(p.name)}
                 ${p.is_active ? '' : '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px">非表示</span>'}
+                <span style="font-size:0.72rem;font-weight:normal;margin-left:6px;padding:1px 6px;border-radius:4px;${poolStatusStyle(p.start_at, p.end_at)}">${poolStatusLabel(p.start_at, p.end_at)}</span>
               </div>
               ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
               <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">アイコン ${p.icon_count}枚　順 ${p.order_index}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${formatPeriod(p.start_at, p.end_at)}</div>
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="openPeriodModal(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}','${p.start_at||''}','${p.end_at||''}')">期間設定</button>
             <button class="btn btn-secondary btn-sm" onclick="openPoolIconModal(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">アイコン設定</button>
             <button class="btn btn-secondary btn-sm" onclick="editPool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}','${escHtml(p.description||'').replace(/'/g,"\\'")}',${p.is_active},${p.order_index})">編集</button>
             <button class="btn btn-danger btn-sm" onclick="deletePool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">削除</button>
@@ -516,19 +552,85 @@ async function loadPools() {
   }
 }
 
+// 期間表示ヘルパー
+function formatDatetimeJST(dt) {
+  if (!dt) return null;
+  return new Date(dt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+function formatPeriod(start_at, end_at) {
+  if (!start_at && !end_at) return '期間: 常時開催';
+  const s = start_at ? formatDatetimeJST(start_at) : '〜';
+  const e = end_at   ? formatDatetimeJST(end_at)   : '〜';
+  return `期間: ${start_at ? s : '制限なし'} 〜 ${end_at ? e : '制限なし'}`;
+}
+function poolStatusLabel(start_at, end_at) {
+  const now = Date.now();
+  if (end_at && new Date(end_at) <= now) return '終了';
+  if (start_at && new Date(start_at) > now) return '開催前';
+  return '開催中';
+}
+function poolStatusStyle(start_at, end_at) {
+  const label = poolStatusLabel(start_at, end_at);
+  if (label === '終了')   return 'background:#444;color:var(--text-muted)';
+  if (label === '開催前') return 'background:#2a3a4a;color:#4fc3f7';
+  return 'background:#1a3a1a;color:#66bb6a';
+}
+function toDatetimeLocal(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  const local = new Date(d.getTime() + 9 * 60 * 60 * 1000); // JST
+  return local.toISOString().slice(0, 16);
+}
+
 async function createPool() {
   const name = document.getElementById('pool-name').value.trim();
   const desc = document.getElementById('pool-desc').value.trim();
   const order = document.getElementById('pool-order').value;
+  const start_at = document.getElementById('pool-start').value || null;
+  const end_at   = document.getElementById('pool-end').value   || null;
   if (!name) { showAlert('#pool-alert', 'ガチャ名を入力してください'); return; }
   try {
-    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0 }) });
+    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0, start_at, end_at }) });
     showAlert('#pool-alert', '作成しました', 'success');
     document.getElementById('pool-name').value = '';
     document.getElementById('pool-desc').value = '';
     document.getElementById('pool-order').value = '0';
+    document.getElementById('pool-start').value = '';
+    document.getElementById('pool-end').value = '';
     loadPools();
   } catch (err) { showAlert('#pool-alert', err.message); }
+}
+
+// 期間設定モーダル
+let _periodModalPoolId = null;
+function openPeriodModal(poolId, poolName, startAt, endAt) {
+  _periodModalPoolId = poolId;
+  document.getElementById('period-modal-title').textContent = `期間設定：${poolName}`;
+  document.getElementById('period-start').value = toDatetimeLocal(startAt);
+  document.getElementById('period-end').value   = toDatetimeLocal(endAt);
+  document.getElementById('period-modal-alert').innerHTML = '';
+  document.getElementById('pool-period-modal').style.display = 'flex';
+}
+function closePeriodModal() {
+  document.getElementById('pool-period-modal').style.display = 'none';
+  _periodModalPoolId = null;
+}
+async function savePeriod() {
+  if (!_periodModalPoolId) return;
+  const start_at = document.getElementById('period-start').value || null;
+  const end_at   = document.getElementById('period-end').value   || null;
+  if (start_at && end_at && new Date(start_at) >= new Date(end_at)) {
+    document.getElementById('period-modal-alert').innerHTML = '<div class="alert alert-error">終了日時は開始日時より後にしてください</div>';
+    return;
+  }
+  try {
+    await apiFetch(`/admin/gacha/pools/${_periodModalPoolId}/period`, { method: 'PATCH', body: JSON.stringify({ start_at, end_at }) });
+    closePeriodModal();
+    showAlert('#pool-alert', '期間を更新しました', 'success');
+    loadPools();
+  } catch (err) {
+    document.getElementById('period-modal-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
 }
 
 function editPool(id, name, desc, isActive, order) {
@@ -680,7 +782,7 @@ async function savePoolIcons() {
   }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePoolIconModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePoolIconModal(); closePeriodModal(); } });
 
 // ===== ガチャ設定 =====
 async function loadGachaSettings() {

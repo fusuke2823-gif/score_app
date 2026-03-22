@@ -41,6 +41,8 @@ router.get('/pools', async (req, res) => {
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
        WHERE gp.is_active = TRUE
+         AND (gp.start_at IS NULL OR gp.start_at <= NOW())
+         AND (gp.end_at IS NULL OR gp.end_at > NOW())
        GROUP BY gp.id
        ORDER BY gp.order_index ASC, gp.id ASC`
     );
