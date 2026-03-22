@@ -116,7 +116,7 @@ function renderNav() {
       <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
       ${user
-        ? `<a href="/user.html?id=${user.id}">${escHtml(user.username)}</a>
+        ? `<a href="/user.html?id=${user.id}">アカウント</a>
            <a href="#" onclick="logout();return false;">ログアウト</a>`
         : `<a href="/login.html">ログイン</a>
            <a href="/register.html">新規登録</a>`
