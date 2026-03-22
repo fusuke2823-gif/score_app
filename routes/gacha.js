@@ -29,7 +29,7 @@ router.get('/settings', async (req, res) => {
 router.get('/pools', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT gp.id, gp.name, gp.description, gp.order_index,
+      `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id

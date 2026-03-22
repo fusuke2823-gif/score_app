@@ -926,7 +926,7 @@ router.put('/gacha/settings', async (req, res) => {
 router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT gp.id, gp.name, gp.description, gp.is_active, gp.order_index, gp.created_at,
+      `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.is_active, gp.order_index, gp.created_at,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
@@ -941,14 +941,32 @@ router.get('/gacha/pools', async (req, res) => {
 });
 
 router.post('/gacha/pools', async (req, res) => {
-  const { name, description, order_index } = req.body;
+  const { name, description, order_index, image_base64 } = req.body;
   if (!name) return res.status(400).json({ error: 'ガチャ名を入力してください' });
   try {
+    let image_url = null;
+    if (image_base64) {
+      const up = await cloudinary.uploader.upload(image_base64, { folder: 'hbr-ranking/gacha-pools', resource_type: 'image' });
+      image_url = up.secure_url;
+    }
     const result = await pool.query(
-      'INSERT INTO gacha_pools (name, description, order_index) VALUES ($1,$2,$3) RETURNING *',
-      [name, description || null, parseInt(order_index) || 0]
+      'INSERT INTO gacha_pools (name, description, image_url, order_index) VALUES ($1,$2,$3,$4) RETURNING *',
+      [name, description || null, image_url, parseInt(order_index) || 0]
     );
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.patch('/gacha/pools/:id/image', async (req, res) => {
+  const { image_base64 } = req.body;
+  if (!image_base64) return res.status(400).json({ error: '画像データが必要です' });
+  try {
+    const up = await cloudinary.uploader.upload(image_base64, { folder: 'hbr-ranking/gacha-pools', resource_type: 'image' });
+    await pool.query('UPDATE gacha_pools SET image_url=$1 WHERE id=$2', [up.secure_url, req.params.id]);
+    res.json({ image_url: up.secure_url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

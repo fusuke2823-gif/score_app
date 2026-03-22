@@ -198,10 +198,13 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         description TEXT,
+        image_url TEXT,
         is_active BOOLEAN DEFAULT TRUE,
         order_index INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS image_url TEXT;
 
       CREATE TABLE IF NOT EXISTS gacha_pool_icons (
         pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE CASCADE,

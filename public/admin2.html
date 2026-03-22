@@ -149,6 +149,14 @@
           <label class="form-label">説明（任意）</label>
           <input class="form-input" id="pool-desc" placeholder="例: SSレアリティ強化！">
         </div>
+        <div class="form-group">
+          <label class="form-label">タイトル画像（任意）</label>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <input type="file" id="pool-img-file" accept="image/*" style="display:none" onchange="onPoolImgSelect(this,'pool-img-preview')">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pool-img-file').click()">画像を選択</button>
+            <img id="pool-img-preview" src="" alt="" style="display:none;width:64px;height:64px;border-radius:12px;object-fit:cover;border:1px solid var(--border)">
+          </div>
+        </div>
         <button class="btn btn-primary" onclick="createPool()">作成する</button>
       </div>
       <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
@@ -493,14 +501,21 @@ async function loadPools() {
     el.innerHTML = pools.map(p => `
       <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--bg-primary)">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:bold;font-size:0.95rem">${escHtml(p.name)}
-              ${p.is_active ? '' : '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px">非表示</span>'}
+          <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0">
+            ${p.image_url
+              ? `<img src="${escHtml(p.image_url)}" style="width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)">`
+              : `<div style="width:56px;height:56px;border-radius:10px;background:var(--bg-card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">🎰</div>`}
+            <div style="min-width:0">
+              <div style="font-weight:bold;font-size:0.95rem">${escHtml(p.name)}
+                ${p.is_active ? '' : '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px">非表示</span>'}
+              </div>
+              ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
+              <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">アイコン ${p.icon_count}枚　順 ${p.order_index}</div>
             </div>
-            ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
-            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">アイコン ${p.icon_count}枚　順 ${p.order_index}</div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
+            <input type="file" id="pool-img-${p.id}" accept="image/*" style="display:none" onchange="uploadPoolImage(${p.id},this)">
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pool-img-${p.id}').click()">画像変更</button>
             <button class="btn btn-secondary btn-sm" onclick="openPoolIconModal(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">アイコン設定</button>
             <button class="btn btn-secondary btn-sm" onclick="editPool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}','${escHtml(p.description||'').replace(/'/g,"\\'")}',${p.is_active},${p.order_index})">編集</button>
             <button class="btn btn-danger btn-sm" onclick="deletePool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">削除</button>
@@ -512,17 +527,55 @@ async function loadPools() {
   }
 }
 
+function onPoolImgSelect(input, previewId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById(previewId);
+    img.src = e.target.result;
+    img.style.display = '';
+  };
+  reader.readAsDataURL(file);
+}
+
 async function createPool() {
   const name = document.getElementById('pool-name').value.trim();
   const desc = document.getElementById('pool-desc').value.trim();
   const order = document.getElementById('pool-order').value;
   if (!name) { showAlert('#pool-alert', 'ガチャ名を入力してください'); return; }
   try {
-    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0 }) });
+    const imgFile = document.getElementById('pool-img-file').files[0];
+    let image_base64 = null;
+    if (imgFile) image_base64 = await fileToBase64(imgFile);
+    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0, image_base64 }) });
     showAlert('#pool-alert', '作成しました', 'success');
     document.getElementById('pool-name').value = '';
     document.getElementById('pool-desc').value = '';
     document.getElementById('pool-order').value = '0';
+    document.getElementById('pool-img-file').value = '';
+    document.getElementById('pool-img-preview').style.display = 'none';
+    loadPools();
+  } catch (err) { showAlert('#pool-alert', err.message); }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadPoolImage(poolId, input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    showAlert('#pool-alert', '画像をアップロード中...', 'success');
+    const image_base64 = await fileToBase64(file);
+    await apiFetch(`/admin/gacha/pools/${poolId}/image`, { method: 'PATCH', body: JSON.stringify({ image_base64 }) });
+    showAlert('#pool-alert', '画像を更新しました', 'success');
     loadPools();
   } catch (err) { showAlert('#pool-alert', err.message); }
 }
