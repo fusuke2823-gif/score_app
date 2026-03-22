@@ -190,12 +190,12 @@
 
   <!-- GP交換 -->
   <div class="card" style="margin-bottom:20px">
-    <div class="section-title" style="margin-bottom:12px">GP交換</div>
-    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="font-size:0.9rem;color:var(--text-muted)">200GP → SSアイコン1枚</div>
-      <button class="btn btn-primary btn-sm" id="btn-exchange" onclick="doExchange()">交換する</button>
+    <div class="section-title" style="margin-bottom:4px">GP交換</div>
+    <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">200GP → SSアイコン1枚（選択）</div>
+    <div id="exchange-ss-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:10px">
+      <div class="loading"><div class="spinner"></div></div>
     </div>
-    <div id="exchange-result" style="margin-top:10px;font-size:0.9rem"></div>
+    <div id="exchange-result" style="font-size:0.9rem"></div>
   </div>
 
   <!-- 排出対象モーダル -->
@@ -240,6 +240,7 @@ async function init() {
     currentGp = myData.gp || 0;
     updatePointsDisplay(currentPoints);
     updateGpDisplay(currentGp);
+    loadExchangeList();
 
     // GP移行（未移行の場合のみ）
     try {
@@ -289,23 +290,42 @@ function updatePointsDisplay(pts) {
 }
 function updateGpDisplay(gp) {
   document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
-  document.getElementById('btn-exchange').disabled = gp < 200;
+  document.querySelectorAll('.exchange-icon-btn').forEach(btn => {
+    btn.disabled = isPulling || gp < 200;
+  });
 }
 
-async function doExchange() {
-  if (isPulling) return;
-  if (currentGp < 200) return;
+async function loadExchangeList() {
+  const container = document.getElementById('exchange-ss-list');
+  try {
+    const icons = await apiFetch('/gacha/icons');
+    const ss = icons.filter(i => i.rarity === 'SS');
+    if (ss.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">SSアイコンがありません</div>'; return; }
+    container.innerHTML = ss.map(i => `
+      <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id})">
+        <img src="${escHtml(i.image_url)}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
+        <div style="font-size:0.7rem;color:#ffd700;word-break:break-all">${escHtml(i.name)}</div>
+        <button class="btn btn-primary btn-sm exchange-icon-btn" style="margin-top:4px;font-size:0.7rem;padding:2px 6px" ${currentGp < 200 ? 'disabled' : ''}>200GP</button>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">読み込み失敗</div>';
+  }
+}
+
+async function doExchange(iconId) {
+  if (isPulling || currentGp < 200) return;
   isPulling = true;
-  document.getElementById('btn-exchange').disabled = true;
+  updateGpDisplay(currentGp);
   document.getElementById('exchange-result').textContent = '';
   try {
-    const res = await apiFetch('/gacha/exchange', { method: 'POST' });
+    const res = await apiFetch('/gacha/exchange', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ icon_id: iconId }) });
     currentGp = res.new_gp;
     updateGpDisplay(currentGp);
     const r = res.result;
     const label = r.is_dup ? `（重複 +${r.dup_pts}pt補償）` : '（NEW！）';
     document.getElementById('exchange-result').innerHTML =
-      `<span style="color:var(--rarity-ss,#ffd700)">【SS】${escHtml(r.name)}</span> ${label}`;
+      `<span style="color:#ffd700">【SS】${escHtml(r.name)}</span> ${label}`;
     const myData = await apiFetch('/gacha/my');
     renderMyIcons(myData.icons);
   } catch (err) {

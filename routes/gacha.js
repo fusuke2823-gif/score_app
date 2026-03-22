@@ -203,9 +203,12 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
   }
 });
 
-// GP交換（200GP → SSアイコン1枚）
+// GP交換（200GP → SSアイコン選択）
 router.post('/exchange', authenticateToken, async (req, res) => {
   const GP_COST = 200;
+  const { icon_id } = req.body;
+  if (!icon_id) return res.status(400).json({ error: 'アイコンを選択してください' });
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -215,6 +218,16 @@ router.post('/exchange', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: `GPが不足しています（必要: ${GP_COST}GP）` });
     }
 
+    const iconResult = await client.query(
+      'SELECT id, name, rarity, image_url FROM gacha_icons WHERE id=$1 AND rarity=$2 AND is_active=TRUE',
+      [icon_id, 'SS']
+    );
+    if (iconResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: '対象のSSアイコンが見つかりません' });
+    }
+    const icon = iconResult.rows[0];
+
     const settingsResult = await client.query(
       "SELECT key, value FROM settings WHERE key IN ('gacha_dup_ss_pts')"
     );
@@ -222,11 +235,8 @@ router.post('/exchange', authenticateToken, async (req, res) => {
     settingsResult.rows.forEach(r => { sm[r.key] = r.value; });
     const dupMap = { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: 0, A: 0 };
 
-    const icon = await pickIcon(client, 'SS');
-    if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なSSアイコンがありません' }); }
-
     await client.query('UPDATE users SET gp=gp-$1 WHERE id=$2', [GP_COST, req.user.id]);
-    await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -GP_COST, 'GP交換（SSアイコン）']);
+    await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -GP_COST, `GP交換（${icon.name}）`]);
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
     const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
