@@ -177,6 +177,7 @@
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <button id="btn-back-pool" class="btn btn-secondary btn-sm" onclick="backToPoolSelect()" style="display:none">← 選択に戻る</button>
       <span id="selected-pool-label" style="font-size:0.88rem;font-weight:bold;color:var(--accent)"></span>
+      <span id="selected-pool-days" style="font-size:0.78rem;font-weight:bold"></span>
     </div>
 
     <div class="gacha-pull-btns">
@@ -332,6 +333,22 @@ function updateGpDisplay(gp) {
   document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
 }
 
+function poolDaysLabel(end_at) {
+  if (!end_at) return '';
+  const now = Date.now();
+  const end = new Date(end_at).getTime();
+  const diff = end - now;
+  if (diff <= 0) return '';
+  const totalHours = diff / (1000 * 60 * 60);
+  if (totalHours < 24) {
+    const h = Math.ceil(totalHours);
+    return `<span style="font-size:0.72rem;font-weight:bold;color:#ff9800">残り${h}時間</span>`;
+  }
+  const days = Math.ceil(totalHours / 24);
+  const color = days <= 3 ? '#ff9800' : 'var(--text-muted)';
+  return `<span style="font-size:0.72rem;font-weight:bold;color:${color}">残り${days}日</span>`;
+}
+
 function renderPoolSelector(pools) {
   if (!pools || pools.length === 0) {
     // プールなし → 直接メインUIへ（従来通り全アイコン対象）
@@ -348,6 +365,7 @@ function renderPoolSelector(pools) {
         ${p.pickup_icons.slice(0,5).map(pu => `<img src="${escHtml(pu.image_url)}" title="${escHtml(pu.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid #ffd700">`).join('')}
         ${p.pickup_icons.length > 5 ? `<span style="font-size:0.68rem;color:var(--text-muted)">+${p.pickup_icons.length - 5}</span>` : ''}
       </div>` : '';
+    const daysLabel = poolDaysLabel(p.end_at);
     return `
     <button class="pool-pick-btn" onclick="selectPool(${p.id})" style="
       display:flex;align-items:center;gap:14px;text-align:left;
@@ -355,8 +373,11 @@ function renderPoolSelector(pools) {
       background:var(--bg-primary);cursor:pointer;width:100%;
       transition:border-color 0.15s,background 0.15s;font-family:inherit
     " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="min-width:0">
-        <div style="font-size:1rem;font-weight:bold;color:var(--text-primary)">${escHtml(p.name)}</div>
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="font-size:1rem;font-weight:bold;color:var(--text-primary)">${escHtml(p.name)}</span>
+          ${daysLabel}
+        </div>
         ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${p.icon_count}種のアイコン</div>
         ${pickupRow}
@@ -372,6 +393,7 @@ function selectPool(poolId) {
   const p = gPools.find(p => p.id === poolId);
   // ラベル・戻るボタン設定
   document.getElementById('selected-pool-label').textContent = p ? p.name : '';
+  document.getElementById('selected-pool-days').innerHTML = p ? poolDaysLabel(p.end_at) : '';
   document.getElementById('btn-back-pool').style.display = gPools.length > 1 ? '' : 'none';
   // 排出率をピックアップ対応に更新
   const pickupIcons = p ? (p.pickup_icons || []) : [];
