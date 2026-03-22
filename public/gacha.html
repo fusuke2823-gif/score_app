@@ -299,7 +299,7 @@ async function loadExchangeList() {
     const ss = icons.filter(i => i.rarity === 'SS');
     if (ss.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">SSアイコンがありません</div>'; return; }
     container.innerHTML = ss.map(i => `
-      <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id})">
+      <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}')">
         <img src="${escHtml(i.image_url)}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
         <div style="font-size:0.7rem;color:#ffd700;word-break:break-all">${escHtml(i.name)}</div>
       </div>
@@ -309,8 +309,9 @@ async function loadExchangeList() {
   }
 }
 
-async function doExchange(iconId) {
+async function doExchange(iconId, iconName) {
   if (isPulling || currentGp < 200) return;
+  if (!confirm(`【SS】${iconName} を200GPで交換しますか？`)) return;
   isPulling = true;
   updateGpDisplay(currentGp);
   document.getElementById('exchange-result').textContent = '';
