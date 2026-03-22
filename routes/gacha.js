@@ -228,6 +228,15 @@ router.post('/exchange', authenticateToken, async (req, res) => {
     }
     const icon = iconResult.rows[0];
 
+    const ownedResult = await client.query(
+      'SELECT 1 FROM user_icons WHERE user_id=$1 AND icon_id=$2',
+      [req.user.id, icon_id]
+    );
+    if (ownedResult.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `「${icon.name}」はすでに所持しています` });
+    }
+
     const settingsResult = await client.query(
       "SELECT key, value FROM settings WHERE key IN ('gacha_dup_ss_pts')"
     );
