@@ -310,7 +310,12 @@ async function loadExchangeList() {
 }
 
 async function doExchange(iconId, iconName) {
-  if (isPulling || currentGp < 200) return;
+  if (isPulling) return;
+  if (currentGp < 200) {
+    document.getElementById('exchange-result').style.color = 'var(--error, #f44)';
+    document.getElementById('exchange-result').textContent = `GPが不足しています（現在: ${currentGp}GP／必要: 200GP）`;
+    return;
+  }
   if (!confirm(`【SS】${iconName} を200GPで交換しますか？`)) return;
   isPulling = true;
   updateGpDisplay(currentGp);
