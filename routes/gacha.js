@@ -137,6 +137,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
 
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
     await client.query('UPDATE users SET gp=gp+1 WHERE id=$1', [req.user.id]);
+    await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,1,$2)', [req.user.id, 'ガチャ（単発）']);
     const newPoints = userResult.rows[0].points - cost + result.dup_pts;
     const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
@@ -188,6 +189,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     }
 
     await client.query('UPDATE users SET gp=gp+10 WHERE id=$1', [req.user.id]);
+    await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,10,$2)', [req.user.id, 'ガチャ（10連）']);
     const newPoints = userResult.rows[0].points - cost + totalDupPts;
     const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
@@ -224,6 +226,7 @@ router.post('/exchange', authenticateToken, async (req, res) => {
     if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なSSアイコンがありません' }); }
 
     await client.query('UPDATE users SET gp=gp-$1 WHERE id=$2', [GP_COST, req.user.id]);
+    await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -GP_COST, 'GP交換（SSアイコン）']);
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
     const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
@@ -234,6 +237,40 @@ router.post('/exchange', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'サーバーエラー' });
   } finally {
     client.release();
+  }
+});
+
+// GP移行（過去のガチャ回数分を一度だけ付与）
+router.post('/gp-migrate', authenticateToken, async (req, res) => {
+  try {
+    const userResult = await pool.query('SELECT gp_migrated FROM users WHERE id=$1', [req.user.id]);
+    if (userResult.rows[0].gp_migrated) return res.json({ gp_awarded: 0, already_done: true });
+
+    const histResult = await pool.query(
+      `SELECT reason, COUNT(*) AS cnt FROM point_history
+       WHERE user_id=$1 AND reason IN ('ガチャ（単発）','ガチャ（10連）')
+       GROUP BY reason`,
+      [req.user.id]
+    );
+    let gp = 0;
+    for (const row of histResult.rows) {
+      if (row.reason === 'ガチャ（単発）') gp += parseInt(row.cnt);
+      if (row.reason === 'ガチャ（10連）') gp += parseInt(row.cnt) * 10;
+    }
+    const updated = await pool.query(
+      'UPDATE users SET gp=gp+$1, gp_migrated=TRUE WHERE id=$2 RETURNING gp',
+      [gp, req.user.id]
+    );
+    if (gp > 0) {
+      await pool.query(
+        'INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,$2,$3)',
+        [req.user.id, gp, '初回GP移行（過去のガチャ回数分）']
+      );
+    }
+    res.json({ gp_awarded: gp, new_gp: updated.rows[0].gp });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 

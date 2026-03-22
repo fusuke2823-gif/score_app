@@ -241,6 +241,18 @@ async function init() {
     updatePointsDisplay(currentPoints);
     updateGpDisplay(currentGp);
 
+    // GP移行（未移行の場合のみ）
+    try {
+      const migRes = await apiFetch('/gacha/gp-migrate', { method: 'POST' });
+      if (!migRes.already_done && migRes.gp_awarded > 0) {
+        currentGp = migRes.new_gp;
+        updateGpDisplay(currentGp);
+        const el = document.getElementById('exchange-result');
+        el.style.color = 'var(--accent)';
+        el.textContent = `GP補填：過去のガチャ分 ${migRes.gp_awarded}GP を付与しました！`;
+      }
+    } catch (_) {}
+
     document.getElementById('single-cost-label').textContent = `${settings.single_cost}pt`;
     document.getElementById('multi-cost-label').textContent = `${settings.multi_cost}pt　Sレア以上確定`;
     document.getElementById('cost-info').textContent =

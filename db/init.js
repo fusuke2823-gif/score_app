@@ -149,6 +149,14 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp_migrated BOOLEAN NOT NULL DEFAULT FALSE;
 
+      CREATE TABLE IF NOT EXISTS gp_history (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        amount INTEGER NOT NULL,
+        reason TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS gacha_icons (
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
