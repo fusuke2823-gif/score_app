@@ -193,6 +193,21 @@ const initDB = async () => {
         last_claimed_date DATE,
         UNIQUE(user_id, bonus_id)
       );
+
+      CREATE TABLE IF NOT EXISTS gacha_pools (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        is_active BOOLEAN DEFAULT TRUE,
+        order_index INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS gacha_pool_icons (
+        pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE CASCADE,
+        icon_id INTEGER REFERENCES gacha_icons(id) ON DELETE CASCADE,
+        PRIMARY KEY (pool_id, icon_id)
+      );
     `);
 
     // 通知・ガチャ設定の初期値

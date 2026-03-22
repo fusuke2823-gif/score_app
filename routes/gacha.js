@@ -25,6 +25,43 @@ router.get('/settings', async (req, res) => {
   }
 });
 
+// アクティブなガチャプール一覧（公開）
+router.get('/pools', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT gp.id, gp.name, gp.description, gp.order_index,
+              COUNT(gpi.icon_id)::int AS icon_count
+       FROM gacha_pools gp
+       LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
+       WHERE gp.is_active = TRUE
+       GROUP BY gp.id
+       ORDER BY gp.order_index ASC, gp.id ASC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// プール内のアイコン一覧（公開）
+router.get('/pools/:id/icons', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT gi.id, gi.name, gi.rarity, gi.image_url
+       FROM gacha_icons gi
+       JOIN gacha_pool_icons gpi ON gi.id = gpi.icon_id
+       WHERE gpi.pool_id = $1 AND gi.is_active = TRUE
+       ORDER BY gi.rarity ASC, gi.id ASC`,
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // アクティブなアイコン一覧（公開）
 router.get('/icons', async (req, res) => {
   try {
@@ -74,13 +111,24 @@ function pickRarity(ss_rate, s_rate, forceAtLeastS = false) {
 }
 
 // レアリティからアイコンをランダム選択（なければ下位レアリティにフォールバック）
-async function pickIcon(client, rarity) {
+async function pickIcon(client, rarity, poolId) {
   const fallback = rarity === 'SS' ? ['SS', 'S', 'A'] : rarity === 'S' ? ['S', 'A'] : ['A'];
   for (const r of fallback) {
-    const result = await client.query(
-      'SELECT id, name, rarity, image_url FROM gacha_icons WHERE is_active=TRUE AND rarity=$1',
-      [r]
-    );
+    let result;
+    if (poolId) {
+      result = await client.query(
+        `SELECT gi.id, gi.name, gi.rarity, gi.image_url
+         FROM gacha_icons gi
+         JOIN gacha_pool_icons gpi ON gi.id = gpi.icon_id
+         WHERE gi.is_active=TRUE AND gi.rarity=$1 AND gpi.pool_id=$2`,
+        [r, poolId]
+      );
+    } else {
+      result = await client.query(
+        'SELECT id, name, rarity, image_url FROM gacha_icons WHERE is_active=TRUE AND rarity=$1',
+        [r]
+      );
+    }
     if (result.rows.length > 0) {
       return result.rows[Math.floor(Math.random() * result.rows.length)];
     }
@@ -108,9 +156,16 @@ async function acquireIcon(client, userId, icon, dupMap) {
 
 // 単発ガチャ
 router.post('/pull/single', authenticateToken, async (req, res) => {
+  const { pool_id } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // pool_id 指定時はプールが存在・有効か確認
+    if (pool_id) {
+      const pr = await client.query('SELECT id FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
+    }
 
     const settingsResult = await client.query(
       "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_single_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
@@ -132,7 +187,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -cost, 'ガチャ（単発）']);
 
     const rarity = pickRarity(ss_rate, s_rate);
-    const icon = await pickIcon(client, rarity);
+    const icon = await pickIcon(client, rarity, pool_id || null);
     if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
 
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
@@ -153,9 +208,16 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
 
 // 10連ガチャ（最後の1枚はSレア以上確定）
 router.post('/pull/multi', authenticateToken, async (req, res) => {
+  const { pool_id } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+
+    // pool_id 指定時はプールが存在・有効か確認
+    if (pool_id) {
+      const pr = await client.query('SELECT id FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
+    }
 
     const settingsResult = await client.query(
       "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_multi_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
@@ -181,7 +243,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     for (let i = 0; i < 10; i++) {
       const forceS = (i === 9);
       const rarity = pickRarity(ss_rate, s_rate, forceS);
-      const icon = await pickIcon(client, rarity);
+      const icon = await pickIcon(client, rarity, pool_id || null);
       if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
       const result = await acquireIcon(client, req.user.id, icon, dupMap);
       results.push(result);

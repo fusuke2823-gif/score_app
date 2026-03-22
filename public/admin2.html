@@ -129,6 +129,50 @@
   <!-- ガチャ管理 -->
   <div class="tab-content" id="tab-gacha">
 
+    <!-- ガチャプール管理 -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">ガチャプール管理</div>
+      <div id="pool-alert" style="margin-bottom:12px"></div>
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-size:0.85rem;font-weight:bold;margin-bottom:10px;color:var(--text-muted)">新規プール作成</div>
+        <div class="enemy-form-grid">
+          <div class="form-group">
+            <label class="form-label">ガチャ名</label>
+            <input class="form-input" id="pool-name" placeholder="例: 年末スペシャルガチャ">
+          </div>
+          <div class="form-group">
+            <label class="form-label">表示順</label>
+            <input class="form-input" type="number" id="pool-order" value="0" min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">説明（任意）</label>
+          <input class="form-input" id="pool-desc" placeholder="例: SSレアリティ強化！">
+        </div>
+        <button class="btn btn-primary" onclick="createPool()">作成する</button>
+      </div>
+      <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- アイコン設定モーダル -->
+    <div id="pool-icon-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:600px;width:100%;margin:auto;position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:bold" id="pool-modal-title">アイコン設定</div>
+          <button onclick="closePoolIconModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <p style="font-size:0.82rem;color:var(--text-muted);margin:0;flex:1">このガチャに含めるアイコンを選択してください（レアリティ別に表示）</p>
+          <button class="btn btn-secondary btn-sm" id="btn-toggle-as" onclick="toggleAllAS()">A・S全選択</button>
+        </div>
+        <div id="pool-modal-icons"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+          <button class="btn btn-secondary" onclick="closePoolIconModal()">キャンセル</button>
+          <button class="btn btn-primary" onclick="savePoolIcons()">保存する</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ガチャ設定 -->
     <div class="card" style="margin-bottom:24px">
       <div class="section-title">ガチャ設定</div>
@@ -303,7 +347,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'points') { loadRankPts(); loadDistributable(); loadGrantUsers(); }
-  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); }
+  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
 }
@@ -433,6 +477,162 @@ async function distributePoints(id) {
     loadDistributable();
   } catch (err) { showAlert('#points-alert', err.message); }
 }
+
+// ===== ガチャプール管理 =====
+let _poolIconModalId = null;
+let _allIcons = [];
+
+async function loadPools() {
+  try {
+    const pools = await apiFetch('/admin/gacha/pools');
+    const el = document.getElementById('pool-list');
+    if (pools.length === 0) {
+      el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">プールがありません</div>';
+      return;
+    }
+    el.innerHTML = pools.map(p => `
+      <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;background:var(--bg-primary)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:bold;font-size:0.95rem">${escHtml(p.name)}
+              ${p.is_active ? '' : '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:6px">非表示</span>'}
+            </div>
+            ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">アイコン ${p.icon_count}枚　順 ${p.order_index}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
+            <button class="btn btn-secondary btn-sm" onclick="openPoolIconModal(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">アイコン設定</button>
+            <button class="btn btn-secondary btn-sm" onclick="editPool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}','${escHtml(p.description||'').replace(/'/g,"\\'")}',${p.is_active},${p.order_index})">編集</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">削除</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    showAlert('#pool-alert', err.message);
+  }
+}
+
+async function createPool() {
+  const name = document.getElementById('pool-name').value.trim();
+  const desc = document.getElementById('pool-desc').value.trim();
+  const order = document.getElementById('pool-order').value;
+  if (!name) { showAlert('#pool-alert', 'ガチャ名を入力してください'); return; }
+  try {
+    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0 }) });
+    showAlert('#pool-alert', '作成しました', 'success');
+    document.getElementById('pool-name').value = '';
+    document.getElementById('pool-desc').value = '';
+    document.getElementById('pool-order').value = '0';
+    loadPools();
+  } catch (err) { showAlert('#pool-alert', err.message); }
+}
+
+function editPool(id, name, desc, isActive, order) {
+  const newName = prompt('ガチャ名', name);
+  if (newName === null) return;
+  const newDesc = prompt('説明（空欄でなし）', desc);
+  if (newDesc === null) return;
+  const newOrder = prompt('表示順', order);
+  if (newOrder === null) return;
+  const newActive = confirm('表示する（キャンセルで非表示）');
+  apiFetch(`/admin/gacha/pools/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ name: newName || name, description: newDesc || null, is_active: newActive, order_index: parseInt(newOrder)||0 })
+  }).then(() => { showAlert('#pool-alert', '更新しました', 'success'); loadPools(); })
+    .catch(err => showAlert('#pool-alert', err.message));
+}
+
+async function deletePool(id, name) {
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+  try {
+    await apiFetch(`/admin/gacha/pools/${id}`, { method: 'DELETE' });
+    showAlert('#pool-alert', '削除しました', 'success');
+    loadPools();
+  } catch (err) { showAlert('#pool-alert', err.message); }
+}
+
+async function openPoolIconModal(poolId, poolName) {
+  _poolIconModalId = poolId;
+  document.getElementById('pool-modal-title').textContent = `アイコン設定：${poolName}`;
+  const modal = document.getElementById('pool-icon-modal');
+  modal.style.display = 'flex';
+  document.getElementById('pool-modal-icons').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const [allIcons, currentIds] = await Promise.all([
+      apiFetch('/admin/gacha/icons'),
+      apiFetch(`/admin/gacha/pools/${poolId}/icons`)
+    ]);
+    _allIcons = allIcons;
+    const selectedSet = new Set(currentIds);
+    const rarityOrder = ['SS', 'S', 'A'];
+    const grouped = { SS: [], S: [], A: [] };
+    allIcons.forEach(ic => { if (grouped[ic.rarity]) grouped[ic.rarity].push(ic); });
+    const rarityColors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
+    document.getElementById('btn-toggle-as').textContent = 'A・S全選択';
+    document.getElementById('pool-modal-icons').innerHTML = rarityOrder.map(r => {
+      if (!grouped[r].length) return '';
+      return `
+        <div style="margin-bottom:18px">
+          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px">
+            ${grouped[r].map(ic => `
+              <label style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:6px;border-radius:8px;border:2px solid ${selectedSet.has(ic.id) ? rarityColors[r] : 'var(--border)'};background:var(--bg-primary);transition:border-color 0.15s" onclick="toggleIconCard(this,${ic.id},'${rarityColors[r]}')">
+                <input type="checkbox" data-icon-id="${ic.id}" ${selectedSet.has(ic.id) ? 'checked' : ''} style="display:none">
+                <img src="${escHtml(ic.image_url)}" style="width:52px;height:52px;border-radius:20%;object-fit:cover">
+                <div style="font-size:0.65rem;text-align:center;word-break:break-all;line-height:1.2">${escHtml(ic.name)}</div>
+              </label>`).join('')}
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    document.getElementById('pool-modal-icons').innerHTML = `<div style="color:var(--danger)">${escHtml(err.message)}</div>`;
+  }
+}
+
+function toggleIconCard(labelEl, iconId, color) {
+  const cb = labelEl.querySelector('input[type=checkbox]');
+  cb.checked = !cb.checked;
+  labelEl.style.borderColor = cb.checked ? color : 'var(--border)';
+}
+
+const _rarityColors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
+function toggleAllAS() {
+  const labels = document.querySelectorAll('#pool-modal-icons label');
+  const asIcons = Array.from(labels).filter(label => {
+    const cb = label.querySelector('input[type=checkbox]');
+    const icon = _allIcons.find(i => i.id === parseInt(cb?.dataset.iconId));
+    return icon && (icon.rarity === 'A' || icon.rarity === 'S');
+  });
+  const allChecked = asIcons.every(label => label.querySelector('input[type=checkbox]').checked);
+  asIcons.forEach(label => {
+    const cb = label.querySelector('input[type=checkbox]');
+    const icon = _allIcons.find(i => i.id === parseInt(cb.dataset.iconId));
+    cb.checked = !allChecked;
+    label.style.borderColor = (!allChecked) ? (_rarityColors[icon.rarity]) : 'var(--border)';
+  });
+  document.getElementById('btn-toggle-as').textContent = allChecked ? 'A・S全選択' : 'A・S全解除';
+}
+
+function closePoolIconModal() {
+  document.getElementById('pool-icon-modal').style.display = 'none';
+  _poolIconModalId = null;
+}
+
+async function savePoolIcons() {
+  if (!_poolIconModalId) return;
+  const checkboxes = document.querySelectorAll('#pool-modal-icons input[type=checkbox]');
+  const icon_ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.iconId));
+  try {
+    await apiFetch(`/admin/gacha/pools/${_poolIconModalId}/icons`, { method: 'PUT', body: JSON.stringify({ icon_ids }) });
+    showAlert('#pool-alert', 'アイコン設定を保存しました', 'success');
+    closePoolIconModal();
+    loadPools();
+  } catch (err) {
+    showAlert('#pool-alert', err.message);
+  }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePoolIconModal(); });
 
 // ===== ガチャ設定 =====
 async function loadGachaSettings() {

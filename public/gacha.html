@@ -138,6 +138,19 @@
 .rate-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.85rem; }
 .rate-row:last-child { border-bottom:none; }
 
+/* プール選択 */
+.pool-selector { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:0 0 18px; }
+.pool-card {
+  padding:10px 18px; border-radius:12px; border:2px solid var(--border);
+  cursor:pointer; font-size:0.88rem; font-weight:bold;
+  background:var(--bg-card); color:var(--text-primary);
+  transition:border-color 0.15s, background 0.15s;
+  text-align:center; min-width:100px;
+}
+.pool-card:hover { border-color:var(--accent); }
+.pool-card.selected { border-color:var(--accent); background:rgba(79,195,247,0.12); color:var(--accent); }
+.pool-card .pool-ic { font-size:0.72rem; color:var(--text-muted); margin-top:2px; }
+
 @media(max-width:480px) {
   .g-card { width:66px; height:92px; }
   .g-card-back img { width:42px; height:42px; }
@@ -159,6 +172,11 @@
     <div style="font-size:0.9rem;color:var(--text-muted)" id="my-gp">GP: ---</div>
     <div id="dup-indicator" style="font-size:0.82rem;font-weight:bold;color:#4fc3f7;height:1.3em;opacity:0;transition:opacity 0.3s;text-align:center;margin-bottom:2px"></div>
     <div style="font-size:0.8rem;color:var(--text-muted)" id="cost-info">読み込み中...</div>
+  </div>
+
+  <!-- プール選択 -->
+  <div id="pool-selector-wrap" style="display:none">
+    <div class="pool-selector" id="pool-selector"></div>
   </div>
 
   <div class="gacha-pull-btns">
@@ -228,18 +246,23 @@ let gSettings = null;
 let isPulling = false;
 let currentPoints = 0;
 let currentGp = 0;
+let selectedPoolId = null;
+let gPools = [];
 
 async function init() {
   try {
-    const [settings, myData] = await Promise.all([
+    const [settings, myData, pools] = await Promise.all([
       apiFetch('/gacha/settings'),
-      apiFetch('/gacha/my')
+      apiFetch('/gacha/my'),
+      apiFetch('/gacha/pools')
     ]);
     gSettings = settings;
+    gPools = pools;
     currentPoints = myData.points;
     currentGp = myData.gp || 0;
     updatePointsDisplay(currentPoints);
     updateGpDisplay(currentGp);
+    renderPoolSelector(pools);
     loadExchangeList();
 
     // GP移行（未移行の場合のみ）
@@ -288,6 +311,33 @@ function updatePointsDisplay(pts) {
 }
 function updateGpDisplay(gp) {
   document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
+}
+
+function renderPoolSelector(pools) {
+  const wrap = document.getElementById('pool-selector-wrap');
+  const sel = document.getElementById('pool-selector');
+  if (!pools || pools.length === 0) {
+    wrap.style.display = 'none';
+    selectedPoolId = null;
+    return;
+  }
+  wrap.style.display = '';
+  sel.innerHTML = pools.map(p => `
+    <div class="pool-card ${p.id === selectedPoolId ? 'selected' : ''}" onclick="selectPool(${p.id})" id="pool-card-${p.id}">
+      ${escHtml(p.name)}
+      <div class="pool-ic">${p.icon_count}種</div>
+    </div>`).join('');
+  // 未選択なら最初を選択
+  if (!selectedPoolId || !pools.find(p => p.id === selectedPoolId)) {
+    selectPool(pools[0].id);
+  }
+}
+
+function selectPool(poolId) {
+  selectedPoolId = poolId;
+  document.querySelectorAll('.pool-card').forEach(el => {
+    el.classList.toggle('selected', el.id === `pool-card-${poolId}`);
+  });
 }
 
 let _gpToastTimer = null;
@@ -434,7 +484,8 @@ async function doPull(type) {
   clearAlert('#alert');
 
   try {
-    const res = await apiFetch(`/gacha/pull/${type}`, { method: 'POST' });
+    const body = selectedPoolId ? JSON.stringify({ pool_id: selectedPoolId }) : '{}';
+    const res = await apiFetch(`/gacha/pull/${type}`, { method: 'POST', body });
     // コスト分を即座に減らす
     const dupTotal = res.results.reduce((s, r) => s + (r.dup_pts || 0), 0);
     const afterCost = res.new_points - dupTotal;
@@ -569,13 +620,17 @@ function showResultSummary(results) {
 
 init();
 
-let poolLoaded = false;
+let _lastPoolModalPoolId = null;
 async function openPoolModal() {
   const modal = document.getElementById('pool-modal');
   modal.style.display = 'flex';
-  if (poolLoaded) return;
+  if (_lastPoolModalPoolId === selectedPoolId) return;
+  _lastPoolModalPoolId = selectedPoolId;
+  document.getElementById('pool-list').innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
   try {
-    const icons = await apiFetch('/gacha/icons');
+    const icons = selectedPoolId
+      ? await apiFetch(`/gacha/pools/${selectedPoolId}/icons`)
+      : await apiFetch('/gacha/icons');
     const order = ['SS', 'S', 'A'];
     const grouped = {};
     order.forEach(r => grouped[r] = []);
@@ -596,7 +651,6 @@ async function openPoolModal() {
           </div>
         </div>`;
     }).join('');
-    poolLoaded = true;
   } catch (err) {
     document.getElementById('pool-list').innerHTML = `<div style="color:var(--danger)">${escHtml(err.message)}</div>`;
   }
