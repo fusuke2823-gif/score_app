@@ -578,16 +578,17 @@ function poolStatusStyle(start_at, end_at) {
 function toDatetimeLocal(dt) {
   if (!dt) return '';
   const d = new Date(dt);
-  const local = new Date(d.getTime() + 9 * 60 * 60 * 1000); // JST
-  return local.toISOString().slice(0, 16);
+  // getTimezoneOffset() は UTC-local の分数（JST=-540）なので符号反転して加算
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
 async function createPool() {
   const name = document.getElementById('pool-name').value.trim();
   const desc = document.getElementById('pool-desc').value.trim();
   const order = document.getElementById('pool-order').value;
-  const start_at = document.getElementById('pool-start').value || null;
-  const end_at   = document.getElementById('pool-end').value   || null;
+  const toUTC = v => v ? new Date(v).toISOString() : null;
+  const start_at = toUTC(document.getElementById('pool-start').value);
+  const end_at   = toUTC(document.getElementById('pool-end').value);
   if (!name) { showAlert('#pool-alert', 'ガチャ名を入力してください'); return; }
   try {
     await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0, start_at, end_at }) });
@@ -617,8 +618,9 @@ function closePeriodModal() {
 }
 async function savePeriod() {
   if (!_periodModalPoolId) return;
-  const start_at = document.getElementById('period-start').value || null;
-  const end_at   = document.getElementById('period-end').value   || null;
+  const toUTC = v => v ? new Date(v).toISOString() : null;
+  const start_at = toUTC(document.getElementById('period-start').value);
+  const end_at   = toUTC(document.getElementById('period-end').value);
   if (start_at && end_at && new Date(start_at) >= new Date(end_at)) {
     document.getElementById('period-modal-alert').innerHTML = '<div class="alert alert-error">終了日時は開始日時より後にしてください</div>';
     return;
