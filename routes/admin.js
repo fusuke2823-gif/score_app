@@ -390,6 +390,7 @@ router.get('/events/interim-distributable', async (req, res) => {
         ) AS interim_history
        FROM events e
        WHERE e.is_active = TRUE AND e.points_distributed = FALSE
+         AND (e.submission_start IS NULL OR e.submission_start <= NOW())
        ORDER BY e.event_number DESC`
     );
     res.json(result.rows);
