@@ -434,7 +434,8 @@ function showGpToast(html, isError = false) {
 async function loadExchangeList(pickupIds = null) {
   const container = document.getElementById('exchange-ss-list');
   try {
-    const [icons, myData] = await Promise.all([apiFetch('/gacha/icons'), apiFetch('/gacha/my')]);
+    const iconUrl = selectedPoolId ? `/gacha/pools/${selectedPoolId}/icons` : '/gacha/icons';
+    const [icons, myData] = await Promise.all([apiFetch(iconUrl), apiFetch('/gacha/my')]);
     const ownedIds = new Set((myData.icons || []).map(i => i.id));
     let ss = icons.filter(i => i.rarity === 'SS' && !ownedIds.has(i.id));
     if (pickupIds && pickupIds.length > 0) {
