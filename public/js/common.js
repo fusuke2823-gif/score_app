@@ -133,6 +133,7 @@ const _origRenderNav = renderNav;
 renderNav = function() {
   _origRenderNav();
   if (!document.getElementById('login-bonus-modal')) initLoginBonus();
+  if (!document.getElementById('interim-dist-modal')) initInterimDistributionNotice();
   updateGachaNav();
 };
 
@@ -186,6 +187,67 @@ function requireAdmin() {
 
 function getParam(name) {
   return new URLSearchParams(location.search).get(name);
+}
+
+// ===== 配布通知（中間・最終） =====
+async function initInterimDistributionNotice() {
+  if (!getToken()) return;
+  try {
+    const [interim, final] = await Promise.all([
+      apiFetch('/events/interim-distributions/recent').catch(() => []),
+      apiFetch('/events/final-distributions/recent').catch(() => []),
+    ]);
+    const seenAt = localStorage.getItem('interim_dist_seen_at');
+    const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
+    const unseenInterim = (interim || []).filter(isNew).map(d => ({ ...d, type: '中間' }));
+    const unseenFinal  = (final  || []).filter(isNew).map(d => ({ ...d, type: '最終' }));
+    const unseen = [...unseenFinal, ...unseenInterim]
+      .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
+    if (unseen.length === 0) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #interim-dist-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2100; align-items:center; justify-content:center; }
+      #interim-dist-modal.open { display:flex; }
+      #interim-dist-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
+      #interim-dist-box h3 { margin:0 0 6px; font-size:1.1rem; }
+      #interim-dist-box .interim-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
+      .interim-dist-item { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; text-align:left; }
+      .interim-dist-name { font-size:0.88rem; font-weight:bold; margin-bottom:2px; }
+      .interim-dist-rank { font-size:1.1rem; font-weight:bold; color:var(--accent); margin:4px 0 2px; }
+      .interim-dist-meta { font-size:0.72rem; color:var(--text-muted); }
+      .interim-type-badge { font-size:0.7rem; padding:1px 6px; border-radius:4px; margin-left:6px; background:var(--accent-dim); color:var(--accent); }
+    `;
+    document.head.appendChild(style);
+
+    const modal = document.createElement('div');
+    modal.id = 'interim-dist-modal';
+    modal.innerHTML = `
+      <div id="interim-dist-box">
+        <h3>ポイント配布のお知らせ</h3>
+        <div class="interim-sub">以下のイベントでポイントが配布されました</div>
+        <div id="interim-dist-list">${unseen.map(d => `
+          <div class="interim-dist-item">
+            <div class="interim-dist-name">
+              第${d.event_number}回 ${escHtml(d.event_name)}
+              <span class="interim-type-badge">${d.type}配布</span>
+            </div>
+            ${d.user_rank != null
+              ? `<div class="interim-dist-rank">${d.user_rank}位</div>`
+              : `<div class="interim-dist-meta">（順位なし）</div>`}
+            <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString('ja-JP')}</div>
+          </div>`).join('')}
+        </div>
+        <button class="btn btn-primary" style="margin-top:10px" onclick="closeInterimDistModal()">閉じる</button>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.classList.add('open');
+  } catch {}
+}
+
+function closeInterimDistModal() {
+  localStorage.setItem('interim_dist_seen_at', new Date().toISOString());
+  document.getElementById('interim-dist-modal')?.classList.remove('open');
 }
 
 // ===== ログインボーナス =====

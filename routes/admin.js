@@ -612,7 +612,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
       }
     }
 
-    await client.query('UPDATE events SET points_distributed=TRUE WHERE id=$1', [req.params.id]);
+    await client.query('UPDATE events SET points_distributed=TRUE, points_distributed_at=NOW() WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
 
     const titleMsg = awardedTitles.length ? `　称号付与: ${awardedTitles.join(', ')}` : '';

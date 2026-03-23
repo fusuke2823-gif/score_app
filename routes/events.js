@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
+const { authenticateToken } = require('../middleware/auth');
 
 // 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', async (req, res) => {
@@ -82,6 +83,59 @@ router.get('/:id/ranking', async (req, res) => {
       LEFT JOIN gacha_icons gi ON bs.equipped_icon_id = gi.id
       ORDER BY bs.approved_score DESC`,
       [req.params.id, selectedAttrs]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 最近の中間配布一覧（通知用・7日以内・自分の順位付き）
+router.get('/interim-distributions/recent', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT d.id, d.event_id, d.distributed_at,
+              e.name AS event_name, e.event_number,
+              (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
+               FROM point_history ph
+               WHERE ph.user_id = $1
+                 AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
+                                       AND d.distributed_at + INTERVAL '5 minutes'
+                 AND ph.reason LIKE '%（中間配布）%'
+               LIMIT 1) AS user_rank
+       FROM event_interim_distributions d
+       JOIN events e ON e.id = d.event_id
+       WHERE d.distributed_at > NOW() - INTERVAL '7 days'
+       ORDER BY d.distributed_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 最近の最終配布一覧（通知用・7日以内・自分の順位付き）
+router.get('/final-distributions/recent', authenticateToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.id AS event_id, e.points_distributed_at AS distributed_at,
+              e.name AS event_name, e.event_number,
+              (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
+               FROM point_history ph
+               WHERE ph.user_id = $1
+                 AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
+                                       AND e.points_distributed_at + INTERVAL '5 minutes'
+                 AND ph.reason NOT LIKE '%（中間配布）%'
+               LIMIT 1) AS user_rank
+       FROM events e
+       WHERE e.points_distributed = TRUE
+         AND e.points_distributed_at IS NOT NULL
+         AND e.points_distributed_at > NOW() - INTERVAL '7 days'
+       ORDER BY e.points_distributed_at DESC`,
+      [req.user.id]
     );
     res.json(result.rows);
   } catch (err) {
