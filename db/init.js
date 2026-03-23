@@ -219,6 +219,13 @@ const initDB = async () => {
         icon_id INTEGER REFERENCES gacha_icons(id) ON DELETE CASCADE,
         PRIMARY KEY (pool_id, icon_id)
       );
+
+      CREATE TABLE IF NOT EXISTS event_interim_distributions (
+        id SERIAL PRIMARY KEY,
+        event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+        distributed_count INTEGER NOT NULL DEFAULT 0,
+        distributed_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     // 通知・ガチャ設定の初期値

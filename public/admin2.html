@@ -118,6 +118,13 @@
       <button class="btn btn-primary" onclick="saveRankPts()">保存する</button>
     </div>
 
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">中間配布（開催中イベント）</div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">イベント終了前に現在のランキングでポイントを配布します。何度でも実行可能です。</p>
+      <div id="interim-alert" style="margin-bottom:12px"></div>
+      <div id="interim-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
     <div class="card">
       <div class="section-title">ポイント配布（終了済みイベント）</div>
       <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
@@ -380,7 +387,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'points') { loadRankPts(); loadDistributable(); loadGrantUsers(); }
+  if (name === 'points') { loadRankPts(); loadInterimDistributable(); loadDistributable(); loadGrantUsers(); }
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
@@ -457,6 +464,46 @@ async function saveRankPts() {
 }
 
 // ===== ポイント配布 =====
+async function loadInterimDistributable() {
+  const el = document.getElementById('interim-list');
+  try {
+    const events = await apiFetch('/admin/events/interim-distributable');
+    if (events.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>開催中のイベントがありません</p></div>';
+      return;
+    }
+    el.innerHTML = events.map(e => {
+      const history = (e.interim_history || []).map(d =>
+        `<span style="font-size:0.75rem;color:var(--text-muted)">${new Date(d.distributed_at).toLocaleString('ja-JP')}（${d.distributed_count}名）</span>`
+      ).join('<br>');
+      return `
+      <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+            <strong>${escHtml(e.name)}</strong>
+          </div>
+        </div>
+        ${history ? `<div style="line-height:1.8">配布履歴：<br>${history}</div>` : '<div style="font-size:0.8rem;color:var(--text-muted)">未配布</div>'}
+        <div style="text-align:right">
+          <button class="btn btn-secondary btn-sm" onclick="distributeInterim(${e.id})">中間配布する</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function distributeInterim(id) {
+  if (!confirm('現在のランキングで中間配布しますか？\nこの操作は取り消せません。')) return;
+  try {
+    const res = await apiFetch(`/admin/events/${id}/distribute-interim`, { method: 'POST' });
+    showAlert('#interim-alert', res.message, 'success');
+    loadInterimDistributable();
+  } catch (err) { showAlert('#interim-alert', err.message); }
+}
+
 async function loadDistributable() {
   const el = document.getElementById('distributable-list');
   try {
@@ -1056,6 +1103,7 @@ async function deleteGachaIcon(id) {
 
 // 初期ロード
 loadRankPts();
+loadInterimDistributable();
 loadDistributable();
 loadGrantUsers();
 
