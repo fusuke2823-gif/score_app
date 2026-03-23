@@ -234,7 +234,7 @@ async function initInterimDistributionNotice() {
         <div id="interim-dist-list">${unseen.map(d => `
           <div class="interim-dist-item">
             <div class="interim-dist-name">
-              第${d.event_number}回 ${escHtml(d.event_name)}
+              ${escHtml(d.event_name)}
               <span class="interim-type-badge">${d.type}配布</span>
             </div>
             ${d.user_rank != null
