@@ -555,7 +555,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
         const titleName = `${event.name}${def.label}`;
         const tr = await client.query(
           'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
-          [titleName, `第${event.event_number}回 ${event.name} ${def.rank}位達成`]
+          [titleName, `${event.name} ${def.rank}位達成`]
         );
         await client.query(
           'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
@@ -578,7 +578,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
       const titleName = `${event.name} ${attr}属性1位`;
       const tr = await client.query(
         'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
-        [titleName, `第${event.event_number}回 ${event.name} ${attr}属性 1位達成`]
+        [titleName, `${event.name} ${attr}属性 1位達成`]
       );
       await client.query(
         'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
