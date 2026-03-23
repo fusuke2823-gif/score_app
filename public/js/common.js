@@ -200,8 +200,8 @@ async function initInterimDistributionNotice() {
     ]);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
-    const unseenInterim = (interim || []).filter(isNew).map(d => ({ ...d, type: '中間' }));
-    const unseenFinal  = (final  || []).filter(isNew).map(d => ({ ...d, type: '最終' }));
+    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: '中間' }));
+    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: '最終' }));
     const unseen = [...unseenFinal, ...unseenInterim]
       .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
     if (unseen.length === 0) return;
@@ -237,9 +237,7 @@ async function initInterimDistributionNotice() {
               ${escHtml(d.event_name)}
               <span class="interim-type-badge">${d.type}配布</span>
             </div>
-            ${d.user_rank != null
-              ? `<div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>`
-              : `<div class="interim-dist-meta">（対象外）</div>`}
+            <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
             <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString('ja-JP')}</div>
           </div>`).join('')}
         </div>
