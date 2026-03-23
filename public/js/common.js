@@ -268,6 +268,11 @@ async function initInterimDistributionNotice() {
 function closeInterimDistModal() {
   localStorage.setItem('interim_dist_seen_at', new Date().toISOString());
   document.getElementById('interim-dist-modal')?.classList.remove('open');
+  // ログインボーナスが背後で待機していれば前面に出す
+  const lbModal = document.getElementById('login-bonus-modal');
+  if (lbModal && lbModal.classList.contains('open')) {
+    lbModal.style.zIndex = '2100';
+  }
 }
 
 // ===== ログインボーナス =====
