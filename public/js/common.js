@@ -238,8 +238,8 @@ async function initInterimDistributionNotice() {
               <span class="interim-type-badge">${d.type}配布</span>
             </div>
             ${d.user_rank != null
-              ? `<div class="interim-dist-rank">${d.user_rank}位</div>`
-              : `<div class="interim-dist-meta">（順位なし）</div>`}
+              ? `<div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>`
+              : `<div class="interim-dist-meta">（対象外）</div>`}
             <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString('ja-JP')}</div>
           </div>`).join('')}
         </div>
