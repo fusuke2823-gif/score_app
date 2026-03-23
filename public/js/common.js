@@ -271,7 +271,7 @@ function renderBonusDays(todayDay, pts) {
 function renderSpecialBonuses(bonuses) {
   const today = new Date().toISOString().slice(0, 10);
   const el = document.getElementById('special-bonus-section');
-  const items = bonuses.map(b => {
+  const items = bonuses.filter(b => b.max_claims - b.claimed_count > 0).map(b => {
     const remaining = b.max_claims - b.claimed_count;
     const claimedToday = b.last_claimed_date && b.last_claimed_date.slice(0, 10) === today;
     const canClaim = remaining > 0 && !claimedToday;
