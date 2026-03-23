@@ -193,9 +193,10 @@ function getParam(name) {
 async function initInterimDistributionNotice() {
   if (!getToken()) return;
   try {
-    const [interim, final] = await Promise.all([
+    const [interim, final, rankPts] = await Promise.all([
       apiFetch('/events/interim-distributions/recent').catch(() => []),
       apiFetch('/events/final-distributions/recent').catch(() => []),
+      apiFetch('/events/rank-pts').catch(() => null),
     ]);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
@@ -217,6 +218,10 @@ async function initInterimDistributionNotice() {
       .interim-dist-rank { font-size:1.1rem; font-weight:bold; color:var(--accent); margin:4px 0 2px; }
       .interim-dist-meta { font-size:0.72rem; color:var(--text-muted); }
       .interim-type-badge { font-size:0.7rem; padding:1px 6px; border-radius:4px; margin-left:6px; background:var(--accent-dim); color:var(--accent); }
+      .rank-pts-table { width:100%; border-collapse:collapse; font-size:0.78rem; margin-top:8px; }
+      .rank-pts-table th, .rank-pts-table td { padding:4px 8px; border:1px solid var(--border); text-align:center; }
+      .rank-pts-table th { background:var(--bg-primary); color:var(--text-muted); }
+      .rank-pts-note { font-size:0.72rem; color:var(--text-muted); margin-top:6px; }
     `;
     document.head.appendChild(style);
 
@@ -238,7 +243,24 @@ async function initInterimDistributionNotice() {
             <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString('ja-JP')}</div>
           </div>`).join('')}
         </div>
-        <button class="btn btn-primary" style="margin-top:10px" onclick="closeInterimDistModal()">閉じる</button>
+        ${rankPts ? `
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">配布量詳細を見る</button>
+        <div id="rank-pts-detail" style="display:none;margin-top:8px">
+          <table class="rank-pts-table">
+            <tr><th>順位</th><th>配布pt</th></tr>
+            <tr><td>1位</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
+            <tr><td>2〜3位</td><td>${rankPts.rank_pts_2_3 ?? 95}pt</td></tr>
+            <tr><td>4〜5位</td><td>${rankPts.rank_pts_4_5 ?? 90}pt</td></tr>
+            <tr><td>6〜10位</td><td>${rankPts.rank_pts_6_10 ?? 80}pt</td></tr>
+            <tr><td>11〜15位</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
+            <tr><td>16〜20位</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
+            <tr><td>21〜25位</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
+            <tr><td>26〜30位</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
+            <tr><td>31位以降</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
+          </table>
+          <div class="rank-pts-note">※配布量はイベントごとに調整される場合があります</div>
+        </div>` : ''}
+        <button class="btn btn-primary" style="margin-top:12px" onclick="closeInterimDistModal()">閉じる</button>
       </div>`;
     document.body.appendChild(modal);
     modal.classList.add('open');

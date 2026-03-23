@@ -91,6 +91,21 @@ router.get('/:id/ranking', async (req, res) => {
   }
 });
 
+// 順位ポイント設定（公開用）
+router.get('/rank-pts', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus')"
+    );
+    const rp = {};
+    result.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
+    res.json(rp);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 最近の中間配布一覧（通知用・7日以内・自分の順位付き）
 router.get('/interim-distributions/recent', authenticateToken, async (req, res) => {
   try {
