@@ -48,13 +48,20 @@ async function load() {
       } else if (end && now > end) {
         statusLabel = '終了';
         statusStyle = 'color:var(--text-muted)';
+      } else if (end) {
+        const diffMs = end - now;
+        const diffHours = diffMs / (1000 * 60 * 60);
+        const remaining = diffHours < 24
+          ? `あと${Math.ceil(diffHours)}時間`
+          : `あと${Math.ceil(diffHours / 24)}日`;
+        statusLabel = `開催中 ${remaining}`;
+        statusStyle = 'color:#4caf50;font-weight:bold';
       } else {
         statusLabel = '開催中';
         statusStyle = 'color:#4caf50;font-weight:bold';
       }
       return `
       <a class="event-card" href="/ranking.html?id=${e.id}">
-        <div class="event-number">第${e.event_number}回</div>
         <div class="event-name">${escHtml(e.name)}</div>
         <div class="event-meta" style="${statusStyle}">${statusLabel}</div>
       </a>`;
