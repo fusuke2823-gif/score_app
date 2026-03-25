@@ -175,9 +175,11 @@
         </div>
         <button class="btn btn-primary" onclick="createPool()">作成する</button>
       </div>
-      <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-end;margin-bottom:12px;border-bottom:1px solid var(--border)">
         <button id="pool-tab-btn-表" onclick="switchPoolTab('表')" style="padding:7px 24px;border:none;border-bottom:2px solid #4fc3f7;background:none;color:var(--text);font-size:0.9rem;cursor:pointer;font-weight:bold">表</button>
         <button id="pool-tab-btn-裏" onclick="switchPoolTab('裏')" style="padding:7px 24px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.9rem;cursor:pointer">裏</button>
+        <div style="flex:1"></div>
+        <button onclick="openPoolStatsModal()" style="padding:4px 14px;border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;background:var(--bg-primary);color:var(--text-muted);font-size:0.78rem;cursor:pointer;margin-bottom:-1px">統計</button>
       </div>
       <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
@@ -266,6 +268,27 @@
             <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
             <button class="btn btn-primary" onclick="savePoolIcons()">保存する</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- プール統計モーダル -->
+    <div id="pool-stats-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:560px;width:100%;margin:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-weight:bold;font-size:1rem">ガチャプール統計</div>
+          <button onclick="closePoolStatsModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px">×</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <span style="font-size:0.82rem;color:var(--text-muted)">並び替え:</span>
+          <button id="stats-sort-btn-order" onclick="setStatsSort('order')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--accent);color:#fff;font-size:0.8rem;cursor:pointer">実装順</button>
+          <button id="stats-sort-btn-total" onclick="setStatsSort('total')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:0.8rem;cursor:pointer">合計回数順</button>
+          <button id="stats-sort-btn-single" onclick="setStatsSort('single')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:0.8rem;cursor:pointer">単発順</button>
+          <button id="stats-sort-btn-multi" onclick="setStatsSort('multi')" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);font-size:0.8rem;cursor:pointer">10連順</button>
+        </div>
+        <div id="pool-stats-table"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:16px">
+          <button class="btn btn-secondary" onclick="closePoolStatsModal()">閉じる</button>
         </div>
       </div>
     </div>
@@ -774,6 +797,91 @@ function closePoolEditModal() {
   _poolIconModalId = null;
 }
 
+// ===== プール統計モーダル =====
+let _statsData = [];
+let _statsSort = 'order';
+
+async function openPoolStatsModal() {
+  document.getElementById('pool-stats-modal').style.display = 'flex';
+  document.getElementById('pool-stats-table').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    _statsData = await apiFetch('/admin/gacha/pools/stats');
+    renderPoolStats();
+  } catch (err) {
+    document.getElementById('pool-stats-table').innerHTML = `<div style="color:var(--danger)">${escHtml(err.message)}</div>`;
+  }
+}
+
+function closePoolStatsModal() {
+  document.getElementById('pool-stats-modal').style.display = 'none';
+}
+
+function setStatsSort(key) {
+  _statsSort = key;
+  ['order','total','single','multi'].forEach(k => {
+    const btn = document.getElementById(`stats-sort-btn-${k}`);
+    btn.style.background = k === key ? 'var(--accent)' : 'none';
+    btn.style.color = k === key ? '#fff' : 'var(--text-muted)';
+  });
+  renderPoolStats();
+}
+
+function renderPoolStats() {
+  const data = [..._statsData];
+  if (_statsSort === 'order') {
+    // already ordered by order_index from API
+  } else if (_statsSort === 'total') {
+    data.sort((a, b) => b.total_pulls - a.total_pulls);
+  } else if (_statsSort === 'single') {
+    data.sort((a, b) => b.single_count - a.single_count);
+  } else if (_statsSort === 'multi') {
+    data.sort((a, b) => b.multi_count - a.multi_count);
+  }
+
+  if (data.length === 0) {
+    document.getElementById('pool-stats-table').innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">データがありません</div>';
+    return;
+  }
+
+  const maxTotal = Math.max(...data.map(d => d.total_pulls), 1);
+
+  document.getElementById('pool-stats-table').innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);color:var(--text-muted);font-size:0.78rem">
+          <th style="text-align:left;padding:6px 8px;font-weight:normal">プール名</th>
+          <th style="text-align:right;padding:6px 8px;font-weight:normal">単発</th>
+          <th style="text-align:right;padding:6px 8px;font-weight:normal">10連</th>
+          <th style="text-align:right;padding:6px 8px;font-weight:normal;color:#4fc3f7">合計</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${data.map(d => `
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px 8px">
+              <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">${escHtml(d.name)}</div>
+              <div style="height:4px;background:var(--border);border-radius:2px;width:100%">
+                <div style="height:4px;background:#4fc3f7;border-radius:2px;width:${Math.round(d.total_pulls / maxTotal * 100)}%"></div>
+              </div>
+            </td>
+            <td style="text-align:right;padding:8px 8px;font-variant-numeric:tabular-nums">${d.single_count.toLocaleString()}</td>
+            <td style="text-align:right;padding:8px 8px;font-variant-numeric:tabular-nums">${d.multi_count.toLocaleString()}</td>
+            <td style="text-align:right;padding:8px 8px;font-weight:bold;color:#4fc3f7;font-variant-numeric:tabular-nums">${d.total_pulls.toLocaleString()}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:2px solid var(--border);font-weight:bold">
+          <td style="padding:8px 8px;font-size:0.82rem;color:var(--text-muted)">合計</td>
+          <td style="text-align:right;padding:8px 8px;font-variant-numeric:tabular-nums">${data.reduce((s,d)=>s+d.single_count,0).toLocaleString()}</td>
+          <td style="text-align:right;padding:8px 8px;font-variant-numeric:tabular-nums">${data.reduce((s,d)=>s+d.multi_count,0).toLocaleString()}</td>
+          <td style="text-align:right;padding:8px 8px;color:#4fc3f7;font-variant-numeric:tabular-nums">${data.reduce((s,d)=>s+d.total_pulls,0).toLocaleString()}</td>
+        </tr>
+      </tfoot>
+    </table>
+  `;
+}
+
 async function saveBasicSettings() {
   if (!_editPoolId) return;
   const name = document.getElementById('edit-pool-name').value.trim();
@@ -933,7 +1041,7 @@ async function savePoolIcons() {
   }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePoolEditModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePoolEditModal(); closePoolStatsModal(); } });
 
 // ===== ガチャ設定 =====
 async function loadGachaSettings() {
