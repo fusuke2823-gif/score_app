@@ -221,6 +221,14 @@ const initDB = async () => {
         PRIMARY KEY (pool_id, icon_id)
       );
 
+      CREATE TABLE IF NOT EXISTS gacha_pull_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE SET NULL,
+        pull_type VARCHAR(10) NOT NULL,
+        pulled_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS event_interim_distributions (
         id SERIAL PRIMARY KEY,
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,

@@ -1015,6 +1015,26 @@ router.put('/gacha/settings', async (req, res) => {
 });
 
 // ===== ガチャプール管理 =====
+router.get('/gacha/pools/stats', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT gp.id, gp.name,
+              COUNT(CASE WHEN l.pull_type='single' THEN 1 END)::int AS single_count,
+              COUNT(CASE WHEN l.pull_type='multi'  THEN 1 END)::int AS multi_count,
+              (COUNT(CASE WHEN l.pull_type='single' THEN 1 END) +
+               COUNT(CASE WHEN l.pull_type='multi'  THEN 1 END) * 10)::int AS total_pulls
+       FROM gacha_pools gp
+       LEFT JOIN gacha_pull_logs l ON l.pool_id = gp.id
+       GROUP BY gp.id, gp.name
+       ORDER BY gp.order_index ASC, gp.id ASC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(

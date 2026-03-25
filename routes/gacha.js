@@ -254,6 +254,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     const result = await acquireIcon(client, req.user.id, icon, dupMap);
     await client.query('UPDATE users SET gp=gp+1 WHERE id=$1', [req.user.id]);
     await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,1,$2)', [req.user.id, 'ガチャ（単発）']);
+    await client.query('INSERT INTO gacha_pull_logs (user_id, pool_id, pull_type) VALUES ($1,$2,$3)', [req.user.id, pool_id || null, 'single']);
     const newPoints = userResult.rows[0].points - cost + result.dup_pts;
     const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
@@ -313,6 +314,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
 
     await client.query('UPDATE users SET gp=gp+10 WHERE id=$1', [req.user.id]);
     await client.query('INSERT INTO gp_history (user_id, amount, reason) VALUES ($1,10,$2)', [req.user.id, 'ガチャ（10連）']);
+    await client.query('INSERT INTO gacha_pull_logs (user_id, pool_id, pull_type) VALUES ($1,$2,$3)', [req.user.id, pool_id || null, 'multi']);
     const newPoints = userResult.rows[0].points - cost + totalDupPts;
     const gpResult = await client.query('SELECT gp FROM users WHERE id=$1', [req.user.id]);
     await client.query('COMMIT');
