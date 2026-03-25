@@ -153,6 +153,13 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">表/裏</label>
+          <select class="form-input" id="pool-side" style="max-width:120px">
+            <option value="表">表</option>
+            <option value="裏">裏</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">説明（任意）</label>
           <input class="form-input" id="pool-desc" placeholder="例: SSレアリティ強化！">
         </div>
@@ -167,6 +174,10 @@
           </div>
         </div>
         <button class="btn btn-primary" onclick="createPool()">作成する</button>
+      </div>
+      <div style="display:flex;gap:0;margin-bottom:12px;border-bottom:1px solid var(--border)">
+        <button id="pool-tab-btn-表" onclick="switchPoolTab('表')" style="padding:7px 24px;border:none;border-bottom:2px solid #4fc3f7;background:none;color:var(--text);font-size:0.9rem;cursor:pointer;font-weight:bold">表</button>
+        <button id="pool-tab-btn-裏" onclick="switchPoolTab('裏')" style="padding:7px 24px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.9rem;cursor:pointer">裏</button>
       </div>
       <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
@@ -207,12 +218,19 @@
               <label class="form-label">表示順</label>
               <input class="form-input" type="number" id="edit-pool-order" min="0">
             </div>
-            <div class="form-group" style="display:flex;align-items:center;padding-top:22px">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-                <input type="checkbox" id="edit-pool-active" style="width:18px;height:18px">
-                <span style="font-size:0.9rem">表示する</span>
-              </label>
+            <div class="form-group">
+              <label class="form-label">表/裏</label>
+              <select class="form-input" id="edit-pool-side">
+                <option value="表">表</option>
+                <option value="裏">裏</option>
+              </select>
             </div>
+          </div>
+          <div class="form-group" style="display:flex;align-items:center">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="edit-pool-active" style="width:18px;height:18px">
+              <span style="font-size:0.9rem">表示する</span>
+            </label>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
             <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
@@ -602,9 +620,23 @@ let _poolIconModalId = null;
 let _allIcons = [];
 let _pickupSet = new Set(); // SS ピックアップ中のアイコンID
 
+let _currentPoolTab = '表';
+
+function switchPoolTab(side) {
+  _currentPoolTab = side;
+  ['表', '裏'].forEach(s => {
+    const btn = document.getElementById(`pool-tab-btn-${s}`);
+    btn.style.borderBottom = s === side ? '2px solid #4fc3f7' : '2px solid transparent';
+    btn.style.color = s === side ? 'var(--text)' : 'var(--text-muted)';
+    btn.style.fontWeight = s === side ? 'bold' : 'normal';
+  });
+  loadPools();
+}
+
 async function loadPools() {
   try {
-    const pools = await apiFetch('/admin/gacha/pools');
+    const allPools = await apiFetch('/admin/gacha/pools');
+    const pools = allPools.filter(p => (p.side || '表') === _currentPoolTab);
     const el = document.getElementById('pool-list');
     if (pools.length === 0) {
       el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">プールがありません</div>';
@@ -674,7 +706,8 @@ async function createPool() {
   const end_at   = toUTC(document.getElementById('pool-end').value);
   if (!name) { showAlert('#pool-alert', 'ガチャ名を入力してください'); return; }
   try {
-    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0, start_at, end_at }) });
+    const side = document.getElementById('pool-side').value;
+    await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0, start_at, end_at, side }) });
     showAlert('#pool-alert', '作成しました', 'success');
     document.getElementById('pool-name').value = '';
     document.getElementById('pool-desc').value = '';
@@ -710,6 +743,7 @@ async function openPoolEditModal(poolId, tab = 'basic') {
       document.getElementById('edit-pool-desc').value = p.description || '';
       document.getElementById('edit-pool-order').value = p.order_index;
       document.getElementById('edit-pool-active').checked = p.is_active;
+      document.getElementById('edit-pool-side').value = p.side || '表';
       document.getElementById('edit-period-start').value = toDatetimeLocal(p.start_at);
       document.getElementById('edit-period-end').value   = toDatetimeLocal(p.end_at);
     }
@@ -747,10 +781,11 @@ async function saveBasicSettings() {
   const desc = document.getElementById('edit-pool-desc').value.trim();
   const order = parseInt(document.getElementById('edit-pool-order').value) || 0;
   const is_active = document.getElementById('edit-pool-active').checked;
+  const side = document.getElementById('edit-pool-side').value;
   try {
     await apiFetch(`/admin/gacha/pools/${_editPoolId}`, {
       method: 'PUT',
-      body: JSON.stringify({ name, description: desc || null, is_active, order_index: order })
+      body: JSON.stringify({ name, description: desc || null, is_active, order_index: order, side })
     });
     document.getElementById('pool-edit-modal-title').textContent = escHtml(name);
     showAlert('#pool-edit-alert', '更新しました', 'success');

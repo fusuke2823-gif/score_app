@@ -1039,7 +1039,7 @@ router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.is_active, gp.order_index, gp.created_at,
-              gp.start_at, gp.end_at,
+              gp.start_at, gp.end_at, gp.side,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
@@ -1054,12 +1054,12 @@ router.get('/gacha/pools', async (req, res) => {
 });
 
 router.post('/gacha/pools', async (req, res) => {
-  const { name, description, order_index, start_at, end_at } = req.body;
+  const { name, description, order_index, start_at, end_at, side } = req.body;
   if (!name) return res.status(400).json({ error: 'ガチャ名を入力してください' });
   try {
     const result = await pool.query(
-      'INSERT INTO gacha_pools (name, description, order_index, start_at, end_at) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [name, description || null, parseInt(order_index) || 0, start_at || null, end_at || null]
+      'INSERT INTO gacha_pools (name, description, order_index, start_at, end_at, side) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *',
+      [name, description || null, parseInt(order_index) || 0, start_at || null, end_at || null, side === '裏' ? '裏' : '表']
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -1082,12 +1082,12 @@ router.patch('/gacha/pools/:id/image', async (req, res) => {
 });
 
 router.put('/gacha/pools/:id', async (req, res) => {
-  const { name, description, is_active, order_index, start_at, end_at } = req.body;
+  const { name, description, is_active, order_index, start_at, end_at, side } = req.body;
   if (!name) return res.status(400).json({ error: 'ガチャ名を入力してください' });
   try {
     const result = await pool.query(
-      'UPDATE gacha_pools SET name=$1, description=$2, is_active=$3, order_index=$4, start_at=$5, end_at=$6 WHERE id=$7 RETURNING *',
-      [name, description || null, is_active !== false, parseInt(order_index) || 0, start_at || null, end_at || null, req.params.id]
+      'UPDATE gacha_pools SET name=$1, description=$2, is_active=$3, order_index=$4, start_at=$5, end_at=$6, side=$7 WHERE id=$8 RETURNING *',
+      [name, description || null, is_active !== false, parseInt(order_index) || 0, start_at || null, end_at || null, side === '裏' ? '裏' : '表', req.params.id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
     res.json(result.rows[0]);

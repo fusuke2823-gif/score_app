@@ -208,6 +208,7 @@ const initDB = async () => {
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS start_at TIMESTAMPTZ;
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS end_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_at TIMESTAMPTZ;
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS side VARCHAR(5) NOT NULL DEFAULT '表';
 
       CREATE TABLE IF NOT EXISTS gacha_pool_icons (
         pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE CASCADE,
