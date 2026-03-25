@@ -171,45 +171,78 @@
       <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
-    <!-- アイコン設定モーダル -->
-    <div id="pool-icon-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:600px;width:100%;margin:auto;position:relative">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <div style="font-weight:bold" id="pool-modal-title">アイコン設定</div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            <button class="btn btn-secondary btn-sm" onclick="closePoolIconModal()">キャンセル</button>
-            <button class="btn btn-primary btn-sm" onclick="savePoolIcons()">保存する</button>
-            <button onclick="closePoolIconModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px">×</button>
+    <!-- プール編集モーダル（統合：基本設定 / 期間設定 / アイコン設定） -->
+    <div id="pool-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:640px;width:100%;margin:auto">
+        <!-- ヘッダー -->
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px">
+          <div style="font-weight:bold;font-size:1rem" id="pool-edit-modal-title">プール編集</div>
+          <button onclick="closePoolEditModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px">×</button>
+        </div>
+        <!-- タブ -->
+        <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)">
+          <button id="tab-btn-basic" onclick="switchEditTab('basic')" style="padding:7px 18px;border:none;border-bottom:2px solid #4fc3f7;background:none;color:var(--text);font-size:0.88rem;cursor:pointer;font-weight:bold">基本設定</button>
+          <button id="tab-btn-period" onclick="switchEditTab('period')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">期間設定</button>
+          <button id="tab-btn-icons" onclick="switchEditTab('icons')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">アイコン設定</button>
+        </div>
+        <div id="pool-edit-alert" style="margin-bottom:10px"></div>
+
+        <!-- 基本設定タブ -->
+        <div id="tab-content-basic">
+          <div class="form-group">
+            <label class="form-label">ガチャ名</label>
+            <input class="form-input" id="edit-pool-name">
+          </div>
+          <div class="form-group">
+            <label class="form-label">説明（任意）</label>
+            <input class="form-input" id="edit-pool-desc" placeholder="例: SSレアリティ強化！">
+          </div>
+          <div class="enemy-form-grid">
+            <div class="form-group">
+              <label class="form-label">表示順</label>
+              <input class="form-input" type="number" id="edit-pool-order" min="0">
+            </div>
+            <div class="form-group" style="display:flex;align-items:center;padding-top:22px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="edit-pool-active" style="width:18px;height:18px">
+                <span style="font-size:0.9rem">表示する</span>
+              </label>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
+            <button class="btn btn-primary" onclick="saveBasicSettings()">保存する</button>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-          <p style="font-size:0.82rem;color:var(--text-muted);margin:0;flex:1">このガチャに含めるアイコンを選択してください（レアリティ別に表示）</p>
-          <button class="btn btn-secondary btn-sm" id="btn-toggle-ss" onclick="toggleAllSS()">SS全選択</button>
-          <button class="btn btn-secondary btn-sm" id="btn-toggle-as" onclick="toggleAllAS()">A・S全選択</button>
-        </div>
-        <div id="pool-modal-icons"></div>
-      </div>
-    </div>
 
-    <!-- 期間設定モーダル -->
-    <div id="pool-period-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;padding:24px 12px">
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:420px;width:100%">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-          <div style="font-weight:bold" id="period-modal-title">期間設定</div>
-          <button onclick="closePeriodModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>
+        <!-- 期間設定タブ -->
+        <div id="tab-content-period" style="display:none">
+          <div class="form-group">
+            <label class="form-label">開始日時<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">空欄で制限なし</span></label>
+            <input class="form-input" type="datetime-local" id="edit-period-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">終了日時<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">空欄で制限なし</span></label>
+            <input class="form-input" type="datetime-local" id="edit-period-end">
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
+            <button class="btn btn-primary" onclick="savePeriodSettings()">保存する</button>
+          </div>
         </div>
-        <div id="period-modal-alert" style="margin-bottom:10px"></div>
-        <div class="form-group">
-          <label class="form-label">開始日時<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">空欄で制限なし</span></label>
-          <input class="form-input" type="datetime-local" id="period-start">
-        </div>
-        <div class="form-group">
-          <label class="form-label">終了日時<span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px">空欄で制限なし</span></label>
-          <input class="form-input" type="datetime-local" id="period-end">
-        </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-          <button class="btn btn-secondary" onclick="closePeriodModal()">キャンセル</button>
-          <button class="btn btn-primary" onclick="savePeriod()">保存する</button>
+
+        <!-- アイコン設定タブ -->
+        <div id="tab-content-icons" style="display:none">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+            <p style="font-size:0.82rem;color:var(--text-muted);margin:0;flex:1">このガチャに含めるアイコンを選択してください（レアリティ別に表示）</p>
+            <button class="btn btn-secondary btn-sm" id="btn-toggle-ss" onclick="toggleAllSS()">SS全選択</button>
+            <button class="btn btn-secondary btn-sm" id="btn-toggle-as" onclick="toggleAllAS()">A・S全選択</button>
+          </div>
+          <div id="pool-modal-icons"></div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+            <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
+            <button class="btn btn-primary" onclick="savePoolIcons()">保存する</button>
+          </div>
         </div>
       </div>
     </div>
@@ -587,9 +620,7 @@ async function loadPools() {
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
-            <button class="btn btn-secondary btn-sm" onclick="openPeriodModal(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}','${p.start_at||''}','${p.end_at||''}')">期間設定</button>
-            <button class="btn btn-secondary btn-sm" onclick="openPoolIconModal(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">アイコン設定</button>
-            <button class="btn btn-secondary btn-sm" onclick="editPool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}','${escHtml(p.description||'').replace(/'/g,"\\'")}',${p.is_active},${p.order_index})">編集</button>
+            <button class="btn btn-secondary btn-sm" onclick="openPoolEditModal(${p.id})">編集</button>
             <button class="btn btn-danger btn-sm" onclick="deletePool(${p.id},'${escHtml(p.name).replace(/'/g,"\\'")}')">削除</button>
           </div>
         </div>
@@ -649,52 +680,81 @@ async function createPool() {
   } catch (err) { showAlert('#pool-alert', err.message); }
 }
 
-// 期間設定モーダル
-let _periodModalPoolId = null;
-function openPeriodModal(poolId, poolName, startAt, endAt) {
-  _periodModalPoolId = poolId;
-  document.getElementById('period-modal-title').textContent = `期間設定：${poolName}`;
-  document.getElementById('period-start').value = toDatetimeLocal(startAt);
-  document.getElementById('period-end').value   = toDatetimeLocal(endAt);
-  document.getElementById('period-modal-alert').innerHTML = '';
-  document.getElementById('pool-period-modal').style.display = 'flex';
+// プール編集モーダル（統合）
+let _editPoolId = null;
+
+async function openPoolEditModal(poolId, tab = 'basic') {
+  _editPoolId = poolId;
+  _poolIconModalId = poolId;
+  _pickupSet = new Set();
+  document.getElementById('pool-edit-alert').innerHTML = '';
+  document.getElementById('pool-edit-modal').style.display = 'flex';
+  switchEditTab(tab);
+  try {
+    const pools = await apiFetch('/admin/gacha/pools');
+    const p = pools.find(x => x.id === poolId);
+    if (p) {
+      document.getElementById('pool-edit-modal-title').textContent = escHtml(p.name);
+      document.getElementById('edit-pool-name').value = p.name;
+      document.getElementById('edit-pool-desc').value = p.description || '';
+      document.getElementById('edit-pool-order').value = p.order_index;
+      document.getElementById('edit-pool-active').checked = p.is_active;
+      document.getElementById('edit-period-start').value = toDatetimeLocal(p.start_at);
+      document.getElementById('edit-period-end').value   = toDatetimeLocal(p.end_at);
+    }
+  } catch (err) { showAlert('#pool-edit-alert', err.message); }
+  if (tab === 'icons') loadIconsTab();
 }
-function closePeriodModal() {
-  document.getElementById('pool-period-modal').style.display = 'none';
-  _periodModalPoolId = null;
+
+function switchEditTab(tab) {
+  ['basic', 'period', 'icons'].forEach(t => {
+    document.getElementById(`tab-content-${t}`).style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById(`tab-btn-${t}`);
+    btn.style.borderBottom = t === tab ? '2px solid #4fc3f7' : '2px solid transparent';
+    btn.style.color = t === tab ? 'var(--text)' : 'var(--text-muted)';
+    btn.style.fontWeight = t === tab ? 'bold' : 'normal';
+  });
+  if (tab === 'icons') loadIconsTab();
 }
-async function savePeriod() {
-  if (!_periodModalPoolId) return;
+
+function closePoolEditModal() {
+  document.getElementById('pool-edit-modal').style.display = 'none';
+  _editPoolId = null;
+  _poolIconModalId = null;
+}
+
+async function saveBasicSettings() {
+  if (!_editPoolId) return;
+  const name = document.getElementById('edit-pool-name').value.trim();
+  if (!name) { showAlert('#pool-edit-alert', 'ガチャ名を入力してください'); return; }
+  const desc = document.getElementById('edit-pool-desc').value.trim();
+  const order = parseInt(document.getElementById('edit-pool-order').value) || 0;
+  const is_active = document.getElementById('edit-pool-active').checked;
+  try {
+    await apiFetch(`/admin/gacha/pools/${_editPoolId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, description: desc || null, is_active, order_index: order })
+    });
+    document.getElementById('pool-edit-modal-title').textContent = escHtml(name);
+    showAlert('#pool-edit-alert', '更新しました', 'success');
+    loadPools();
+  } catch (err) { showAlert('#pool-edit-alert', err.message); }
+}
+
+async function savePeriodSettings() {
+  if (!_editPoolId) return;
   const toUTC = v => v ? new Date(v).toISOString() : null;
-  const start_at = toUTC(document.getElementById('period-start').value);
-  const end_at   = toUTC(document.getElementById('period-end').value);
+  const start_at = toUTC(document.getElementById('edit-period-start').value);
+  const end_at   = toUTC(document.getElementById('edit-period-end').value);
   if (start_at && end_at && new Date(start_at) >= new Date(end_at)) {
-    document.getElementById('period-modal-alert').innerHTML = '<div class="alert alert-error">終了日時は開始日時より後にしてください</div>';
+    showAlert('#pool-edit-alert', '終了日時は開始日時より後にしてください');
     return;
   }
   try {
-    await apiFetch(`/admin/gacha/pools/${_periodModalPoolId}/period`, { method: 'PATCH', body: JSON.stringify({ start_at, end_at }) });
-    closePeriodModal();
-    showAlert('#pool-alert', '期間を更新しました', 'success');
+    await apiFetch(`/admin/gacha/pools/${_editPoolId}/period`, { method: 'PATCH', body: JSON.stringify({ start_at, end_at }) });
+    showAlert('#pool-edit-alert', '期間を更新しました', 'success');
     loadPools();
-  } catch (err) {
-    document.getElementById('period-modal-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-function editPool(id, name, desc, isActive, order) {
-  const newName = prompt('ガチャ名', name);
-  if (newName === null) return;
-  const newDesc = prompt('説明（空欄でなし）', desc);
-  if (newDesc === null) return;
-  const newOrder = prompt('表示順', order);
-  if (newOrder === null) return;
-  const newActive = confirm('表示する（キャンセルで非表示）');
-  apiFetch(`/admin/gacha/pools/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify({ name: newName || name, description: newDesc || null, is_active: newActive, order_index: parseInt(newOrder)||0 })
-  }).then(() => { showAlert('#pool-alert', '更新しました', 'success'); loadPools(); })
-    .catch(err => showAlert('#pool-alert', err.message));
+  } catch (err) { showAlert('#pool-edit-alert', err.message); }
 }
 
 async function deletePool(id, name) {
@@ -706,28 +766,25 @@ async function deletePool(id, name) {
   } catch (err) { showAlert('#pool-alert', err.message); }
 }
 
-async function openPoolIconModal(poolId, poolName) {
-  _poolIconModalId = poolId;
-  _pickupSet = new Set();
-  document.getElementById('pool-modal-title').textContent = `アイコン設定：${poolName}`;
-  const modal = document.getElementById('pool-icon-modal');
-  modal.style.display = 'flex';
+async function loadIconsTab() {
+  if (!_editPoolId) return;
   document.getElementById('pool-modal-icons').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  document.getElementById('btn-toggle-ss').textContent = 'SS全選択';
+  document.getElementById('btn-toggle-as').textContent = 'A・S全選択';
   try {
     const [allIcons, currentIds, pickupIds] = await Promise.all([
       apiFetch('/admin/gacha/icons'),
-      apiFetch(`/admin/gacha/pools/${poolId}/icons`),
-      apiFetch(`/admin/gacha/pools/${poolId}/pickups`)
+      apiFetch(`/admin/gacha/pools/${_editPoolId}/icons`),
+      apiFetch(`/admin/gacha/pools/${_editPoolId}/pickups`)
     ]);
     _allIcons = allIcons;
     const selectedSet = new Set(currentIds);
+    _pickupSet = new Set();
     pickupIds.forEach(id => _pickupSet.add(id));
     const rarityOrder = ['SS', 'S', 'A'];
     const grouped = { SS: [], S: [], A: [] };
     allIcons.forEach(ic => { if (grouped[ic.rarity]) grouped[ic.rarity].push(ic); });
     const rarityColors = { SS: '#ffd700', S: '#e0c060', A: '#4fc3f7' };
-    document.getElementById('btn-toggle-ss').textContent = 'SS全選択';
-    document.getElementById('btn-toggle-as').textContent = 'A・S全選択';
     document.getElementById('pool-modal-icons').innerHTML = rarityOrder.map(r => {
       if (!grouped[r].length) return '';
       return `
@@ -807,31 +864,24 @@ function togglePickup(btn, iconId) {
   }
 }
 
-function closePoolIconModal() {
-  document.getElementById('pool-icon-modal').style.display = 'none';
-  _poolIconModalId = null;
-}
-
 async function savePoolIcons() {
-  if (!_poolIconModalId) return;
+  if (!_editPoolId) return;
   const checkboxes = document.querySelectorAll('#pool-modal-icons input[type=checkbox]');
   const icon_ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.iconId));
-  // ピックアップはプールに含まれているSSのみ有効
   const pickup_ids = [..._pickupSet].filter(id => icon_ids.includes(id));
   try {
     await Promise.all([
-      apiFetch(`/admin/gacha/pools/${_poolIconModalId}/icons`, { method: 'PUT', body: JSON.stringify({ icon_ids }) }),
-      apiFetch(`/admin/gacha/pools/${_poolIconModalId}/pickups`, { method: 'PUT', body: JSON.stringify({ icon_ids: pickup_ids }) })
+      apiFetch(`/admin/gacha/pools/${_editPoolId}/icons`, { method: 'PUT', body: JSON.stringify({ icon_ids }) }),
+      apiFetch(`/admin/gacha/pools/${_editPoolId}/pickups`, { method: 'PUT', body: JSON.stringify({ icon_ids: pickup_ids }) })
     ]);
-    showAlert('#pool-alert', 'アイコン設定を保存しました', 'success');
-    closePoolIconModal();
+    showAlert('#pool-edit-alert', 'アイコン設定を保存しました', 'success');
     loadPools();
   } catch (err) {
-    showAlert('#pool-alert', err.message);
+    showAlert('#pool-edit-alert', err.message);
   }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePoolIconModal(); closePeriodModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePoolEditModal(); });
 
 // ===== ガチャ設定 =====
 async function loadGachaSettings() {
