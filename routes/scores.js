@@ -21,7 +21,7 @@ const VALID_ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 
 // スコア投稿
 router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
-  const { event_id, attribute, score } = req.body;
+  const { event_id, attribute, score, is_anonymous } = req.body;
 
   if (!event_id || !attribute || score === undefined)
     return res.status(400).json({ error: '必須項目が不足しています' });
@@ -57,15 +57,16 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     }
 
     const result = await pool.query(
-      `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at)
-       VALUES ($1, $2, $3, $4, $5, 'pending', NOW())
+      `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous)
+       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), $6)
        ON CONFLICT (user_id, event_id, attribute) DO UPDATE SET
          pending_score = $4,
          pending_image_url = COALESCE($5, scores.pending_image_url),
          status = 'pending',
+         is_anonymous = $6,
          updated_at = NOW()
        RETURNING *`,
-      [req.user.id, event_id, attribute, scoreNum, imageUrl]
+      [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true]
     );
 
     res.json({ message: 'スコアを投稿しました。管理者の承認をお待ちください。', score: result.rows[0] });

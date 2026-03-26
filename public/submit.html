@@ -51,6 +51,19 @@
   </div>
 </main>
 
+<!-- 匿名確認モーダル -->
+<div id="anon-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:360px;width:90%;text-align:center">
+    <div style="font-weight:bold;font-size:1rem;margin-bottom:8px">匿名で投稿しますか？</div>
+    <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px">このスコアは一般ユーザーには「匿名」として表示されます。</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="submitWithAnon(true)" class="btn btn-primary" style="flex:1">匿名で投稿</button>
+      <button onclick="submitWithAnon(false)" class="btn" style="flex:1;background:var(--bg-secondary);border:1px solid var(--border)">実名で投稿</button>
+    </div>
+    <button onclick="closeAnonModal()" style="margin-top:14px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer">キャンセル</button>
+  </div>
+</div>
+
 <script src="/js/common.js"></script>
 <script>
 renderNav();
@@ -151,17 +164,41 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
   const eventId = document.getElementById('event-select').value;
   const attrInput = document.querySelector('input[name="attribute"]:checked');
   const score = document.getElementById('score-input').value;
-  const imageFile = document.getElementById('image-input').files[0];
-  const btn = document.getElementById('submit-btn');
 
   if (!eventId) return showAlert('#alert', 'イベントを選択してください');
   if (!attrInput) return showAlert('#alert', '属性を選択してください');
   if (!score) return showAlert('#alert', 'スコアを入力してください');
 
+  const scoreNum = parseInt(score);
+  const needsAnonPrompt = scoreNum <= 139999 || (scoreNum >= 160000 && scoreNum <= 2999999);
+  if (needsAnonPrompt) {
+    document.getElementById('anon-modal').style.display = 'flex';
+  } else {
+    await doSubmit(false);
+  }
+});
+
+function closeAnonModal() {
+  document.getElementById('anon-modal').style.display = 'none';
+}
+
+async function submitWithAnon(isAnon) {
+  closeAnonModal();
+  await doSubmit(isAnon);
+}
+
+async function doSubmit(isAnon) {
+  const eventId = document.getElementById('event-select').value;
+  const attrInput = document.querySelector('input[name="attribute"]:checked');
+  const score = document.getElementById('score-input').value;
+  const imageFile = document.getElementById('image-input').files[0];
+  const btn = document.getElementById('submit-btn');
+
   const formData = new FormData();
   formData.append('event_id', eventId);
   formData.append('attribute', attrInput.value);
   formData.append('score', score);
+  formData.append('is_anonymous', isAnon);
   if (imageFile) formData.append('image', imageFile);
 
   btn.disabled = true;
@@ -180,7 +217,7 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
     btn.disabled = false;
     btn.textContent = '投稿する';
   }
-});
+}
 
 loadEvents();
 </script>

@@ -234,10 +234,10 @@ async function loadRanking() {
             <tr class="rank-${r.rank} ${fr}">
               <td><span class="rank-num">${r.rank}</span></td>
               <td class="${fc ? 'frame-start' : ''}">${attrBadge(r.attribute)}</td>
-              <td class="col-avatar"><a class="rank-avatar" href="/user.html?id=${r.user_id}">${r.equipped_icon_url ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(r.username.charAt(0))}</a></td>
+              <td class="col-avatar">${r.is_anonymous ? `<span class="rank-avatar" style="display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">匿</span>` : `<a class="rank-avatar" href="/user.html?id=${r.user_id}">${r.equipped_icon_url ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(r.username.charAt(0))}</a>`}</td>
               <td class="${fc ? 'frame-name' : ''}">
-                <a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>
-                ${r.equipped_title ? `<span class="oshi-tag title-tooltip-wrap" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : ''}
+                ${r.is_anonymous ? `<span style="color:#e8e8e8">匿名</span>` : `<a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>`}
+                ${!r.is_anonymous && r.equipped_title ? `<span class="oshi-tag title-tooltip-wrap" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : ''}
               </td>
               <td class="col-score ${fc ? 'frame-score' : ''}" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
               <td class="col-img img-col ${fc ? 'frame-img' : ''}" style="text-align:center">

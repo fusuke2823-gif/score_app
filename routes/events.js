@@ -138,7 +138,8 @@ router.get('/:id/ranking', async (req, res) => {
           u.equipped_icon_id,
           s.attribute,
           s.approved_score,
-          s.approved_image_url
+          s.approved_image_url,
+          s.is_anonymous
         FROM scores s
         JOIN users u ON s.user_id = u.id
         WHERE s.event_id = $1
