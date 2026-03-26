@@ -83,16 +83,40 @@
           <input class="form-input" type="number" id="rp-1" min="0" placeholder="100">
         </div>
         <div class="form-group">
-          <label class="form-label">2〜3位（pt）</label>
-          <input class="form-input" type="number" id="rp-2-3" min="0" placeholder="95">
+          <label class="form-label">2位（pt）</label>
+          <input class="form-input" type="number" id="rp-2" min="0" placeholder="95">
         </div>
         <div class="form-group">
-          <label class="form-label">4〜5位（pt）</label>
-          <input class="form-input" type="number" id="rp-4-5" min="0" placeholder="90">
+          <label class="form-label">3位（pt）</label>
+          <input class="form-input" type="number" id="rp-3" min="0" placeholder="95">
         </div>
         <div class="form-group">
-          <label class="form-label">6〜10位（pt）</label>
-          <input class="form-input" type="number" id="rp-6-10" min="0" placeholder="80">
+          <label class="form-label">4位（pt）</label>
+          <input class="form-input" type="number" id="rp-4" min="0" placeholder="90">
+        </div>
+        <div class="form-group">
+          <label class="form-label">5位（pt）</label>
+          <input class="form-input" type="number" id="rp-5" min="0" placeholder="90">
+        </div>
+        <div class="form-group">
+          <label class="form-label">6位（pt）</label>
+          <input class="form-input" type="number" id="rp-6" min="0" placeholder="80">
+        </div>
+        <div class="form-group">
+          <label class="form-label">7位（pt）</label>
+          <input class="form-input" type="number" id="rp-7" min="0" placeholder="80">
+        </div>
+        <div class="form-group">
+          <label class="form-label">8位（pt）</label>
+          <input class="form-input" type="number" id="rp-8" min="0" placeholder="80">
+        </div>
+        <div class="form-group">
+          <label class="form-label">9位（pt）</label>
+          <input class="form-input" type="number" id="rp-9" min="0" placeholder="80">
+        </div>
+        <div class="form-group">
+          <label class="form-label">10位（pt）</label>
+          <input class="form-input" type="number" id="rp-10" min="0" placeholder="80">
         </div>
         <div class="form-group">
           <label class="form-label">11〜15位（pt）</label>
@@ -118,15 +142,26 @@
       <button class="btn btn-primary" onclick="saveRankPts()">保存する</button>
     </div>
 
+    <!-- ポイント設定確認テーブル（共通・折りたたみ） -->
+    <template id="rank-pts-table-tpl"></template>
+
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title">中間配布（開催中イベント）</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">中間配布（開催中イベント）</div>
+        <button onclick="toggleRankPtsTable('interim-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">ポイント設定を確認</button>
+      </div>
+      <div id="interim-pts-table" style="display:none;margin-bottom:12px"></div>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">イベント終了前に現在のランキングでポイントを配布します。何度でも実行可能です。</p>
       <div id="interim-alert" style="margin-bottom:12px"></div>
       <div id="interim-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <div class="card">
-      <div class="section-title">ポイント配布（終了済みイベント）</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">ポイント配布（終了済みイベント）</div>
+        <button onclick="toggleRankPtsTable('final-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">ポイント設定を確認</button>
+      </div>
+      <div id="final-pts-table" style="display:none;margin-bottom:12px"></div>
       <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
       <div id="points-alert" style="margin-bottom:12px"></div>
       <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
@@ -506,9 +541,15 @@ async function loadRankPts() {
   try {
     const result = await apiFetch('/admin/settings/rank-pts');
     document.getElementById('rp-1').value      = result.rank_pts_1;
-    document.getElementById('rp-2-3').value    = result.rank_pts_2_3;
-    document.getElementById('rp-4-5').value    = result.rank_pts_4_5;
-    document.getElementById('rp-6-10').value   = result.rank_pts_6_10;
+    document.getElementById('rp-2').value      = result.rank_pts_2;
+    document.getElementById('rp-3').value      = result.rank_pts_3;
+    document.getElementById('rp-4').value      = result.rank_pts_4;
+    document.getElementById('rp-5').value      = result.rank_pts_5;
+    document.getElementById('rp-6').value      = result.rank_pts_6;
+    document.getElementById('rp-7').value      = result.rank_pts_7;
+    document.getElementById('rp-8').value      = result.rank_pts_8;
+    document.getElementById('rp-9').value      = result.rank_pts_9;
+    document.getElementById('rp-10').value     = result.rank_pts_10;
     document.getElementById('rp-11-15').value  = result.rank_pts_11_15;
     document.getElementById('rp-16-20').value  = result.rank_pts_16_20;
     document.getElementById('rp-21-25').value  = result.rank_pts_21_25;
@@ -518,17 +559,57 @@ async function loadRankPts() {
   } catch (err) { showAlert('#rank-pts-alert', err.message); }
 }
 
+let _rankPtsCache = null;
 function updateRankPtsSummary(r) {
+  _rankPtsCache = r;
   document.getElementById('rank-pts-summary').textContent =
-    `1位: ${r.rank_pts_1}pt / 2〜3位: ${r.rank_pts_2_3}pt / 4〜5位: ${r.rank_pts_4_5}pt / 6〜10位: ${r.rank_pts_6_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21〜25位: ${r.rank_pts_21_25}pt / 26〜30位: ${r.rank_pts_26_30}pt / 31位以降: ${r.rank_pts_31plus}pt`;
+    `1位: ${r.rank_pts_1}pt / 2位: ${r.rank_pts_2}pt / 3位: ${r.rank_pts_3}pt / 4位: ${r.rank_pts_4}pt / 5位: ${r.rank_pts_5}pt / 6位: ${r.rank_pts_6}pt / 7位: ${r.rank_pts_7}pt / 8位: ${r.rank_pts_8}pt / 9位: ${r.rank_pts_9}pt / 10位: ${r.rank_pts_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21〜25位: ${r.rank_pts_21_25}pt / 26〜30位: ${r.rank_pts_26_30}pt / 31位以降: ${r.rank_pts_31plus}pt`;
+}
+
+function buildRankPtsTable(r) {
+  const rows = [
+    ['1位', r.rank_pts_1], ['2位', r.rank_pts_2], ['3位', r.rank_pts_3],
+    ['4位', r.rank_pts_4], ['5位', r.rank_pts_5], ['6位', r.rank_pts_6],
+    ['7位', r.rank_pts_7], ['8位', r.rank_pts_8], ['9位', r.rank_pts_9],
+    ['10位', r.rank_pts_10], ['11〜15位', r.rank_pts_11_15], ['16〜20位', r.rank_pts_16_20],
+    ['21〜25位', r.rank_pts_21_25], ['26〜30位', r.rank_pts_26_30], ['31位以降', r.rank_pts_31plus]
+  ];
+  return `<table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+    <thead><tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:left;padding:4px 8px;color:var(--text-muted)">順位</th>
+      <th style="text-align:right;padding:4px 8px;color:var(--text-muted)">ポイント</th>
+    </tr></thead>
+    <tbody>${rows.map(([label, pts]) => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:4px 8px">${label}</td>
+        <td style="text-align:right;padding:4px 8px;font-weight:bold">${pts ?? '-'}pt</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+async function toggleRankPtsTable(id) {
+  const el = document.getElementById(id);
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+  if (!_rankPtsCache) {
+    try { _rankPtsCache = await apiFetch('/admin/settings/rank-pts'); } catch (e) { return; }
+  }
+  el.innerHTML = buildRankPtsTable(_rankPtsCache);
+  el.style.display = '';
 }
 
 async function saveRankPts() {
   const body = {
     rank_pts_1:      parseInt(document.getElementById('rp-1').value),
-    rank_pts_2_3:    parseInt(document.getElementById('rp-2-3').value),
-    rank_pts_4_5:    parseInt(document.getElementById('rp-4-5').value),
-    rank_pts_6_10:   parseInt(document.getElementById('rp-6-10').value),
+    rank_pts_2:      parseInt(document.getElementById('rp-2').value),
+    rank_pts_3:      parseInt(document.getElementById('rp-3').value),
+    rank_pts_4:      parseInt(document.getElementById('rp-4').value),
+    rank_pts_5:      parseInt(document.getElementById('rp-5').value),
+    rank_pts_6:      parseInt(document.getElementById('rp-6').value),
+    rank_pts_7:      parseInt(document.getElementById('rp-7').value),
+    rank_pts_8:      parseInt(document.getElementById('rp-8').value),
+    rank_pts_9:      parseInt(document.getElementById('rp-9').value),
+    rank_pts_10:     parseInt(document.getElementById('rp-10').value),
     rank_pts_11_15:  parseInt(document.getElementById('rp-11-15').value),
     rank_pts_16_20:  parseInt(document.getElementById('rp-16-20').value),
     rank_pts_21_25:  parseInt(document.getElementById('rp-21-25').value),

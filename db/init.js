@@ -252,9 +252,15 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('gacha_dup_s_pts', '10') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_dup_a_pts', '3') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('rank_pts_1', '100') ON CONFLICT (key) DO NOTHING;
-      INSERT INTO settings (key, value) VALUES ('rank_pts_2_3', '95') ON CONFLICT (key) DO NOTHING;
-      INSERT INTO settings (key, value) VALUES ('rank_pts_4_5', '90') ON CONFLICT (key) DO NOTHING;
-      INSERT INTO settings (key, value) VALUES ('rank_pts_6_10', '80') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_2', '95') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_3', '95') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_4', '90') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_5', '90') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_6', '80') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_7', '80') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_8', '80') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_9', '80') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('rank_pts_10', '80') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('rank_pts_11_15', '60') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('rank_pts_16_20', '50') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('rank_pts_21plus', '30') ON CONFLICT (key) DO NOTHING;
