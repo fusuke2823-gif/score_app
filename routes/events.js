@@ -159,7 +159,8 @@ router.get('/:id/ranking', async (req, res) => {
         gi.rarity AS equipped_icon_rarity,
         bs.attribute,
         bs.approved_score,
-        bs.approved_image_url
+        bs.approved_image_url,
+        bs.is_anonymous
       FROM best_scores bs
       LEFT JOIN titles t ON bs.equipped_title_id = t.id
       LEFT JOIN frames f ON bs.equipped_frame_id = f.id
