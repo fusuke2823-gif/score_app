@@ -20,13 +20,25 @@ function authHeaders() {
   return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 }
 
+function _handleAuthError(res, data) {
+  if ((res.status === 401 || res.status === 403) && getToken()) {
+    clearAuth();
+    location.href = '/login.html?expired=1';
+    return true;
+  }
+  return false;
+}
+
 async function apiFetch(path, options = {}) {
   const res = await fetch(API + path, {
     headers: authHeaders(),
     ...options
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'エラーが発生しました');
+  if (!res.ok) {
+    if (_handleAuthError(res, data)) return;
+    throw new Error(data.error || 'エラーが発生しました');
+  }
   return data;
 }
 
@@ -35,7 +47,10 @@ async function apiFormFetch(path, formData, method = 'POST') {
   const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
   const res = await fetch(API + path, { method, headers, body: formData });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'エラーが発生しました');
+  if (!res.ok) {
+    if (_handleAuthError(res, data)) return;
+    throw new Error(data.error || 'エラーが発生しました');
+  }
   return data;
 }
 

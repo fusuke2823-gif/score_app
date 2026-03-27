@@ -32,6 +32,9 @@
 <script>
 renderNav();
 if (getToken()) location.href = '/index.html';
+if (new URLSearchParams(location.search).get('expired')) {
+  showAlert('#alert', 'セッションの有効期限が切れました。再度ログインしてください。');
+}
 
 document.getElementById('login-form').addEventListener('submit', async e => {
   e.preventDefault();
