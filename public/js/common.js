@@ -247,9 +247,15 @@ async function initInterimDistributionNotice() {
           <table class="rank-pts-table">
             <tr><th>順位</th><th>配布pt</th></tr>
             <tr><td>1位</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
-            <tr><td>2〜3位</td><td>${rankPts.rank_pts_2_3 ?? 95}pt</td></tr>
-            <tr><td>4〜5位</td><td>${rankPts.rank_pts_4_5 ?? 90}pt</td></tr>
-            <tr><td>6〜10位</td><td>${rankPts.rank_pts_6_10 ?? 80}pt</td></tr>
+            <tr><td>2位</td><td>${rankPts.rank_pts_2 ?? 95}pt</td></tr>
+            <tr><td>3位</td><td>${rankPts.rank_pts_3 ?? 95}pt</td></tr>
+            <tr><td>4位</td><td>${rankPts.rank_pts_4 ?? 90}pt</td></tr>
+            <tr><td>5位</td><td>${rankPts.rank_pts_5 ?? 90}pt</td></tr>
+            <tr><td>6位</td><td>${rankPts.rank_pts_6 ?? 80}pt</td></tr>
+            <tr><td>7位</td><td>${rankPts.rank_pts_7 ?? 80}pt</td></tr>
+            <tr><td>8位</td><td>${rankPts.rank_pts_8 ?? 80}pt</td></tr>
+            <tr><td>9位</td><td>${rankPts.rank_pts_9 ?? 80}pt</td></tr>
+            <tr><td>10位</td><td>${rankPts.rank_pts_10 ?? 80}pt</td></tr>
             <tr><td>11〜15位</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
             <tr><td>16〜20位</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
             <tr><td>21〜25位</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>

@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 router.get('/rank-pts', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2_3','rank_pts_4_5','rank_pts_6_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus')"
+      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2','rank_pts_3','rank_pts_4','rank_pts_5','rank_pts_6','rank_pts_7','rank_pts_8','rank_pts_9','rank_pts_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus')"
     );
     const rp = {};
     result.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
