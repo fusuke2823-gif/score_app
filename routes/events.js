@@ -129,6 +129,7 @@ router.get('/:id/ranking', async (req, res) => {
   const selectedAttrs = attributes
     ? attributes.split(',').filter(Boolean)
     : ['火', '氷', '雷', '光', '闇', '無'];
+  if (selectedAttrs.length === 0) return res.json([]);
 
   try {
     const result = await pool.query(
