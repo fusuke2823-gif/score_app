@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お便り箱 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title">お便り箱</h1>
+  <p class="page-subtitle">機能要望・バグ報告・その他ご意見をお送りください</p>
+  <div style="max-width:520px;margin:0 auto">
+    <div id="alert"></div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">カテゴリ</label>
+        <select class="form-select" id="category">
+          <option value="機能要望">機能要望</option>
+          <option value="バグ報告">バグ報告</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">内容</label>
+        <textarea class="form-input" id="body" rows="6" maxlength="1000" placeholder="ご意見・ご要望をご記入ください（1000文字以内）" style="resize:vertical"></textarea>
+        <div class="form-hint"><span id="char-count">0</span> / 1000文字</div>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="submitFeedback()" id="submit-btn">送信する</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;text-align:center">送信内容はユーザー名と共に管理者のみ確認できます</p>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireLogin()) throw new Error('redirect');
+
+document.getElementById('body').addEventListener('input', function() {
+  document.getElementById('char-count').textContent = this.value.length;
+});
+
+async function submitFeedback() {
+  const category = document.getElementById('category').value;
+  const body = document.getElementById('body').value.trim();
+  if (!body) return showAlert('#alert', '内容を入力してください');
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = '送信中...';
+  try {
+    const res = await apiFetch('/feedback', {
+      method: 'POST',
+      body: JSON.stringify({ category, body })
+    });
+    showAlert('#alert', res.message, 'success');
+    document.getElementById('body').value = '';
+    document.getElementById('char-count').textContent = '0';
+  } catch (err) {
+    showAlert('#alert', err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '送信する';
+  }
+}
+</script>
+</body>
+</html>

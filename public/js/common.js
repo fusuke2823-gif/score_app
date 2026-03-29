@@ -108,6 +108,7 @@ function renderNav() {
         <a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">ショップ</a>
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">装備</a>` : ''}
         <span id="nav-gacha-desktop" style="display:contents"></span>
+        ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">お便り箱</a>` : ''}
         ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">管理</a>` : ''}
       </div>
       <div class="nav-user">
@@ -129,6 +130,7 @@ function renderNav() {
       <a href="/shop.html">ショップ</a>
       ${user ? `<a href="/shop.html?tab=equip">装備</a>` : ''}
       <span id="nav-gacha-mobile" style="display:contents"></span>
+      ${user ? `<a href="/feedback.html">お便り箱</a>` : ''}
       ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">アカウント</a>

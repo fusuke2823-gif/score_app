@@ -34,6 +34,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/gacha', require('./routes/gacha'));
+app.use('/api/feedback', require('./routes/feedback'));
 
 // 公開設定（バージョン等）
 const pool = require('./db/index');

@@ -53,6 +53,7 @@
     <button class="tab-btn" onclick="switchTab('gacha')">ガチャ管理</button>
     <button class="tab-btn" onclick="switchTab('loginbonus')">ログインボーナス</button>
     <button class="tab-btn" onclick="switchTab('history')">ポイント履歴</button>
+    <button class="tab-btn" onclick="switchTab('feedback')">お便り箱</button>
   </div>
 
   <!-- ポイント配布 -->
@@ -486,6 +487,17 @@
       </div>
     </div>
   </div>
+
+  <!-- お便り箱 -->
+  <div class="tab-content" id="tab-feedback">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">お便り箱</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadFeedback()">更新</button>
+      </div>
+      <div id="feedback-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -493,7 +505,7 @@
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
-const TAB_NAMES = ['points', 'gacha', 'loginbonus', 'history'];
+const TAB_NAMES = ['points', 'gacha', 'loginbonus', 'history', 'feedback'];
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
@@ -505,6 +517,7 @@ function switchTab(name) {
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
+  if (name === 'feedback') { loadFeedback(); }
 }
 
 // ===== 手動ポイント付与 =====
@@ -1524,6 +1537,40 @@ async function loadHistory(reset = false) {
 }
 
 function loadHistoryMore() { loadHistory(false); }
+
+// ===== お便り箱 =====
+const CATEGORY_COLORS = { '機能要望': '#4fc3f7', 'バグ報告': '#ef5350', 'その他': '#9e9e9e' };
+
+async function loadFeedback() {
+  const el = document.getElementById('feedback-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const list = await apiFetch('/feedback');
+    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem">まだお便りはありません</div>'; return; }
+    el.innerHTML = list.map(f => `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${f.is_read ? '0.5' : '1'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.72rem;font-weight:bold;padding:2px 8px;border-radius:4px;background:${CATEGORY_COLORS[f.category] || '#9e9e9e'}22;color:${CATEGORY_COLORS[f.category] || '#9e9e9e'}">${escHtml(f.category)}</span>
+            <span style="font-size:0.78rem;color:var(--text-muted)">${escHtml(f.username || '削除済みユーザー')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(f.created_at).toLocaleString('ja-JP')}</span>
+            ${!f.is_read ? `<button onclick="markFeedbackRead(${f.id},this)" style="font-size:0.72rem;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">既読</button>` : '<span style="font-size:0.72rem;color:var(--text-muted)">既読</span>'}
+          </div>
+        </div>
+        <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.body)}</div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div style="color:var(--error)">${escHtml(err.message)}</div>`; }
+}
+
+async function markFeedbackRead(id, btn) {
+  try {
+    await apiFetch(`/feedback/${id}/read`, { method: 'PATCH' });
+    btn.closest('div[style]').style.opacity = '0.5';
+    btn.replaceWith(Object.assign(document.createElement('span'), { style: 'font-size:0.72rem;color:var(--text-muted)', textContent: '既読' }));
+  } catch {}
+}
 </script>
 </body>
 </html>
