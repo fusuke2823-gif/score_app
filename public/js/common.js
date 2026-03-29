@@ -152,7 +152,21 @@ renderNav = function() {
   if (!document.getElementById('login-bonus-modal')) initLoginBonus();
   if (!document.getElementById('interim-dist-modal')) initInterimDistributionNotice();
   updateGachaNav();
+  updateFeedbackBadge();
 };
+
+async function updateFeedbackBadge() {
+  const user = getUser();
+  if (!user) return;
+  try {
+    const data = await apiFetch('/feedback/unread-reply-count');
+    if (!data.count) return;
+    const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
+    document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
+      a.innerHTML = 'お便り箱' + badge;
+    });
+  } catch {}
+}
 
 async function updateGachaNav() {
   try {
