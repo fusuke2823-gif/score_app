@@ -1548,7 +1548,7 @@ async function loadFeedback() {
     const list = await apiFetch('/feedback');
     if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem">まだお便りはありません</div>'; return; }
     el.innerHTML = list.map(f => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${f.is_read ? '0.5' : '1'}">
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${f.is_read ? '0.6' : '1'}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:0.72rem;font-weight:bold;padding:2px 8px;border-radius:4px;background:${CATEGORY_COLORS[f.category] || '#9e9e9e'}22;color:${CATEGORY_COLORS[f.category] || '#9e9e9e'}">${escHtml(f.category)}</span>
@@ -1560,6 +1560,20 @@ async function loadFeedback() {
           </div>
         </div>
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.body)}</div>
+        ${f.reply ? `
+        <div style="margin-top:10px;padding:8px 12px;border-left:3px solid var(--accent);background:var(--bg-primary);border-radius:0 6px 6px 0">
+          <div style="font-size:0.7rem;color:var(--accent);margin-bottom:3px">管理者の返信 · ${new Date(f.replied_at).toLocaleString('ja-JP')}</div>
+          <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.reply)}</div>
+          <button onclick="openReplyForm(${f.id})" style="font-size:0.7rem;margin-top:6px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信を編集</button>
+        </div>` : ''}
+        <div id="reply-form-${f.id}" style="display:none;margin-top:8px">
+          <textarea id="reply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000">${escHtml(f.reply || '')}</textarea>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button onclick="submitReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">送信</button>
+            <button onclick="closeReplyForm(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">キャンセル</button>
+          </div>
+        </div>
+        ${!f.reply ? `<button onclick="openReplyForm(${f.id})" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>` : ''}
       </div>`).join('');
   } catch (err) { el.innerHTML = `<div style="color:var(--error)">${escHtml(err.message)}</div>`; }
 }
@@ -1567,9 +1581,26 @@ async function loadFeedback() {
 async function markFeedbackRead(id, btn) {
   try {
     await apiFetch(`/feedback/${id}/read`, { method: 'PATCH' });
-    btn.closest('div[style]').style.opacity = '0.5';
+    btn.closest('div[style]').style.opacity = '0.6';
     btn.replaceWith(Object.assign(document.createElement('span'), { style: 'font-size:0.72rem;color:var(--text-muted)', textContent: '既読' }));
   } catch {}
+}
+
+function openReplyForm(id) {
+  document.getElementById(`reply-form-${id}`).style.display = 'block';
+}
+
+function closeReplyForm(id) {
+  document.getElementById(`reply-form-${id}`).style.display = 'none';
+}
+
+async function submitReply(id) {
+  const reply = document.getElementById(`reply-text-${id}`).value.trim();
+  if (!reply) return;
+  try {
+    await apiFetch(`/feedback/${id}/reply`, { method: 'PATCH', body: JSON.stringify({ reply }) });
+    loadFeedback();
+  } catch (err) { alert(err.message); }
 }
 </script>
 </body>
