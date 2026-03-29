@@ -17,9 +17,10 @@
 
   <!-- 属性フィルター -->
   <div id="filter-section" style="display:none">
-    <div style="display:flex;gap:8px;margin-bottom:12px">
+    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
       <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1">全属性ON</button>
       <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1">全属性OFF</button>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()">スコア投稿</button>
     </div>
     <div class="attr-filter" id="attr-filter">
       <button class="attr-btn attr-火 active" data-attr="火">火</button>
@@ -342,6 +343,14 @@ function toggleSection(id) {
   const open = el.style.display === 'none';
   el.style.display = open ? '' : 'none';
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function goSubmit() {
+  if (!getUser()) {
+    location.href = '/login.html';
+    return;
+  }
+  location.href = `/submit.html?event_id=${encodeURIComponent(eventId)}`;
 }
 
 loadEvent();

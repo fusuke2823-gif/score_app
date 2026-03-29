@@ -121,7 +121,13 @@ async function loadEvents() {
         sel.appendChild(opt);
       });
     }
+    const preselect = getParam('event_id');
+    if (preselect) {
+      sel.value = preselect;
+      if (!sel.value) sel.value = '';
+    }
     sel.addEventListener('change', loadMyScores);
+    loadMyScores();
   } catch (err) {
     showAlert('#alert', err.message);
   }
