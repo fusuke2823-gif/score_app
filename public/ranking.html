@@ -17,14 +17,17 @@
 
   <!-- 属性フィルター -->
   <div id="filter-section" style="display:none">
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <button class="attr-btn" onclick="selectAllAttrs()" style="font-size:0.78rem;padding:4px 12px">全属性ON</button>
+      <button class="attr-btn" onclick="deselectAllAttrs()" style="font-size:0.78rem;padding:4px 12px">全属性OFF</button>
+    </div>
     <div class="attr-filter" id="attr-filter">
-      <button class="attr-btn attr-btn-all active" data-attr="all">全属性</button>
-      <button class="attr-btn attr-火" data-attr="火">火</button>
-      <button class="attr-btn attr-氷" data-attr="氷">氷</button>
-      <button class="attr-btn attr-雷" data-attr="雷">雷</button>
-      <button class="attr-btn attr-光" data-attr="光">光</button>
-      <button class="attr-btn attr-闇" data-attr="闇">闇</button>
-      <button class="attr-btn attr-無" data-attr="無">無</button>
+      <button class="attr-btn attr-火 active" data-attr="火">火</button>
+      <button class="attr-btn attr-氷 active" data-attr="氷">氷</button>
+      <button class="attr-btn attr-雷 active" data-attr="雷">雷</button>
+      <button class="attr-btn attr-光 active" data-attr="光">光</button>
+      <button class="attr-btn attr-闇 active" data-attr="闇">闇</button>
+      <button class="attr-btn attr-無 active" data-attr="無">無</button>
     </div>
   </div>
 
@@ -112,30 +115,31 @@ if (!eventId) location.href = '/index.html';
 let selectedAttrs = new Set(ATTRIBUTES);
 
 function updateFilterUI() {
-  const isAll = selectedAttrs.size === ATTRIBUTES.length;
   document.querySelectorAll('#attr-filter .attr-btn').forEach(b => {
-    const a = b.dataset.attr;
-    if (a === 'all') {
-      b.classList.toggle('active', isAll);
-    } else {
-      b.classList.toggle('active', isAll || selectedAttrs.has(a));
-    }
+    b.classList.toggle('active', selectedAttrs.has(b.dataset.attr));
   });
+}
+
+function selectAllAttrs() {
+  selectedAttrs = new Set(ATTRIBUTES);
+  updateFilterUI();
+  loadRanking();
+}
+
+function deselectAllAttrs() {
+  selectedAttrs = new Set();
+  updateFilterUI();
+  loadRanking();
 }
 
 // 属性フィルターの初期化
 document.querySelectorAll('#attr-filter .attr-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const attr = btn.dataset.attr;
-    if (attr === 'all') {
-      selectedAttrs = new Set(ATTRIBUTES);
+    if (selectedAttrs.has(attr)) {
+      selectedAttrs.delete(attr);
     } else {
-      if (selectedAttrs.has(attr)) {
-        selectedAttrs.delete(attr);
-      } else {
-        selectedAttrs.add(attr);
-      }
-      if (selectedAttrs.size === 0) selectedAttrs = new Set(ATTRIBUTES);
+      selectedAttrs.add(attr);
     }
     updateFilterUI();
     loadRanking();
