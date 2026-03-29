@@ -126,7 +126,7 @@ router.get('/:id', async (req, res) => {
 // ランキング取得
 router.get('/:id/ranking', async (req, res) => {
   const { attributes } = req.query;
-  const selectedAttrs = attributes
+  const selectedAttrs = attributes !== undefined
     ? attributes.split(',').filter(Boolean)
     : ['火', '氷', '雷', '光', '闇', '無'];
   if (selectedAttrs.length === 0) return res.json([]);
