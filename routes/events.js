@@ -143,7 +143,8 @@ router.get('/:id/ranking', async (req, res) => {
           s.attribute,
           s.approved_score,
           s.approved_image_url,
-          s.is_anonymous
+          s.is_anonymous,
+          s.updated_at
         FROM scores s
         JOIN users u ON s.user_id = u.id
         WHERE s.event_id = $1
@@ -164,7 +165,8 @@ router.get('/:id/ranking', async (req, res) => {
         bs.attribute,
         bs.approved_score,
         bs.approved_image_url,
-        bs.is_anonymous
+        bs.is_anonymous,
+        MAX(bs.updated_at) OVER () AS last_updated_at
       FROM best_scores bs
       LEFT JOIN titles t ON bs.equipped_title_id = t.id
       LEFT JOIN frames f ON bs.equipped_frame_id = f.id

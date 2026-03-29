@@ -34,6 +34,7 @@
       <button class="active" onclick="setColMode('score')">スコア</button>
       <button onclick="setColMode('title')">称号</button>
     </div>
+    <div id="ranking-updated" style="font-size:0.75rem;color:var(--text-muted);text-align:right;margin-bottom:4px"></div>
     <div id="ranking-content">
       <div class="loading"><div class="spinner"></div>読み込み中...</div>
     </div>
@@ -221,6 +222,12 @@ async function loadRanking() {
   try {
     const attrs = [...selectedAttrs].join(',');
     const ranking = await apiFetch(`/events/${eventId}/ranking?attributes=${encodeURIComponent(attrs)}`);
+    const updatedEl = document.getElementById('ranking-updated');
+    if (ranking.length > 0 && ranking[0].last_updated_at) {
+      updatedEl.textContent = '最終更新: ' + new Date(ranking[0].last_updated_at).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    } else {
+      updatedEl.textContent = '';
+    }
 
     if (ranking.length === 0) {
       rankEl.innerHTML = `<div class="empty-state">
