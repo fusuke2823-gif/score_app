@@ -2,18 +2,24 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { error: 'しばらくしてから再試行してください' },
-  standardHeaders: true,
-  legacyHeaders: false
-});
+// シンプルなレート制限（15分間に20回まで）
+const _rateLimitStore = new Map();
+function authLimiter(req, res, next) {
+  const key = req.ip;
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000;
+  const max = 20;
+  const entry = _rateLimitStore.get(key) || { count: 0, resetAt: now + windowMs };
+  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + windowMs; }
+  entry.count++;
+  _rateLimitStore.set(key, entry);
+  if (entry.count > max) return res.status(429).json({ error: 'しばらくしてから再試行してください' });
+  next();
+}
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
