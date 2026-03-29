@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
+const { authenticateToken } = require('../middleware/auth');
 
 // ユーザー詳細（承認済みスコア一覧付き）
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const userResult = await pool.query(
       `SELECT u.id, u.username, u.oshi_character, u.created_at, u.equipped_title_id, gi.image_url AS equipped_icon_url, gi.rarity AS equipped_icon_rarity
