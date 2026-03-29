@@ -244,6 +244,14 @@ const initDB = async () => {
       ALTER TABLE feedback ADD COLUMN IF NOT EXISTS replied_at TIMESTAMPTZ;
       ALTER TABLE feedback ADD COLUMN IF NOT EXISTS reply_read BOOLEAN NOT NULL DEFAULT FALSE;
 
+      CREATE TABLE IF NOT EXISTS feedback_messages (
+        id SERIAL PRIMARY KEY,
+        feedback_id INTEGER REFERENCES feedback(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        body TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS event_interim_distributions (
         id SERIAL PRIMARY KEY,
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,

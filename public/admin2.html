@@ -1560,20 +1560,22 @@ async function loadFeedback() {
           </div>
         </div>
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.body)}</div>
-        ${f.reply ? `
-        <div style="margin-top:10px;padding:8px 12px;border-left:3px solid var(--accent);background:var(--bg-primary);border-radius:0 6px 6px 0">
-          <div style="font-size:0.7rem;color:var(--accent);margin-bottom:3px">管理者の返信 · ${new Date(f.replied_at).toLocaleString('ja-JP')}</div>
-          <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.reply)}</div>
-          <button onclick="openReplyForm(${f.id})" style="font-size:0.7rem;margin-top:6px;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信を編集</button>
+        ${(f.messages || []).length > 0 ? `
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+          ${f.messages.map(m => `
+          <div style="padding:8px 12px;border-left:3px solid ${m.is_admin ? 'var(--accent)' : 'var(--border)'};background:var(--bg-primary);border-radius:0 6px 6px 0">
+            <div style="font-size:0.7rem;color:${m.is_admin ? 'var(--accent)' : 'var(--text-muted)'};margin-bottom:3px">${m.is_admin ? '管理者' : escHtml(f.username || 'ユーザー')} · ${new Date(m.created_at).toLocaleString('ja-JP')}</div>
+            <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(m.body)}</div>
+          </div>`).join('')}
         </div>` : ''}
         <div id="reply-form-${f.id}" style="display:none;margin-top:8px">
-          <textarea id="reply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000">${escHtml(f.reply || '')}</textarea>
+          <textarea id="reply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000"></textarea>
           <div style="display:flex;gap:8px;margin-top:6px">
             <button onclick="submitReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">送信</button>
             <button onclick="closeReplyForm(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">キャンセル</button>
           </div>
         </div>
-        ${!f.reply ? `<button onclick="openReplyForm(${f.id})" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>` : ''}
+        <button onclick="openReplyForm(${f.id})" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>
       </div>`).join('');
   } catch (err) { el.innerHTML = `<div style="color:var(--error)">${escHtml(err.message)}</div>`; }
 }

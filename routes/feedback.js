@@ -3,6 +3,20 @@ const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
+// メッセージ一覧をfeedback_idで取得するヘルパー
+async function getMessages(feedbackId) {
+  const r = await pool.query(
+    `SELECT fm.id, fm.body, fm.created_at,
+            fm.user_id, u.username
+     FROM feedback_messages fm
+     LEFT JOIN users u ON fm.user_id = u.id
+     WHERE fm.feedback_id=$1
+     ORDER BY fm.created_at ASC`,
+    [feedbackId]
+  );
+  return r.rows.map(m => ({ ...m, is_admin: m.user_id === null }));
+}
+
 // 送信
 router.post('/', authenticateToken, async (req, res) => {
   const { category, body } = req.body;
@@ -21,15 +35,19 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
-// 管理者：一覧取得
+// 管理者：一覧取得（メッセージ含む）
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT f.id, f.category, f.body, f.is_read, f.created_at, u.username
+      `SELECT f.id, f.category, f.body, f.is_read, f.reply_read, f.created_at, u.username
        FROM feedback f LEFT JOIN users u ON f.user_id = u.id
        ORDER BY f.created_at DESC`
     );
-    res.json(result.rows);
+    const rows = await Promise.all(result.rows.map(async f => ({
+      ...f,
+      messages: await getMessages(f.id)
+    })));
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -47,15 +65,20 @@ router.patch('/:id/read', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// 管理者：返信
+// 管理者：返信（feedback_messagesに追加 + reply/replied_at更新 + reply_read=false）
 router.patch('/:id/reply', authenticateToken, requireAdmin, async (req, res) => {
   const { reply } = req.body;
   if (!reply || !reply.trim()) return res.status(400).json({ error: '返信内容を入力してください' });
   if (reply.length > 1000) return res.status(400).json({ error: '1000文字以内で入力してください' });
+  const fid = req.params.id;
   try {
     await pool.query(
-      'UPDATE feedback SET reply=$1, replied_at=NOW(), is_read=TRUE WHERE id=$2',
-      [reply.trim(), req.params.id]
+      'INSERT INTO feedback_messages (feedback_id, user_id, body) VALUES ($1, NULL, $2)',
+      [fid, reply.trim()]
+    );
+    await pool.query(
+      'UPDATE feedback SET reply=$1, replied_at=NOW(), is_read=TRUE, reply_read=FALSE WHERE id=$2',
+      [reply.trim(), fid]
     );
     res.json({ success: true });
   } catch (err) {
@@ -64,7 +87,7 @@ router.patch('/:id/reply', authenticateToken, requireAdmin, async (req, res) => 
   }
 });
 
-// ユーザー：自分のお便り一覧（返信含む）
+// ユーザー：自分のお便り一覧（メッセージ含む）
 router.get('/my', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
@@ -72,7 +95,11 @@ router.get('/my', authenticateToken, async (req, res) => {
        FROM feedback WHERE user_id=$1 ORDER BY created_at DESC`,
       [req.user.id]
     );
-    res.json(result.rows);
+    const rows = await Promise.all(result.rows.map(async f => ({
+      ...f,
+      messages: await getMessages(f.id)
+    })));
+    res.json(rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -100,6 +127,28 @@ router.patch('/mark-replies-read', authenticateToken, async (req, res) => {
       `UPDATE feedback SET reply_read=TRUE WHERE user_id=$1 AND reply IS NOT NULL AND reply_read=FALSE`,
       [req.user.id]
     );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ユーザー：追加返信（自分のfeedbackのみ）
+router.post('/:id/user-reply', authenticateToken, async (req, res) => {
+  const { body } = req.body;
+  if (!body || !body.trim()) return res.status(400).json({ error: '内容を入力してください' });
+  if (body.length > 1000) return res.status(400).json({ error: '1000文字以内で入力してください' });
+  const fid = req.params.id;
+  try {
+    const check = await pool.query('SELECT id FROM feedback WHERE id=$1 AND user_id=$2', [fid, req.user.id]);
+    if (check.rows.length === 0) return res.status(403).json({ error: '権限がありません' });
+    await pool.query(
+      'INSERT INTO feedback_messages (feedback_id, user_id, body) VALUES ($1, $2, $3)',
+      [fid, req.user.id, body.trim()]
+    );
+    // 管理者への未読フラグ（is_readをfalseに戻す）
+    await pool.query('UPDATE feedback SET is_read=FALSE WHERE id=$1', [fid]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);

@@ -74,7 +74,6 @@ async function loadMyFeedback() {
   const el = document.getElementById('my-feedback-list');
   try {
     const list = await apiFetch('/feedback/my');
-    // 未読返信を既読にする
     if (list.some(f => f.reply && !f.reply_read)) {
       apiFetch('/feedback/mark-replies-read', { method: 'PATCH' });
     }
@@ -82,22 +81,48 @@ async function loadMyFeedback() {
       el.innerHTML = '<div style="color:var(--text-muted);font-size:0.88rem">まだ送信したお便りはありません</div>';
       return;
     }
-    el.innerHTML = list.map(f => `
+    el.innerHTML = list.map(f => {
+      const hasAdminMsg = (f.messages || []).some(m => m.is_admin);
+      return `
       <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
           <span style="font-size:0.72rem;font-weight:bold;padding:2px 8px;border-radius:4px;background:${CAT_COLORS[f.category] || '#9e9e9e'}22;color:${CAT_COLORS[f.category] || '#9e9e9e'}">${escHtml(f.category)}</span>
           <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(f.created_at).toLocaleString('ja-JP')}</span>
-          ${f.reply ? '<span style="font-size:0.72rem;font-weight:bold;color:var(--accent)">返信あり</span>' : ''}
+          ${f.reply && !f.reply_read ? '<span style="font-size:0.72rem;font-weight:bold;color:var(--accent)">返信あり</span>' : ''}
         </div>
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(f.body)}</div>
-        ${f.reply ? `
-        <div style="margin-top:10px;padding:8px 12px;border-left:3px solid var(--accent);background:var(--bg-primary);border-radius:0 6px 6px 0">
-          <div style="font-size:0.7rem;color:var(--accent);margin-bottom:3px">管理者の返信 · ${new Date(f.replied_at).toLocaleString('ja-JP')}</div>
-          <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.reply)}</div>
+        ${(f.messages || []).length > 0 ? `
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+          ${f.messages.map(m => `
+          <div style="padding:8px 12px;border-left:3px solid ${m.is_admin ? 'var(--accent)' : 'var(--border)'};background:var(--bg-primary);border-radius:0 6px 6px 0">
+            <div style="font-size:0.7rem;color:${m.is_admin ? 'var(--accent)' : 'var(--text-muted)'};margin-bottom:3px">${m.is_admin ? '管理者' : 'あなた'} · ${new Date(m.created_at).toLocaleString('ja-JP')}</div>
+            <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(m.body)}</div>
+          </div>`).join('')}
         </div>` : ''}
-      </div>`).join('');
+        ${hasAdminMsg ? `
+        <div id="ureply-form-${f.id}" style="display:none;margin-top:8px">
+          <textarea id="ureply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000"></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button onclick="submitUserReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">送信</button>
+            <button onclick="document.getElementById('ureply-form-${f.id}').style.display='none'" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">キャンセル</button>
+          </div>
+        </div>
+        <button onclick="document.getElementById('ureply-form-${f.id}').style.display='block'" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>` : ''}
+      </div>`;
+    }).join('');
   } catch (err) {
     el.innerHTML = `<div style="color:var(--error);font-size:0.88rem">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function submitUserReply(id) {
+  const body = document.getElementById(`ureply-text-${id}`).value.trim();
+  if (!body) return;
+  try {
+    await apiFetch(`/feedback/${id}/user-reply`, { method: 'POST', body: JSON.stringify({ body }) });
+    loadMyFeedback();
+  } catch (err) {
+    showAlert('#alert', err.message);
   }
 }
 
