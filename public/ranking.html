@@ -114,6 +114,7 @@ const eventId = getParam('id');
 if (!eventId) location.href = '/index.html';
 
 let selectedAttrs = new Set(ATTRIBUTES);
+let _eventData = null;
 
 function updateFilterUI() {
   document.querySelectorAll('#attr-filter .attr-btn').forEach(b => {
@@ -151,6 +152,7 @@ document.querySelectorAll('#attr-filter .attr-btn').forEach(btn => {
 async function loadEvent() {
   try {
     const event = await apiFetch(`/events/${eventId}`);
+    _eventData = event;
     document.title = `${event.name} - HBR`;
 
     document.getElementById('event-header').innerHTML = `
@@ -345,10 +347,29 @@ function toggleSection(id) {
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
+function showRankingToast(msg) {
+  const el = document.createElement('div');
+  el.textContent = msg;
+  el.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:3000;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 22px;font-size:0.9rem;box-shadow:0 4px 18px rgba(0,0,0,0.5);text-align:center;max-width:90vw;pointer-events:none;white-space:nowrap';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
 function goSubmit() {
   if (!getUser()) {
     location.href = `/login.html?redirect=${encodeURIComponent(`/submit.html?event_id=${eventId}`)}`;
     return;
+  }
+  if (_eventData) {
+    const now = new Date();
+    if (_eventData.submission_start && now < new Date(_eventData.submission_start)) {
+      showRankingToast('このイベントはまだ投稿期間外です');
+      return;
+    }
+    if (_eventData.submission_end && now > new Date(_eventData.submission_end)) {
+      showRankingToast('このイベントは投稿期間が終了しています');
+      return;
+    }
   }
   location.href = `/submit.html?event_id=${encodeURIComponent(eventId)}`;
 }
