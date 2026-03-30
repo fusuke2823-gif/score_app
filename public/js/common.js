@@ -104,8 +104,8 @@ function renderNav() {
       <a class="nav-logo" href="/index.html">HBR-RB</a>
       <div class="nav-links">
         <a href="/index.html" class="${currentPath === '/' || currentPath === '/index.html' ? 'active' : ''}">イベント一覧</a>
-        ${user ? `<a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>` : ''}
-        <a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">ショップ</a>
+        <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>
+        ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">ショップ</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">装備</a>` : ''}
         <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">お便り箱</a>` : ''}
@@ -126,8 +126,8 @@ function renderNav() {
     </div>
     <div class="nav-mobile" id="nav-mobile">
       <a href="/index.html">イベント一覧</a>
-      ${user ? `<a href="/submit.html">スコア投稿</a>` : ''}
-      <a href="/shop.html">ショップ</a>
+      <a href="/submit.html">スコア投稿</a>
+      ${user ? `<a href="/shop.html">ショップ</a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">装備</a>` : ''}
       <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user ? `<a href="/feedback.html">お便り箱</a>` : ''}
@@ -201,7 +201,7 @@ function logout() {
 
 function requireLogin() {
   if (!getToken()) {
-    location.href = '/login.html';
+    location.href = `/login.html?redirect=${encodeURIComponent(location.pathname + location.search)}`;
     return false;
   }
   return true;
