@@ -347,7 +347,7 @@ function toggleSection(id) {
 
 function goSubmit() {
   if (!getUser()) {
-    location.href = '/login.html';
+    location.href = `/login.html?redirect=${encodeURIComponent(`/submit.html?event_id=${eventId}`)}`;
     return;
   }
   location.href = `/submit.html?event_id=${encodeURIComponent(eventId)}`;

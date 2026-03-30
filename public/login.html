@@ -52,7 +52,8 @@ document.getElementById('login-form').addEventListener('submit', async e => {
       })
     });
     setAuth(data.token, data.user);
-    location.href = '/index.html';
+    const redirect = new URLSearchParams(location.search).get('redirect');
+    location.href = redirect || '/index.html';
   } catch (err) {
     showAlert('#alert', err.message);
     btn.disabled = false;
