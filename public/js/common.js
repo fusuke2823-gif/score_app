@@ -183,7 +183,8 @@ async function updateGachaNav() {
       localStorage.setItem('gacha_nav_cached_at', Date.now());
     }
     const user = getUser();
-    if (!show && !(user && user.role === 'admin')) return;
+    if (!user) return;
+    if (!show && user.role !== 'admin') return;
     const currentPath = location.pathname;
     const isActive = currentPath === '/gacha.html';
     const linkHtml = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>ガチャ</a>`;
