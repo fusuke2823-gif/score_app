@@ -376,6 +376,25 @@ router.delete('/titles/:id', async (req, res) => {
   }
 });
 
+// 称号所持者一覧
+router.get('/titles/:id/holders', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT u.id, u.username, ut.acquired_at,
+              (u.equipped_title_id = $1) AS is_equipped
+       FROM user_titles ut
+       JOIN users u ON ut.user_id = u.id
+       WHERE ut.title_id = $1
+       ORDER BY ut.acquired_at ASC`,
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // ===== ポイント配布 =====
 // 中間配布可能なイベント一覧（開催中・未最終配布）
 router.get('/events/interim-distributable', async (req, res) => {
