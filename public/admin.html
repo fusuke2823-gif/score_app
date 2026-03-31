@@ -897,15 +897,26 @@ async function toggleTitleHolders(id) {
       content.innerHTML = '<span>所持者なし</span>';
       return;
     }
-    content.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px">` +
+    content.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px">` +
       holders.map(h => `
-        <a href="/user.html?id=${h.id}" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);font-size:0.8rem;color:var(--text);text-decoration:none">
-          ${escHtml(h.username)}
+        <div style="display:flex;align-items:center;gap:8px">
+          <a href="/user.html?id=${h.id}" style="font-size:0.85rem;color:var(--text);text-decoration:none">${escHtml(h.username)}</a>
           ${h.is_equipped ? '<span style="font-size:0.65rem;color:var(--accent)">装備中</span>' : ''}
-        </a>`).join('') +
+          <button onclick="revokeTitle(${id},${h.id},this)" style="margin-left:auto;font-size:0.72rem;padding:2px 8px;border:1px solid var(--error,#ef5350);border-radius:4px;background:none;color:var(--error,#ef5350);cursor:pointer">回収</button>
+        </div>`).join('') +
       `</div><div style="margin-top:6px;font-size:0.75rem;color:var(--text-muted)">${holders.length}人</div>`;
   } catch (err) {
     content.innerHTML = `<span style="color:var(--error)">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function revokeTitle(titleId, userId, btn) {
+  if (!confirm('この称号を回収しますか？')) return;
+  try {
+    await apiFetch(`/admin/titles/${titleId}/holders/${userId}`, { method: 'DELETE' });
+    btn.closest('div[style]').remove();
+  } catch (err) {
+    showAlert('#alert', err.message);
   }
 }
 

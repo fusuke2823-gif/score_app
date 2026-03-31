@@ -395,6 +395,19 @@ router.get('/titles/:id/holders', async (req, res) => {
   }
 });
 
+// 称号回収
+router.delete('/titles/:titleId/holders/:userId', async (req, res) => {
+  const { titleId, userId } = req.params;
+  try {
+    await pool.query('DELETE FROM user_titles WHERE title_id=$1 AND user_id=$2', [titleId, userId]);
+    await pool.query('UPDATE users SET equipped_title_id=NULL WHERE id=$1 AND equipped_title_id=$2', [userId, titleId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // ===== ポイント配布 =====
 // 中間配布可能なイベント一覧（開催中・未最終配布）
 router.get('/events/interim-distributable', async (req, res) => {
