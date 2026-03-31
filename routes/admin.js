@@ -577,7 +577,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     const rankTitleDefs = [
       { key: 'rank1', rank: 1, label: '優勝' },
       { key: 'rank2', rank: 2, label: '準優勝' },
-      { key: 'rank3', rank: 3, label: '3位' },
+      { key: 'rank3', rank: 3, label: '第3位' },
     ];
     for (const def of rankTitleDefs) {
       if (!award_titles[def.key]) continue;
@@ -599,13 +599,15 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     for (const attr of ATTRIBUTES) {
       if (!award_titles[`attr_${attr}`]) continue;
       const attrResult = await client.query(
-        `SELECT DISTINCT ON (user_id) user_id, approved_score FROM scores
+        `SELECT user_id, MAX(approved_score) AS approved_score FROM scores
          WHERE event_id=$1 AND approved_score IS NOT NULL AND attribute=$2
-         ORDER BY user_id, approved_score DESC`,
+         GROUP BY user_id
+         ORDER BY approved_score DESC
+         LIMIT 1`,
         [req.params.id, attr]
       );
       if (attrResult.rows.length === 0) continue;
-      const best = attrResult.rows.reduce((a, b) => b.approved_score > a.approved_score ? b : a);
+      const best = attrResult.rows[0];
       const titleName = `${event.name} ${attr}属性1位`;
       const tr = await client.query(
         'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
