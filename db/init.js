@@ -64,6 +64,15 @@ const initDB = async () => {
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS oshi_character VARCHAR(100);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_title_id INTEGER;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date DATE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS login_streak INTEGER DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_frame_id INTEGER;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS total_login_days INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_icon_id INTEGER;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS gp INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS gp_migrated BOOLEAN NOT NULL DEFAULT FALSE;
     `);
 
     // tower_usersにデータが残っている場合はusersに復元する
