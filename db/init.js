@@ -66,6 +66,21 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
     `);
 
+    // tower_usersにデータが残っている場合はusersに復元する
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_name = 'tower_users' AND table_schema = 'public'
+        ) THEN
+          INSERT INTO users (id, username, password_hash, created_at)
+          SELECT id, username, password_hash, created_at FROM tower_users
+          ON CONFLICT (id) DO NOTHING;
+          PERFORM setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
+        END IF;
+      END $$;
+    `);
+
     // 管理者アカウントの自動作成
     if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) {
       const existing = await client.query(
