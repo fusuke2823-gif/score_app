@@ -83,9 +83,14 @@ const initDB = async () => {
           WHERE table_name = 'tower_users' AND table_schema = 'public'
         ) THEN
           INSERT INTO users (id, username, password_hash, created_at)
-          SELECT id, username, password_hash, created_at FROM tower_users
-          WHERE id NOT IN (SELECT id FROM users)
-            AND username NOT IN (SELECT username FROM users);
+          SELECT id,
+            CASE WHEN username IN (SELECT username FROM users)
+              THEN username || '_' || id::text
+              ELSE username
+            END,
+            password_hash, created_at
+          FROM tower_users
+          WHERE id NOT IN (SELECT id FROM users);
           PERFORM setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
         END IF;
       END $$;
