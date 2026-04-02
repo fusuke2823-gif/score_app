@@ -75,7 +75,8 @@ const initDB = async () => {
         ) THEN
           INSERT INTO users (id, username, password_hash, created_at)
           SELECT id, username, password_hash, created_at FROM tower_users
-          ON CONFLICT (id) DO NOTHING;
+          WHERE id NOT IN (SELECT id FROM users)
+            AND username NOT IN (SELECT username FROM users);
           PERFORM setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
         END IF;
       END $$;
