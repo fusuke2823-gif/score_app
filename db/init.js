@@ -91,6 +91,38 @@ const initDB = async () => {
       END $$;
     `);
 
+    // tower_usersを参照しているFK制約をusersに向け直す（tower専用テーブルは除外）
+    await client.query(`
+      DO $$ DECLARE
+        r RECORD;
+      BEGIN
+        FOR r IN (
+          SELECT tc.table_name, kcu.column_name, tc.constraint_name, rc.delete_rule
+          FROM information_schema.table_constraints tc
+          JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+          JOIN information_schema.referential_constraints rc
+            ON tc.constraint_name = rc.constraint_name
+          JOIN information_schema.table_constraints tc2
+            ON rc.unique_constraint_name = tc2.constraint_name
+          WHERE tc2.table_name = 'tower_users'
+            AND tc.constraint_type = 'FOREIGN KEY'
+            AND tc.table_schema = 'public'
+            AND tc.table_name NOT IN ('saves', 'gacha_history', 'transactions')
+        )
+        LOOP
+          EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.table_name, r.constraint_name);
+          IF r.delete_rule = 'CASCADE' THEN
+            EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES users(id) ON DELETE CASCADE', r.table_name, r.constraint_name, r.column_name);
+          ELSIF r.delete_rule = 'SET NULL' THEN
+            EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES users(id) ON DELETE SET NULL', r.table_name, r.constraint_name, r.column_name);
+          ELSE
+            EXECUTE format('ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES users(id)', r.table_name, r.constraint_name, r.column_name);
+          END IF;
+        END LOOP;
+      END $$;
+    `);
+
     // 管理者アカウントの自動作成
     if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) {
       const existing = await client.query(
