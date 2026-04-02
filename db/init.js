@@ -60,6 +60,12 @@ const initDB = async () => {
       );
     `);
 
+    // usersテーブルに必須カラムが不足している場合は追加（他サービスからのリネーム復元対策）
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS oshi_character VARCHAR(100);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user';
+    `);
+
     // 管理者アカウントの自動作成
     if (process.env.ADMIN_USERNAME && process.env.ADMIN_PASSWORD) {
       const existing = await client.query(
