@@ -125,7 +125,7 @@ const _i18n = {
     'loading':'載入中...','error':'發生錯誤','close':'關閉',
     'save':'儲存','cancel':'取消','send':'送出',
     'status.pending':'待審核','status.approved':'已核准','status.rejected':'已拒絕',
-    'attr.火':'火','attr.氷':'冰','attr.雷':'雷','attr.光':'光','attr.闇':'暗','attr.無':'無',
+    'attr.火':'火','attr.氷':'氷','attr.雷':'雷','attr.光':'光','attr.闇':'闇','attr.無':'無',
     'event.before':'尚未開始','event.ended':'已結束','event.active':'進行中',
     'event.hours_left':'剩{0}小時','event.days_left':'剩{0}天',
     'event.empty':'目前沒有公開的活動','event.back':'← 活動列表',
