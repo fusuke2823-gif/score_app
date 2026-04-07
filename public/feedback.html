@@ -9,35 +9,36 @@
 <body>
 <nav id="nav"></nav>
 <main>
-  <h1 class="page-title">お便り箱</h1>
-  <p class="page-subtitle">機能要望・バグ報告・その他ご意見をお送りください</p>
+  <h1 class="page-title" data-i18n="feedback.title">お便り箱</h1>
+  <p class="page-subtitle" data-i18n="feedback.subtitle">機能要望・バグ報告・その他ご意見をお送りください</p>
   <div style="max-width:520px;margin:0 auto">
     <div id="alert"></div>
     <div class="card">
       <div class="form-group">
-        <label class="form-label">カテゴリ</label>
+        <label class="form-label" data-i18n="feedback.category">カテゴリ</label>
         <select class="form-select" id="category">
-          <option value="機能要望">機能要望</option>
-          <option value="バグ報告">バグ報告</option>
-          <option value="その他">その他</option>
+          <option value="機能要望" data-i18n="feedback.cat_feature">機能要望</option>
+          <option value="バグ報告" data-i18n="feedback.cat_bug">バグ報告</option>
+          <option value="その他" data-i18n="feedback.cat_other">その他</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">内容</label>
-        <textarea class="form-input" id="body" rows="6" maxlength="1000" placeholder="ご意見・ご要望をご記入ください（1000文字以内）" style="resize:vertical"></textarea>
-        <div class="form-hint"><span id="char-count">0</span> / 1000文字</div>
+        <label class="form-label" data-i18n="feedback.body">内容</label>
+        <textarea class="form-input" id="body" rows="6" maxlength="1000" data-i18n-ph="feedback.body_ph" placeholder="ご意見・ご要望をご記入ください（1000文字以内）" style="resize:vertical"></textarea>
+        <div class="form-hint"><span id="char-count">0</span><span data-i18n="feedback.char_limit"> / 1000文字</span></div>
       </div>
-      <button class="btn btn-primary" style="width:100%" onclick="submitFeedback()" id="submit-btn">送信する</button>
+      <button class="btn btn-primary" style="width:100%" onclick="submitFeedback()" id="submit-btn" data-i18n="feedback.btn">送信する</button>
     </div>
-    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;text-align:center">送信内容はユーザー名と共に管理者のみ確認できます</p>
+    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;text-align:center" data-i18n="feedback.disclaimer">送信内容はユーザー名と共に管理者のみ確認できます</p>
 
-    <h2 style="font-size:1rem;font-weight:bold;margin:28px 0 12px">送信済みのお便り</h2>
+    <h2 style="font-size:1rem;font-weight:bold;margin:28px 0 12px" data-i18n="feedback.history">送信済みのお便り</h2>
     <div id="my-feedback-list"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </main>
 <script src="/js/common.js"></script>
 <script>
 renderNav();
+applyI18n();
 if (!requireLogin()) throw new Error('redirect');
 
 document.getElementById('body').addEventListener('input', function() {
@@ -47,10 +48,10 @@ document.getElementById('body').addEventListener('input', function() {
 async function submitFeedback() {
   const category = document.getElementById('category').value;
   const body = document.getElementById('body').value.trim();
-  if (!body) return showAlert('#alert', '内容を入力してください');
+  if (!body) return showAlert('#alert', t('feedback.err_empty'));
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
-  btn.textContent = '送信中...';
+  btn.textContent = t('feedback.btn_loading');
   try {
     const res = await apiFetch('/feedback', {
       method: 'POST',
@@ -64,7 +65,7 @@ async function submitFeedback() {
     showAlert('#alert', err.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '送信する';
+    btn.textContent = t('feedback.btn');
   }
 }
 
@@ -78,7 +79,7 @@ async function loadMyFeedback() {
       apiFetch('/feedback/mark-replies-read', { method: 'PATCH' });
     }
     if (list.length === 0) {
-      el.innerHTML = '<div style="color:var(--text-muted);font-size:0.88rem">まだ送信したお便りはありません</div>';
+      el.innerHTML = `<div style="color:var(--text-muted);font-size:0.88rem">${t('feedback.empty')}</div>`;
       return;
     }
     el.innerHTML = list.map(f => {
@@ -87,27 +88,27 @@ async function loadMyFeedback() {
       <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
           <span style="font-size:0.72rem;font-weight:bold;padding:2px 8px;border-radius:4px;background:${CAT_COLORS[f.category] || '#9e9e9e'}22;color:${CAT_COLORS[f.category] || '#9e9e9e'}">${escHtml(f.category)}</span>
-          <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(f.created_at).toLocaleString('ja-JP')}</span>
-          ${f.reply && !f.reply_read ? '<span style="font-size:0.72rem;font-weight:bold;color:var(--accent)">返信あり</span>' : ''}
+          <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(f.created_at).toLocaleString(getLangLocale())}</span>
+          ${f.reply && !f.reply_read ? `<span style="font-size:0.72rem;font-weight:bold;color:var(--accent)">${t('feedback.has_reply')}</span>` : ''}
         </div>
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(f.body)}</div>
         ${(f.messages || []).length > 0 ? `
         <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
           ${f.messages.map(m => `
           <div style="padding:8px 12px;border-left:3px solid ${m.is_admin ? 'var(--accent)' : 'var(--border)'};background:var(--bg-primary);border-radius:0 6px 6px 0">
-            <div style="font-size:0.7rem;color:${m.is_admin ? 'var(--accent)' : 'var(--text-muted)'};margin-bottom:3px">${m.is_admin ? '管理者' : 'あなた'} · ${new Date(m.created_at).toLocaleString('ja-JP')}</div>
+            <div style="font-size:0.7rem;color:${m.is_admin ? 'var(--accent)' : 'var(--text-muted)'};margin-bottom:3px">${m.is_admin ? t('feedback.admin') : t('feedback.you')} · ${new Date(m.created_at).toLocaleString(getLangLocale())}</div>
             <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(m.body)}</div>
           </div>`).join('')}
         </div>` : ''}
         ${hasAdminMsg ? `
         <div id="ureply-form-${f.id}" style="display:none;margin-top:8px">
-          <textarea id="ureply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000"></textarea>
+          <textarea id="ureply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="${t('feedback.reply_ph')}" maxlength="1000"></textarea>
           <div style="display:flex;gap:8px;margin-top:6px">
-            <button onclick="submitUserReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">送信</button>
-            <button onclick="document.getElementById('ureply-form-${f.id}').style.display='none'" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">キャンセル</button>
+            <button onclick="submitUserReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">${t('send')}</button>
+            <button onclick="document.getElementById('ureply-form-${f.id}').style.display='none'" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">${t('cancel')}</button>
           </div>
         </div>
-        <button onclick="document.getElementById('ureply-form-${f.id}').style.display='block'" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>` : ''}
+        <button onclick="document.getElementById('ureply-form-${f.id}').style.display='block'" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">${t('feedback.reply_btn')}</button>` : ''}
       </div>`;
     }).join('');
   } catch (err) {

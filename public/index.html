@@ -9,17 +9,18 @@
 <body>
 <nav id="nav"></nav>
 <main>
-  <h1 class="page-title">ヘブバン ランキングボード</h1>
+  <h1 class="page-title" data-i18n="index.title">ヘブバン ランキングボード</h1>
   <p id="app-version" style="font-size:0.8rem;color:var(--text-muted);margin:-8px 0 4px"></p>
-  <p class="page-subtitle">制作:つんつく</p>
+  <p class="page-subtitle" data-i18n="index.subtitle">制作:つんつく</p>
   <div id="alert"></div>
   <div id="content">
-    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
   </div>
 </main>
 <script src="/js/common.js"></script>
 <script>
 renderNav();
+applyI18n();
 
 apiFetch('/version').then(d => {
   const el = document.getElementById('app-version');
@@ -33,7 +34,7 @@ async function load() {
     if (events.length === 0) {
       el.innerHTML = `<div class="empty-state">
         <div class="empty-state-icon">📋</div>
-        <p>現在公開中のイベントはありません</p>
+        <p>${t('event.empty')}</p>
       </div>`;
       return;
     }
@@ -43,21 +44,21 @@ async function load() {
       const end = e.submission_end ? new Date(e.submission_end) : null;
       let statusLabel, statusStyle;
       if (start && now < start) {
-        statusLabel = '開催前';
+        statusLabel = t('event.before');
         statusStyle = 'color:var(--text-muted)';
       } else if (end && now > end) {
-        statusLabel = '終了';
+        statusLabel = t('event.ended');
         statusStyle = 'color:var(--text-muted)';
       } else if (end) {
         const diffMs = end - now;
         const diffHours = diffMs / (1000 * 60 * 60);
         const remaining = diffHours < 24
-          ? `あと${Math.ceil(diffHours)}時間`
-          : `あと${Math.ceil(diffHours / 24)}日`;
-        statusLabel = `開催中 ${remaining}`;
+          ? t('event.hours_left', Math.ceil(diffHours))
+          : t('event.days_left', Math.ceil(diffHours / 24));
+        statusLabel = `${t('event.active')} ${remaining}`;
         statusStyle = 'color:#4caf50;font-weight:bold';
       } else {
-        statusLabel = '開催中';
+        statusLabel = t('event.active');
         statusStyle = 'color:#4caf50;font-weight:bold';
       }
       return `

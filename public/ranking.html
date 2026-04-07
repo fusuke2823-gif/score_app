@@ -18,29 +18,29 @@
   <!-- 属性フィルター -->
   <div id="filter-section" style="display:none">
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
-      <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1">全属性ON</button>
-      <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1">全属性OFF</button>
-      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()">スコア投稿</button>
+      <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
+      <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_off">全属性OFF</button>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
     <div class="attr-filter" id="attr-filter">
-      <button class="attr-btn attr-火 active" data-attr="火">火</button>
-      <button class="attr-btn attr-氷 active" data-attr="氷">氷</button>
-      <button class="attr-btn attr-雷 active" data-attr="雷">雷</button>
-      <button class="attr-btn attr-光 active" data-attr="光">光</button>
-      <button class="attr-btn attr-闇 active" data-attr="闇">闇</button>
-      <button class="attr-btn attr-無 active" data-attr="無">無</button>
+      <button class="attr-btn attr-火 active" data-attr="火" data-i18n="attr.火">火</button>
+      <button class="attr-btn attr-氷 active" data-attr="氷" data-i18n="attr.氷">氷</button>
+      <button class="attr-btn attr-雷 active" data-attr="雷" data-i18n="attr.雷">雷</button>
+      <button class="attr-btn attr-光 active" data-attr="光" data-i18n="attr.光">光</button>
+      <button class="attr-btn attr-闇 active" data-attr="闇" data-i18n="attr.闇">闇</button>
+      <button class="attr-btn attr-無 active" data-attr="無" data-i18n="attr.無">無</button>
     </div>
   </div>
 
   <!-- ランキング -->
   <div class="card">
     <div id="col-toggle">
-      <button class="active" onclick="setColMode('score')">スコア</button>
-      <button onclick="setColMode('title')">称号</button>
+      <button class="active" onclick="setColMode('score')" data-i18n="ranking.col_score">スコア</button>
+      <button onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
     </div>
     <div id="ranking-updated" style="font-size:0.75rem;color:var(--text-muted);text-align:right;margin-bottom:4px"></div>
     <div id="ranking-content">
-      <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
     </div>
   </div>
 </main>
@@ -109,6 +109,7 @@
 <script src="/js/common.js"></script>
 <script>
 renderNav();
+applyI18n();
 
 const eventId = getParam('id');
 if (!eventId) location.href = '/index.html';
@@ -156,7 +157,7 @@ async function loadEvent() {
     document.title = `${event.name} - HBR`;
 
     document.getElementById('event-header').innerHTML = `
-      <a class="back-link" href="/index.html">← イベント一覧</a>
+      <a class="back-link" href="/index.html">${t('event.back')}</a>
       <h1 class="page-title">${escHtml(event.name)}</h1>
       ${event.description ? `<p class="page-subtitle">${escHtml(event.description)}</p>` : ''}
       ${renderSubmissionPeriod(event)}
@@ -167,7 +168,7 @@ async function loadEvent() {
       enemySectionHtml += `
         <div class="enemy-section">
           <button class="section-toggle-btn" onclick="toggleSection('enemy-content')" aria-expanded="false">
-            <span>出現する敵</span><span class="toggle-arrow">▶</span>
+            <span>${t('ranking.enemies')}</span><span class="toggle-arrow">▶</span>
           </button>
           <div id="enemy-content" style="display:none">
             <div class="enemy-cards">
@@ -180,7 +181,7 @@ async function loadEvent() {
       enemySectionHtml += `
         <div class="enemy-section" style="margin-top:8px">
           <button class="section-toggle-btn" onclick="toggleSection('rules-content')" aria-expanded="false">
-            <span>イベントルール</span><span class="toggle-arrow">▶</span>
+            <span>${t('ranking.rules')}</span><span class="toggle-arrow">▶</span>
           </button>
           <div id="rules-content" style="display:none">
             <ul class="enemy-rules" style="margin:12px 0 0 0;padding-left:20px">
@@ -217,21 +218,21 @@ function renderEnemy(enemy) {
       ${hpDpEp}
       ${enemy.destruction_rate ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${escHtml(enemy.destruction_rate)}</span></span>` : ''}
     </div>
-    ${weakBadges ? `<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:0.75rem;color:var(--text-muted);margin-right:2px">弱点</span>${weakBadges}</div>` : ''}
+    ${weakBadges ? `<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:0.75rem;color:var(--text-muted);margin-right:2px">${t('ranking.weak')}</span>${weakBadges}</div>` : ''}
   </div>`;
 }
 
 // ランキング
 async function loadRanking() {
   const rankEl = document.getElementById('ranking-content');
-  rankEl.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  rankEl.innerHTML = `<div class="loading"><div class="spinner"></div>${t('loading')}</div>`;
 
   try {
     const attrs = [...selectedAttrs].join(',');
     const ranking = await apiFetch(`/events/${eventId}/ranking?attributes=${encodeURIComponent(attrs)}`);
     const updatedEl = document.getElementById('ranking-updated');
     if (ranking.length > 0 && ranking[0].last_updated_at) {
-      updatedEl.textContent = '最終更新: ' + new Date(ranking[0].last_updated_at).toLocaleString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+      updatedEl.textContent = t('ranking.last_updated') + new Date(ranking[0].last_updated_at).toLocaleString(getLangLocale(), { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
     } else {
       updatedEl.textContent = '';
     }
@@ -239,7 +240,7 @@ async function loadRanking() {
     if (ranking.length === 0) {
       rankEl.innerHTML = `<div class="empty-state">
         <div class="empty-state-icon">📊</div>
-        <p>選択した属性のスコアデータがありません</p>
+        <p>${t('ranking.empty')}</p>
       </div>`;
       return;
     }
@@ -248,13 +249,13 @@ async function loadRanking() {
       <table class="ranking-table">
         <thead>
           <tr>
-            <th>順位</th>
-            <th>属性</th>
+            <th>${t('ranking.th_rank')}</th>
+            <th>${t('ranking.th_attr')}</th>
             <th class="col-avatar"></th>
-            <th>プレイヤー</th>
-            <th class="col-score" style="text-align:right">スコア</th>
+            <th>${t('ranking.th_player')}</th>
+            <th class="col-score" style="text-align:right">${t('ranking.th_score')}</th>
             <th class="col-img"></th>
-            <th class="col-title" style="font-size:0.8rem">称号</th>
+            <th class="col-title" style="font-size:0.8rem">${t('ranking.th_title')}</th>
           </tr>
         </thead>
         <tbody>
@@ -267,15 +268,15 @@ async function loadRanking() {
             <tr class="rank-${r.rank} ${fr}">
               <td><span class="rank-num">${r.rank}</span></td>
               <td class="${fc ? 'frame-start' : ''}">${attrBadge(r.attribute)}</td>
-              <td class="col-avatar">${showAnon ? `<span class="rank-avatar" style="display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">匿</span>` : `<a class="rank-avatar" href="/user.html?id=${r.user_id}">${r.equipped_icon_url ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(r.username.charAt(0))}</a>`}</td>
+              <td class="col-avatar">${showAnon ? `<span class="rank-avatar" style="display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">${t('ranking.anonymous').charAt(0)}</span>` : `<a class="rank-avatar" href="/user.html?id=${r.user_id}">${r.equipped_icon_url ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(r.username.charAt(0))}</a>`}</td>
               <td class="${fc ? 'frame-name' : ''}">
-                ${showAnon ? `<span style="color:#e8e8e8">匿名</span>` : r.is_anonymous ? `<a href="/user.html?id=${r.user_id}" style="color:#e8e8e8">${escHtml(r.username)}</a>` : `<a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>`}
+                ${showAnon ? `<span style="color:#e8e8e8">${t('ranking.anonymous')}</span>` : r.is_anonymous ? `<a href="/user.html?id=${r.user_id}" style="color:#e8e8e8">${escHtml(r.username)}</a>` : `<a href="/user.html?id=${r.user_id}">${escHtml(r.username)}</a>`}
                 ${!showAnon && r.equipped_title ? `<span class="oshi-tag title-tooltip-wrap" style="font-size:0.75rem;color:#fff;margin-left:6px">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : ''}
               </td>
               <td class="col-score ${fc ? 'frame-score' : ''}" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
               <td class="col-img img-col ${fc ? 'frame-img' : ''}" style="text-align:center">
                 ${r.approved_image_url
-                  ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="結果" onclick="openModal('${escHtml(r.approved_image_url)}')">`
+                  ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="result" onclick="openModal('${escHtml(r.approved_image_url)}')">`
                   : ''}
               </td>
               <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
@@ -306,26 +307,6 @@ function closeModal() {
 document.getElementById('img-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
 });
-
-function renderSubmissionPeriod(event) {
-  const start = event.submission_start ? new Date(event.submission_start) : null;
-  const end = event.submission_end ? new Date(event.submission_end) : null;
-  if (!start && !end) return '<div style="margin-bottom:20px"></div>';
-  const now = new Date();
-  const fmt = d => d.toLocaleString('ja-JP', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
-  let label, color;
-  if (start && now < start) {
-    label = `投稿期間: ${fmt(start)} 〜 ${end ? fmt(end) : ''}（開始前）`;
-    color = 'var(--text-muted)';
-  } else if (end && now > end) {
-    label = `投稿期間: ${fmt(start || '')} 〜 ${fmt(end)}（終了）`;
-    color = 'var(--text-muted)';
-  } else {
-    label = `投稿受付中: 〜 ${end ? fmt(end) : '期限なし'}`;
-    color = 'var(--accent)';
-  }
-  return `<p style="font-size:0.82rem;color:${color};margin-bottom:20px">${label}</p>`;
-}
 
 // 称号ツールチップ（タップ）
 document.addEventListener('click', e => {
@@ -363,11 +344,11 @@ function goSubmit() {
   if (_eventData) {
     const now = new Date();
     if (_eventData.submission_start && now < new Date(_eventData.submission_start)) {
-      showRankingToast('このイベントはまだ投稿期間外です');
+      showRankingToast(t('ranking.not_started'));
       return;
     }
     if (_eventData.submission_end && now > new Date(_eventData.submission_end)) {
-      showRankingToast('このイベントは投稿期間が終了しています');
+      showRankingToast(t('ranking.period_ended'));
       return;
     }
   }

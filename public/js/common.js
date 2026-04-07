@@ -2,6 +2,250 @@ const API = '/api';
 
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 
+// ===== 国際化 (i18n) =====
+const _i18n = {
+  ja: {
+    'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
+    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱',
+    'nav.admin':'管理','nav.account':'アカウント','nav.logout':'ログアウト',
+    'nav.login':'ログイン','nav.register':'登録','nav.register_full':'新規登録',
+    'nav.admin_badge':'管理者','nav.menu':'メニュー',
+    'loading':'読み込み中...','error':'エラーが発生しました','close':'閉じる',
+    'save':'保存する','cancel':'キャンセル','send':'送信',
+    'status.pending':'承認待ち','status.approved':'承認済み','status.rejected':'却下',
+    'attr.火':'火','attr.氷':'氷','attr.雷':'雷','attr.光':'光','attr.闇':'闇','attr.無':'無',
+    'event.before':'開催前','event.ended':'終了','event.active':'開催中',
+    'event.hours_left':'あと{0}時間','event.days_left':'あと{0}日',
+    'event.empty':'現在公開中のイベントはありません','event.back':'← イベント一覧',
+    'index.title':'ヘブバン ランキングボード','index.subtitle':'制作:つんつく',
+    'ranking.all_on':'全属性ON','ranking.all_off':'全属性OFF','ranking.submit_btn':'スコア投稿',
+    'ranking.col_score':'スコア','ranking.col_title':'称号',
+    'ranking.th_rank':'順位','ranking.th_attr':'属性','ranking.th_player':'プレイヤー',
+    'ranking.th_score':'スコア','ranking.th_title':'称号',
+    'ranking.empty':'選択した属性のスコアデータがありません',
+    'ranking.enemies':'出現する敵','ranking.rules':'イベントルール',
+    'ranking.last_updated':'最終更新: ','ranking.anonymous':'匿名','ranking.weak':'弱点',
+    'ranking.not_started':'このイベントはまだ投稿期間外です',
+    'ranking.period_ended':'このイベントは投稿期間が終了しています',
+    'submit.title':'スコア投稿','submit.subtitle':'リザルト画像とともにスコアを投稿してください',
+    'submit.event':'イベント','submit.attr':'属性','submit.image':'リザルト画像',
+    'submit.image_hint':'JPG・PNG・WebP対応 / 最大10MB','submit.score':'スコア',
+    'submit.score_ph':'例: 12345678','submit.btn':'投稿する','submit.btn_loading':'送信中...',
+    'submit.select':'選択してください','submit.no_events':'現在投稿できるイベントがありません',
+    'submit.err_event':'イベントを選択してください','submit.err_attr':'属性を選択してください',
+    'submit.err_score':'スコアを入力してください',
+    'submit.anon_title':'匿名で投稿しますか？','submit.anon_desc':'他ユーザーに「匿名」として表示できます。',
+    'submit.anon_yes':'匿名で投稿','submit.anon_no':'そのまま投稿',
+    'submit.status_title':'このイベントの投稿状況',
+    'submit.th_attr':'属性','submit.th_approved':'承認済みスコア',
+    'submit.th_pending':'承認待ちスコア','submit.th_status':'状態',
+    'login.title':'ログイン','login.username':'ユーザー名','login.password':'パスワード',
+    'login.btn':'ログイン','login.btn_loading':'ログイン中...',
+    'login.no_account':'アカウントがない方は','login.register_link':'新規登録',
+    'login.expired':'セッションの有効期限が切れました。再度ログインしてください。',
+    'register.title':'新規登録','register.username':'ユーザー名','register.password':'パスワード',
+    'register.oshi':'推しキャラクター（任意）','register.username_hint':'1〜12文字',
+    'register.password_hint':'6文字以上','register.oshi_ph':'例: 茅森月歌',
+    'register.btn':'登録する','register.btn_loading':'登録中...',
+    'register.has_account':'すでにアカウントがある方は','register.login_link':'ログイン',
+    'feedback.title':'お便り箱','feedback.subtitle':'機能要望・バグ報告・その他ご意見をお送りください',
+    'feedback.category':'カテゴリ','feedback.body':'内容',
+    'feedback.cat_feature':'機能要望','feedback.cat_bug':'バグ報告','feedback.cat_other':'その他',
+    'feedback.body_ph':'ご意見・ご要望をご記入ください（1000文字以内）',
+    'feedback.char_limit':' / 1000文字','feedback.btn':'送信する','feedback.btn_loading':'送信中...',
+    'feedback.disclaimer':'送信内容はユーザー名と共に管理者のみ確認できます',
+    'feedback.history':'送信済みのお便り','feedback.empty':'まだ送信したお便りはありません',
+    'feedback.err_empty':'内容を入力してください','feedback.admin':'管理者','feedback.you':'あなた',
+    'feedback.has_reply':'返信あり','feedback.reply_btn':'返信する',
+    'feedback.reply_ph':'返信を入力（1000文字以内）',
+    'dist.title':'ポイント配布のお知らせ','dist.sub':'以下のイベントでポイントが配布されました',
+    'dist.type_mid':'中間','dist.type_final':'最終','dist.detail_btn':'配布量詳細を見る',
+    'dist.th_rank':'順位','dist.th_pts':'配布pt',
+    'dist.rank1':'1位','dist.rank2':'2位','dist.rank3':'3位','dist.rank4':'4位','dist.rank5':'5位',
+    'dist.rank6':'6位','dist.rank7':'7位','dist.rank8':'8位','dist.rank9':'9位','dist.rank10':'10位',
+    'dist.rank11_15':'11〜15位','dist.rank16_20':'16〜20位','dist.rank21_25':'21〜25位',
+    'dist.rank26_30':'26〜30位','dist.rank31plus':'31位以降',
+    'dist.note':'※配布量はイベントごとに調整される場合があります',
+    'bonus.title':'ログインボーナス','bonus.sub':'毎日ログインでポイント獲得！',
+    'bonus.claim':'受け取る','bonus.day':'{0}日目','bonus.claimed':'本日分受取済み',
+    'bonus.msg':'{0}日目のボーナス','bonus.streak':'{0}日目 達成！','bonus.streak7':' 🎉 7日達成！',
+    'bonus.received':'受取済','bonus.limit':'上限達成','bonus.special':'特別ボーナス',
+    'bonus.remaining':'残り{0}回','bonus.until':'{0}まで',
+    'user.oshi':'推し: ','user.title_label':'称号: ','user.joined':'参加: ',
+    'user.edit':'プロフィール編集','user.edit_title':'プロフィール編集',
+    'user.username':'ユーザー名','user.oshi_field':'推しキャラクター',
+    'user.pw_section':'パスワード変更（任意）','user.pw_current':'現在のパスワード',
+    'user.pw_new':'新しいパスワード（6文字以上）','user.save':'保存する',
+    'user.saved':'保存しました','user.no_scores':'承認済みスコアがありません',
+    'user.all_rank':'全属性 {0}位','user.delete':'アカウント削除',
+    'user.delete_title':'アカウント削除',
+    'user.delete_warn':'この操作は取り消せません。パスワードを入力して確認してください。',
+    'user.delete_btn':'削除する','user.back':'← 戻る','user.pw_ph':'パスワードを入力',
+    'user.oshi_ph':'例: 茅森月歌',
+    'shop.title':'ショップ','shop.equip_title':'装備',
+    'shop.my_points':'所持ポイント',
+    'shop.tab_titles':'称号','shop.tab_frames':'フレーム','shop.tab_icons':'アイコン',
+    'shop.buy':'購入する','shop.equip_btn':'装備する','shop.unequip':'外す',
+    'shop.owned':'所持済み','shop.equipped_badge':'装備中',
+    'shop.no_titles':'購入できる称号がありません',
+    'shop.no_frames':'購入できるフレームがありません',
+    'shop.no_my_titles':'所持している称号がありません',
+    'shop.no_my_frames':'所持しているフレームがありません',
+    'shop.no_icons':'所持しているアイコンがありません',
+    'shop.login_to_buy':'ログインして購入',
+    'shop.title_award':'称号獲得',
+    'shop.icon_none':'なし','shop.no_unit':'部隊なし',
+    'shop.sort_unit':'部隊順','shop.sort_acq':'入手順',
+    'shop.go_gacha':'ガチャでゲットしよう',
+    'gacha.title':'キャラアイコン ガチャ',
+    'gacha.single':'単発ガチャ','gacha.multi':'10連ガチャ',
+    'gacha.multi_hint':'Sレア以上確定',
+    'gacha.pool_select':'ガチャを選んでください',
+    'gacha.prompt':'ガチャを引いてアイコンをゲット！',
+    'gacha.rate_title':'排出率','gacha.pool_btn':'排出対象を見る',
+    'gacha.exchange_title':'GP交換',
+    'gacha.exchange_desc':'200GP → SSアイコン1枚（選択）',
+    'gacha.no_exchange':'交換可能なSSアイコンがありません',
+    'gacha.no_icons':'まだアイコンを所持していません',
+    'gacha.pool_modal_title':'排出対象アイコン',
+    'gacha.back_pool':'← 選択に戻る',
+    'gacha.icon_none':'何もつけない',
+    'gacha.icons_count':'{0}種のアイコン',
+    'gacha.dup_return':'+{0}pt 重複補償',
+    'gacha.gp_migrated':'GP補填：過去のガチャ分 {0}GP を付与しました！',
+    'gacha.gp_short':'GPが不足しています（現在: {0}GP／必要: {1}GP）',
+    'gacha.hours_left':'残り{0}時間','gacha.days_left':'残り{0}日',
+  },
+  zh: {
+    'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
+    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱',
+    'nav.admin':'管理','nav.account':'帳戶','nav.logout':'登出',
+    'nav.login':'登入','nav.register':'註冊','nav.register_full':'新增帳戶',
+    'nav.admin_badge':'管理員','nav.menu':'選單',
+    'loading':'載入中...','error':'發生錯誤','close':'關閉',
+    'save':'儲存','cancel':'取消','send':'送出',
+    'status.pending':'待審核','status.approved':'已核准','status.rejected':'已拒絕',
+    'attr.火':'火','attr.氷':'冰','attr.雷':'雷','attr.光':'光','attr.闇':'暗','attr.無':'無',
+    'event.before':'尚未開始','event.ended':'已結束','event.active':'進行中',
+    'event.hours_left':'剩{0}小時','event.days_left':'剩{0}天',
+    'event.empty':'目前沒有公開的活動','event.back':'← 活動列表',
+    'index.title':'Heaven Burns Red 排行榜','index.subtitle':'製作：つんつく',
+    'ranking.all_on':'全屬性ON','ranking.all_off':'全屬性OFF','ranking.submit_btn':'上傳分數',
+    'ranking.col_score':'分數','ranking.col_title':'稱號',
+    'ranking.th_rank':'排名','ranking.th_attr':'屬性','ranking.th_player':'玩家',
+    'ranking.th_score':'分數','ranking.th_title':'稱號',
+    'ranking.empty':'沒有所選屬性的分數資料',
+    'ranking.enemies':'出現的敵人','ranking.rules':'活動規則',
+    'ranking.last_updated':'最後更新：','ranking.anonymous':'匿名','ranking.weak':'弱點',
+    'ranking.not_started':'此活動尚未開放投稿',
+    'ranking.period_ended':'此活動的投稿時間已截止',
+    'submit.title':'上傳分數','submit.subtitle':'請附上結果截圖上傳分數',
+    'submit.event':'活動','submit.attr':'屬性','submit.image':'結果截圖',
+    'submit.image_hint':'支援 JPG・PNG・WebP / 最大 10MB','submit.score':'分數',
+    'submit.score_ph':'例：12345678','submit.btn':'投稿','submit.btn_loading':'送出中...',
+    'submit.select':'請選擇','submit.no_events':'目前沒有可投稿的活動',
+    'submit.err_event':'請選擇活動','submit.err_attr':'請選擇屬性',
+    'submit.err_score':'請輸入分數',
+    'submit.anon_title':'要匿名投稿嗎？','submit.anon_desc':'可以對其他玩家顯示為「匿名」。',
+    'submit.anon_yes':'匿名投稿','submit.anon_no':'直接投稿',
+    'submit.status_title':'本活動投稿狀況',
+    'submit.th_attr':'屬性','submit.th_approved':'已核准分數',
+    'submit.th_pending':'待審核分數','submit.th_status':'狀態',
+    'login.title':'登入','login.username':'使用者名稱','login.password':'密碼',
+    'login.btn':'登入','login.btn_loading':'登入中...',
+    'login.no_account':'沒有帳戶嗎？','login.register_link':'新增帳戶',
+    'login.expired':'連線已逾時，請重新登入。',
+    'register.title':'新增帳戶','register.username':'使用者名稱','register.password':'密碼',
+    'register.oshi':'最愛角色（選填）','register.username_hint':'1～12個字元',
+    'register.password_hint':'6個字元以上','register.oshi_ph':'例：茅森月歌',
+    'register.btn':'註冊','register.btn_loading':'註冊中...',
+    'register.has_account':'已有帳戶嗎？','register.login_link':'登入',
+    'feedback.title':'意見箱','feedback.subtitle':'歡迎提供功能建議・錯誤回報・其他意見',
+    'feedback.category':'類別','feedback.body':'內容',
+    'feedback.cat_feature':'功能建議','feedback.cat_bug':'錯誤回報','feedback.cat_other':'其他',
+    'feedback.body_ph':'請填寫您的意見・要求（1000字以內）',
+    'feedback.char_limit':' / 1000字','feedback.btn':'送出','feedback.btn_loading':'送出中...',
+    'feedback.disclaimer':'送出內容僅管理員可查閱，並附帶您的使用者名稱',
+    'feedback.history':'已送出的意見','feedback.empty':'尚未送出任何意見',
+    'feedback.err_empty':'請填寫內容','feedback.admin':'管理員','feedback.you':'你',
+    'feedback.has_reply':'有回覆','feedback.reply_btn':'回覆',
+    'feedback.reply_ph':'請輸入回覆（1000字以內）',
+    'dist.title':'點數發放通知','dist.sub':'以下活動已發放點數',
+    'dist.type_mid':'中間','dist.type_final':'最終','dist.detail_btn':'查看發放量詳情',
+    'dist.th_rank':'排名','dist.th_pts':'發放pt',
+    'dist.rank1':'第1名','dist.rank2':'第2名','dist.rank3':'第3名','dist.rank4':'第4名','dist.rank5':'第5名',
+    'dist.rank6':'第6名','dist.rank7':'第7名','dist.rank8':'第8名','dist.rank9':'第9名','dist.rank10':'第10名',
+    'dist.rank11_15':'第11〜15名','dist.rank16_20':'第16〜20名','dist.rank21_25':'第21〜25名',
+    'dist.rank26_30':'第26〜30名','dist.rank31plus':'第31名以後',
+    'dist.note':'※每次活動的發放量可能有所調整',
+    'bonus.title':'登入獎勵','bonus.sub':'每日登入可獲得點數！',
+    'bonus.claim':'領取','bonus.day':'第{0}天','bonus.claimed':'今日已領取',
+    'bonus.msg':'第{0}天獎勵','bonus.streak':'第{0}天達成！','bonus.streak7':' 🎉 第7天達成！',
+    'bonus.received':'已領取','bonus.limit':'已達上限','bonus.special':'特別獎勵',
+    'bonus.remaining':'剩餘{0}次','bonus.until':'{0}截止',
+    'user.oshi':'最愛角色: ','user.title_label':'稱號: ','user.joined':'加入: ',
+    'user.edit':'編輯個人檔案','user.edit_title':'編輯個人檔案',
+    'user.username':'使用者名稱','user.oshi_field':'最愛角色',
+    'user.pw_section':'變更密碼（選填）','user.pw_current':'目前密碼',
+    'user.pw_new':'新密碼（6個字元以上）','user.save':'儲存',
+    'user.saved':'已儲存','user.no_scores':'沒有已核准的分數',
+    'user.all_rank':'全屬性 第{0}名','user.delete':'刪除帳戶',
+    'user.delete_title':'刪除帳戶',
+    'user.delete_warn':'此操作無法撤銷。請輸入密碼確認。',
+    'user.delete_btn':'刪除','user.back':'← 返回','user.pw_ph':'請輸入密碼',
+    'user.oshi_ph':'例：茅森月歌',
+    'shop.title':'商店','shop.equip_title':'裝備',
+    'shop.my_points':'擁有點數',
+    'shop.tab_titles':'稱號','shop.tab_frames':'外框','shop.tab_icons':'圖示',
+    'shop.buy':'購買','shop.equip_btn':'裝備','shop.unequip':'卸除',
+    'shop.owned':'已擁有','shop.equipped_badge':'裝備中',
+    'shop.no_titles':'沒有可購買的稱號',
+    'shop.no_frames':'沒有可購買的外框',
+    'shop.no_my_titles':'沒有擁有的稱號',
+    'shop.no_my_frames':'沒有擁有的外框',
+    'shop.no_icons':'沒有擁有的圖示',
+    'shop.login_to_buy':'登入後購買',
+    'shop.title_award':'稱號獲得',
+    'shop.icon_none':'無','shop.no_unit':'無部隊',
+    'shop.sort_unit':'部隊順','shop.sort_acq':'入手順',
+    'shop.go_gacha':'去轉蛋獲取吧',
+    'gacha.title':'角色圖示 轉蛋',
+    'gacha.single':'單抽','gacha.multi':'十連抽',
+    'gacha.multi_hint':'S稀以上保底',
+    'gacha.pool_select':'請選擇轉蛋',
+    'gacha.prompt':'抽轉蛋取得圖示！',
+    'gacha.rate_title':'抽取機率','gacha.pool_btn':'查看收錄內容',
+    'gacha.exchange_title':'GP兌換',
+    'gacha.exchange_desc':'200GP → SS圖示1枚（自選）',
+    'gacha.no_exchange':'沒有可兌換的SS圖示',
+    'gacha.no_icons':'尚未擁有任何圖示',
+    'gacha.pool_modal_title':'收錄圖示',
+    'gacha.back_pool':'← 返回選擇',
+    'gacha.icon_none':'不裝備',
+    'gacha.icons_count':'{0}種圖示',
+    'gacha.dup_return':'+{0}pt 重複補償',
+    'gacha.gp_migrated':'GP補填：過去轉蛋 {0}GP 已補發！',
+    'gacha.gp_short':'GP不足（目前: {0}GP／需要: {1}GP）',
+    'gacha.hours_left':'剩{0}小時','gacha.days_left':'剩{0}天',
+  }
+};
+
+function getLang() { return localStorage.getItem('lang') || 'ja'; }
+function setLang(lang) { localStorage.setItem('lang', lang); location.reload(); }
+function t(key, ...args) {
+  const lang = getLang();
+  const dict = _i18n[lang] || _i18n.ja;
+  let str = (key in dict) ? dict[key] : ((_i18n.ja[key]) ?? key);
+  args.forEach((a, i) => { str = str.replace(`{${i}}`, a); });
+  return str;
+}
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.documentElement.lang = getLang() === 'zh' ? 'zh-TW' : 'ja';
+}
+
+// ===== 認証 =====
 function getToken() { return localStorage.getItem('token'); }
 function getUser() {
   try { return JSON.parse(localStorage.getItem('user')); } catch { return null; }
@@ -16,8 +260,8 @@ function clearAuth() {
 }
 
 function authHeaders() {
-  const t = getToken();
-  return t ? { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
+  const tk = getToken();
+  return tk ? { 'Authorization': `Bearer ${tk}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 }
 
 function _handleAuthError(res, data) {
@@ -30,14 +274,11 @@ function _handleAuthError(res, data) {
 }
 
 async function apiFetch(path, options = {}) {
-  const res = await fetch(API + path, {
-    headers: authHeaders(),
-    ...options
-  });
+  const res = await fetch(API + path, { headers: authHeaders(), ...options });
   const data = await res.json();
   if (!res.ok) {
     if (_handleAuthError(res, data)) return;
-    throw new Error(data.error || 'エラーが発生しました');
+    throw new Error(data.error || t('error'));
   }
   return data;
 }
@@ -49,19 +290,21 @@ async function apiFormFetch(path, formData, method = 'POST') {
   const data = await res.json();
   if (!res.ok) {
     if (_handleAuthError(res, data)) return;
-    throw new Error(data.error || 'エラーが発生しました');
+    throw new Error(data.error || t('error'));
   }
   return data;
 }
 
+function getLangLocale() { return getLang() === 'zh' ? 'zh-TW' : 'ja-JP'; }
+
 function formatScore(n) {
   if (n == null) return '-';
-  return Number(n).toLocaleString('ja-JP');
+  return Number(n).toLocaleString(getLangLocale());
 }
 
 function formatDate(s) {
   if (!s) return '';
-  return new Date(s).toLocaleDateString('ja-JP', { year: 'numeric', month: 'short', day: 'numeric' });
+  return new Date(s).toLocaleDateString(getLangLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function showAlert(container, message, type = 'error') {
@@ -84,61 +327,66 @@ function escHtml(s) {
 }
 
 function attrBadge(attr, small = false) {
-  return `<span class="attr-badge attr-${escHtml(attr)}${small ? ' small' : ''}">${escHtml(attr)}</span>`;
+  return `<span class="attr-badge attr-${escHtml(attr)}${small ? ' small' : ''}">${escHtml(t('attr.' + attr) || attr)}</span>`;
 }
 
 function statusBadge(status) {
-  const labels = { pending: '承認待ち', approved: '承認済み', rejected: '却下' };
+  const labels = { pending: t('status.pending'), approved: t('status.approved'), rejected: t('status.rejected') };
   return `<span class="status-badge status-${status}">${labels[status] || status}</span>`;
 }
 
-// ナビゲーション描画
+// ===== ナビ =====
 function renderNav() {
   const user = getUser();
   const nav = document.getElementById('nav');
   if (!nav) return;
   const currentPath = location.pathname;
+  const lang = getLang();
+  const langBtn = `<button onclick="setLang(getLang()==='ja'?'zh':'ja')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);margin-right:4px" title="言語 / Language">${lang === 'ja' ? '繁中' : 'JP'}</button>`;
 
   nav.innerHTML = `
     <div class="nav-inner">
       <a class="nav-logo" href="/index.html">HBR-RB</a>
       <div class="nav-links">
-        <a href="/index.html" class="${currentPath === '/' || currentPath === '/index.html' ? 'active' : ''}">イベント一覧</a>
-        <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">スコア投稿</a>
-        ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">ショップ</a>` : ''}
-        ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">装備</a>` : ''}
+        <a href="/index.html" class="${currentPath === '/' || currentPath === '/index.html' ? 'active' : ''}">${t('nav.events')}</a>
+        <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
+        ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
+        ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
         <span id="nav-gacha-desktop" style="display:contents"></span>
-        ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">お便り箱</a>` : ''}
-        ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">管理</a>` : ''}
+        ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">${t('nav.feedback')}</a>` : ''}
+        ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">${t('nav.admin')}</a>` : ''}
       </div>
       <div class="nav-user">
+        ${langBtn}
         ${user
           ? `<a href="/user.html?id=${user.id}" class="nav-username">${escHtml(user.username)}</a>
-             ${user.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : ''}
-             <button class="btn btn-secondary btn-sm" onclick="logout()">ログアウト</button>`
-          : `<a href="/login.html" class="btn btn-secondary btn-sm">ログイン</a>
-             <a href="/register.html" class="btn btn-primary btn-sm">登録</a>`
+             ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
+             <button class="btn btn-secondary btn-sm" onclick="logout()">${t('nav.logout')}</button>`
+          : `<a href="/login.html" class="btn btn-secondary btn-sm">${t('nav.login')}</a>
+             <a href="/register.html" class="btn btn-primary btn-sm">${t('nav.register')}</a>`
         }
       </div>
-      <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="メニュー">
+      <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="${t('nav.menu')}">
         <span></span><span></span><span></span>
       </button>
     </div>
     <div class="nav-mobile" id="nav-mobile">
-      <a href="/index.html">イベント一覧</a>
-      <a href="/submit.html">スコア投稿</a>
-      ${user ? `<a href="/shop.html">ショップ</a>` : ''}
-      ${user ? `<a href="/shop.html?tab=equip">装備</a>` : ''}
+      <a href="/index.html">${t('nav.events')}</a>
+      <a href="/submit.html">${t('nav.submit')}</a>
+      ${user ? `<a href="/shop.html">${t('nav.shop')}</a>` : ''}
+      ${user ? `<a href="/shop.html?tab=equip">${t('nav.equip')}</a>` : ''}
       <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user ? `<a href="/feedback.html">お便り箱</a>` : ''}
-      ${user && user.role === 'admin' ? `<a href="/admin.html">管理</a>` : ''}
+      ${user ? `<a href="/feedback.html">${t('nav.feedback')}</a>` : ''}
+      ${user && user.role === 'admin' ? `<a href="/admin.html">${t('nav.admin')}</a>` : ''}
       ${user
-        ? `<a href="/user.html?id=${user.id}">アカウント</a>
-           <a href="#" onclick="logout();return false;">ログアウト</a>`
-        : `<a href="/login.html">ログイン</a>
-           <a href="/register.html">新規登録</a>`
+        ? `<a href="/user.html?id=${user.id}">${t('nav.account')}</a>
+           <a href="#" onclick="logout();return false;">${t('nav.logout')}</a>`
+        : `<a href="/login.html">${t('nav.login')}</a>
+           <a href="/register.html">${t('nav.register_full')}</a>`
       }
+      <a href="#" onclick="setLang(getLang()==='ja'?'zh':'ja');return false;" style="font-size:0.85rem;color:var(--text-muted)">${lang === 'ja' ? '繁體中文' : '日本語'}</a>
     </div>`;
+  applyI18n();
 }
 
 function toggleMobileNav() {
@@ -163,14 +411,13 @@ async function updateFeedbackBadge() {
     if (!data.count) return;
     const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
     document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
-      a.innerHTML = 'お便り箱' + badge;
+      a.innerHTML = t('nav.feedback') + badge;
     });
   } catch {}
 }
 
 async function updateGachaNav() {
   try {
-    // キャッシュチェック（5分）
     const cached = localStorage.getItem('gacha_show_nav');
     const cachedAt = parseInt(localStorage.getItem('gacha_nav_cached_at') || '0');
     let show = false;
@@ -187,7 +434,7 @@ async function updateGachaNav() {
     if (!show && user.role !== 'admin') return;
     const currentPath = location.pathname;
     const isActive = currentPath === '/gacha.html';
-    const linkHtml = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>ガチャ</a>`;
+    const linkHtml = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${t('nav.gacha')}</a>`;
     const d = document.getElementById('nav-gacha-desktop');
     const m = document.getElementById('nav-gacha-mobile');
     if (d) d.innerHTML = linkHtml;
@@ -232,8 +479,8 @@ async function initInterimDistributionNotice() {
     ]);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
-    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: '中間' }));
-    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: '最終' }));
+    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: t('dist.type_mid') }));
+    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: t('dist.type_final') }));
     const unseen = [...unseenFinal, ...unseenInterim]
       .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
     if (unseen.length === 0) return;
@@ -261,8 +508,8 @@ async function initInterimDistributionNotice() {
     modal.id = 'interim-dist-modal';
     modal.innerHTML = `
       <div id="interim-dist-box">
-        <h3>ポイント配布のお知らせ</h3>
-        <div class="interim-sub">以下のイベントでポイントが配布されました</div>
+        <h3>${t('dist.title')}</h3>
+        <div class="interim-sub">${t('dist.sub')}</div>
         <div id="interim-dist-list">${unseen.map(d => `
           <div class="interim-dist-item">
             <div class="interim-dist-name">
@@ -270,33 +517,33 @@ async function initInterimDistributionNotice() {
               <span class="interim-type-badge">${d.type}配布</span>
             </div>
             <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
-            <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString('ja-JP')}</div>
+            <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
           </div>`).join('')}
         </div>
         ${rankPts ? `
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">配布量詳細を見る</button>
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">${t('dist.detail_btn')}</button>
         <div id="rank-pts-detail" style="display:none;margin-top:8px">
           <table class="rank-pts-table">
-            <tr><th>順位</th><th>配布pt</th></tr>
-            <tr><td>1位</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
-            <tr><td>2位</td><td>${rankPts.rank_pts_2 ?? 95}pt</td></tr>
-            <tr><td>3位</td><td>${rankPts.rank_pts_3 ?? 95}pt</td></tr>
-            <tr><td>4位</td><td>${rankPts.rank_pts_4 ?? 90}pt</td></tr>
-            <tr><td>5位</td><td>${rankPts.rank_pts_5 ?? 90}pt</td></tr>
-            <tr><td>6位</td><td>${rankPts.rank_pts_6 ?? 80}pt</td></tr>
-            <tr><td>7位</td><td>${rankPts.rank_pts_7 ?? 80}pt</td></tr>
-            <tr><td>8位</td><td>${rankPts.rank_pts_8 ?? 80}pt</td></tr>
-            <tr><td>9位</td><td>${rankPts.rank_pts_9 ?? 80}pt</td></tr>
-            <tr><td>10位</td><td>${rankPts.rank_pts_10 ?? 80}pt</td></tr>
-            <tr><td>11〜15位</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
-            <tr><td>16〜20位</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
-            <tr><td>21〜25位</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
-            <tr><td>26〜30位</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
-            <tr><td>31位以降</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
+            <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
+            <tr><td>${t('dist.rank1')}</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
+            <tr><td>${t('dist.rank2')}</td><td>${rankPts.rank_pts_2 ?? 95}pt</td></tr>
+            <tr><td>${t('dist.rank3')}</td><td>${rankPts.rank_pts_3 ?? 95}pt</td></tr>
+            <tr><td>${t('dist.rank4')}</td><td>${rankPts.rank_pts_4 ?? 90}pt</td></tr>
+            <tr><td>${t('dist.rank5')}</td><td>${rankPts.rank_pts_5 ?? 90}pt</td></tr>
+            <tr><td>${t('dist.rank6')}</td><td>${rankPts.rank_pts_6 ?? 80}pt</td></tr>
+            <tr><td>${t('dist.rank7')}</td><td>${rankPts.rank_pts_7 ?? 80}pt</td></tr>
+            <tr><td>${t('dist.rank8')}</td><td>${rankPts.rank_pts_8 ?? 80}pt</td></tr>
+            <tr><td>${t('dist.rank9')}</td><td>${rankPts.rank_pts_9 ?? 80}pt</td></tr>
+            <tr><td>${t('dist.rank10')}</td><td>${rankPts.rank_pts_10 ?? 80}pt</td></tr>
+            <tr><td>${t('dist.rank11_15')}</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
+            <tr><td>${t('dist.rank16_20')}</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
+            <tr><td>${t('dist.rank21_25')}</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
+            <tr><td>${t('dist.rank26_30')}</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
+            <tr><td>${t('dist.rank31plus')}</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
           </table>
-          <div class="rank-pts-note">※配布量はイベントごとに調整される場合があります</div>
+          <div class="rank-pts-note">${t('dist.note')}</div>
         </div>` : ''}
-        <button class="btn btn-primary" style="margin-top:12px" onclick="closeInterimDistModal()">閉じる</button>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="closeInterimDistModal()">${t('close')}</button>
       </div>`;
     document.body.appendChild(modal);
     modal.classList.add('open');
@@ -306,7 +553,6 @@ async function initInterimDistributionNotice() {
 function closeInterimDistModal() {
   localStorage.setItem('interim_dist_seen_at', new Date().toISOString());
   document.getElementById('interim-dist-modal')?.classList.remove('open');
-  // ログインボーナスが背後で待機していれば前面に出す
   const lbModal = document.getElementById('login-bonus-modal');
   if (lbModal && lbModal.classList.contains('open')) {
     lbModal.style.zIndex = '2100';
@@ -345,12 +591,12 @@ async function initLoginBonus() {
   modal.id = 'login-bonus-modal';
   modal.innerHTML = `
     <div id="login-bonus-box">
-      <h3>ログインボーナス</h3>
-      <div class="bonus-sub">毎日ログインでポイント獲得！</div>
+      <h3>${t('bonus.title')}</h3>
+      <div class="bonus-sub">${t('bonus.sub')}</div>
       <div class="bonus-days" id="bonus-days"></div>
       <div id="login-bonus-pts"></div>
       <div id="login-bonus-msg"></div>
-      <button class="btn btn-primary" id="bonus-claim-btn" onclick="claimLoginBonus()">受け取る</button>
+      <button class="btn btn-primary" id="bonus-claim-btn" onclick="claimLoginBonus()">${t('bonus.claim')}</button>
       <div id="special-bonus-section"></div>
     </div>`;
   document.body.appendChild(modal);
@@ -369,7 +615,7 @@ async function initLoginBonus() {
       renderBonusDays(status.streak + 1, status.day_pts || [1,1,1,1,1,1,4]);
     } else {
       document.getElementById('bonus-claim-btn').style.display = 'none';
-      document.getElementById('login-bonus-pts').textContent = '本日分受取済み';
+      document.getElementById('login-bonus-pts').textContent = t('bonus.claimed');
     }
 
     if (specials.length > 0) renderSpecialBonuses(specials);
@@ -384,13 +630,13 @@ function renderBonusDays(todayDay, pts) {
     const done = day < todayDay;
     const isToday = day === todayDay;
     return `<div class="bonus-day ${done ? 'done' : isToday ? 'today' : ''}">
-      <span>${day}日目</span>
+      <span>${t('bonus.day', day)}</span>
       <span class="day-pt">${p}pt</span>
     </div>`;
   }).join('');
   const todayPt = pts[Math.min(todayDay, 7) - 1];
   document.getElementById('login-bonus-pts').textContent = `+${todayPt}pt`;
-  document.getElementById('login-bonus-msg').textContent = `${todayDay}日目のボーナス`;
+  document.getElementById('login-bonus-msg').textContent = t('bonus.msg', todayDay);
 }
 
 function renderSpecialBonuses(bonuses) {
@@ -403,20 +649,21 @@ function renderSpecialBonuses(bonuses) {
     return `<div class="special-bonus-item">
       <div class="special-bonus-info">
         <div class="special-bonus-title">${escHtml(b.title)}</div>
-        <div class="special-bonus-meta">${escHtml(b.end_date.slice(0,10))}まで ・ ${b.points_per_claim}pt ・ 残り${remaining}回</div>
+        <div class="special-bonus-meta">${t('bonus.until', escHtml(b.end_date.slice(0,10)))} ・ ${b.points_per_claim}pt ・ ${t('bonus.remaining', remaining)}</div>
       </div>
       <button class="btn btn-primary btn-sm special-bonus-btn" ${canClaim ? '' : 'disabled'}
         onclick="claimSpecialBonus(${b.id}, this)">
-        ${claimedToday ? '受取済' : remaining <= 0 ? '上限達成' : '受け取る'}
+        ${claimedToday ? t('bonus.received') : remaining <= 0 ? t('bonus.limit') : t('bonus.claim')}
       </button>
     </div>`;
   }).join('');
-  el.innerHTML = `<div class="special-bonus-list"><h4>特別ボーナス</h4>${items}</div>`;
+  el.innerHTML = `<div class="special-bonus-list"><h4>${t('bonus.special')}</h4>${items}</div>`;
 }
 
 function checkAndCloseModal() {
   const loginBtn = document.getElementById('bonus-claim-btn');
-  const loginDone = !loginBtn || loginBtn.style.display === 'none' || loginBtn.disabled || loginBtn.textContent === '閉じる' || loginBtn.textContent === '受取済み';
+  const closedText = t('close');
+  const loginDone = !loginBtn || loginBtn.style.display === 'none' || loginBtn.disabled || loginBtn.textContent === closedText;
   const anySpecialLeft = [...document.querySelectorAll('.special-bonus-btn')].some(b => !b.disabled);
   if (loginDone && !anySpecialLeft) {
     setTimeout(() => document.getElementById('login-bonus-modal')?.classList.remove('open'), 800);
@@ -427,10 +674,14 @@ async function claimSpecialBonus(bonusId, btn) {
   btn.disabled = true;
   try {
     const res = await apiFetch(`/auth/special-bonuses/${bonusId}/claim`, { method: 'POST' });
-    btn.textContent = '受取済';
+    btn.textContent = t('bonus.received');
     const meta = btn.closest('.special-bonus-item').querySelector('.special-bonus-meta');
     const remaining = res.max_claims - res.claimed_count;
-    if (meta) meta.textContent = meta.textContent.replace(/残り\d+回/, `残り${remaining}回`);
+    if (meta) {
+      const lang = getLang();
+      const pattern = lang === 'zh' ? /剩餘\d+次/ : /残り\d+回/;
+      meta.textContent = meta.textContent.replace(pattern, t('bonus.remaining', remaining));
+    }
     checkAndCloseModal();
   } catch (err) {
     btn.disabled = false;
@@ -443,13 +694,32 @@ async function claimLoginBonus() {
   btn.disabled = true;
   try {
     const res = await apiFetch('/auth/login-bonus', { method: 'POST' });
-    document.getElementById('login-bonus-pts').textContent = `+${res.points_earned}pt 獲得！`;
-    document.getElementById('login-bonus-msg').textContent = `${res.streak}日目 達成！${res.streak === 7 ? ' 🎉 7日達成！' : ''}`;
-    btn.textContent = '閉じる';
+    document.getElementById('login-bonus-pts').textContent = `+${res.points_earned}pt`;
+    document.getElementById('login-bonus-msg').textContent = t('bonus.streak', res.streak) + (res.streak === 7 ? t('bonus.streak7') : '');
+    btn.textContent = t('close');
     btn.onclick = () => document.getElementById('login-bonus-modal').classList.remove('open');
     btn.disabled = false;
     checkAndCloseModal();
   } catch (err) {
     btn.disabled = false;
   }
+}
+
+// ===== ユーティリティ =====
+function renderSubmissionPeriod(event) {
+  if (!event.submission_start && !event.submission_end) return '';
+  const fmt = s => new Date(s).toLocaleString(getLangLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const now = new Date();
+  const start = event.submission_start ? new Date(event.submission_start) : null;
+  const end = event.submission_end ? new Date(event.submission_end) : null;
+  let label = '';
+  if (start && end) {
+    const state = now < start ? (getLang() === 'zh' ? '（尚未開始）' : '（開始前）') : now > end ? (getLang() === 'zh' ? '（已截止）' : '（終了）') : '';
+    label = (getLang() === 'zh' ? '投稿期間: ' : '投稿期間: ') + `${fmt(start)} 〜 ${fmt(end)}${state}`;
+  } else if (end) {
+    label = (getLang() === 'zh' ? '接受投稿：〜 ' : '投稿受付中: 〜 ') + fmt(end);
+  } else if (start) {
+    label = (getLang() === 'zh' ? '開始時間: ' : '投稿開始: ') + fmt(start);
+  }
+  return label ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">${escHtml(label)}</div>` : '';
 }

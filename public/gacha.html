@@ -155,17 +155,17 @@
   <div id="alert"></div>
 
   <div class="gacha-hero">
-    <h1 class="page-title" style="margin-bottom:6px">キャラアイコン ガチャ</h1>
+    <h1 class="page-title" style="margin-bottom:6px" data-i18n="gacha.title">キャラアイコン ガチャ</h1>
     <div class="gacha-points-display" id="my-points">--- pt</div>
     <div style="font-size:0.9rem;color:var(--text-muted)" id="my-gp">GP: ---</div>
     <div id="dup-indicator" style="font-size:0.82rem;font-weight:bold;color:#4fc3f7;height:1.3em;opacity:0;transition:opacity 0.3s;text-align:center;margin-bottom:2px"></div>
-    <div style="font-size:0.8rem;color:var(--text-muted)" id="cost-info">読み込み中...</div>
+    <div style="font-size:0.8rem;color:var(--text-muted)" id="cost-info" data-i18n="loading">読み込み中...</div>
   </div>
 
   <!-- ①プール選択画面 -->
   <div id="pool-select-screen" style="display:none">
     <div class="card" style="text-align:center;padding:28px 16px">
-      <div style="font-size:1rem;font-weight:bold;margin-bottom:20px">ガチャを選んでください</div>
+      <div style="font-size:1rem;font-weight:bold;margin-bottom:20px" data-i18n="gacha.pool_select">ガチャを選んでください</div>
       <div id="pool-pick-list" style="display:flex;flex-direction:column;gap:12px;max-width:400px;margin:0 auto"></div>
     </div>
   </div>
@@ -175,24 +175,24 @@
 
     <!-- 選択中ガチャ + 戻るボタン -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <button id="btn-back-pool" class="btn btn-secondary btn-sm" onclick="backToPoolSelect()" style="display:none">← 選択に戻る</button>
+      <button id="btn-back-pool" class="btn btn-secondary btn-sm" onclick="backToPoolSelect()" style="display:none" data-i18n="gacha.back_pool">← 選択に戻る</button>
       <span id="selected-pool-label" style="font-size:0.88rem;font-weight:bold;color:var(--accent)"></span>
       <span id="selected-pool-days" style="font-size:0.78rem;font-weight:bold"></span>
     </div>
 
     <div class="gacha-pull-btns">
       <button class="gacha-btn gacha-btn-single" id="btn-single" onclick="doPull('single')" disabled>
-        単発ガチャ
+        <span data-i18n="gacha.single">単発ガチャ</span>
         <span class="gcost" id="single-cost-label"></span>
       </button>
       <button class="gacha-btn gacha-btn-multi" id="btn-multi" onclick="doPull('multi')" disabled>
-        10連ガチャ
-        <span class="gcost" id="multi-cost-label">Sレア以上確定</span>
+        <span data-i18n="gacha.multi">10連ガチャ</span>
+        <span class="gcost" id="multi-cost-label" data-i18n="gacha.multi_hint">Sレア以上確定</span>
       </button>
     </div>
     <!-- アニメーション領域 -->
     <div class="gacha-stage" id="gacha-stage">
-      <div style="text-align:center;color:var(--text-muted);font-size:0.9rem">ガチャを引いてアイコンをゲット！</div>
+      <div style="text-align:center;color:var(--text-muted);font-size:0.9rem" data-i18n="gacha.prompt">ガチャを引いてアイコンをゲット！</div>
     </div>
 
     <!-- 結果サマリー -->
@@ -201,16 +201,16 @@
     <!-- 排出率 -->
     <div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div class="section-title" style="margin:0">排出率</div>
-        <button class="btn btn-secondary btn-sm" onclick="openPoolModal()">排出対象を見る</button>
+        <div class="section-title" style="margin:0" data-i18n="gacha.rate_title">排出率</div>
+        <button class="btn btn-secondary btn-sm" onclick="openPoolModal()" data-i18n="gacha.pool_btn">排出対象を見る</button>
       </div>
       <div id="rate-info"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <!-- GP交換 -->
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title" style="margin-bottom:4px">GP交換</div>
-      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">200GP → SSアイコン1枚（選択）</div>
+      <div class="section-title" style="margin-bottom:4px" data-i18n="gacha.exchange_title">GP交換</div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px" data-i18n="gacha.exchange_desc">200GP → SSアイコン1枚（選択）</div>
       <div id="exchange-ss-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:10px">
         <div class="loading"><div class="spinner"></div></div>
       </div>
@@ -224,7 +224,7 @@
   <div id="pool-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:520px;width:100%;margin:auto;position:relative">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-        <div style="font-size:1rem;font-weight:bold">排出対象アイコン</div>
+        <div style="font-size:1rem;font-weight:bold" data-i18n="gacha.pool_modal_title">排出対象アイコン</div>
         <button onclick="closePoolModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>
       </div>
       <div id="pool-list"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
@@ -235,6 +235,7 @@
 <script src="/js/common.js"></script>
 <script>
 renderNav();
+applyI18n();
 if (!requireLogin()) throw new Error('redirect');
 
 let gSettings = null;
@@ -267,14 +268,14 @@ async function init() {
       if (!migRes.already_done && migRes.gp_awarded > 0) {
         currentGp = migRes.new_gp;
         updateGpDisplay(currentGp);
-        showGpToast(`GP補填：過去のガチャ分 ${migRes.gp_awarded}GP を付与しました！`);
+        showGpToast(t('gacha.gp_migrated', migRes.gp_awarded));
       }
     } catch (_) {}
 
     document.getElementById('single-cost-label').textContent = `${settings.single_cost}pt`;
-    document.getElementById('multi-cost-label').textContent = `${settings.multi_cost}pt　Sレア以上確定`;
+    document.getElementById('multi-cost-label').textContent = `${settings.multi_cost}pt　${t('gacha.multi_hint')}`;
     document.getElementById('cost-info').textContent =
-      `単発 ${settings.single_cost}pt ／ 10連 ${settings.multi_cost}pt（最後の1枚Sレア以上確定）`;
+      `${t('gacha.single')} ${settings.single_cost}pt ／ ${t('gacha.multi')} ${settings.multi_cost}pt（${t('gacha.multi_hint')}）`;
 
     updateRateInfo(settings, []);
 
@@ -294,12 +295,18 @@ function updateRateInfo(settings, pickupIcons) {
   if (puCount > 0) {
     const puTotalRate = (puCount * 0.75).toFixed(2);
     const normalRate = Math.max(0, ssRate - puCount * 0.75);
+    const puNote = getLang() === 'zh'
+      ? `★PickUp各0.75%｜通常SS：${normalRate.toFixed(2)}%（均等）`
+      : `★PickUp各0.75%｜通常SS：${normalRate.toFixed(2)}%（均等）`;
     ssDetail = `
       <div style="margin:4px 0 0 16px;font-size:0.75rem;color:var(--text-muted)">
         <span style="color:#ffd700">★PickUp</span>：${pickupIcons.map(p => escHtml(p.name)).join('・')}（各0.75%）<br>
-        通常SS：${normalRate.toFixed(2)}%（均等）
+        ${getLang() === 'zh' ? '通常SS' : '通常SS'}：${normalRate.toFixed(2)}%（${getLang() === 'zh' ? '均等' : '均等'}）
       </div>`;
   }
+  const rateNote = getLang() === 'zh'
+    ? `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}稀度內機率均等。十連最後1枚A→S保底。`
+    : `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}レアリティ内の確率は均等。10連最後の1枚はAがSに変換。`;
   document.getElementById('rate-info').innerHTML = `
     <div class="rate-row">
       <span><span class="irarity irarity-SS">SS</span></span>
@@ -314,9 +321,7 @@ function updateRateInfo(settings, pickupIcons) {
       <span><span class="irarity irarity-A">A</span></span>
       <span style="font-weight:bold;color:#4fc3f7">${settings.a_rate}%</span>
     </div>
-    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center">
-      ${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}レアリティ内の確率は均等。10連最後の1枚はAがSに変換。
-    </p>`;
+    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center">${rateNote}</p>`;
 }
 
 function updatePointsDisplay(pts) {
@@ -335,11 +340,11 @@ function poolDaysLabel(end_at) {
   const totalHours = diff / (1000 * 60 * 60);
   if (totalHours < 24) {
     const h = Math.ceil(totalHours);
-    return `<span style="font-size:0.72rem;font-weight:bold;color:#ff9800">残り${h}時間</span>`;
+    return `<span style="font-size:0.72rem;font-weight:bold;color:#ff9800">${t('gacha.hours_left', h)}</span>`;
   }
   const days = Math.ceil(totalHours / 24);
   const color = days <= 3 ? '#ff9800' : 'var(--text-muted)';
-  return `<span style="font-size:0.72rem;font-weight:bold;color:${color}">残り${days}日</span>`;
+  return `<span style="font-size:0.72rem;font-weight:bold;color:${color}">${t('gacha.days_left', days)}</span>`;
 }
 
 function renderPoolSelector(pools) {
@@ -372,7 +377,7 @@ function renderPoolSelector(pools) {
           ${daysLabel}
         </div>
         ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${p.icon_count}種のアイコン</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${t('gacha.icons_count', p.icon_count)}</div>
         ${pickupRow}
       </div>
     </button>`;
@@ -435,7 +440,7 @@ async function loadExchangeList(pickupIds = null) {
       const pickupSet = new Set(pickupIds);
       ss = ss.filter(i => pickupSet.has(i.id));
     }
-    if (ss.length === 0) { container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">交換可能なSSアイコンがありません</div>'; return; }
+    if (ss.length === 0) { container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem">${t('gacha.no_exchange')}</div>`; return; }
     container.innerHTML = ss.map(i => `
       <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}')">
         <img src="${escHtml(i.image_url)}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
@@ -443,14 +448,14 @@ async function loadExchangeList(pickupIds = null) {
       </div>
     `).join('');
   } catch (e) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">読み込み失敗</div>';
+    container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem">${t('error')}</div>`;
   }
 }
 
 async function doExchange(iconId, iconName) {
   if (isPulling) return;
   if (currentGp < 200) {
-    showGpToast(`GPが不足しています（現在: ${currentGp}GP／必要: 200GP）`, true);
+    showGpToast(t('gacha.gp_short', currentGp, 200), true);
     return;
   }
   if (!confirm(`【SS】${iconName} を200GPで交換しますか？`)) return;
@@ -463,7 +468,7 @@ async function doExchange(iconId, iconName) {
     const r = res.result;
     document.getElementById('gacha-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
     await animatePull([r]);
-    if (r.is_dup) showGpToast(`<span style="color:#ffd700">【SS】${escHtml(r.name)}</span>（重複 +${r.dup_pts}pt補償）`);
+    if (r.is_dup) showGpToast(`<span style="color:#ffd700">【SS】${escHtml(r.name)}</span>（${t('gacha.dup_return', r.dup_pts)}）`);
     const myData = await apiFetch('/gacha/my');
     renderMyIcons(myData.icons);
     loadExchangeList();
@@ -492,7 +497,7 @@ function animateCount(from, to, duration) {
 
 async function showDupReturn(from, to, dupTotal) {
   const ind = document.getElementById('dup-indicator');
-  ind.textContent = `+${dupTotal}pt 重複補償`;
+  ind.textContent = t('gacha.dup_return', dupTotal);
   ind.style.opacity = '1';
   await animateCount(from, to, 700);
   await new Promise(r => setTimeout(r, 1400));
@@ -502,7 +507,7 @@ async function showDupReturn(from, to, dupTotal) {
 function renderMyIcons(icons) {
   const el = document.getElementById('my-icons');
   if (!icons || icons.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎰</div><p>まだアイコンを所持していません</p></div>';
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎰</div><p>${t('gacha.no_icons')}</p></div>`;
     return;
   }
   const anyEquipped = icons.some(i => i.is_equipped);
@@ -517,8 +522,8 @@ function renderMyIcons(icons) {
     </div>`).join('')}
     <div class="icon-item">
       <span class="irarity" style="visibility:hidden">-</span><br>
-      <div class="icon-none-btn ${anyEquipped ? '' : 'equipped'}" onclick="unequipIcon(this)" title="何もつけない">✕</div>
-      <div class="iname">何もつけない</div>
+      <div class="icon-none-btn ${anyEquipped ? '' : 'equipped'}" onclick="unequipIcon(this)" title="${t('gacha.icon_none')}">✕</div>
+      <div class="iname">${t('gacha.icon_none')}</div>
     </div>
   </div>`;
 }
@@ -700,7 +705,7 @@ async function openPoolModal() {
   modal.style.display = 'flex';
   if (_lastPoolModalPoolId === selectedPoolId) return;
   _lastPoolModalPoolId = selectedPoolId;
-  document.getElementById('pool-list').innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  document.getElementById('pool-list').innerHTML = `<div class="loading"><div class="spinner"></div>${t('loading')}</div>`;
   try {
     const icons = selectedPoolId
       ? await apiFetch(`/gacha/pools/${selectedPoolId}/icons`)
@@ -717,7 +722,7 @@ async function openPoolModal() {
       const pickupCount = grouped[r].filter(ic => ic.is_pickup).length;
       return `
         <div style="margin-bottom:18px">
-          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}レア（${grouped[r].length}種）${pickupCount > 0 ? `<span style="font-size:0.72rem;color:#ffd700;margin-left:8px">★PickUp ${pickupCount}枚</span>` : ''}</div>
+          <div style="font-size:0.82rem;font-weight:bold;color:${rarityColors[r]};margin-bottom:8px">${r}${getLang()==='zh'?'稀':'レア'}（${grouped[r].length}${getLang()==='zh'?'種':'種'}）${pickupCount > 0 ? `<span style="font-size:0.72rem;color:#ffd700;margin-left:8px">★PickUp ${pickupCount}${getLang()==='zh'?'枚':'枚'}</span>` : ''}</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px">
             ${grouped[r].map(ic => `
               <div style="text-align:center;position:relative">

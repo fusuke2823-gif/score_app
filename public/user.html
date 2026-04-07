@@ -9,13 +9,13 @@
 <body>
 <nav id="nav"></nav>
 <main style="position:relative">
-  <a class="back-link" href="javascript:history.back()" style="color:var(--text-secondary);font-size:.85rem;display:inline-block;margin-bottom:16px">← 戻る</a>
+  <a class="back-link" href="javascript:history.back()" style="color:var(--text-secondary);font-size:.85rem;display:inline-block;margin-bottom:16px" data-i18n="user.back">← 戻る</a>
   <div id="delete-btn-wrap" style="display:none;position:absolute;top:0;right:0">
-    <button class="btn btn-sm" onclick="openDeleteModal()" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e57373;font-size:0.78rem">アカウント削除</button>
+    <button class="btn btn-sm" onclick="openDeleteModal()" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e57373;font-size:0.78rem" data-i18n="user.delete">アカウント削除</button>
   </div>
   <div id="alert"></div>
   <div id="content">
-    <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
   </div>
 </main>
 
@@ -76,16 +76,16 @@
 <!-- アカウント削除モーダル -->
 <div id="delete-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center">
   <div class="card" style="width:min(360px,90vw);padding:24px">
-    <div style="font-weight:bold;font-size:1rem;color:#e57373;margin-bottom:8px">アカウント削除</div>
-    <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">この操作は取り消せません。パスワードを入力して確認してください。</div>
+    <div style="font-weight:bold;font-size:1rem;color:#e57373;margin-bottom:8px" data-i18n="user.delete_title">アカウント削除</div>
+    <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px" data-i18n="user.delete_warn">この操作は取り消せません。パスワードを入力して確認してください。</div>
     <div id="delete-alert"></div>
     <div class="form-group">
-      <label class="form-label">パスワード</label>
-      <input class="form-input" id="delete-pw" type="password" placeholder="パスワードを入力">
+      <label class="form-label" data-i18n="login.password">パスワード</label>
+      <input class="form-input" id="delete-pw" type="password" data-i18n-ph="user.pw_ph" placeholder="パスワードを入力">
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
-      <button class="btn btn-secondary" style="flex:1" onclick="closeDeleteModal()">キャンセル</button>
-      <button class="btn" style="flex:1;background:#c62828;color:#fff;border:none" onclick="doDeleteAccount()">削除する</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="closeDeleteModal()" data-i18n="cancel">キャンセル</button>
+      <button class="btn" style="flex:1;background:#c62828;color:#fff;border:none" onclick="doDeleteAccount()" data-i18n="user.delete_btn">削除する</button>
     </div>
   </div>
 </div>
@@ -93,6 +93,7 @@
 <script src="/js/common.js"></script>
 <script>
 renderNav();
+applyI18n();
 
 const userId = getParam('id');
 if (!userId) location.href = '/index.html';
@@ -129,46 +130,46 @@ async function load() {
         <div class="user-info">
           <h2>${escHtml(data.username)}</h2>
           ${data.oshi_character
-            ? `<div class="user-oshi">推し: ${escHtml(data.oshi_character)}</div>`
+            ? `<div class="user-oshi">${t('user.oshi')}${escHtml(data.oshi_character)}</div>`
             : ''}
           ${data.equipped_title
-            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">称号: </span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
+            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">${t('user.title_label')}</span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
             : ''}
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">参加: ${formatDate(data.created_at)}</div>
-          ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">プロフィール編集</button>` : ''}
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${t('user.joined')}${formatDate(data.created_at)}</div>
+          ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
         </div>
       </div>
 
       ${isMe ? `
       <div id="edit-form-wrap" class="card" style="display:none;margin-bottom:24px">
-        <div style="font-weight:bold;margin-bottom:16px">プロフィール編集</div>
+        <div style="font-weight:bold;margin-bottom:16px">${t('user.edit_title')}</div>
         <div id="edit-alert"></div>
         <div class="form-group">
-          <label class="form-label">ユーザー名</label>
+          <label class="form-label">${t('user.username')}</label>
           <input class="form-input" id="edit-username" type="text" value="${escHtml(data.username)}" maxlength="12">
         </div>
         <div class="form-group">
-          <label class="form-label">推しキャラクター</label>
-          <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="例: 茅森月歌">
+          <label class="form-label">${t('user.oshi_field')}</label>
+          <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="${t('user.oshi_ph')}">
         </div>
         <details style="margin-bottom:16px">
-          <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">パスワード変更（任意）</summary>
+          <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">${t('user.pw_section')}</summary>
           <div style="margin-top:12px">
             <div class="form-group">
-              <label class="form-label">現在のパスワード</label>
+              <label class="form-label">${t('user.pw_current')}</label>
               <input class="form-input" id="edit-current-pw" type="password" autocomplete="current-password">
             </div>
             <div class="form-group">
-              <label class="form-label">新しいパスワード（6文字以上）</label>
+              <label class="form-label">${t('user.pw_new')}</label>
               <input class="form-input" id="edit-new-pw" type="password" autocomplete="new-password">
             </div>
           </div>
         </details>
-        <button class="btn btn-primary" onclick="saveProfile()">保存する</button>
+        <button class="btn btn-primary" onclick="saveProfile()">${t('user.save')}</button>
       </div>` : ''}
 
       ${events.length === 0
-        ? `<div class="empty-state"><div class="empty-state-icon">📊</div><p>承認済みスコアがありません</p></div>`
+        ? `<div class="empty-state"><div class="empty-state-icon">📊</div><p>${t('user.no_scores')}</p></div>`
         : `<div class="score-grid">
             ${events.map(e => `
               <div class="event-score-card">
@@ -177,7 +178,7 @@ async function load() {
                     <span style="font-size:0.8rem;color:var(--accent);margin-right:8px">第${e.event_number}回</span>
                     <a href="/ranking.html?id=${e.event_id}" class="event-score-title">${escHtml(e.event_name)}</a>
                   </div>
-                  ${data.ranks[e.event_id] ? `<span class="event-rank-badge">全属性 ${data.ranks[e.event_id]}位</span>` : ''}
+                  ${data.ranks[e.event_id] ? `<span class="event-rank-badge">${t('user.all_rank', data.ranks[e.event_id])}</span>` : ''}
                 </div>
                 <div class="attr-score-list">
                   ${e.scores.map(s => `
@@ -186,7 +187,7 @@ async function load() {
                       <span class="attr-score-val">${formatScore(s.approved_score)}</span>
                       ${s.attr_rank ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank}位</span>` : ''}
                       ${s.approved_image_url
-                        ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="リザルト" onclick="openModal('${escHtml(s.approved_image_url)}')">`
+                        ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="result" onclick="openModal('${escHtml(s.approved_image_url)}')">`
                         : ''}
                     </div>`).join('')}
                 </div>
@@ -220,14 +221,13 @@ async function saveProfile() {
     const res = await apiFetch('/auth/me', { method: 'PUT', body: JSON.stringify(body) });
     setAuth(res.token, res.user);
     renderNav();
-    alertEl.innerHTML = '<div class="alert alert-success">保存しました</div>';
-    // アバター文字を更新
+    alertEl.innerHTML = `<div class="alert alert-success">${t('user.saved')}</div>`;
     const avatar = document.querySelector('.user-avatar');
     if (avatar) avatar.textContent = res.user.username.charAt(0);
     document.querySelector('.user-info h2').textContent = res.user.username;
     const oshiEl = document.querySelector('.user-oshi');
     if (res.user.oshi_character) {
-      if (oshiEl) oshiEl.textContent = '推し: ' + res.user.oshi_character;
+      if (oshiEl) oshiEl.textContent = t('user.oshi') + res.user.oshi_character;
     } else if (oshiEl) {
       oshiEl.remove();
     }
