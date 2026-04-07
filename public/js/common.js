@@ -360,8 +360,7 @@ function renderNav() {
         ${langBtn}
         ${user
           ? `<a href="/user.html?id=${user.id}" class="nav-username">${escHtml(user.username)}</a>
-             ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
-             <button class="btn btn-secondary btn-sm" onclick="logout()">${t('nav.logout')}</button>`
+             ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}`
           : `<a href="/login.html" class="btn btn-secondary btn-sm">${t('nav.login')}</a>
              <a href="/register.html" class="btn btn-primary btn-sm">${t('nav.register')}</a>`
         }
@@ -384,7 +383,6 @@ function renderNav() {
         : `<a href="/login.html">${t('nav.login')}</a>
            <a href="/register.html">${t('nav.register_full')}</a>`
       }
-      <a href="#" onclick="setLang(getLang()==='ja'?'zh':'ja');return false;" style="font-size:0.85rem;color:var(--text-muted)">${lang === 'ja' ? '繁體中文' : '日本語'}</a>
     </div>`;
   applyI18n();
 }
