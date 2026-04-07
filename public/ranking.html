@@ -16,13 +16,14 @@
   <div id="enemy-section"></div>
 
   <!-- 属性フィルター -->
-  <div id="filter-section" style="display:none;position:sticky;top:56px;z-index:50;background:var(--bg-primary);padding:8px 0;margin:0 -24px;padding-left:24px;padding-right:24px">
-    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
+  <div id="filter-section" style="display:none;position:sticky;top:56px;z-index:50;background:var(--bg-primary);padding:8px 0;margin:0 -24px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--border)">
+    <div id="filter-title-row" style="display:none;font-size:0.9rem;font-weight:bold;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
       <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
       <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_off">全属性OFF</button>
       <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
-    <div class="attr-filter" id="attr-filter">
+    <div class="attr-filter" id="attr-filter" style="margin-bottom:4px">
       <button class="attr-btn attr-火 active" data-attr="火" data-i18n="attr.火">火</button>
       <button class="attr-btn attr-氷 active" data-attr="氷" data-i18n="attr.氷">氷</button>
       <button class="attr-btn attr-雷 active" data-attr="雷" data-i18n="attr.雷">雷</button>
@@ -195,6 +196,7 @@ async function loadEvent() {
     }
 
     document.getElementById('filter-section').style.display = '';
+    initStickyTitle(event.name);
     updateTheadTop();
   } catch (err) {
     showAlert('#alert', err.message);
@@ -369,6 +371,22 @@ function updateTheadTop() {
       th.style.top = (navH + filterH) + 'px';
     });
   });
+}
+
+function initStickyTitle(eventName) {
+  const titleRow = document.getElementById('filter-title-row');
+  if (titleRow) titleRow.textContent = eventName;
+
+  const observer = new IntersectionObserver(([entry]) => {
+    const titleRow = document.getElementById('filter-title-row');
+    if (!titleRow) return;
+    const visible = !entry.isIntersecting;
+    titleRow.style.display = visible ? '' : 'none';
+    updateTheadTop();
+  }, { threshold: 0, rootMargin: '-56px 0px 0px 0px' });
+
+  const header = document.getElementById('event-header');
+  if (header) observer.observe(header);
 }
 
 window.addEventListener('resize', updateTheadTop);
