@@ -16,7 +16,7 @@
   <div id="enemy-section"></div>
 
   <!-- 属性フィルター -->
-  <div id="filter-section" style="display:none">
+  <div id="filter-section" style="display:none;position:sticky;top:56px;z-index:50;background:var(--bg-primary);padding-bottom:8px;margin-bottom:0">
     <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">
       <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
       <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_off">全属性OFF</button>
@@ -195,6 +195,7 @@ async function loadEvent() {
     }
 
     document.getElementById('filter-section').style.display = '';
+    updateTheadTop();
   } catch (err) {
     showAlert('#alert', err.message);
   }
@@ -284,6 +285,7 @@ async function loadRanking() {
           }).join(''); })()}
         </tbody>
       </table>`;
+    updateTheadTop();
   } catch (err) {
     rankEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
@@ -354,6 +356,19 @@ function goSubmit() {
   }
   location.href = `/submit.html?event_id=${encodeURIComponent(eventId)}`;
 }
+
+function updateTheadTop() {
+  const nav = document.querySelector('nav');
+  const filter = document.getElementById('filter-section');
+  if (!filter || filter.style.display === 'none') return;
+  const navH = nav ? nav.offsetHeight : 56;
+  const filterH = filter.offsetHeight;
+  document.querySelectorAll('.ranking-table thead th').forEach(th => {
+    th.style.top = (navH + filterH) + 'px';
+  });
+}
+
+window.addEventListener('resize', updateTheadTop);
 
 loadEvent();
 updateFilterUI();

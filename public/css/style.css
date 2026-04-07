@@ -257,6 +257,10 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  background: var(--bg-card);
+  z-index: 10;
+  /* top は JS で動的に設定 */
 }
 .ranking-table td {
   padding: 12px 14px;
