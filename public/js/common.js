@@ -360,7 +360,8 @@ function renderNav() {
         ${langBtn}
         ${user
           ? `<a href="/user.html?id=${user.id}" class="nav-username">${escHtml(user.username)}</a>
-             ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}`
+             ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
+             <button class="btn btn-secondary btn-sm nav-desktop-only" onclick="logout()">${t('nav.logout')}</button>`
           : `<a href="/login.html" class="btn btn-secondary btn-sm">${t('nav.login')}</a>
              <a href="/register.html" class="btn btn-primary btn-sm">${t('nav.register')}</a>`
         }
