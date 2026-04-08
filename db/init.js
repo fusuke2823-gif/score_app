@@ -368,9 +368,23 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
     `);
 
-    // シーケンスがずれている場合に修正（全ユーザーが登録できなくなるバグ対策）
+    // 全テーブルのシーケンスずれを修正（DB復元後などでシーケンスがリセットされる対策）
     await client.query(`
-      SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
+      SELECT setval('users_id_seq',                    COALESCE((SELECT MAX(id) FROM users), 1));
+      SELECT setval('events_id_seq',                   COALESCE((SELECT MAX(id) FROM events), 1));
+      SELECT setval('enemies_id_seq',                  COALESCE((SELECT MAX(id) FROM enemies), 1));
+      SELECT setval('scores_id_seq',                   COALESCE((SELECT MAX(id) FROM scores), 1));
+      SELECT setval('point_history_id_seq',            COALESCE((SELECT MAX(id) FROM point_history), 1));
+      SELECT setval('titles_id_seq',                   COALESCE((SELECT MAX(id) FROM titles), 1));
+      SELECT setval('frames_id_seq',                   COALESCE((SELECT MAX(id) FROM frames), 1));
+      SELECT setval('gacha_icons_id_seq',              COALESCE((SELECT MAX(id) FROM gacha_icons), 1));
+      SELECT setval('gacha_pools_id_seq',              COALESCE((SELECT MAX(id) FROM gacha_pools), 1));
+      SELECT setval('gacha_pull_logs_id_seq',          COALESCE((SELECT MAX(id) FROM gacha_pull_logs), 1));
+      SELECT setval('feedback_id_seq',                 COALESCE((SELECT MAX(id) FROM feedback), 1));
+      SELECT setval('feedback_messages_id_seq',        COALESCE((SELECT MAX(id) FROM feedback_messages), 1));
+      SELECT setval('special_login_bonuses_id_seq',    COALESCE((SELECT MAX(id) FROM special_login_bonuses), 1));
+      SELECT setval('special_login_bonus_claims_id_seq', COALESCE((SELECT MAX(id) FROM special_login_bonus_claims), 1));
+      SELECT setval('event_interim_distributions_id_seq', COALESCE((SELECT MAX(id) FROM event_interim_distributions), 1));
     `);
 
     console.log('データベース初期化完了');
