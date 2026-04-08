@@ -11,6 +11,9 @@
 <div class="auth-wrap">
   <div class="auth-card card">
     <h1 class="auth-title" data-i18n="register.title">新規登録</h1>
+    <div id="internal-badge" style="display:none;text-align:center;margin-bottom:12px">
+      <span style="background:var(--accent);color:#fff;font-size:0.8rem;font-weight:bold;padding:4px 12px;border-radius:20px" data-i18n="register.internal_badge">内部メンバー登録</span>
+    </div>
     <div id="alert"></div>
     <form id="register-form">
       <div class="form-group">
@@ -27,6 +30,11 @@
         <label class="form-label" data-i18n="register.oshi">推しキャラクター（任意）</label>
         <input class="form-input" type="text" id="oshi" maxlength="100" data-i18n-ph="register.oshi_ph" placeholder="例: 茅森月歌">
       </div>
+      <div class="form-group" id="internal-pw-group" style="display:none">
+        <label class="form-label" data-i18n="register.internal_pw">コミュニティパスワード</label>
+        <input class="form-input" type="password" id="internal-pw" maxlength="100">
+        <div class="form-hint" data-i18n="register.internal_pw_hint">内部メンバー登録用のパスワードを入力してください</div>
+      </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
     </form>
     <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-secondary)">
@@ -40,6 +48,12 @@ renderNav();
 applyI18n();
 if (getToken()) location.href = '/index.html';
 
+// ?ref= がある場合はコミュニティパスワード欄を表示
+if (getParam('ref')) {
+  document.getElementById('internal-pw-group').style.display = '';
+  document.getElementById('internal-badge').style.display = '';
+}
+
 document.getElementById('register-form').addEventListener('submit', async e => {
   e.preventDefault();
   clearAlert('#alert');
@@ -48,13 +62,17 @@ document.getElementById('register-form').addEventListener('submit', async e => {
   btn.textContent = t('register.btn_loading');
 
   try {
+    const body = {
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+      oshi_character: document.getElementById('oshi').value || undefined
+    };
+    const internalPw = document.getElementById('internal-pw').value;
+    if (internalPw) body.internal_password = internalPw;
+
     const data = await apiFetch('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({
-        username: document.getElementById('username').value,
-        password: document.getElementById('password').value,
-        oshi_character: document.getElementById('oshi').value || undefined
-      })
+      body: JSON.stringify(body)
     });
     setAuth(data.token, data.user);
     location.href = '/index.html';

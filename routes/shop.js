@@ -188,7 +188,7 @@ router.post('/frames/equip', authenticateToken, async (req, res) => {
   }
 });
 
-// 称号を装備（title_id: null で解除）
+// 称号を装備（title_id: null で解除）― 外部ランキング用
 router.post('/equip', authenticateToken, async (req, res) => {
   const { title_id } = req.body;
   try {
@@ -205,6 +205,45 @@ router.post('/equip', authenticateToken, async (req, res) => {
       [title_id || null, req.user.id]
     );
     res.json({ message: title_id ? '称号を装備しました' : '称号を外しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 内部ランキング用称号を装備（title_id: null で解除）
+router.post('/equip-internal', authenticateToken, async (req, res) => {
+  const { title_id } = req.body;
+  if (!req.user.is_internal)
+    return res.status(403).json({ error: '内部ユーザー限定の機能です' });
+  try {
+    if (title_id) {
+      const owned = await pool.query(
+        'SELECT id FROM user_titles WHERE user_id = $1 AND title_id = $2',
+        [req.user.id, title_id]
+      );
+      if (owned.rows.length === 0)
+        return res.status(403).json({ error: 'この称号を所持していません' });
+    }
+    await pool.query(
+      'UPDATE users SET equipped_internal_title_id = $1 WHERE id = $2',
+      [title_id || null, req.user.id]
+    );
+    res.json({ message: title_id ? '内部称号を装備しました' : '内部称号を外しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// /my に equipped_internal_title_id を追加で返す
+router.get('/my/internal-equip', authenticateToken, async (req, res) => {
+  try {
+    const r = await pool.query(
+      'SELECT equipped_title_id, equipped_internal_title_id FROM users WHERE id=$1',
+      [req.user.id]
+    );
+    res.json(r.rows[0] || {});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

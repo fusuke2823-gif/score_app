@@ -42,6 +42,21 @@
           <input class="form-input" type="number" id="score-input" min="0" data-i18n-ph="submit.score_ph" placeholder="例: 12345678" required>
         </div>
 
+        <!-- 内部ユーザーのみ表示：投稿先選択 -->
+        <div class="form-group" id="scope-group" style="display:none">
+          <label class="form-label" data-i18n="scope.label">投稿先</label>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
+              <input type="radio" name="ranking_scope" value="internal" checked>
+              <span data-i18n="scope.submit_internal">内部ランキングのみ</span>
+            </label>
+            <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
+              <input type="radio" name="ranking_scope" value="public">
+              <span data-i18n="scope.submit_public">内部・外部両方</span>
+            </label>
+          </div>
+        </div>
+
         <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="submit.btn">投稿する</button>
       </form>
     </div>
@@ -69,6 +84,11 @@
 renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
+
+// 内部ユーザーなら投稿先選択を表示
+if (isInternal()) {
+  document.getElementById('scope-group').style.display = '';
+}
 
 // 属性ラジオ生成
 const attrContainer = document.getElementById('attr-select');
@@ -202,11 +222,15 @@ async function doSubmit(isAnon) {
   const imageFile = document.getElementById('image-input').files[0];
   const btn = document.getElementById('submit-btn');
 
+  const scopeInput = document.querySelector('input[name="ranking_scope"]:checked');
+  const rankingScope = scopeInput ? scopeInput.value : 'public';
+
   const formData = new FormData();
   formData.append('event_id', eventId);
   formData.append('attribute', attrInput.value);
   formData.append('score', score);
   formData.append('is_anonymous', isAnon);
+  formData.append('ranking_scope', rankingScope);
   if (imageFile) formData.append('image', imageFile);
 
   btn.disabled = true;

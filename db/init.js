@@ -279,6 +279,12 @@ const initDB = async () => {
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS side VARCHAR(5) NOT NULL DEFAULT '表';
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_internal BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_internal_title_id INTEGER;
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS ranking_scope VARCHAR(10) NOT NULL DEFAULT 'internal';
+      ALTER TABLE titles ADD COLUMN IF NOT EXISTS scope VARCHAR(10) NOT NULL DEFAULT 'common';
+      ALTER TABLE enemies ADD COLUMN IF NOT EXISTS external_image_url TEXT;
+
       CREATE TABLE IF NOT EXISTS gacha_pool_icons (
         pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE CASCADE,
         icon_id INTEGER REFERENCES gacha_icons(id) ON DELETE CASCADE,

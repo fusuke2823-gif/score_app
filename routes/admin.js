@@ -1341,4 +1341,84 @@ router.delete('/special-bonuses/:id', async (req, res) => {
   }
 });
 
+// ===== 内部/外部管理 (admin3用) =====
+
+// ユーザー一覧（is_internal フラグ付き）
+router.get('/users', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, role, is_internal, created_at FROM users ORDER BY id ASC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ユーザーの is_internal フラグ更新
+router.patch('/users/:id/internal', async (req, res) => {
+  const { is_internal } = req.body;
+  try {
+    await pool.query('UPDATE users SET is_internal=$1 WHERE id=$2', [!!is_internal, req.params.id]);
+    res.json({ message: '更新しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 称号一覧（scope付き）
+router.get('/titles', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM titles ORDER BY id ASC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 称号の scope 更新
+router.patch('/titles/:id/scope', async (req, res) => {
+  const { scope } = req.body;
+  if (!['common', 'internal', 'external'].includes(scope))
+    return res.status(400).json({ error: '無効なスコープです' });
+  try {
+    await pool.query('UPDATE titles SET scope=$1 WHERE id=$2', [scope, req.params.id]);
+    res.json({ message: '更新しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 敵の external_image_url 更新（URLのみ、JSON）
+router.patch('/enemies/:id/external-image', async (req, res) => {
+  const { image_url } = req.body;
+  try {
+    await pool.query('UPDATE enemies SET external_image_url=$1 WHERE id=$2', [image_url || null, req.params.id]);
+    res.json({ message: '更新しました', image_url: image_url || null });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 全イベントの敵一覧（external_image_url管理用）
+router.get('/enemies', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT en.id, en.name, en.image_url, en.external_image_url, e.name AS event_name, e.event_number
+       FROM enemies en
+       JOIN events e ON en.event_id = e.id
+       ORDER BY e.event_number DESC, en.order_index ASC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;

@@ -237,6 +237,14 @@
 renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
+if (!isInternal()) {
+  document.querySelector('main').innerHTML = `
+    <div class="empty-state" style="margin-top:60px">
+      <div class="empty-state-icon">🔒</div>
+      <p style="font-size:1rem;font-weight:bold">${t('scope.gacha_blocked')}</p>
+    </div>`;
+  throw new Error('blocked');
+}
 
 let gSettings = null;
 let isPulling = false;

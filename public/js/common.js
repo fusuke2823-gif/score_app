@@ -115,6 +115,14 @@ const _i18n = {
     'gacha.gp_migrated':'GP補填：過去のガチャ分 {0}GP を付与しました！',
     'gacha.gp_short':'GPが不足しています（現在: {0}GP／必要: {1}GP）',
     'gacha.hours_left':'残り{0}時間','gacha.days_left':'残り{0}日',
+    'scope.internal':'内部ランキング','scope.public':'外部ランキング',
+    'scope.toggle_hint':'内部/外部切替',
+    'scope.submit_internal':'内部ランキングのみ','scope.submit_public':'内部・外部両方',
+    'scope.label':'投稿先',
+    'scope.gacha_blocked':'ガチャは内部ユーザー限定の機能です',
+    'register.internal_pw':'コミュニティパスワード',
+    'register.internal_pw_hint':'内部メンバー登録用のパスワードを入力してください',
+    'register.internal_badge':'内部メンバー登録',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -227,6 +235,14 @@ const _i18n = {
     'gacha.gp_migrated':'GP補填：過去轉蛋 {0}GP 已補發！',
     'gacha.gp_short':'GP不足（目前: {0}GP／需要: {1}GP）',
     'gacha.hours_left':'剩{0}小時','gacha.days_left':'剩{0}天',
+    'scope.internal':'內部排行榜','scope.public':'外部排行榜',
+    'scope.toggle_hint':'切換內部/外部',
+    'scope.submit_internal':'僅內部排行榜','scope.submit_public':'內部・外部皆投稿',
+    'scope.label':'投稿目標',
+    'scope.gacha_blocked':'轉蛋為內部用戶專屬功能',
+    'register.internal_pw':'社群密碼',
+    'register.internal_pw_hint':'請輸入內部成員專用密碼',
+    'register.internal_badge':'內部成員註冊',
   }
 };
 
@@ -430,6 +446,7 @@ async function updateGachaNav() {
     }
     const user = getUser();
     if (!user) return;
+    if (!user.is_internal && user.role !== 'admin') return;
     if (!show && user.role !== 'admin') return;
     const currentPath = location.pathname;
     const isActive = currentPath === '/gacha.html';
@@ -461,6 +478,11 @@ function requireAdmin() {
     return false;
   }
   return true;
+}
+
+function isInternal() {
+  const user = getUser();
+  return !!(user && user.is_internal);
 }
 
 function getParam(name) {

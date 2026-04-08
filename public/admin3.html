@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理画面 3 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
+.user-list-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 16px; border-bottom:1px solid var(--border);
+}
+.user-list-item:last-child { border-bottom:none; }
+.badge-internal { background:var(--accent); color:#fff; font-size:0.72rem; font-weight:bold; padding:2px 8px; border-radius:12px; }
+.badge-external { background:var(--bg-secondary); color:var(--text-muted); font-size:0.72rem; padding:2px 8px; border-radius:12px; border:1px solid var(--border); }
+.scope-badge { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:4px; }
+.scope-common { background:#4fc3f7; color:#000; }
+.scope-internal { background:var(--accent); color:#fff; }
+.scope-external { background:#66bb6a; color:#000; }
+.enemy-ext-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.enemy-ext-row:last-child { border-bottom:none; }
+.enemy-thumb { width:50px; height:36px; object-fit:cover; border-radius:4px; border:1px solid var(--border); }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:4px;flex-wrap:wrap">
+    <h1 class="page-title" style="margin:0">管理画面 3</h1>
+    <a href="/admin2.html" style="font-size:0.85rem;color:var(--text-muted)">← 管理画面 2</a>
+    <a href="/admin.html" style="font-size:0.85rem;color:var(--text-muted)">管理画面 1</a>
+  </div>
+  <div id="alert"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('users')">ユーザー管理</button>
+    <button class="tab-btn" onclick="switchTab('titles')">称号スコープ</button>
+    <button class="tab-btn" onclick="switchTab('enemies')">外部用敵画像</button>
+  </div>
+
+  <!-- ユーザー管理 -->
+  <div class="tab-content active" id="tab-users">
+    <div class="card">
+      <div class="section-title">内部/外部フラグ管理</div>
+      <div id="users-alert" style="margin-bottom:12px"></div>
+      <div style="margin-bottom:12px">
+        <input class="form-input" id="user-search" type="text" placeholder="ユーザー名で絞り込み" oninput="filterUsers()" style="max-width:260px">
+      </div>
+      <div id="users-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
+    </div>
+  </div>
+
+  <!-- 称号スコープ管理 -->
+  <div class="tab-content" id="tab-titles">
+    <div class="card">
+      <div class="section-title">称号スコープ設定</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+        <b>common</b>=全員表示 / <b>internal</b>=内部ランキングのみ / <b>external</b>=外部ランキングのみ
+      </p>
+      <div id="titles-alert" style="margin-bottom:12px"></div>
+      <div id="titles-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
+    </div>
+  </div>
+
+  <!-- 外部用敵画像 -->
+  <div class="tab-content" id="tab-enemies">
+    <div class="card">
+      <div class="section-title">外部ランキング用 敵画像設定</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+        外部ユーザーに表示する代替画像をURLで設定します。未設定の場合は画像なし表示になります。
+      </p>
+      <div id="enemies-alert" style="margin-bottom:12px"></div>
+      <div id="enemies-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+if (!requireAdmin()) throw new Error('redirect');
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['users','titles','enemies'][i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+
+// ===== ユーザー管理 =====
+let _allUsers = [];
+
+async function loadUsers() {
+  try {
+    _allUsers = await apiFetch('/admin/users');
+    renderUsers(_allUsers);
+  } catch (err) {
+    document.getElementById('users-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function filterUsers() {
+  const q = document.getElementById('user-search').value.toLowerCase();
+  renderUsers(q ? _allUsers.filter(u => u.username.toLowerCase().includes(q)) : _allUsers);
+}
+
+function renderUsers(users) {
+  if (users.length === 0) {
+    document.getElementById('users-list').innerHTML = '<p style="color:var(--text-muted)">ユーザーが見つかりません</p>';
+    return;
+  }
+  document.getElementById('users-list').innerHTML = `
+    <div class="card" style="padding:0">
+      ${users.map(u => `
+        <div class="user-list-item">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-weight:bold">${escHtml(u.username)}</span>
+            ${u.role === 'admin' ? '<span style="font-size:0.72rem;color:var(--accent)">[管理者]</span>' : ''}
+            <span class="${u.is_internal ? 'badge-internal' : 'badge-external'}">${u.is_internal ? '内部' : '外部'}</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            ${u.is_internal
+              ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="setInternal(${u.id}, false)">外部に変更</button>`
+              : `<button class="btn btn-sm btn-primary" onclick="setInternal(${u.id}, true)">内部に変更</button>`
+            }
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function setInternal(userId, val) {
+  try {
+    await apiFetch(`/admin/users/${userId}/internal`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_internal: val })
+    });
+    _allUsers = _allUsers.map(u => u.id === userId ? { ...u, is_internal: val } : u);
+    filterUsers();
+  } catch (err) {
+    document.getElementById('users-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// ===== 称号スコープ =====
+async function loadTitles() {
+  try {
+    const titles = await apiFetch('/admin/titles');
+    renderTitles(titles);
+  } catch (err) {
+    document.getElementById('titles-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderTitles(titles) {
+  if (titles.length === 0) {
+    document.getElementById('titles-list').innerHTML = '<p style="color:var(--text-muted)">称号がありません</p>';
+    return;
+  }
+  document.getElementById('titles-list').innerHTML = `
+    <table class="ranking-table">
+      <thead><tr><th>称号名</th><th>説明</th><th>現在のスコープ</th><th>変更</th></tr></thead>
+      <tbody>
+        ${titles.map(t => `
+          <tr>
+            <td style="font-weight:bold">${escHtml(t.name)}</td>
+            <td style="font-size:0.8rem;color:var(--text-muted)">${escHtml(t.description || '')}</td>
+            <td><span class="scope-badge scope-${t.scope || 'common'}">${t.scope || 'common'}</span></td>
+            <td>
+              <select class="form-input" style="padding:4px 8px;font-size:0.8rem;width:auto" onchange="setTitleScope(${t.id}, this.value)">
+                <option value="common" ${(t.scope||'common')==='common'?'selected':''}>common</option>
+                <option value="internal" ${t.scope==='internal'?'selected':''}>internal</option>
+                <option value="external" ${t.scope==='external'?'selected':''}>external</option>
+              </select>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function setTitleScope(titleId, scope) {
+  try {
+    await apiFetch(`/admin/titles/${titleId}/scope`, {
+      method: 'PATCH',
+      body: JSON.stringify({ scope })
+    });
+    const el = document.getElementById('titles-alert');
+    el.innerHTML = '<div class="alert alert-success">更新しました</div>';
+    setTimeout(() => { el.innerHTML = ''; }, 2000);
+  } catch (err) {
+    document.getElementById('titles-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// ===== 外部用敵画像 =====
+async function loadEnemies() {
+  try {
+    const enemies = await apiFetch('/admin/enemies');
+    renderEnemies(enemies);
+  } catch (err) {
+    document.getElementById('enemies-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderEnemies(enemies) {
+  if (enemies.length === 0) {
+    document.getElementById('enemies-list').innerHTML = '<p style="color:var(--text-muted)">敵データがありません</p>';
+    return;
+  }
+  document.getElementById('enemies-list').innerHTML = enemies.map(en => `
+    <div class="enemy-ext-row" id="enemy-row-${en.id}">
+      <div style="flex:0 0 auto">
+        ${en.image_url ? `<img class="enemy-thumb" src="${escHtml(en.image_url)}" alt="${escHtml(en.name)}">` : '<div class="enemy-thumb" style="background:var(--bg-secondary)"></div>'}
+      </div>
+      <div style="flex:1;min-width:120px">
+        <div style="font-weight:bold;font-size:0.88rem">${escHtml(en.name)}</div>
+        <div style="font-size:0.76rem;color:var(--text-muted)">第${en.event_number}弾 ${escHtml(en.event_name)}</div>
+      </div>
+      <div style="flex:2;min-width:200px">
+        <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:4px">外部用画像URL</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="form-input" id="ext-url-${en.id}" type="text" value="${escHtml(en.external_image_url || '')}" placeholder="https://..." style="font-size:0.82rem;padding:4px 8px">
+          <button class="btn btn-sm btn-primary" onclick="saveExtImage(${en.id})">保存</button>
+          ${en.external_image_url ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="clearExtImage(${en.id})">削除</button>` : ''}
+        </div>
+        ${en.external_image_url ? `<div style="margin-top:6px"><img src="${escHtml(en.external_image_url)}" style="height:32px;border-radius:4px;border:1px solid var(--border)"></div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function saveExtImage(enemyId) {
+  const url = document.getElementById(`ext-url-${enemyId}`).value.trim();
+  try {
+    await apiFetch(`/admin/enemies/${enemyId}/external-image`, {
+      method: 'PATCH',
+      body: JSON.stringify({ image_url: url || null })
+    });
+    loadEnemies();
+  } catch (err) {
+    document.getElementById('enemies-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function clearExtImage(enemyId) {
+  document.getElementById(`ext-url-${enemyId}`).value = '';
+  await saveExtImage(enemyId);
+}
+
+loadUsers();
+loadTitles();
+loadEnemies();
+</script>
+</body>
+</html>

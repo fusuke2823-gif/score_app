@@ -6,7 +6,7 @@ const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
 
 router.post('/register', async (req, res) => {
-  const { username, password, oshi_character } = req.body;
+  const { username, password, oshi_character, internal_password } = req.body;
 
   if (!username || !password)
     return res.status(400).json({ error: 'ユーザー名とパスワードは必須です' });
@@ -15,20 +15,25 @@ router.post('/register', async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
 
+  // コミュニティパスワードの検証
+  const isInternal = !!(process.env.INTERNAL_PASSWORD &&
+    internal_password &&
+    internal_password === process.env.INTERNAL_PASSWORD);
+
   try {
     const existing = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);
     if (existing.rows.length > 0)
       return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character) VALUES ($1, $2, $3) RETURNING id, username, role, oshi_character',
-      [username, hash, oshi_character || null]
+      'INSERT INTO users (username, password_hash, oshi_character, is_internal) VALUES ($1, $2, $3, $4) RETURNING id, username, role, oshi_character, is_internal',
+      [username, hash, oshi_character || null, isInternal]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
     await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 50, $2)', [user.id, '新規登録ボーナス']);
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: user.id, username: user.username, role: user.role, is_internal: user.is_internal },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -50,13 +55,13 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'ユーザー名またはパスワードが間違っています' });
 
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
+      { id: user.id, username: user.username, role: user.role, is_internal: user.is_internal },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
     res.json({
       token,
-      user: { id: user.id, username: user.username, role: user.role, oshi_character: user.oshi_character }
+      user: { id: user.id, username: user.username, role: user.role, oshi_character: user.oshi_character, is_internal: user.is_internal }
     });
   } catch (err) {
     console.error(err);

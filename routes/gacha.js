@@ -215,8 +215,16 @@ async function acquireIcon(client, userId, icon, dupMap) {
   return { ...icon, is_dup: isDup, dup_pts: dupPts };
 }
 
+// 内部ユーザーのみ許可するミドルウェア
+function requireInternal(req, res, next) {
+  if (!req.user.is_internal) {
+    return res.status(403).json({ error: 'ガチャは内部ユーザー限定の機能です' });
+  }
+  next();
+}
+
 // 単発ガチャ
-router.post('/pull/single', authenticateToken, async (req, res) => {
+router.post('/pull/single', authenticateToken, requireInternal, async (req, res) => {
   const { pool_id } = req.body;
   const client = await pool.connect();
   try {
@@ -269,7 +277,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
 });
 
 // 10連ガチャ（最後の1枚はSレア以上確定）
-router.post('/pull/multi', authenticateToken, async (req, res) => {
+router.post('/pull/multi', authenticateToken, requireInternal, async (req, res) => {
   const { pool_id } = req.body;
   const client = await pool.connect();
   try {
@@ -329,7 +337,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
 });
 
 // GP交換（200GP → SSアイコン選択）
-router.post('/exchange', authenticateToken, async (req, res) => {
+router.post('/exchange', authenticateToken, requireInternal, async (req, res) => {
   const GP_COST = 200;
   const { icon_id } = req.body;
   if (!icon_id) return res.status(400).json({ error: 'アイコンを選択してください' });

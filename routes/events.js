@@ -124,12 +124,21 @@ router.get('/:id', async (req, res) => {
 });
 
 // ランキング取得
-router.get('/:id/ranking', async (req, res) => {
-  const { attributes } = req.query;
+router.get('/:id/ranking', optionalAuth, async (req, res) => {
+  const { attributes, scope } = req.query;
   const selectedAttrs = attributes !== undefined
     ? attributes.split(',').filter(Boolean)
     : ['火', '氷', '雷', '光', '闇', '無'];
   if (selectedAttrs.length === 0) return res.json([]);
+
+  // スコープ判定: internal（内部）は認証済み内部ユーザーのみ
+  const isInternalScope = scope === 'internal';
+  if (isInternalScope && (!req.user || !req.user.is_internal)) {
+    return res.status(403).json({ error: '内部ランキングは内部ユーザーのみ閲覧できます' });
+  }
+
+  // 公開スコープではアイコンを非表示にする
+  const showIcons = isInternalScope;
 
   try {
     const result = await pool.query(
@@ -139,6 +148,7 @@ router.get('/:id/ranking', async (req, res) => {
           u.username,
           u.oshi_character,
           u.equipped_title_id,
+          u.equipped_internal_title_id,
           u.equipped_frame_id,
           u.equipped_icon_id,
           s.attribute,
@@ -151,6 +161,7 @@ router.get('/:id/ranking', async (req, res) => {
         WHERE s.event_id = $1
           AND s.attribute = ANY($2)
           AND s.approved_score IS NOT NULL
+          AND ($3 = 'internal' OR s.ranking_scope = 'public')
         ORDER BY s.user_id, s.approved_score DESC
       )
       SELECT
@@ -158,22 +169,23 @@ router.get('/:id/ranking', async (req, res) => {
         bs.user_id,
         bs.username,
         bs.oshi_character,
-        t.name AS equipped_title,
-        t.description AS equipped_title_desc,
+        CASE WHEN $3 = 'internal' THEN ti.name ELSE te.name END AS equipped_title,
+        CASE WHEN $3 = 'internal' THEN ti.description ELSE te.description END AS equipped_title_desc,
         f.css_class AS equipped_frame,
-        gi.image_url AS equipped_icon_url,
-        gi.rarity AS equipped_icon_rarity,
+        CASE WHEN $4 THEN gi.image_url ELSE NULL END AS equipped_icon_url,
+        CASE WHEN $4 THEN gi.rarity ELSE NULL END AS equipped_icon_rarity,
         bs.attribute,
         bs.approved_score,
         bs.approved_image_url,
         bs.is_anonymous,
         MAX(bs.updated_at) OVER () AS last_updated_at
       FROM best_scores bs
-      LEFT JOIN titles t ON bs.equipped_title_id = t.id
+      LEFT JOIN titles ti ON bs.equipped_internal_title_id = ti.id
+      LEFT JOIN titles te ON bs.equipped_title_id = te.id
       LEFT JOIN frames f ON bs.equipped_frame_id = f.id
       LEFT JOIN gacha_icons gi ON bs.equipped_icon_id = gi.id
       ORDER BY bs.approved_score DESC`,
-      [req.params.id, selectedAttrs]
+      [req.params.id, selectedAttrs, scope || 'public', showIcons]
     );
     res.json(result.rows);
   } catch (err) {
