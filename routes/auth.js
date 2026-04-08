@@ -23,7 +23,7 @@ router.post('/register', async (req, res) => {
   try {
     const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
     if (existing.rows.length > 0)
-      return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
+      return res.status(409).json({ error: 'このユーザー名は既に使用されています [dup]' });
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (username, password_hash, oshi_character) VALUES ($1, $2, $3) RETURNING id, username, role, oshi_character',
@@ -43,10 +43,10 @@ router.post('/register', async (req, res) => {
     );
     res.json({ token, user });
   } catch (err) {
-    console.error(err);
+    console.error('[register error]', err.code, err.message);
     if (err.code === '23505')
-      return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
-    res.status(500).json({ error: 'サーバーエラー' });
+      return res.status(409).json({ error: 'このユーザー名は既に使用されています [unique]' });
+    res.status(500).json({ error: `サーバーエラー: ${err.message}` });
   }
 });
 
