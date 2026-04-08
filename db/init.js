@@ -370,10 +370,14 @@ const initDB = async () => {
 
     // Renderプラン移行で生成された重複制約 users_pkey1 を安全に削除（依存FK全件を動的処理）
     await client.query(`
+      CREATE TEMP TABLE IF NOT EXISTS _pkey1_fks (
+        tbl TEXT, con TEXT, col TEXT, del_rule TEXT
+      ) ON COMMIT DROP;
+    `);
+    await client.query(`
       DO $$
       DECLARE
         r RECORD;
-        del_rule TEXT;
         on_delete TEXT;
       BEGIN
         IF NOT EXISTS (
@@ -381,50 +385,44 @@ const initDB = async () => {
           WHERE table_name='users' AND constraint_name='users_pkey1'
         ) THEN RETURN; END IF;
 
-        -- users_pkey1 に依存する全FK を収集して削除・再追加
-        FOR r IN
-          SELECT
-            tc.table_name,
-            tc.constraint_name,
-            kcu.column_name,
-            rc.delete_rule
-          FROM information_schema.table_constraints tc
-          JOIN information_schema.key_column_usage kcu
-            ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-          JOIN information_schema.referential_constraints rc
-            ON tc.constraint_name = rc.constraint_name
-          JOIN information_schema.table_constraints tc2
-            ON rc.unique_constraint_name = tc2.constraint_name
-          WHERE tc2.constraint_name = 'users_pkey1'
-            AND tc.constraint_type = 'FOREIGN KEY'
-            AND tc.table_schema = 'public'
-        LOOP
-          -- FK を削除
-          EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.table_name, r.constraint_name);
+        -- フェーズ1: 削除対象FKの情報を一時テーブルに保存
+        INSERT INTO _pkey1_fks (tbl, con, col, del_rule)
+        SELECT tc.table_name, tc.constraint_name, kcu.column_name, rc.delete_rule
+        FROM information_schema.table_constraints tc
+        JOIN information_schema.key_column_usage kcu
+          ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.referential_constraints rc
+          ON tc.constraint_name = rc.constraint_name
+        JOIN information_schema.table_constraints tc2
+          ON rc.unique_constraint_name = tc2.constraint_name
+        WHERE tc2.constraint_name = 'users_pkey1'
+          AND tc.constraint_type = 'FOREIGN KEY'
+          AND tc.table_schema = 'public';
 
-          -- 削除ルールに応じて ON DELETE 句を設定
-          IF r.delete_rule = 'CASCADE' THEN
-            on_delete := 'ON DELETE CASCADE';
-          ELSIF r.delete_rule = 'SET NULL' THEN
-            on_delete := 'ON DELETE SET NULL';
-          ELSE
-            on_delete := '';
-          END IF;
-
-          -- FK を users_pkey（正規主キー）参照で再追加
-          EXECUTE format(
-            'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES users(id) %s',
-            r.table_name, r.constraint_name, r.column_name, on_delete
-          );
+        -- フェーズ2: 依存FK を全て削除
+        FOR r IN SELECT tbl, con FROM _pkey1_fks LOOP
+          EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.tbl, r.con);
         END LOOP;
 
-        -- 重複制約を削除
+        -- フェーズ3: 重複制約を削除
         ALTER TABLE users DROP CONSTRAINT users_pkey1;
 
         -- PRIMARY KEY がなければ追加
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='users'::regclass AND contype='p') THEN
           ALTER TABLE users ADD PRIMARY KEY (id);
         END IF;
+
+        -- フェーズ4: FK を正規主キー参照で再追加
+        FOR r IN SELECT tbl, con, col, del_rule FROM _pkey1_fks LOOP
+          IF r.del_rule = 'CASCADE' THEN on_delete := 'ON DELETE CASCADE';
+          ELSIF r.del_rule = 'SET NULL' THEN on_delete := 'ON DELETE SET NULL';
+          ELSE on_delete := '';
+          END IF;
+          EXECUTE format(
+            'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES users(id) %s',
+            r.tbl, r.con, r.col, on_delete
+          );
+        END LOOP;
       END $$;
     `);
 
