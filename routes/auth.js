@@ -26,14 +26,18 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character, is_internal) VALUES ($1, $2, $3, $4) RETURNING id, username, role, oshi_character, is_internal',
-      [username, hash, oshi_character || null, isInternal]
+      'INSERT INTO users (username, password_hash, oshi_character) VALUES ($1, $2, $3) RETURNING id, username, role, oshi_character',
+      [username, hash, oshi_character || null]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
     await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 50, $2)', [user.id, '新規登録ボーナス']);
+    if (isInternal) {
+      await pool.query('UPDATE users SET is_internal = TRUE WHERE id = $1', [user.id]);
+    }
+    user.is_internal = isInternal;
     const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role, is_internal: user.is_internal },
+      { id: user.id, username: user.username, role: user.role, is_internal: isInternal },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
