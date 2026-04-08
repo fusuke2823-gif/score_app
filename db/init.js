@@ -368,9 +368,58 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
     `);
 
-    // Renderプラン移行などで生成された重複制約を削除
+    // Renderプラン移行で生成された重複制約 users_pkey1 を安全に削除
     await client.query(`
-      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey1;
+      DO $$
+      DECLARE
+        feedback_del TEXT;
+        tower_del TEXT;
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE table_name='users' AND constraint_name='users_pkey1'
+        ) THEN RETURN; END IF;
+
+        -- 依存FK の削除ルールを保存
+        SELECT delete_rule INTO feedback_del FROM information_schema.referential_constraints
+          WHERE constraint_name='feedback_user_id_fkey';
+        SELECT delete_rule INTO tower_del FROM information_schema.referential_constraints
+          WHERE constraint_name='tower_rankings_user_id_fkey';
+
+        -- 依存FK を先に削除
+        ALTER TABLE feedback DROP CONSTRAINT IF EXISTS feedback_user_id_fkey;
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='tower_rankings') THEN
+          EXECUTE 'ALTER TABLE tower_rankings DROP CONSTRAINT IF EXISTS tower_rankings_user_id_fkey';
+        END IF;
+
+        -- 重複制約を削除
+        ALTER TABLE users DROP CONSTRAINT users_pkey1;
+
+        -- PRIMARY KEY がなければ追加
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='users'::regclass AND contype='p') THEN
+          ALTER TABLE users ADD PRIMARY KEY (id);
+        END IF;
+
+        -- feedback FK を再追加
+        IF feedback_del='CASCADE' THEN
+          ALTER TABLE feedback ADD CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+        ELSIF feedback_del='SET NULL' THEN
+          ALTER TABLE feedback ADD CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+        ELSE
+          ALTER TABLE feedback ADD CONSTRAINT feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+        END IF;
+
+        -- tower_rankings FK を再追加
+        IF tower_del IS NOT NULL AND EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='tower_rankings') THEN
+          IF tower_del='CASCADE' THEN
+            EXECUTE 'ALTER TABLE tower_rankings ADD CONSTRAINT tower_rankings_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE';
+          ELSIF tower_del='SET NULL' THEN
+            EXECUTE 'ALTER TABLE tower_rankings ADD CONSTRAINT tower_rankings_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL';
+          ELSE
+            EXECUTE 'ALTER TABLE tower_rankings ADD CONSTRAINT tower_rankings_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id)';
+          END IF;
+        END IF;
+      END $$;
     `);
 
     // 全テーブルのシーケンスずれを修正（DB復元後などでシーケンスがリセットされる対策）
