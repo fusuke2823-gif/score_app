@@ -1359,13 +1359,11 @@ router.get('/users', async (req, res) => {
 // ユーザーの is_internal フラグ更新
 router.patch('/users/:id/internal', async (req, res) => {
   const { is_internal } = req.body;
-  console.log('[patch internal] id:', req.params.id, 'body:', req.body, 'is_internal:', is_internal);
   try {
-    const result = await pool.query('UPDATE users SET is_internal=$1 WHERE id=$2', [!!is_internal, req.params.id]);
-    console.log('[patch internal] rowCount:', result.rowCount);
+    await pool.query('UPDATE users SET is_internal=$1 WHERE id=$2', [!!is_internal, req.params.id]);
     res.json({ message: '更新しました' });
   } catch (err) {
-    console.error('[patch internal] error:', err);
+    console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
   }
 });
