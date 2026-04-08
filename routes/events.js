@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 // 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', async (req, res) => {
