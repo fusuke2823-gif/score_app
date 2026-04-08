@@ -6,7 +6,7 @@ const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
 
 router.post('/register', async (req, res) => {
-  const { username, password, oshi_character, internal_password } = req.body;
+  const { username, password, oshi_character, internal_password, ref } = req.body;
 
   if (!username || !password)
     return res.status(400).json({ error: 'ユーザー名とパスワードは必須です' });
@@ -15,10 +15,10 @@ router.post('/register', async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
 
-  // コミュニティパスワードの検証
-  const isInternal = !!(process.env.INTERNAL_PASSWORD &&
-    internal_password &&
-    internal_password === process.env.INTERNAL_PASSWORD);
+  // 内部登録: URLトークン(ref) と コミュニティPW(internal_password) の両方が一致する場合のみ
+  const refOk = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
+  const pwOk  = !!(process.env.INTERNAL_PASSWORD && internal_password && internal_password === process.env.INTERNAL_PASSWORD);
+  const isInternal = refOk && pwOk;
 
   try {
     const existing = await pool.query('SELECT 1 FROM users WHERE username = $1', [username]);

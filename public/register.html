@@ -68,7 +68,10 @@ document.getElementById('register-form').addEventListener('submit', async e => {
       oshi_character: document.getElementById('oshi').value || undefined
     };
     const internalPw = document.getElementById('internal-pw').value;
-    if (internalPw) body.internal_password = internalPw;
+    if (internalPw) {
+      body.internal_password = internalPw;
+      body.ref = getParam('ref') || '';
+    }
 
     const data = await apiFetch('/auth/register', {
       method: 'POST',
