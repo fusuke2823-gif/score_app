@@ -370,11 +370,8 @@ const initDB = async () => {
 
     // Renderプラン移行で生成された重複制約 users_pkey1 を安全に削除（依存FK全件を動的処理）
     await client.query(`
-      CREATE TEMP TABLE IF NOT EXISTS _pkey1_fks (
-        tbl TEXT, con TEXT, col TEXT, del_rule TEXT
-      ) ON COMMIT DROP;
-    `);
-    await client.query(`
+      CREATE TEMP TABLE IF NOT EXISTS _pkey1_fks (tbl TEXT, con TEXT, col TEXT, del_rule TEXT);
+
       DO $$
       DECLARE
         r RECORD;
@@ -424,6 +421,8 @@ const initDB = async () => {
           );
         END LOOP;
       END $$;
+
+      DROP TABLE IF EXISTS _pkey1_fks;
     `);
 
     // 全テーブルのシーケンスずれを修正（DB復元後などでシーケンスがリセットされる対策）
