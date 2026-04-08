@@ -368,6 +368,11 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
     `);
 
+    // Renderプラン移行などで生成された重複制約を削除
+    await client.query(`
+      ALTER TABLE users DROP CONSTRAINT IF EXISTS users_pkey1;
+    `);
+
     // 全テーブルのシーケンスずれを修正（DB復元後などでシーケンスがリセットされる対策）
     await client.query(`
       SELECT setval('users_id_seq',                    COALESCE((SELECT MAX(id) FROM users), 1));
