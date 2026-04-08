@@ -368,6 +368,11 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
     `);
 
+    // シーケンスがずれている場合に修正（全ユーザーが登録できなくなるバグ対策）
+    await client.query(`
+      SELECT setval('users_id_seq', COALESCE((SELECT MAX(id) FROM users), 1));
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();
