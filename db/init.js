@@ -369,61 +369,62 @@ const initDB = async () => {
     `);
 
     // Renderプラン移行で生成された重複制約 users_pkey1 を安全に削除（依存FK全件を動的処理）
-    await client.query(`
-      CREATE TEMP TABLE IF NOT EXISTS _pkey1_fks (tbl TEXT, con TEXT, col TEXT, del_rule TEXT);
+    {
+      const pkey1Check = await client.query(
+        `SELECT 1 FROM information_schema.table_constraints
+         WHERE table_name='users' AND constraint_name='users_pkey1'`
+      );
+      if (pkey1Check.rows.length > 0) {
+        console.log('[migration] users_pkey1 を検出、削除処理を開始');
 
-      DO $$
-      DECLARE
-        r RECORD;
-        on_delete TEXT;
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE table_name='users' AND constraint_name='users_pkey1'
-        ) THEN RETURN; END IF;
+        // 依存FK を全件取得
+        const fkRows = await client.query(`
+          SELECT tc.table_name, tc.constraint_name, kcu.column_name, rc.delete_rule
+          FROM information_schema.table_constraints tc
+          JOIN information_schema.key_column_usage kcu
+            ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+          JOIN information_schema.referential_constraints rc
+            ON tc.constraint_name = rc.constraint_name
+          JOIN information_schema.table_constraints tc2
+            ON rc.unique_constraint_name = tc2.constraint_name
+          WHERE tc2.constraint_name = 'users_pkey1'
+            AND tc.constraint_type = 'FOREIGN KEY'
+            AND tc.table_schema = 'public'
+        `);
+        console.log('[migration] 依存FK数:', fkRows.rows.length);
 
-        -- フェーズ1: 削除対象FKの情報を一時テーブルに保存
-        INSERT INTO _pkey1_fks (tbl, con, col, del_rule)
-        SELECT tc.table_name, tc.constraint_name, kcu.column_name, rc.delete_rule
-        FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu
-          ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-        JOIN information_schema.referential_constraints rc
-          ON tc.constraint_name = rc.constraint_name
-        JOIN information_schema.table_constraints tc2
-          ON rc.unique_constraint_name = tc2.constraint_name
-        WHERE tc2.constraint_name = 'users_pkey1'
-          AND tc.constraint_type = 'FOREIGN KEY'
-          AND tc.table_schema = 'public';
+        // 依存FK を削除
+        for (const fk of fkRows.rows) {
+          await client.query(`ALTER TABLE "${fk.table_name}" DROP CONSTRAINT IF EXISTS "${fk.constraint_name}"`);
+          console.log('[migration] FK削除:', fk.table_name, fk.constraint_name);
+        }
 
-        -- フェーズ2: 依存FK を全て削除
-        FOR r IN SELECT tbl, con FROM _pkey1_fks LOOP
-          EXECUTE format('ALTER TABLE %I DROP CONSTRAINT IF EXISTS %I', r.tbl, r.con);
-        END LOOP;
+        // 重複制約を削除
+        await client.query('ALTER TABLE users DROP CONSTRAINT users_pkey1');
+        console.log('[migration] users_pkey1 削除完了');
 
-        -- フェーズ3: 重複制約を削除
-        ALTER TABLE users DROP CONSTRAINT users_pkey1;
+        // PRIMARY KEY がなければ追加
+        const pkCheck = await client.query(
+          `SELECT 1 FROM pg_constraint WHERE conrelid='users'::regclass AND contype='p'`
+        );
+        if (pkCheck.rows.length === 0) {
+          await client.query('ALTER TABLE users ADD PRIMARY KEY (id)');
+          console.log('[migration] PRIMARY KEY を再追加');
+        }
 
-        -- PRIMARY KEY がなければ追加
-        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='users'::regclass AND contype='p') THEN
-          ALTER TABLE users ADD PRIMARY KEY (id);
-        END IF;
-
-        -- フェーズ4: FK を正規主キー参照で再追加
-        FOR r IN SELECT tbl, con, col, del_rule FROM _pkey1_fks LOOP
-          IF r.del_rule = 'CASCADE' THEN on_delete := 'ON DELETE CASCADE';
-          ELSIF r.del_rule = 'SET NULL' THEN on_delete := 'ON DELETE SET NULL';
-          ELSE on_delete := '';
-          END IF;
-          EXECUTE format(
-            'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (%I) REFERENCES users(id) %s',
-            r.tbl, r.con, r.col, on_delete
+        // FK を正規主キー参照で再追加
+        for (const fk of fkRows.rows) {
+          const onDelete = fk.delete_rule === 'CASCADE' ? 'ON DELETE CASCADE'
+                         : fk.delete_rule === 'SET NULL' ? 'ON DELETE SET NULL' : '';
+          await client.query(
+            `ALTER TABLE "${fk.table_name}" ADD CONSTRAINT "${fk.constraint_name}"
+             FOREIGN KEY ("${fk.column_name}") REFERENCES users(id) ${onDelete}`
           );
-        END LOOP;
-      END $$;
-
-      DROP TABLE IF EXISTS _pkey1_fks;
-    `);
+          console.log('[migration] FK再追加:', fk.table_name, fk.constraint_name);
+        }
+        console.log('[migration] users_pkey1 削除処理完了');
+      }
+    }
 
     // 全テーブルのシーケンスずれを修正（DB復元後などでシーケンスがリセットされる対策）
     await client.query(`
