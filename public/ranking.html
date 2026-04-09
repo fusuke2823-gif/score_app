@@ -19,13 +19,15 @@
   <div id="filter-section" style="display:none;position:sticky;top:56px;z-index:50;background:var(--bg-primary);padding:8px 0;margin:0 -24px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--border)">
     <div id="filter-title-row" style="display:none;font-size:0.9rem;font-weight:bold;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-      <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
-      <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_off">全属性OFF</button>
-      <div id="scope-toggle" style="display:none;gap:0;border:1px solid var(--accent);border-radius:8px;overflow:hidden;margin-left:4px">
+      <div id="scope-toggle" style="display:none;gap:0;border:1px solid var(--accent);border-radius:8px;overflow:hidden">
         <button id="scope-btn-internal" onclick="setScope('internal')" style="padding:4px 10px;font-size:0.78rem;background:var(--accent);color:#fff;font-weight:bold;border:none;cursor:pointer" data-i18n="scope.internal">内部</button>
         <button id="scope-btn-public" onclick="setScope('public')" style="padding:4px 10px;font-size:0.78rem;background:var(--bg-card);color:var(--text-muted);border:none;cursor:pointer" data-i18n="scope.public">外部</button>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+      <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
+      <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_off">全属性OFF</button>
     </div>
     <div class="attr-filter" id="attr-filter" style="margin-bottom:4px">
       <button class="attr-btn attr-火 active" data-attr="火" data-i18n="attr.火">火</button>
