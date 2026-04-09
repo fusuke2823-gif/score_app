@@ -509,10 +509,13 @@ function getParam(name) {
 async function initInterimDistributionNotice() {
   if (!getToken()) return;
   try {
-    const [interim, final, rankPts] = await Promise.all([
+    const user = getUser();
+    const isInternalUser = !!(user && user.is_internal);
+    const [interim, final, rankPts, extRankPts] = await Promise.all([
       apiFetch('/events/interim-distributions/recent').catch(() => []),
       apiFetch('/events/final-distributions/recent').catch(() => []),
       apiFetch('/events/rank-pts').catch(() => null),
+      isInternalUser ? Promise.resolve(null) : apiFetch('/events/ext-rank-pts').catch(() => null),
     ]);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
@@ -557,7 +560,7 @@ async function initInterimDistributionNotice() {
             <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
           </div>`).join('')}
         </div>
-        ${rankPts ? `
+        ${isInternalUser && rankPts ? `
         <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">${t('dist.detail_btn')}</button>
         <div id="rank-pts-detail" style="display:none;margin-top:8px">
           <table class="rank-pts-table">
@@ -577,6 +580,21 @@ async function initInterimDistributionNotice() {
             <tr><td>${t('dist.rank21_25')}</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
             <tr><td>${t('dist.rank26_30')}</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
             <tr><td>${t('dist.rank31plus')}</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
+          </table>
+          <div class="rank-pts-note">${t('dist.note')}</div>
+        </div>` : ''}
+        ${!isInternalUser && extRankPts ? `
+        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">${t('dist.detail_btn')}</button>
+        <div id="rank-pts-detail" style="display:none;margin-top:8px">
+          <table class="rank-pts-table">
+            <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
+            <tr><td>1〜5位</td><td>${extRankPts.ext_rank_pts_1_5 ?? 100}pt</td></tr>
+            <tr><td>6〜10位</td><td>${extRankPts.ext_rank_pts_6_10 ?? 80}pt</td></tr>
+            <tr><td>11〜20位</td><td>${extRankPts.ext_rank_pts_11_20 ?? 60}pt</td></tr>
+            <tr><td>21〜30位</td><td>${extRankPts.ext_rank_pts_21_30 ?? 40}pt</td></tr>
+            <tr><td>31〜50位</td><td>${extRankPts.ext_rank_pts_31_50 ?? 20}pt</td></tr>
+            <tr><td>51〜100位</td><td>${extRankPts.ext_rank_pts_51_100 ?? 10}pt</td></tr>
+            <tr><td>101位以降</td><td>${extRankPts.ext_rank_pts_101plus ?? 5}pt</td></tr>
           </table>
           <div class="rank-pts-note">${t('dist.note')}</div>
         </div>` : ''}

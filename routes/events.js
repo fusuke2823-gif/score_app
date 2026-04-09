@@ -40,21 +40,21 @@ router.get('/rank-pts', async (req, res) => {
 router.get('/interim-distributions/recent', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT d.id, d.event_id, d.distributed_at,
+      `SELECT d.id, d.event_id, d.distributed_at, d.type,
               e.name AS event_name, e.event_number,
               (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
                FROM point_history ph
                WHERE ph.user_id = $1
                  AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
                                        AND d.distributed_at + INTERVAL '5 minutes'
-                 AND ph.reason LIKE '%（中間配布）%'
+                 AND ph.reason LIKE '%中間配布%'
                LIMIT 1) AS user_rank,
               (SELECT ph.amount
                FROM point_history ph
                WHERE ph.user_id = $1
                  AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
                                        AND d.distributed_at + INTERVAL '5 minutes'
-                 AND ph.reason LIKE '%（中間配布）%'
+                 AND ph.reason LIKE '%中間配布%'
                LIMIT 1) AS user_pts
        FROM event_interim_distributions d
        JOIN events e ON e.id = d.event_id
@@ -73,30 +73,70 @@ router.get('/interim-distributions/recent', authenticateToken, async (req, res) 
 router.get('/final-distributions/recent', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT e.id AS event_id, e.points_distributed_at AS distributed_at,
-              e.name AS event_name, e.event_number,
-              (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
-               FROM point_history ph
-               WHERE ph.user_id = $1
-                 AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
-                                       AND e.points_distributed_at + INTERVAL '5 minutes'
-                 AND ph.reason NOT LIKE '%（中間配布）%'
-               LIMIT 1) AS user_rank,
-              (SELECT ph.amount
-               FROM point_history ph
-               WHERE ph.user_id = $1
-                 AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
-                                       AND e.points_distributed_at + INTERVAL '5 minutes'
-                 AND ph.reason NOT LIKE '%（中間配布）%'
-               LIMIT 1) AS user_pts
-       FROM events e
-       WHERE e.points_distributed = TRUE
-         AND e.points_distributed_at IS NOT NULL
-         AND e.points_distributed_at > NOW() - INTERVAL '7 days'
-       ORDER BY e.points_distributed_at DESC`,
+      `SELECT event_id, distributed_at, event_name, event_number, user_rank, user_pts FROM (
+         SELECT e.id AS event_id, e.points_distributed_at AS distributed_at,
+                e.name AS event_name, e.event_number,
+                (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
+                 FROM point_history ph
+                 WHERE ph.user_id = $1
+                   AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
+                                         AND e.points_distributed_at + INTERVAL '5 minutes'
+                   AND ph.reason NOT LIKE '%中間配布%'
+                   AND ph.reason LIKE '%（内部）%'
+                 LIMIT 1) AS user_rank,
+                (SELECT ph.amount
+                 FROM point_history ph
+                 WHERE ph.user_id = $1
+                   AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
+                                         AND e.points_distributed_at + INTERVAL '5 minutes'
+                   AND ph.reason NOT LIKE '%中間配布%'
+                   AND ph.reason LIKE '%（内部）%'
+                 LIMIT 1) AS user_pts
+         FROM events e
+         WHERE e.points_distributed = TRUE
+           AND e.points_distributed_at IS NOT NULL
+           AND e.points_distributed_at > NOW() - INTERVAL '7 days'
+         UNION ALL
+         SELECT e.id AS event_id, e.points_distributed_external_at AS distributed_at,
+                e.name AS event_name, e.event_number,
+                (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
+                 FROM point_history ph
+                 WHERE ph.user_id = $1
+                   AND ph.created_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
+                                         AND e.points_distributed_external_at + INTERVAL '5 minutes'
+                   AND ph.reason LIKE '%（外部）%'
+                 LIMIT 1) AS user_rank,
+                (SELECT ph.amount
+                 FROM point_history ph
+                 WHERE ph.user_id = $1
+                   AND ph.created_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
+                                         AND e.points_distributed_external_at + INTERVAL '5 minutes'
+                   AND ph.reason LIKE '%（外部）%'
+                 LIMIT 1) AS user_pts
+         FROM events e
+         WHERE e.points_distributed_external = TRUE
+           AND e.points_distributed_external_at IS NOT NULL
+           AND e.points_distributed_external_at > NOW() - INTERVAL '7 days'
+       ) combined
+       ORDER BY distributed_at DESC`,
       [req.user.id]
     );
     res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 外部順位ポイント設定（公開用）― /:id より前に定義
+router.get('/ext-rank-pts', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+    );
+    const rp = {};
+    result.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
+    res.json(rp);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
