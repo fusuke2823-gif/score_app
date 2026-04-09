@@ -141,9 +141,20 @@
       <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">外部 中間配布（開催中イベント）</div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコア（public）のみで現在のランキングでポイントを配布します。何度でも実行可能です。称号は付与されません。</p>
+      <div id="ext-interim-alert" style="margin-bottom:12px"></div>
+      <div id="ext-interim-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
     <div class="card">
-      <div class="section-title" style="margin-bottom:4px">外部 ポイント配布</div>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコア（public）のみでランキングを計算してポイント・称号を配布します。何度でも実行可能です。</p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="section-title" style="margin:0">外部 最終配布（終了済みイベント）</div>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコアでポイント・称号を配布します。1回のみ実行可能です。</p>
       <div id="ext-points-alert" style="margin-bottom:12px"></div>
       <div id="ext-distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
@@ -493,7 +504,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'points') { loadRankPts(); loadExtRankPts(); loadInterimDistributable(); loadDistributable(); loadExtDistributable(); loadGrantUsers(); }
+  if (name === 'points') { loadRankPts(); loadExtRankPts(); loadInterimDistributable(); loadDistributable(); loadExtInterim(); loadExtDistributable(); loadGrantUsers(); }
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
@@ -692,17 +703,53 @@ async function loadDistributable() {
 
 const AWARD_ATTRS = ['火', '氷', '雷', '光', '闇', '無'];
 
-async function loadExtDistributable() {
-  const el = document.getElementById('ext-distributable-list');
+async function loadExtInterim() {
+  const el = document.getElementById('ext-interim-list');
   try {
-    const events = await apiFetch('/admin/events/distributable');
-    const allEvents = await apiFetch('/admin/events/interim-distributable');
-    const all = [...events, ...allEvents.filter(e => !events.find(x => x.id === e.id))];
-    if (all.length === 0) {
+    const events = await apiFetch('/admin/events/interim-distributable-external');
+    if (events.length === 0) {
       el.innerHTML = '<div class="empty-state"><p>対象イベントがありません</p></div>';
       return;
     }
-    el.innerHTML = all.map(e => `
+    el.innerHTML = events.map(e => {
+      const history = (e.interim_history || []).map(d =>
+        `<span style="font-size:0.75rem;color:var(--text-muted)">${new Date(d.distributed_at).toLocaleString('ja-JP')}（${d.distributed_count}名）</span>`
+      ).join('<br>');
+      return `
+        <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:8px">
+          <div>
+            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+            <strong>${escHtml(e.name)}</strong>
+          </div>
+          ${history ? `<div style="line-height:1.6">${history}</div>` : ''}
+          <div style="text-align:right">
+            <button class="btn btn-secondary btn-sm" onclick="distributeExtInterim(${e.id})">外部中間配布する</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function distributeExtInterim(id) {
+  if (!confirm('外部中間配布を実行しますか？')) return;
+  try {
+    const res = await apiFetch(`/admin/events/${id}/distribute-interim-external`, { method: 'POST' });
+    showAlert('#ext-interim-alert', res.message, 'success');
+    loadExtInterim();
+  } catch (err) { showAlert('#ext-interim-alert', err.message); }
+}
+
+async function loadExtDistributable() {
+  const el = document.getElementById('ext-distributable-list');
+  try {
+    const events = await apiFetch('/admin/events/distributable-external');
+    if (events.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>対象イベントがありません</p></div>';
+      return;
+    }
+    el.innerHTML = events.map(e => `
       <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:10px">
         <div>
           <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
@@ -729,7 +776,7 @@ async function loadExtDistributable() {
             </span>`).join('')}
         </div>
         <div style="text-align:right">
-          <button class="btn btn-primary btn-sm" onclick="distributeExtPoints(${e.id})">外部配布する</button>
+          <button class="btn btn-primary btn-sm" onclick="distributeExtPoints(${e.id})">外部最終配布する</button>
         </div>
       </div>`).join('');
   } catch (err) {
@@ -738,7 +785,7 @@ async function loadExtDistributable() {
 }
 
 async function distributeExtPoints(id) {
-  if (!confirm('外部ポイントを配布しますか？')) return;
+  if (!confirm('外部最終ポイントを配布しますか？この操作は1回のみ実行できます。')) return;
   const award_titles = {
     ext_rank1:  document.getElementById(`et-r1-${id}`)?.checked || false,
     ext_rank2:  document.getElementById(`et-r2-${id}`)?.checked || false,
@@ -759,6 +806,7 @@ async function distributeExtPoints(id) {
       body: JSON.stringify({ award_titles })
     });
     showAlert('#ext-points-alert', res.message, 'success');
+    loadExtDistributable();
   } catch (err) { showAlert('#ext-points-alert', err.message); }
 }
 
@@ -1486,8 +1534,11 @@ async function deleteGachaIcon(id) {
 
 // 初期ロード
 loadRankPts();
+loadExtRankPts();
 loadInterimDistributable();
 loadDistributable();
+loadExtInterim();
+loadExtDistributable();
 loadGrantUsers();
 
 // ===== ログインボーナス設定 =====

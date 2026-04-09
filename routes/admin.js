@@ -417,11 +417,34 @@ router.get('/events/interim-distributable', async (req, res) => {
         COALESCE(
           (SELECT json_agg(d ORDER BY d.distributed_at DESC)
            FROM event_interim_distributions d
-           WHERE d.event_id = e.id),
+           WHERE d.event_id = e.id AND d.type = 'internal'),
           '[]'::json
         ) AS interim_history
        FROM events e
        WHERE e.is_active = TRUE AND e.points_distributed = FALSE
+         AND (e.submission_start IS NULL OR e.submission_start <= NOW())
+       ORDER BY e.event_number DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 外部中間配布可能イベント一覧
+router.get('/events/interim-distributable-external', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.*,
+        COALESCE(
+          (SELECT json_agg(d ORDER BY d.distributed_at DESC)
+           FROM event_interim_distributions d
+           WHERE d.event_id = e.id AND d.type = 'external'),
+          '[]'::json
+        ) AS interim_history
+       FROM events e
+       WHERE e.is_active = TRUE AND e.points_distributed_external = FALSE
          AND (e.submission_start IS NULL OR e.submission_start <= NOW())
        ORDER BY e.event_number DESC`
     );
@@ -445,11 +468,12 @@ router.post('/events/:id/distribute-interim', async (req, res) => {
 
     const rankResult = await client.query(
       `WITH best AS (
-         SELECT DISTINCT ON (user_id)
-           user_id, approved_score
-         FROM scores
-         WHERE event_id=$1 AND approved_score IS NOT NULL
-         ORDER BY user_id, approved_score DESC
+         SELECT DISTINCT ON (s.user_id)
+           s.user_id, s.approved_score
+         FROM scores s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND u.is_internal = TRUE
+         ORDER BY s.user_id, s.approved_score DESC
        )
        SELECT user_id, approved_score,
          RANK() OVER (ORDER BY approved_score DESC) AS rank
@@ -492,7 +516,7 @@ router.post('/events/:id/distribute-interim', async (req, res) => {
     }
 
     await client.query(
-      'INSERT INTO event_interim_distributions (event_id, distributed_count) VALUES ($1, $2)',
+      "INSERT INTO event_interim_distributions (event_id, distributed_count, type) VALUES ($1, $2, 'internal')",
       [req.params.id, distributed]
     );
 
@@ -504,6 +528,90 @@ router.post('/events/:id/distribute-interim', async (req, res) => {
     res.status(500).json({ error: 'サーバーエラー' });
   } finally {
     client.release();
+  }
+});
+
+// 外部中間配布実行
+router.post('/events/:id/distribute-interim-external', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const eventResult = await client.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'イベントが見つかりません' });
+    const event = eventResult.rows[0];
+    if (event.points_distributed_external) return res.status(409).json({ error: 'すでに外部最終配布済みです' });
+
+    const rankResult = await client.query(
+      `WITH best AS (
+         SELECT DISTINCT ON (s.user_id)
+           s.user_id, s.approved_score
+         FROM scores s
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.ranking_scope='public'
+         ORDER BY s.user_id, s.approved_score DESC
+       )
+       SELECT user_id, approved_score,
+         RANK() OVER (ORDER BY approved_score DESC) AS rank
+       FROM best`,
+      [req.params.id]
+    );
+
+    const rpResult = await client.query(
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+    );
+    const rp = {};
+    rpResult.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
+    const rankPts = (rank) => {
+      if (rank <= 5)   return rp.ext_rank_pts_1_5    ?? 100;
+      if (rank <= 10)  return rp.ext_rank_pts_6_10   ?? 80;
+      if (rank <= 20)  return rp.ext_rank_pts_11_20  ?? 60;
+      if (rank <= 30)  return rp.ext_rank_pts_21_30  ?? 40;
+      if (rank <= 50)  return rp.ext_rank_pts_31_50  ?? 20;
+      if (rank <= 100) return rp.ext_rank_pts_51_100 ?? 10;
+      return rp.ext_rank_pts_101plus ?? 5;
+    };
+
+    let distributed = 0;
+    for (const row of rankResult.rows) {
+      const pts = rankPts(Number(row.rank));
+      await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
+      await client.query(
+        'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
+        [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位（外部中間配布）`]
+      );
+      distributed++;
+    }
+
+    await client.query(
+      "INSERT INTO event_interim_distributions (event_id, distributed_count, type) VALUES ($1, $2, 'external')",
+      [req.params.id, distributed]
+    );
+
+    await client.query('COMMIT');
+    res.json({ message: `${distributed}名に外部中間配布しました` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// 外部最終配布可能なイベント一覧（外部未配布）
+router.get('/events/distributable-external', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT * FROM events
+       WHERE points_distributed_external = FALSE
+         AND submission_end IS NOT NULL
+         AND submission_end < NOW()
+       ORDER BY event_number DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 
@@ -670,6 +778,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
     const eventResult = await client.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
     if (eventResult.rows.length === 0) return res.status(404).json({ error: 'イベントが見つかりません' });
     const event = eventResult.rows[0];
+    if (event.points_distributed_external) return res.status(409).json({ error: 'すでに外部配布済みです' });
 
     // 外部公開スコア（ranking_scope='public'）でランキング計算
     const rankResult = await client.query(
@@ -761,6 +870,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       }
     }
 
+    await client.query('UPDATE events SET points_distributed_external=TRUE, points_distributed_external_at=NOW() WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
     const titleMsg = awardedTitles.length ? `　称号付与: ${[...new Set(awardedTitles)].join(', ')}` : '';
     res.json({ message: `${distributed}名にポイントを配布しました（外部）${titleMsg}` });
