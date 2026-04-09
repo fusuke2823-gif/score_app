@@ -36,6 +36,11 @@ app.use('/api/shop', require('./routes/shop'));
 app.use('/api/gacha', require('./routes/gacha'));
 app.use('/api/feedback', require('./routes/feedback'));
 
+// Google Client ID 公開
+app.get('/api/auth/google/client-id', (req, res) => {
+  res.json({ client_id: process.env.GOOGLE_CLIENT_ID || '' });
+});
+
 // 公開設定（バージョン等）
 const pool = require('./db/index');
 app.get('/api/version', async (req, res) => {

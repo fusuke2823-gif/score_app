@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>新規登録 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <nav id="nav"></nav>
@@ -37,9 +38,30 @@
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
     </form>
+    <div style="display:flex;align-items:center;gap:8px;margin:16px 0">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:0.8rem;color:var(--text-muted)">またはGoogleで登録</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <div id="google-btn-wrap" style="display:flex;justify-content:center"></div>
+    <div id="google-client-id" data-client-id=""></div>
     <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-secondary)">
       <span data-i18n="register.has_account">すでにアカウントがある方は</span> <a href="/login.html" data-i18n="register.login_link">ログイン</a>
     </p>
+  </div>
+</div>
+
+<!-- Googleユーザー名設定モーダル -->
+<div id="google-username-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
+    <h2 style="margin:0 0 6px;font-size:1.1rem">ユーザー名を設定</h2>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">このアプリで使うユーザー名を設定してください。</p>
+    <div id="google-modal-alert" style="margin-bottom:10px"></div>
+    <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
+    <div id="google-modal-internal-wrap" style="display:none;margin-bottom:10px">
+      <input class="form-input" id="google-modal-internal-pw" type="password" placeholder="コミュニティパスワード">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="submitGoogleUsername()">登録してログイン</button>
   </div>
 </div>
 <script src="/js/common.js"></script>
@@ -47,6 +69,63 @@
 renderNav();
 applyI18n();
 if (getToken()) location.href = '/index.html';
+
+let _pendingGoogleId = null;
+
+fetch('/api/auth/google/client-id')
+  .then(r => r.json())
+  .then(({ client_id }) => {
+    if (!client_id) return;
+    const script = document.querySelector('script[src*="accounts.google.com"]');
+    const init = () => {
+      if (!window.google) return;
+      google.accounts.id.initialize({ client_id, callback: handleGoogleCredential });
+      google.accounts.id.renderButton(
+        document.getElementById('google-btn-wrap'),
+        { theme: 'outline', size: 'large', width: 280, text: 'signup_with', locale: 'ja' }
+      );
+    };
+    if (window.google) init();
+    else script?.addEventListener('load', init);
+  })
+  .catch(() => {});
+
+async function handleGoogleCredential(response) {
+  try {
+    const data = await apiFetch('/auth/google/verify', {
+      method: 'POST',
+      body: JSON.stringify({ credential: response.credential })
+    });
+    if (data.token) {
+      setAuth(data.token, data.user);
+      location.href = '/index.html';
+    } else if (data.needs_username) {
+      _pendingGoogleId = data.google_id;
+      if (getParam('ref')) document.getElementById('google-modal-internal-wrap').style.display = '';
+      document.getElementById('google-username-modal').style.display = 'flex';
+      document.getElementById('google-username-input').focus();
+    }
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+async function submitGoogleUsername() {
+  const username = document.getElementById('google-username-input').value.trim();
+  if (!username) return;
+  const ref = getParam('ref') || '';
+  const internalPw = document.getElementById('google-modal-internal-pw').value || '';
+  try {
+    const data = await apiFetch('/auth/google/register', {
+      method: 'POST',
+      body: JSON.stringify({ google_id: _pendingGoogleId, username, ref, internal_password: internalPw })
+    });
+    setAuth(data.token, data.user);
+    location.href = '/index.html';
+  } catch (err) {
+    document.getElementById('google-modal-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
 
 // ?ref= がある場合はコミュニティパスワード欄を表示
 if (getParam('ref')) {

@@ -287,6 +287,7 @@ const initDB = async () => {
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external BOOLEAN DEFAULT FALSE;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external_at TIMESTAMPTZ;
       ALTER TABLE event_interim_distributions ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'internal';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
 
       CREATE TABLE IF NOT EXISTS gacha_pool_icons (
         pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE CASCADE,

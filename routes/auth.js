@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
+const { OAuth2Client } = require('google-auth-library');
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/register', async (req, res) => {
   const { username, password, oshi_character, internal_password, ref } = req.body;
@@ -154,6 +156,79 @@ router.delete('/me', authenticateToken, async (req, res) => {
     res.json({ message: 'アカウントを削除しました' });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// Google認証トークン検証
+router.post('/google/verify', async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: 'トークンがありません' });
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const googleId = payload.sub;
+
+    // 既存ユーザーか確認
+    const existing = await pool.query('SELECT * FROM users WHERE google_id = $1', [googleId]);
+    if (existing.rows.length > 0) {
+      const user = existing.rows[0];
+      const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role, is_internal: user.is_internal },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      return res.json({ token, user: { id: user.id, username: user.username, role: user.role, oshi_character: user.oshi_character, is_internal: user.is_internal } });
+    }
+
+    // 新規 → ユーザー名設定が必要
+    res.json({ needs_username: true, google_id: googleId });
+  } catch (err) {
+    console.error('[google verify error]', err.message);
+    res.status(401).json({ error: 'Google認証に失敗しました' });
+  }
+});
+
+// Google新規登録（ユーザー名確定）
+router.post('/google/register', async (req, res) => {
+  const { google_id, username, oshi_character, internal_password, ref } = req.body;
+  if (!google_id || !username) return res.status(400).json({ error: 'ユーザー名を入力してください' });
+  if (username.length < 1 || username.length > 12)
+    return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
+
+  const refOk = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
+  const pwOk  = !!(process.env.INTERNAL_PASSWORD && internal_password && internal_password === process.env.INTERNAL_PASSWORD);
+  const isInternal = refOk && pwOk;
+
+  try {
+    const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+    if (existing.rows.length > 0)
+      return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
+
+    const result = await pool.query(
+      'INSERT INTO users (username, password_hash, oshi_character, google_id) VALUES ($1, $2, $3, $4) RETURNING id, username, role, oshi_character',
+      [username, '', oshi_character || null, google_id]
+    );
+    const user = result.rows[0];
+    await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
+    await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 50, $2)', [user.id, '新規登録ボーナス']);
+    if (isInternal) {
+      await pool.query('UPDATE users SET is_internal = TRUE WHERE id = $1', [user.id]);
+    }
+    user.is_internal = isInternal;
+    const token = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, is_internal: isInternal },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+    res.json({ token, user });
+  } catch (err) {
+    console.error('[google register error]', err.code, err.message);
+    if (err.code === '23505')
+      return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
     res.status(500).json({ error: 'サーバーエラー' });
   }
 });
