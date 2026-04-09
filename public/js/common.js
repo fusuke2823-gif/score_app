@@ -826,7 +826,7 @@ async function checkGoogleLink() {
 }
 
 function dismissGoogleLinkBanner() {
-  if (!confirm('このバナーを非表示にしますか？\n\nGoogle連携はプロフィール画面のアカウント削除ボタンの隣からいつでも行えます。')) return;
+  if (!confirm('このバナーを非表示にしますか？\n\nGoogle連携はアカウントページからいつでも行えます。')) return;
   document.getElementById('google-link-banner')?.remove();
   localStorage.setItem('google_link_dismissed', '1');
 }
