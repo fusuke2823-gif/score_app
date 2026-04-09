@@ -275,6 +275,22 @@ function clearAuth() {
   localStorage.removeItem('user');
 }
 
+// ページロード時にDBから最新のis_internalを同期
+if (getToken()) {
+  fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data) {
+        const user = getUser();
+        if (user && user.is_internal !== data.is_internal) {
+          user.is_internal = data.is_internal;
+          localStorage.setItem('user', JSON.stringify(user));
+        }
+      }
+    })
+    .catch(() => {});
+}
+
 function authHeaders() {
   const tk = getToken();
   return tk ? { 'Authorization': `Bearer ${tk}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };

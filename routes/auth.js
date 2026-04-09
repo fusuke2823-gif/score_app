@@ -76,7 +76,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, role, oshi_character, created_at FROM users WHERE id = $1',
+      'SELECT id, username, role, oshi_character, is_internal, created_at FROM users WHERE id = $1',
       [req.user.id]
     );
     res.json(result.rows[0]);
