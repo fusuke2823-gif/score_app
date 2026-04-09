@@ -432,6 +432,7 @@ renderNav = function() {
   if (!document.getElementById('interim-dist-modal')) initInterimDistributionNotice();
   updateGachaNav();
   updateFeedbackBadge();
+  checkGoogleLink();
 };
 
 async function updateFeedbackBadge() {
@@ -777,4 +778,73 @@ function renderSubmissionPeriod(event) {
     label = (getLang() === 'zh' ? '開始時間: ' : '投稿開始: ') + fmt(start);
   }
   return label ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">${escHtml(label)}</div>` : '';
+}
+
+// ===== Google連携バナー =====
+async function checkGoogleLink() {
+  if (!getToken()) return;
+  if (localStorage.getItem('google_link_dismissed')) return;
+  try {
+    const me = await apiFetch('/auth/me').catch(() => null);
+    if (!me || me.has_google) return;
+
+    // Google SDK のクライアントID取得
+    const { client_id } = await fetch('/api/auth/google/client-id').then(r => r.json()).catch(() => ({}));
+    if (!client_id) return;
+
+    // バナー挿入
+    const banner = document.createElement('div');
+    banner.id = 'google-link-banner';
+    banner.style.cssText = 'position:sticky;top:56px;z-index:49;background:#1a237e;color:#fff;font-size:0.82rem;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+    banner.innerHTML = `
+      <span style="flex:1;min-width:180px">Googleアカウントと連携するとパスワード不要でログインできます</span>
+      <div id="google-link-btn-wrap"></div>
+      <button onclick="document.getElementById('google-link-banner').remove();localStorage.setItem('google_link_dismissed','1')" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px;line-height:1">×</button>
+    `;
+    document.querySelector('nav')?.insertAdjacentElement('afterend', banner);
+
+    // Google SDKロード後にボタンレンダリング
+    const initBtn = () => {
+      if (!window.google) return;
+      google.accounts.id.initialize({ client_id, callback: handleGoogleLinkCredential });
+      google.accounts.id.renderButton(
+        document.getElementById('google-link-btn-wrap'),
+        { theme: 'filled_blue', size: 'small', text: 'signin_with', locale: 'ja' }
+      );
+    };
+    if (!document.querySelector('script[src*="accounts.google.com"]')) {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client';
+      s.onload = initBtn;
+      document.head.appendChild(s);
+    } else if (window.google) {
+      initBtn();
+    } else {
+      document.querySelector('script[src*="accounts.google.com"]')?.addEventListener('load', initBtn);
+    }
+  } catch {}
+}
+
+async function handleGoogleLinkCredential(response) {
+  try {
+    await apiFetch('/auth/google/link', {
+      method: 'POST',
+      body: JSON.stringify({ credential: response.credential })
+    });
+    const banner = document.getElementById('google-link-banner');
+    if (banner) {
+      banner.style.background = '#1b5e20';
+      banner.innerHTML = '<span>✓ Googleアカウントを連携しました</span>';
+      setTimeout(() => banner.remove(), 3000);
+    }
+    localStorage.setItem('google_link_dismissed', '1');
+  } catch (err) {
+    const banner = document.getElementById('google-link-banner');
+    if (banner) {
+      const msg = document.createElement('span');
+      msg.style.color = '#ffcdd2';
+      msg.textContent = err.message;
+      banner.appendChild(msg);
+    }
+  }
 }

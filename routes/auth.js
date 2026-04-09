@@ -78,7 +78,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, role, oshi_character, is_internal, created_at FROM users WHERE id = $1',
+      'SELECT id, username, role, oshi_character, is_internal, created_at, (google_id IS NOT NULL) AS has_google FROM users WHERE id = $1',
       [req.user.id]
     );
     res.json(result.rows[0]);
@@ -188,6 +188,27 @@ router.post('/google/verify', async (req, res) => {
     res.json({ needs_username: true, google_id: googleId });
   } catch (err) {
     console.error('[google verify error]', err.message);
+    res.status(401).json({ error: 'Google認証に失敗しました' });
+  }
+});
+
+// 既存アカウントにGoogle連携
+router.post('/google/link', authenticateToken, async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) return res.status(400).json({ error: 'トークンがありません' });
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const googleId = ticket.getPayload().sub;
+    const existing = await pool.query('SELECT id FROM users WHERE google_id = $1 AND id != $2', [googleId, req.user.id]);
+    if (existing.rows.length > 0)
+      return res.status(409).json({ error: 'このGoogleアカウントは別のユーザーに連携されています' });
+    await pool.query('UPDATE users SET google_id = $1 WHERE id = $2', [googleId, req.user.id]);
+    res.json({ message: 'Googleアカウントを連携しました' });
+  } catch (err) {
+    console.error('[google link error]', err.message);
     res.status(401).json({ error: 'Google認証に失敗しました' });
   }
 });
