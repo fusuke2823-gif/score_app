@@ -140,6 +140,12 @@ applyI18n();
 const user = getUser();
 let myData = null;
 
+// 外部ユーザーはアイコンタブを非表示
+if (!isInternal()) {
+  document.querySelector('#equip-tabs .tab-btn[onclick="switchEquipTab(\'icons\')"]').style.display = 'none';
+  document.getElementById('equip-tab-icons').style.display = 'none';
+}
+
 function switchTab(name) {
   ['shop','equip'].forEach(n => {
     document.getElementById('tab-' + n).classList.toggle('active', n === name);
