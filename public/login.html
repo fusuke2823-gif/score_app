@@ -58,18 +58,28 @@ if (new URLSearchParams(location.search).get('expired')) {
 
 let _pendingGoogleId = null;
 
+// アプリ内ブラウザ検出（LINE等ではGoogle OAuthがブロックされる）
+function isInAppBrowser() {
+  return /Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\b/i.test(navigator.userAgent);
+}
+
 // クライアントID取得 → Google SDK初期化
 fetch('/api/auth/google/client-id')
   .then(r => r.json())
   .then(({ client_id }) => {
     if (!client_id) return;
+    const wrap = document.getElementById('google-btn-wrap');
+    if (isInAppBrowser()) {
+      wrap.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:8px 0">LINEなどのアプリ内ブラウザではGoogleログインをご利用いただけません。<br>ブラウザアプリで開いてからお試しください。</div>`;
+      return;
+    }
     document.getElementById('google-client-id').dataset.clientId = client_id;
     const script = document.querySelector('script[src*="accounts.google.com"]');
     const init = () => {
       if (!window.google) return;
       google.accounts.id.initialize({ client_id, callback: handleGoogleCredential });
       google.accounts.id.renderButton(
-        document.getElementById('google-btn-wrap'),
+        wrap,
         { theme: 'outline', size: 'large', width: 280, text: 'signin_with', locale: 'ja' }
       );
     };

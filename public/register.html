@@ -72,16 +72,25 @@ if (getToken()) location.href = '/index.html';
 
 let _pendingGoogleId = null;
 
+function isInAppBrowser() {
+  return /Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\b/i.test(navigator.userAgent);
+}
+
 fetch('/api/auth/google/client-id')
   .then(r => r.json())
   .then(({ client_id }) => {
     if (!client_id) return;
+    const wrap = document.getElementById('google-btn-wrap');
+    if (isInAppBrowser()) {
+      wrap.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:8px 0">LINEなどのアプリ内ブラウザではGoogleログインをご利用いただけません。<br>ブラウザアプリで開いてからお試しください。</div>`;
+      return;
+    }
     const script = document.querySelector('script[src*="accounts.google.com"]');
     const init = () => {
       if (!window.google) return;
       google.accounts.id.initialize({ client_id, callback: handleGoogleCredential });
       google.accounts.id.renderButton(
-        document.getElementById('google-btn-wrap'),
+        wrap,
         { theme: 'outline', size: 'large', width: 280, text: 'signup_with', locale: 'ja' }
       );
     };
