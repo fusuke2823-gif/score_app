@@ -799,7 +799,7 @@ async function checkGoogleLink() {
     banner.innerHTML = `
       <span style="flex:1;min-width:180px">Googleアカウントと連携するとパスワード不要でログインできます</span>
       <div id="google-link-btn-wrap"></div>
-      <button onclick="document.getElementById('google-link-banner').remove();localStorage.setItem('google_link_dismissed','1')" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px;line-height:1">×</button>
+      <button onclick="dismissGoogleLinkBanner()" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px;line-height:1">×</button>
     `;
     document.querySelector('nav')?.insertAdjacentElement('afterend', banner);
 
@@ -823,6 +823,12 @@ async function checkGoogleLink() {
       document.querySelector('script[src*="accounts.google.com"]')?.addEventListener('load', initBtn);
     }
   } catch {}
+}
+
+function dismissGoogleLinkBanner() {
+  if (!confirm('このバナーを非表示にしますか？\n\nGoogle連携はプロフィール画面のアカウント削除ボタンの隣からいつでも行えます。')) return;
+  document.getElementById('google-link-banner')?.remove();
+  localStorage.setItem('google_link_dismissed', '1');
 }
 
 async function handleGoogleLinkCredential(response) {

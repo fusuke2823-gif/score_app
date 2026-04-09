@@ -10,7 +10,8 @@
 <nav id="nav"></nav>
 <main style="position:relative">
   <a class="back-link" href="javascript:history.back()" style="color:var(--text-secondary);font-size:.85rem;display:inline-block;margin-bottom:16px" data-i18n="user.back">← 戻る</a>
-  <div id="delete-btn-wrap" style="display:none;position:absolute;top:0;right:0">
+  <div id="delete-btn-wrap" style="display:none;position:absolute;top:0;right:0;display:none;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+    <div id="google-link-btn-profile" style="display:none"></div>
     <button class="btn btn-sm" onclick="openDeleteModal()" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e57373;font-size:0.78rem" data-i18n="user.delete">アカウント削除</button>
   </div>
   <div id="alert"></div>
@@ -100,7 +101,13 @@ if (!userId) location.href = '/index.html';
 
 async function load() {
   try {
-    const data = await apiFetch(`/users/${userId}`);
+    const currentUser = getUser();
+    const isMe = currentUser && String(currentUser.id) === String(userId);
+    const [data, meData] = await Promise.all([
+      apiFetch(`/users/${userId}`),
+      isMe ? apiFetch('/auth/me').catch(() => null) : Promise.resolve(null),
+    ]);
+    if (meData) Object.assign(currentUser, { has_google: meData.has_google });
     document.title = `${data.username} - HBR`;
 
     // イベントごとにスコアをグループ化
@@ -120,9 +127,10 @@ async function load() {
 
     const events = Object.values(eventMap).sort((a, b) => b.event_number - a.event_number);
 
-    const me = getUser();
-    const isMe = me && String(me.id) === String(userId);
-    if (isMe) document.getElementById('delete-btn-wrap').style.display = '';
+    if (isMe) {
+      document.getElementById('delete-btn-wrap').style.display = 'flex';
+      if (meData && !meData.has_google) initGoogleLinkBtn();
+    }
 
     document.getElementById('content').innerHTML = `
       <div class="user-header">
@@ -239,6 +247,43 @@ async function saveProfile() {
     }
   } catch (err) {
     alertEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function initGoogleLinkBtn() {
+  const wrap = document.getElementById('google-link-btn-profile');
+  if (!wrap) return;
+  const { client_id } = await fetch('/api/auth/google/client-id').then(r => r.json()).catch(() => ({}));
+  if (!client_id) return;
+  wrap.style.display = '';
+  const init = () => {
+    if (!window.google) return;
+    google.accounts.id.initialize({ client_id, callback: handleGoogleLinkProfile });
+    google.accounts.id.renderButton(wrap, { theme: 'outline', size: 'small', text: 'signin_with', locale: 'ja' });
+  };
+  if (!document.querySelector('script[src*="accounts.google.com"]')) {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = init;
+    document.head.appendChild(s);
+  } else if (window.google) {
+    init();
+  } else {
+    document.querySelector('script[src*="accounts.google.com"]')?.addEventListener('load', init);
+  }
+}
+
+async function handleGoogleLinkProfile(response) {
+  try {
+    await apiFetch('/auth/google/link', {
+      method: 'POST',
+      body: JSON.stringify({ credential: response.credential })
+    });
+    document.getElementById('google-link-btn-profile').style.display = 'none';
+    localStorage.setItem('google_link_dismissed', '1');
+    showAlert('#alert', 'Googleアカウントを連携しました', 'success');
+  } catch (err) {
+    showAlert('#alert', err.message);
   }
 }
 
