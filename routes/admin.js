@@ -1349,6 +1349,7 @@ router.get('/users', async (req, res) => {
     const result = await pool.query(
       'SELECT id, username, role, is_internal, created_at FROM users ORDER BY id ASC'
     );
+    console.log('[admin/users]', result.rows.map(u => `${u.username}:${u.is_internal}`).join(', '));
     res.set('Cache-Control', 'no-store');
     res.json(result.rows);
   } catch (err) {
