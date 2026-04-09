@@ -509,12 +509,12 @@ function getParam(name) {
 async function initInterimDistributionNotice() {
   if (!getToken()) return;
   try {
-    const user = getUser();
-    const isInternalUser = !!(user && user.is_internal);
+    const meData = await apiFetch('/auth/me').catch(() => null);
+    const isInternalUser = !!(meData && meData.is_internal);
     const [interim, final, rankPts, extRankPts] = await Promise.all([
       apiFetch('/events/interim-distributions/recent').catch(() => []),
       apiFetch('/events/final-distributions/recent').catch(() => []),
-      apiFetch('/events/rank-pts').catch(() => null),
+      isInternalUser ? apiFetch('/events/rank-pts').catch(() => null) : Promise.resolve(null),
       isInternalUser ? Promise.resolve(null) : apiFetch('/events/ext-rank-pts').catch(() => null),
     ]);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
