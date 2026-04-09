@@ -677,7 +677,7 @@ router.post('/events/:id/distribute-points', async (req, res) => {
 router.get('/users', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT u.id, u.username, u.role, u.points, u.gp, u.created_at, u.total_login_days,
+      `SELECT u.id, u.username, u.role, u.points, u.gp, u.created_at, u.total_login_days, u.is_internal,
               t.name AS equipped_title
        FROM users u
        LEFT JOIN titles t ON u.equipped_title_id = t.id
@@ -1342,21 +1342,6 @@ router.delete('/special-bonuses/:id', async (req, res) => {
 });
 
 // ===== 内部/外部管理 (admin3用) =====
-
-// ユーザー一覧（is_internal フラグ付き）
-router.get('/users', async (req, res) => {
-  try {
-    const result = await pool.query(
-      'SELECT id, username, role, is_internal, created_at FROM users ORDER BY id ASC'
-    );
-    console.log('[admin/users]', result.rows.map(u => `${u.username}:${u.is_internal}`).join(', '));
-    res.set('Cache-Control', 'no-store');
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'サーバーエラー' });
-  }
-});
 
 // ユーザーの is_internal フラグ更新
 router.patch('/users/:id/internal', async (req, res) => {
