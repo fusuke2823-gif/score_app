@@ -79,81 +79,50 @@
       </div>
       <button class="btn btn-primary" onclick="grantPoints()">付与する</button>
     </div>
+    <!-- 内部ランクポイント設定 -->
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title">順位ポイント設定</div>
+      <div class="section-title">内部 順位ポイント設定</div>
       <div id="rank-pts-alert" style="margin-bottom:12px"></div>
       <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">1位（pt）</label>
-          <input class="form-input" type="number" id="rp-1" min="0" placeholder="100">
-        </div>
-        <div class="form-group">
-          <label class="form-label">2位（pt）</label>
-          <input class="form-input" type="number" id="rp-2" min="0" placeholder="95">
-        </div>
-        <div class="form-group">
-          <label class="form-label">3位（pt）</label>
-          <input class="form-input" type="number" id="rp-3" min="0" placeholder="95">
-        </div>
-        <div class="form-group">
-          <label class="form-label">4位（pt）</label>
-          <input class="form-input" type="number" id="rp-4" min="0" placeholder="90">
-        </div>
-        <div class="form-group">
-          <label class="form-label">5位（pt）</label>
-          <input class="form-input" type="number" id="rp-5" min="0" placeholder="90">
-        </div>
-        <div class="form-group">
-          <label class="form-label">6位（pt）</label>
-          <input class="form-input" type="number" id="rp-6" min="0" placeholder="80">
-        </div>
-        <div class="form-group">
-          <label class="form-label">7位（pt）</label>
-          <input class="form-input" type="number" id="rp-7" min="0" placeholder="80">
-        </div>
-        <div class="form-group">
-          <label class="form-label">8位（pt）</label>
-          <input class="form-input" type="number" id="rp-8" min="0" placeholder="80">
-        </div>
-        <div class="form-group">
-          <label class="form-label">9位（pt）</label>
-          <input class="form-input" type="number" id="rp-9" min="0" placeholder="80">
-        </div>
-        <div class="form-group">
-          <label class="form-label">10位（pt）</label>
-          <input class="form-input" type="number" id="rp-10" min="0" placeholder="80">
-        </div>
-        <div class="form-group">
-          <label class="form-label">11〜15位（pt）</label>
-          <input class="form-input" type="number" id="rp-11-15" min="0" placeholder="60">
-        </div>
-        <div class="form-group">
-          <label class="form-label">16〜20位（pt）</label>
-          <input class="form-input" type="number" id="rp-16-20" min="0" placeholder="50">
-        </div>
-        <div class="form-group">
-          <label class="form-label">21〜25位（pt）</label>
-          <input class="form-input" type="number" id="rp-21-25" min="0" placeholder="30">
-        </div>
-        <div class="form-group">
-          <label class="form-label">26〜30位（pt）</label>
-          <input class="form-input" type="number" id="rp-26-30" min="0" placeholder="20">
-        </div>
-        <div class="form-group">
-          <label class="form-label">31位以降（pt）</label>
-          <input class="form-input" type="number" id="rp-31plus" min="0" placeholder="10">
-        </div>
+        <div class="form-group"><label class="form-label">1位</label><input class="form-input" type="number" id="rp-1" min="0" placeholder="100"></div>
+        <div class="form-group"><label class="form-label">2位</label><input class="form-input" type="number" id="rp-2" min="0" placeholder="95"></div>
+        <div class="form-group"><label class="form-label">3位</label><input class="form-input" type="number" id="rp-3" min="0" placeholder="95"></div>
+        <div class="form-group"><label class="form-label">4位</label><input class="form-input" type="number" id="rp-4" min="0" placeholder="90"></div>
+        <div class="form-group"><label class="form-label">5位</label><input class="form-input" type="number" id="rp-5" min="0" placeholder="90"></div>
+        <div class="form-group"><label class="form-label">6位</label><input class="form-input" type="number" id="rp-6" min="0" placeholder="80"></div>
+        <div class="form-group"><label class="form-label">7位</label><input class="form-input" type="number" id="rp-7" min="0" placeholder="80"></div>
+        <div class="form-group"><label class="form-label">8位</label><input class="form-input" type="number" id="rp-8" min="0" placeholder="80"></div>
+        <div class="form-group"><label class="form-label">9位</label><input class="form-input" type="number" id="rp-9" min="0" placeholder="80"></div>
+        <div class="form-group"><label class="form-label">10位</label><input class="form-input" type="number" id="rp-10" min="0" placeholder="80"></div>
+        <div class="form-group"><label class="form-label">11〜15位</label><input class="form-input" type="number" id="rp-11-15" min="0" placeholder="60"></div>
+        <div class="form-group"><label class="form-label">16〜20位</label><input class="form-input" type="number" id="rp-16-20" min="0" placeholder="50"></div>
+        <div class="form-group"><label class="form-label">21〜25位</label><input class="form-input" type="number" id="rp-21-25" min="0" placeholder="30"></div>
+        <div class="form-group"><label class="form-label">26〜30位</label><input class="form-input" type="number" id="rp-26-30" min="0" placeholder="20"></div>
+        <div class="form-group"><label class="form-label">31位以降</label><input class="form-input" type="number" id="rp-31plus" min="0" placeholder="10"></div>
       </div>
       <button class="btn btn-primary" onclick="saveRankPts()">保存する</button>
     </div>
 
-    <!-- ポイント設定確認テーブル（共通・折りたたみ） -->
-    <template id="rank-pts-table-tpl"></template>
+    <!-- 外部ランクポイント設定 -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">外部 順位ポイント設定</div>
+      <div id="ext-rank-pts-alert" style="margin-bottom:12px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group"><label class="form-label">1〜5位</label><input class="form-input" type="number" id="erp-1-5" min="0" placeholder="100"></div>
+        <div class="form-group"><label class="form-label">6〜10位</label><input class="form-input" type="number" id="erp-6-10" min="0" placeholder="80"></div>
+        <div class="form-group"><label class="form-label">11〜20位</label><input class="form-input" type="number" id="erp-11-20" min="0" placeholder="60"></div>
+        <div class="form-group"><label class="form-label">21〜30位</label><input class="form-input" type="number" id="erp-21-30" min="0" placeholder="40"></div>
+        <div class="form-group"><label class="form-label">31〜50位</label><input class="form-input" type="number" id="erp-31-50" min="0" placeholder="20"></div>
+        <div class="form-group"><label class="form-label">51〜100位</label><input class="form-input" type="number" id="erp-51-100" min="0" placeholder="10"></div>
+        <div class="form-group"><label class="form-label">101位以降</label><input class="form-input" type="number" id="erp-101plus" min="0" placeholder="5"></div>
+      </div>
+      <button class="btn btn-primary" onclick="saveExtRankPts()">保存する</button>
+    </div>
 
     <div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="section-title" style="margin:0">中間配布（開催中イベント）</div>
-        <button onclick="toggleRankPtsTable('interim-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">ポイント設定を確認</button>
+        <button onclick="toggleRankPtsTable('interim-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">内部ポイント設定を確認</button>
       </div>
       <div id="interim-pts-table" style="display:none;margin-bottom:12px"></div>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">イベント終了前に現在のランキングでポイントを配布します。何度でも実行可能です。</p>
@@ -161,15 +130,22 @@
       <div id="interim-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="section-title" style="margin:0">ポイント配布（終了済みイベント）</div>
+        <div class="section-title" style="margin:0">内部 ポイント配布（終了済みイベント）</div>
         <button onclick="toggleRankPtsTable('final-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">ポイント設定を確認</button>
       </div>
       <div id="final-pts-table" style="display:none;margin-bottom:12px"></div>
       <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
       <div id="points-alert" style="margin-bottom:12px"></div>
       <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin-bottom:4px">外部 ポイント配布</div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコア（public）のみでランキングを計算してポイント・称号を配布します。何度でも実行可能です。</p>
+      <div id="ext-points-alert" style="margin-bottom:12px"></div>
+      <div id="ext-distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 
@@ -517,7 +493,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'points') { loadRankPts(); loadInterimDistributable(); loadDistributable(); loadGrantUsers(); }
+  if (name === 'points') { loadRankPts(); loadExtRankPts(); loadInterimDistributable(); loadDistributable(); loadExtDistributable(); loadGrantUsers(); }
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
@@ -715,6 +691,105 @@ async function loadDistributable() {
 }
 
 const AWARD_ATTRS = ['火', '氷', '雷', '光', '闇', '無'];
+
+async function loadExtDistributable() {
+  const el = document.getElementById('ext-distributable-list');
+  try {
+    const events = await apiFetch('/admin/events/distributable');
+    const allEvents = await apiFetch('/admin/events/interim-distributable');
+    const all = [...events, ...allEvents.filter(e => !events.find(x => x.id === e.id))];
+    if (all.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>対象イベントがありません</p></div>';
+      return;
+    }
+    el.innerHTML = all.map(e => `
+      <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div>
+          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+          <strong>${escHtml(e.name)}</strong>
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted)">称号付与（任意）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.82rem">
+          <label><input type="checkbox" id="et-r1-${e.id}" checked> 優勝</label>
+          <label><input type="checkbox" id="et-r2-${e.id}"> 準優勝</label>
+          <label><input type="checkbox" id="et-r3-${e.id}"> 3位</label>
+          <label><input type="checkbox" id="et-top10-${e.id}"> TOP10</label>
+          <label><input type="checkbox" id="et-top30-${e.id}"> TOP30</label>
+          <label><input type="checkbox" id="et-top50-${e.id}"> TOP50</label>
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-muted)">属性別称号（1位/2位/3位/TOP5）</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:0.78rem">
+          ${AWARD_ATTRS.map(a => `
+            <span style="display:inline-flex;gap:4px;align-items:center;background:var(--bg-primary);padding:3px 8px;border-radius:6px">
+              <b>${a}</b>
+              <label><input type="checkbox" id="et-a1-${a}-${e.id}"> 1位</label>
+              <label><input type="checkbox" id="et-a2-${a}-${e.id}"> 2位</label>
+              <label><input type="checkbox" id="et-a3-${a}-${e.id}"> 3位</label>
+              <label><input type="checkbox" id="et-a5-${a}-${e.id}"> TOP5</label>
+            </span>`).join('')}
+        </div>
+        <div style="text-align:right">
+          <button class="btn btn-primary btn-sm" onclick="distributeExtPoints(${e.id})">外部配布する</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function distributeExtPoints(id) {
+  if (!confirm('外部ポイントを配布しますか？')) return;
+  const award_titles = {
+    ext_rank1:  document.getElementById(`et-r1-${id}`)?.checked || false,
+    ext_rank2:  document.getElementById(`et-r2-${id}`)?.checked || false,
+    ext_rank3:  document.getElementById(`et-r3-${id}`)?.checked || false,
+    ext_top10:  document.getElementById(`et-top10-${id}`)?.checked || false,
+    ext_top30:  document.getElementById(`et-top30-${id}`)?.checked || false,
+    ext_top50:  document.getElementById(`et-top50-${id}`)?.checked || false,
+  };
+  for (const a of AWARD_ATTRS) {
+    award_titles[`ext_attr1_${a}`] = document.getElementById(`et-a1-${a}-${id}`)?.checked || false;
+    award_titles[`ext_attr2_${a}`] = document.getElementById(`et-a2-${a}-${id}`)?.checked || false;
+    award_titles[`ext_attr3_${a}`] = document.getElementById(`et-a3-${a}-${id}`)?.checked || false;
+    award_titles[`ext_attr_top5_${a}`] = document.getElementById(`et-a5-${a}-${id}`)?.checked || false;
+  }
+  try {
+    const res = await apiFetch(`/admin/events/${id}/distribute-points-external`, {
+      method: 'POST',
+      body: JSON.stringify({ award_titles })
+    });
+    showAlert('#ext-points-alert', res.message, 'success');
+  } catch (err) { showAlert('#ext-points-alert', err.message); }
+}
+
+async function loadExtRankPts() {
+  try {
+    const r = await apiFetch('/admin/settings/ext-rank-pts');
+    document.getElementById('erp-1-5').value    = r.ext_rank_pts_1_5    ?? '';
+    document.getElementById('erp-6-10').value   = r.ext_rank_pts_6_10   ?? '';
+    document.getElementById('erp-11-20').value  = r.ext_rank_pts_11_20  ?? '';
+    document.getElementById('erp-21-30').value  = r.ext_rank_pts_21_30  ?? '';
+    document.getElementById('erp-31-50').value  = r.ext_rank_pts_31_50  ?? '';
+    document.getElementById('erp-51-100').value = r.ext_rank_pts_51_100 ?? '';
+    document.getElementById('erp-101plus').value= r.ext_rank_pts_101plus ?? '';
+  } catch (err) { showAlert('#ext-rank-pts-alert', err.message); }
+}
+
+async function saveExtRankPts() {
+  const body = {
+    ext_rank_pts_1_5:    parseInt(document.getElementById('erp-1-5').value),
+    ext_rank_pts_6_10:   parseInt(document.getElementById('erp-6-10').value),
+    ext_rank_pts_11_20:  parseInt(document.getElementById('erp-11-20').value),
+    ext_rank_pts_21_30:  parseInt(document.getElementById('erp-21-30').value),
+    ext_rank_pts_31_50:  parseInt(document.getElementById('erp-31-50').value),
+    ext_rank_pts_51_100: parseInt(document.getElementById('erp-51-100').value),
+    ext_rank_pts_101plus:parseInt(document.getElementById('erp-101plus').value),
+  };
+  try {
+    await apiFetch('/admin/settings/ext-rank-pts', { method: 'PUT', body: JSON.stringify(body) });
+    showAlert('#ext-rank-pts-alert', '保存しました', 'success');
+  } catch (err) { showAlert('#ext-rank-pts-alert', err.message); }
+}
 
 async function distributePoints(id) {
   if (!confirm('ポイントを配布しますか？\nこの操作は取り消せません。')) return;

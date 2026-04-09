@@ -524,7 +524,20 @@ router.get('/events/distributable', async (req, res) => {
   }
 });
 
-// ポイント配布実行
+// 称号付与ヘルパー（内部・外部共通）
+async function awardTitle(client, userId, name, description, scope) {
+  const tr = await client.query(
+    'INSERT INTO titles (name, description, point_cost, is_active, scope) VALUES ($1, $2, NULL, TRUE, $3) RETURNING id',
+    [name, description, scope]
+  );
+  await client.query(
+    'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    [userId, tr.rows[0].id]
+  );
+  return name;
+}
+
+// ポイント配布実行（内部ランキング）
 router.post('/events/:id/distribute-points', async (req, res) => {
   const client = await pool.connect();
   try {
@@ -536,14 +549,15 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     const event = eventResult.rows[0];
     if (event.points_distributed) return res.status(409).json({ error: 'すでに配布済みです' });
 
-    // 全属性最高スコアでランキングを計算
+    // 内部ユーザーの全スコアでランキング計算
     const rankResult = await client.query(
       `WITH best AS (
-         SELECT DISTINCT ON (user_id)
-           user_id, approved_score
-         FROM scores
-         WHERE event_id=$1 AND approved_score IS NOT NULL
-         ORDER BY user_id, approved_score DESC
+         SELECT DISTINCT ON (s.user_id)
+           s.user_id, s.approved_score
+         FROM scores s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND u.is_internal = TRUE
+         ORDER BY s.user_id, s.approved_score DESC
        )
        SELECT user_id, approved_score,
          RANK() OVER (ORDER BY approved_score DESC) AS rank
@@ -576,16 +590,16 @@ router.post('/events/:id/distribute-points', async (req, res) => {
 
     let distributed = 0;
     for (const row of rankResult.rows) {
-      let pts = rankPts(Number(row.rank));
+      const pts = rankPts(Number(row.rank));
       await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
       await client.query(
         'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
-        [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位`]
+        [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位（内部）`]
       );
       distributed++;
     }
 
-    // 称号付与
+    // 内部称号付与
     const awardedTitles = [];
     const rankTitleDefs = [
       { key: 'rank1', rank: 1, label: '優勝' },
@@ -594,76 +608,162 @@ router.post('/events/:id/distribute-points', async (req, res) => {
     ];
     for (const def of rankTitleDefs) {
       if (!award_titles[def.key]) continue;
-      const targets = rankResult.rows.filter(r => Number(r.rank) === def.rank);
-      for (const row of targets) {
-        const titleName = `${event.name}${def.label}`;
-        const tr = await client.query(
-          'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
-          [titleName, `${event.name} ${def.rank}位達成`]
-        );
-        await client.query(
-          'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [row.user_id, tr.rows[0].id]
-        );
-        if (!awardedTitles.includes(titleName)) awardedTitles.push(titleName);
+      for (const row of rankResult.rows.filter(r => Number(r.rank) === def.rank)) {
+        awardedTitles.push(await awardTitle(client, row.user_id,
+          `${event.name}${def.label}`, `${event.name} ${def.rank}位達成（内部）`, 'internal'));
       }
     }
     const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
     for (const attr of ATTRIBUTES) {
       if (!award_titles[`attr_${attr}`]) continue;
       const attrResult = await client.query(
-        `SELECT user_id, MAX(approved_score) AS approved_score FROM scores
-         WHERE event_id=$1 AND approved_score IS NOT NULL AND attribute=$2
-         GROUP BY user_id
-         ORDER BY approved_score DESC
-         LIMIT 1`,
+        `SELECT s.user_id FROM scores s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.attribute=$2 AND u.is_internal=TRUE
+         ORDER BY s.approved_score DESC LIMIT 1`,
         [req.params.id, attr]
       );
       if (attrResult.rows.length === 0) continue;
-      const best = attrResult.rows[0];
-      const titleName = `${event.name} ${attr}属性1位`;
-      const tr = await client.query(
-        'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
-        [titleName, `${event.name} ${attr}属性 1位達成`]
-      );
-      await client.query(
-        'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-        [best.user_id, tr.rows[0].id]
-      );
-      awardedTitles.push(titleName);
+      const userId = attrResult.rows[0].user_id;
+      awardedTitles.push(await awardTitle(client, userId,
+        `${event.name} ${attr}属性1位`, `${event.name} ${attr}属性1位達成（内部）`, 'internal'));
 
-      // 属性1位3回達成で「X神」称号付与
+      // 属性1位3回達成で「X神」称号
       const countResult = await client.query(
-        `SELECT COUNT(*) FROM user_titles ut
-         JOIN titles t ON t.id = ut.title_id
-         WHERE ut.user_id = $1 AND t.name LIKE $2`,
-        [best.user_id, `%${attr}属性1位`]
+        `SELECT COUNT(*) FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+         WHERE ut.user_id=$1 AND t.name LIKE $2`,
+        [userId, `%${attr}属性1位`]
       );
       if (parseInt(countResult.rows[0].count) >= 3) {
         const godTitle = `${attr}神`;
         const already = await client.query(
           `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id WHERE ut.user_id=$1 AND t.name=$2`,
-          [best.user_id, godTitle]
+          [userId, godTitle]
         );
         if (already.rows.length === 0) {
-          const godTr = await client.query(
-            'INSERT INTO titles (name, description, point_cost, is_active) VALUES ($1, $2, NULL, TRUE) RETURNING id',
-            [godTitle, `${attr}属性1位を3回達成`]
-          );
-          await client.query(
-            'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-            [best.user_id, godTr.rows[0].id]
-          );
-          awardedTitles.push(godTitle);
+          awardedTitles.push(await awardTitle(client, userId,
+            godTitle, `${attr}属性1位を3回達成`, 'internal'));
         }
       }
     }
 
     await client.query('UPDATE events SET points_distributed=TRUE, points_distributed_at=NOW() WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
+    const titleMsg = awardedTitles.length ? `　称号付与: ${[...new Set(awardedTitles)].join(', ')}` : '';
+    res.json({ message: `${distributed}名にポイントを配布しました（内部）${titleMsg}` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
 
-    const titleMsg = awardedTitles.length ? `　称号付与: ${awardedTitles.join(', ')}` : '';
-    res.json({ message: `${distributed}名にポイントを配布しました${titleMsg}` });
+// 外部ポイント配布実行
+router.post('/events/:id/distribute-points-external', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const { award_titles = {} } = req.body || {};
+
+    const eventResult = await client.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'イベントが見つかりません' });
+    const event = eventResult.rows[0];
+
+    // 外部公開スコア（ranking_scope='public'）でランキング計算
+    const rankResult = await client.query(
+      `WITH best AS (
+         SELECT DISTINCT ON (s.user_id)
+           s.user_id, s.approved_score
+         FROM scores s
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.ranking_scope='public'
+         ORDER BY s.user_id, s.approved_score DESC
+       )
+       SELECT user_id, approved_score,
+         RANK() OVER (ORDER BY approved_score DESC) AS rank
+       FROM best`,
+      [req.params.id]
+    );
+
+    const rpResult = await client.query(
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+    );
+    const rp = {};
+    rpResult.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
+    const rankPts = (rank) => {
+      if (rank <= 5)   return rp.ext_rank_pts_1_5    ?? 100;
+      if (rank <= 10)  return rp.ext_rank_pts_6_10   ?? 80;
+      if (rank <= 20)  return rp.ext_rank_pts_11_20  ?? 60;
+      if (rank <= 30)  return rp.ext_rank_pts_21_30  ?? 40;
+      if (rank <= 50)  return rp.ext_rank_pts_31_50  ?? 20;
+      if (rank <= 100) return rp.ext_rank_pts_51_100 ?? 10;
+      return rp.ext_rank_pts_101plus ?? 5;
+    };
+
+    let distributed = 0;
+    for (const row of rankResult.rows) {
+      const pts = rankPts(Number(row.rank));
+      await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
+      await client.query(
+        'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
+        [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位（外部）`]
+      );
+      distributed++;
+    }
+
+    // 外部称号付与（総合）
+    const awardedTitles = [];
+    const overallDefs = [
+      { key: 'ext_rank1',  ranks: [1],        label: '優勝' },
+      { key: 'ext_rank2',  ranks: [2],        label: '準優勝' },
+      { key: 'ext_rank3',  ranks: [3],        label: '第3位' },
+      { key: 'ext_top10',  ranks: null, maxRank: 10,  label: 'TOP10' },
+      { key: 'ext_top30',  ranks: null, maxRank: 30,  label: 'TOP30' },
+      { key: 'ext_top50',  ranks: null, maxRank: 50,  label: 'TOP50' },
+    ];
+    for (const def of overallDefs) {
+      if (!award_titles[def.key]) continue;
+      const targets = def.ranks
+        ? rankResult.rows.filter(r => def.ranks.includes(Number(r.rank)))
+        : rankResult.rows.filter(r => Number(r.rank) <= def.maxRank);
+      for (const row of targets) {
+        awardedTitles.push(await awardTitle(client, row.user_id,
+          `${event.name} ${def.label}`, `${event.name} ${def.label}達成（外部）`, 'external'));
+      }
+    }
+
+    // 外部称号付与（属性別）
+    const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
+    const attrDefs = [
+      { key: 'ext_attr1',    maxRank: 1,  label: '1位' },
+      { key: 'ext_attr2',    maxRank: 2,  label: '2位' },
+      { key: 'ext_attr3',    maxRank: 3,  label: '3位' },
+      { key: 'ext_attr_top5', maxRank: 5, label: 'TOP5' },
+    ];
+    for (const attr of ATTRIBUTES) {
+      // 属性別ランキング取得
+      const attrRankResult = await client.query(
+        `SELECT s.user_id,
+           RANK() OVER (ORDER BY MAX(s.approved_score) DESC) AS rank
+         FROM scores s
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.attribute=$2 AND s.ranking_scope='public'
+         GROUP BY s.user_id`,
+        [req.params.id, attr]
+      );
+      for (const def of attrDefs) {
+        if (!award_titles[`${def.key}_${attr}`]) continue;
+        for (const row of attrRankResult.rows.filter(r => Number(r.rank) <= def.maxRank)) {
+          awardedTitles.push(await awardTitle(client, row.user_id,
+            `${event.name} ${attr}属性${def.label}`,
+            `${event.name} ${attr}属性${def.label}達成（外部）`, 'external'));
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+    const titleMsg = awardedTitles.length ? `　称号付与: ${[...new Set(awardedTitles)].join(', ')}` : '';
+    res.json({ message: `${distributed}名にポイントを配布しました（外部）${titleMsg}` });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -927,6 +1027,39 @@ router.get('/settings/rank-pts', async (req, res) => {
 
 router.put('/settings/rank-pts', async (req, res) => {
   const keys = ['rank_pts_1','rank_pts_2','rank_pts_3','rank_pts_4','rank_pts_5','rank_pts_6','rank_pts_7','rank_pts_8','rank_pts_9','rank_pts_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus'];
+  try {
+    for (const key of keys) {
+      if (req.body[key] !== undefined) {
+        await pool.query(
+          'INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2',
+          [key, String(parseInt(req.body[key]) || 0)]
+        );
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 外部ランクポイント設定 GET/PUT
+router.get('/settings/ext-rank-pts', async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+    );
+    const map = {};
+    result.rows.forEach(r => { map[r.key] = parseInt(r.value); });
+    res.json(map);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/settings/ext-rank-pts', async (req, res) => {
+  const keys = ['ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus'];
   try {
     for (const key of keys) {
       if (req.body[key] !== undefined) {

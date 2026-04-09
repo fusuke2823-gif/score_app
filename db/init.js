@@ -366,6 +366,13 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_day5', '1') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_day6', '1') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_1_5',    '100') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_6_10',   '80')  ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_11_20',  '60')  ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_21_30',  '40')  ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_31_50',  '20')  ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_51_100', '10')  ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ext_rank_pts_101plus','5')   ON CONFLICT (key) DO NOTHING;
     `);
 
     // Renderプラン移行で生成された重複制約 users_pkey1 を安全に削除（依存FK全件を動的処理）
