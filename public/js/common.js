@@ -798,7 +798,7 @@ async function checkGoogleLink() {
     banner.style.cssText = 'position:sticky;top:56px;z-index:49;background:#1a237e;color:#fff;font-size:0.82rem;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap';
     banner.innerHTML = `
       <span style="flex:1;min-width:180px">Googleアカウントと連携するとパスワード不要でログインできます</span>
-      <div id="google-link-btn-wrap"></div>
+      <div style="display:flex;align-items:center;gap:6px"><div id="google-link-btn-wrap"></div><span style="font-size:0.82rem">Googleで連携</span></div>
       <button onclick="dismissGoogleLinkBanner()" style="background:none;border:none;color:#fff;font-size:1.1rem;cursor:pointer;padding:0 4px;line-height:1">×</button>
     `;
     document.querySelector('nav')?.insertAdjacentElement('afterend', banner);
@@ -809,7 +809,7 @@ async function checkGoogleLink() {
       google.accounts.id.initialize({ client_id, callback: handleGoogleLinkCredential });
       google.accounts.id.renderButton(
         document.getElementById('google-link-btn-wrap'),
-        { theme: 'filled_blue', size: 'small', text: 'signin_with', locale: 'ja' }
+        { theme: 'filled_blue', size: 'small', type: 'icon' }
       );
     };
     if (!document.querySelector('script[src*="accounts.google.com"]')) {
