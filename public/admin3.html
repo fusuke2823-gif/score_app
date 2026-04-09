@@ -118,20 +118,53 @@ function renderUsers(users) {
   document.getElementById('users-list').innerHTML = `
     <div class="card" style="padding:0">
       ${users.map(u => `
-        <div class="user-list-item">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-weight:bold">${escHtml(u.username)}</span>
-            ${u.role === 'admin' ? '<span style="font-size:0.72rem;color:var(--accent)">[管理者]</span>' : ''}
-            <span class="${u.is_internal ? 'badge-internal' : 'badge-external'}">${u.is_internal ? '内部' : '外部'}</span>
+        <div style="border-bottom:1px solid var(--border)">
+          <div class="user-list-item" style="border-bottom:none">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-weight:bold">${escHtml(u.username)}</span>
+              ${u.role === 'admin' ? '<span style="font-size:0.72rem;color:var(--accent)">[管理者]</span>' : ''}
+              <span class="${u.is_internal ? 'badge-internal' : 'badge-external'}">${u.is_internal ? '内部' : '外部'}</span>
+            </div>
+            <div style="display:flex;gap:8px">
+              ${u.is_internal
+                ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="setInternal(${u.id}, false)">外部に変更</button>`
+                : `<button class="btn btn-sm btn-primary" onclick="setInternal(${u.id}, true)">内部に変更</button>`
+              }
+              <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="togglePwForm(${u.id})">PW変更</button>
+            </div>
           </div>
-          <div style="display:flex;gap:8px">
-            ${u.is_internal
-              ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="setInternal(${u.id}, false)">外部に変更</button>`
-              : `<button class="btn btn-sm btn-primary" onclick="setInternal(${u.id}, true)">内部に変更</button>`
-            }
+          <div id="pw-form-${u.id}" style="display:none;padding:8px 16px 12px;display:none">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input class="form-input" id="pw-input-${u.id}" type="text" placeholder="新しいパスワード（6文字以上）" style="font-size:0.85rem;padding:5px 10px;flex:1;min-width:160px">
+              <button class="btn btn-sm btn-primary" onclick="resetPassword(${u.id})">確定</button>
+              <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="togglePwForm(${u.id})">キャンセル</button>
+            </div>
           </div>
         </div>`).join('')}
     </div>`;
+}
+
+function togglePwForm(userId) {
+  const el = document.getElementById(`pw-form-${userId}`);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if (el.style.display === 'block') document.getElementById(`pw-input-${userId}`).focus();
+}
+
+async function resetPassword(userId) {
+  const pw = document.getElementById(`pw-input-${userId}`).value.trim();
+  if (!pw) return;
+  try {
+    await apiFetch(`/admin/users/${userId}/password`, {
+      method: 'PATCH',
+      body: JSON.stringify({ new_password: pw })
+    });
+    document.getElementById('users-alert').innerHTML = '<div class="alert alert-success">パスワードを変更しました</div>';
+    setTimeout(() => { document.getElementById('users-alert').innerHTML = ''; }, 3000);
+    togglePwForm(userId);
+    document.getElementById(`pw-input-${userId}`).value = '';
+  } catch (err) {
+    document.getElementById('users-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
 }
 
 async function setInternal(userId, val) {

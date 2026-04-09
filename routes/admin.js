@@ -1598,6 +1598,22 @@ router.patch('/users/:id/internal', async (req, res) => {
   }
 });
 
+// パスワード強制変更
+router.patch('/users/:id/password', async (req, res) => {
+  const { new_password } = req.body;
+  if (!new_password || new_password.length < 6)
+    return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
+  try {
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash(new_password, 10);
+    await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.params.id]);
+    res.json({ message: 'パスワードを変更しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 称号一覧（scope付き）
 router.get('/titles', async (req, res) => {
   try {
