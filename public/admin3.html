@@ -222,13 +222,18 @@ function renderEnemies(enemies) {
         <div style="font-size:0.76rem;color:var(--text-muted)">第${en.event_number}弾 ${escHtml(en.event_name)}</div>
       </div>
       <div style="flex:2;min-width:200px">
-        <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:4px">外部用画像URL</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input class="form-input" id="ext-url-${en.id}" type="text" value="${escHtml(en.external_image_url || '')}" placeholder="https://..." style="font-size:0.82rem;padding:4px 8px">
-          <button class="btn btn-sm btn-primary" onclick="saveExtImage(${en.id})">保存</button>
+        <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:4px">外部用画像</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input class="form-input" id="ext-url-${en.id}" type="text" value="${escHtml(en.external_image_url || '')}" placeholder="https://..." style="font-size:0.82rem;padding:4px 8px;flex:1;min-width:120px">
+          <button class="btn btn-sm btn-primary" onclick="saveExtImage(${en.id})">URL保存</button>
+          <label class="btn btn-sm btn-secondary" style="cursor:pointer;margin:0">
+            ファイル
+            <input type="file" accept="image/*" style="display:none" onchange="uploadExtImage(${en.id}, this)">
+          </label>
           ${en.external_image_url ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="clearExtImage(${en.id})">削除</button>` : ''}
         </div>
         ${en.external_image_url ? `<div style="margin-top:6px"><img src="${escHtml(en.external_image_url)}" style="height:32px;border-radius:4px;border:1px solid var(--border)"></div>` : ''}
+        <div id="ext-upload-status-${en.id}" style="font-size:0.76rem;margin-top:4px"></div>
       </div>
     </div>`).join('');
 }
@@ -249,6 +254,33 @@ async function saveExtImage(enemyId) {
 async function clearExtImage(enemyId) {
   document.getElementById(`ext-url-${enemyId}`).value = '';
   await saveExtImage(enemyId);
+}
+
+async function uploadExtImage(enemyId, input) {
+  if (!input.files[0]) return;
+  const statusEl = document.getElementById(`ext-upload-status-${enemyId}`);
+  statusEl.textContent = 'アップロード中...';
+  statusEl.style.color = 'var(--text-muted)';
+  const formData = new FormData();
+  formData.append('image', input.files[0]);
+  try {
+    const token = getToken();
+    const res = await fetch(`/api/admin/enemies/${enemyId}/external-image/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'エラー');
+    document.getElementById(`ext-url-${enemyId}`).value = data.image_url;
+    statusEl.textContent = 'アップロード完了';
+    statusEl.style.color = 'var(--success, #4caf50)';
+    loadEnemies();
+  } catch (err) {
+    statusEl.textContent = 'エラー: ' + err.message;
+    statusEl.style.color = 'var(--error, #f44336)';
+  }
+  input.value = '';
 }
 
 loadUsers();

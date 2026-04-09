@@ -1392,6 +1392,26 @@ router.patch('/enemies/:id/external-image', async (req, res) => {
   }
 });
 
+// 敵の external_image_url をファイルアップロードで更新
+router.post('/enemies/:id/external-image/upload', upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '画像ファイルが必要です' });
+  try {
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream({ folder: 'hbr-ranking/enemies-external', resource_type: 'image' }, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        })
+        .end(req.file.buffer);
+    });
+    await pool.query('UPDATE enemies SET external_image_url=$1 WHERE id=$2', [uploadResult.secure_url, req.params.id]);
+    res.json({ image_url: uploadResult.secure_url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 全イベントの敵一覧（external_image_url管理用）
 router.get('/enemies', async (req, res) => {
   try {
