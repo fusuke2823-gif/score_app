@@ -259,16 +259,7 @@ async function initGoogleLinkBtn() {
   const init = () => {
     if (!window.google) return;
     google.accounts.id.initialize({ client_id, callback: handleGoogleLinkProfile });
-    const iconWrap = document.createElement('div');
-    iconWrap.style.cssText = 'display:flex;align-items:center;gap:6px';
-    wrap.appendChild(iconWrap);
-    const btnDiv = document.createElement('div');
-    iconWrap.appendChild(btnDiv);
-    const label = document.createElement('span');
-    label.textContent = 'Googleで連携';
-    label.style.cssText = 'font-size:0.82rem;color:var(--text-secondary)';
-    iconWrap.appendChild(label);
-    google.accounts.id.renderButton(btnDiv, { theme: 'outline', size: 'small', type: 'icon' });
+    google.accounts.id.renderButton(wrap, { theme: 'outline', size: 'small', text: 'signin_with', locale: 'ja' });
   };
   if (!document.querySelector('script[src*="accounts.google.com"]')) {
     const s = document.createElement('script');

@@ -43,10 +43,7 @@
       <span style="font-size:0.8rem;color:var(--text-muted)">またはGoogleで登録</span>
       <div style="flex:1;height:1px;background:var(--border)"></div>
     </div>
-    <div style="display:flex;justify-content:center;align-items:center;gap:8px">
-      <div id="google-btn-wrap"></div>
-      <span style="font-size:0.9rem;color:var(--text-secondary)">Googleで登録</span>
-    </div>
+    <div id="google-btn-wrap" style="display:flex;justify-content:center"></div>
     <div id="google-client-id" data-client-id=""></div>
     <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-secondary)">
       <span data-i18n="register.has_account">すでにアカウントがある方は</span> <a href="/login.html" data-i18n="register.login_link">ログイン</a>
@@ -85,7 +82,7 @@ fetch('/api/auth/google/client-id')
       google.accounts.id.initialize({ client_id, callback: handleGoogleCredential });
       google.accounts.id.renderButton(
         document.getElementById('google-btn-wrap'),
-        { theme: 'outline', size: 'large', type: 'icon' }
+        { theme: 'outline', size: 'large', width: 280, text: 'signup_with', locale: 'ja' }
       );
     };
     if (window.google) init();
