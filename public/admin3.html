@@ -95,7 +95,7 @@ let _allUsers = [];
 
 async function loadUsers() {
   try {
-    _allUsers = await apiFetch('/admin/users');
+    _allUsers = await apiFetch('/admin/users?t=' + Date.now());
     renderUsers(_allUsers);
   } catch (err) {
     document.getElementById('users-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
