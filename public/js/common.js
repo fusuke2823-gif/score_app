@@ -562,6 +562,7 @@ async function initInterimDistributionNotice() {
               <span class="interim-type-badge">${d.period}配布</span>
             </div>
             <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
+            ${d.awarded_titles?.length ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--accent)">🏆 称号獲得: ${d.awarded_titles.map(n => `「${escHtml(n)}」`).join(' ')}</div>` : ''}
             <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
           </div>`).join('')}
         </div>

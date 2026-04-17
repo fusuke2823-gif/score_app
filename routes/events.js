@@ -70,7 +70,7 @@ router.get('/interim-distributions/recent', authenticateToken, async (req, res) 
 router.get('/final-distributions/recent', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT event_id, distributed_at, event_name, event_number, user_rank, user_pts, type FROM (
+      `SELECT event_id, distributed_at, event_name, event_number, user_rank, user_pts, type, awarded_titles FROM (
          SELECT e.id AS event_id, e.points_distributed_at AS distributed_at,
                 e.name AS event_name, e.event_number,
                 'internal' AS type,
@@ -89,7 +89,15 @@ router.get('/final-distributions/recent', authenticateToken, async (req, res) =>
                                          AND e.points_distributed_at + INTERVAL '5 minutes'
                    AND ph.reason NOT LIKE '%中間配布%'
                    AND ph.reason LIKE '%（内部）%'
-                 LIMIT 1) AS user_pts
+                 LIMIT 1) AS user_pts,
+                (SELECT array_agg(t.name)
+                 FROM user_titles ut
+                 JOIN titles t ON t.id = ut.title_id
+                 WHERE ut.user_id = $1
+                   AND ut.acquired_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
+                                          AND e.points_distributed_at + INTERVAL '5 minutes'
+                   AND t.scope = 'internal'
+                ) AS awarded_titles
          FROM events e
          WHERE e.points_distributed = TRUE
            AND e.points_distributed_at IS NOT NULL
@@ -111,7 +119,15 @@ router.get('/final-distributions/recent', authenticateToken, async (req, res) =>
                    AND ph.created_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
                                          AND e.points_distributed_external_at + INTERVAL '5 minutes'
                    AND ph.reason LIKE '%（外部）%'
-                 LIMIT 1) AS user_pts
+                 LIMIT 1) AS user_pts,
+                (SELECT array_agg(t.name)
+                 FROM user_titles ut
+                 JOIN titles t ON t.id = ut.title_id
+                 WHERE ut.user_id = $1
+                   AND ut.acquired_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
+                                          AND e.points_distributed_external_at + INTERVAL '5 minutes'
+                   AND t.scope = 'external'
+                ) AS awarded_titles
          FROM events e
          WHERE e.points_distributed_external = TRUE
            AND e.points_distributed_external_at IS NOT NULL
