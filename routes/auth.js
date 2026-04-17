@@ -8,7 +8,7 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/register', async (req, res) => {
-  const { username, password, oshi_character, internal_password, ref } = req.body;
+  const { username, password, oshi_character, ref } = req.body;
 
   if (!username || !password)
     return res.status(400).json({ error: 'ユーザー名とパスワードは必須です' });
@@ -17,10 +17,8 @@ router.post('/register', async (req, res) => {
   if (password.length < 6)
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
 
-  // 内部登録: URLトークン(ref) と コミュニティPW(internal_password) の両方が一致する場合のみ
-  const refOk = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
-  const pwOk  = !!(process.env.INTERNAL_PASSWORD && internal_password && internal_password === process.env.INTERNAL_PASSWORD);
-  const isInternal = refOk && pwOk;
+  // 内部登録: URLトークン(ref) が一致する場合のみ
+  const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
 
   try {
     const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
@@ -215,14 +213,12 @@ router.post('/google/link', authenticateToken, async (req, res) => {
 
 // Google新規登録（ユーザー名確定）
 router.post('/google/register', async (req, res) => {
-  const { google_id, username, oshi_character, internal_password, ref } = req.body;
+  const { google_id, username, oshi_character, ref } = req.body;
   if (!google_id || !username) return res.status(400).json({ error: 'ユーザー名を入力してください' });
   if (username.length < 1 || username.length > 12)
     return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
 
-  const refOk = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
-  const pwOk  = !!(process.env.INTERNAL_PASSWORD && internal_password && internal_password === process.env.INTERNAL_PASSWORD);
-  const isInternal = refOk && pwOk;
+  const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
 
   try {
     const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);

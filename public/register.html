@@ -31,11 +31,6 @@
         <label class="form-label" data-i18n="register.oshi">推しキャラクター（任意）</label>
         <input class="form-input" type="text" id="oshi" maxlength="100" data-i18n-ph="register.oshi_ph" placeholder="例: 茅森月歌">
       </div>
-      <div class="form-group" id="internal-pw-group" style="display:none">
-        <label class="form-label" data-i18n="register.internal_pw">コミュニティパスワード</label>
-        <input class="form-input" type="password" id="internal-pw" maxlength="100">
-        <div class="form-hint" data-i18n="register.internal_pw_hint">内部メンバー登録用のパスワードを入力してください</div>
-      </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
     </form>
     <div style="display:flex;align-items:center;gap:8px;margin:16px 0">
@@ -58,9 +53,6 @@
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">このアプリで使うユーザー名を設定してください。</p>
     <div id="google-modal-alert" style="margin-bottom:10px"></div>
     <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
-    <div id="google-modal-internal-wrap" style="display:none;margin-bottom:10px">
-      <input class="form-input" id="google-modal-internal-pw" type="password" placeholder="コミュニティパスワード">
-    </div>
     <button class="btn btn-primary" style="width:100%" onclick="submitGoogleUsername()">登録してログイン</button>
   </div>
 </div>
@@ -110,7 +102,6 @@ async function handleGoogleCredential(response) {
       location.href = '/index.html';
     } else if (data.needs_username) {
       _pendingGoogleId = data.google_id;
-      if (getParam('ref')) document.getElementById('google-modal-internal-wrap').style.display = '';
       document.getElementById('google-username-modal').style.display = 'flex';
       document.getElementById('google-username-input').focus();
     }
@@ -123,11 +114,10 @@ async function submitGoogleUsername() {
   const username = document.getElementById('google-username-input').value.trim();
   if (!username) return;
   const ref = getParam('ref') || '';
-  const internalPw = document.getElementById('google-modal-internal-pw').value || '';
   try {
     const data = await apiFetch('/auth/google/register', {
       method: 'POST',
-      body: JSON.stringify({ google_id: _pendingGoogleId, username, ref, internal_password: internalPw })
+      body: JSON.stringify({ google_id: _pendingGoogleId, username, ref })
     });
     setAuth(data.token, data.user);
     location.href = '/index.html';
@@ -136,9 +126,8 @@ async function submitGoogleUsername() {
   }
 }
 
-// ?ref= がある場合はコミュニティパスワード欄を表示
+// ?ref= がある場合は内部メンバーバッジを表示
 if (getParam('ref')) {
-  document.getElementById('internal-pw-group').style.display = '';
   document.getElementById('internal-badge').style.display = '';
 }
 
@@ -153,13 +142,9 @@ document.getElementById('register-form').addEventListener('submit', async e => {
     const body = {
       username: document.getElementById('username').value,
       password: document.getElementById('password').value,
-      oshi_character: document.getElementById('oshi').value || undefined
+      oshi_character: document.getElementById('oshi').value || undefined,
+      ref: getParam('ref') || undefined
     };
-    const internalPw = document.getElementById('internal-pw').value;
-    if (internalPw) {
-      body.internal_password = internalPw;
-      body.ref = getParam('ref') || '';
-    }
 
     const data = await apiFetch('/auth/register', {
       method: 'POST',
