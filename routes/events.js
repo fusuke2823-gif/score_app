@@ -5,14 +5,11 @@ const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 // 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', optionalAuth, async (req, res) => {
-  const isInternal = !!(req.user && req.user.is_internal);
   try {
     const result = await pool.query(
       `SELECT e.*,
-        (SELECT CASE WHEN $1 THEN en.image_url ELSE en.external_image_url END
-         FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_image
-       FROM events e WHERE e.is_active = TRUE ORDER BY e.event_number DESC`,
-      [isInternal]
+        (SELECT en.image_url FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_image
+       FROM events e WHERE e.is_active = TRUE ORDER BY e.event_number DESC`
     );
     res.json(result.rows);
   } catch (err) {
@@ -145,7 +142,6 @@ router.get('/ext-rank-pts', async (req, res) => {
 
 // イベント詳細（敵情報含む）
 router.get('/:id', optionalAuth, async (req, res) => {
-  const isInternal = !!(req.user && req.user.is_internal);
   try {
     const eventResult = await pool.query('SELECT * FROM events WHERE id = $1', [req.params.id]);
     if (eventResult.rows.length === 0)
@@ -153,9 +149,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     const event = eventResult.rows[0];
     const enemiesResult = await pool.query(
-      `SELECT *, CASE WHEN $2 THEN image_url ELSE external_image_url END AS image_url
-       FROM enemies WHERE event_id = $1 ORDER BY order_index`,
-      [req.params.id, isInternal]
+      `SELECT * FROM enemies WHERE event_id = $1 ORDER BY order_index`,
+      [req.params.id]
     );
     const rulesResult = await pool.query(
       'SELECT * FROM event_rules WHERE event_id = $1 ORDER BY order_index',
