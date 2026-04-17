@@ -120,29 +120,16 @@
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="section-title" style="margin:0">中間配布（開催中イベント）</div>
-        <button onclick="toggleRankPtsTable('interim-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">内部ポイント設定を確認</button>
+      <div style="margin-bottom:12px">
+        <div class="section-title" style="margin:0">内部 中間配布（開催中イベント）</div>
       </div>
-      <div id="interim-pts-table" style="display:none;margin-bottom:12px"></div>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">イベント終了前に現在のランキングでポイントを配布します。何度でも実行可能です。</p>
       <div id="interim-alert" style="margin-bottom:12px"></div>
       <div id="interim-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="section-title" style="margin:0">内部 ポイント配布（終了済みイベント）</div>
-        <button onclick="toggleRankPtsTable('final-pts-table')" style="font-size:0.78rem;padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:var(--bg-primary);color:var(--text-muted);cursor:pointer">ポイント設定を確認</button>
-      </div>
-      <div id="final-pts-table" style="display:none;margin-bottom:12px"></div>
-      <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
-      <div id="points-alert" style="margin-bottom:12px"></div>
-      <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="margin-bottom:12px">
         <div class="section-title" style="margin:0">外部 中間配布（開催中イベント）</div>
       </div>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコア（public）のみで現在のランキングでポイントを配布します。何度でも実行可能です。称号は付与されません。</p>
@@ -150,8 +137,17 @@
       <div id="ext-interim-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
+    <div class="card" style="margin-bottom:20px">
+      <div style="margin-bottom:12px">
+        <div class="section-title" style="margin:0">内部 最終配布（終了済みイベント）</div>
+      </div>
+      <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
+      <div id="points-alert" style="margin-bottom:12px"></div>
+      <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="margin-bottom:12px">
         <div class="section-title" style="margin:0">外部 最終配布（終了済みイベント）</div>
       </div>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコアでポイント・称号を配布します。1回のみ実行可能です。</p>
@@ -641,18 +637,16 @@ async function loadInterimDistributable() {
         `<span style="font-size:0.75rem;color:var(--text-muted)">${new Date(d.distributed_at).toLocaleString('ja-JP')}（${d.distributed_count}名）</span>`
       ).join('<br>');
       return `
-      <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:8px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:8px">
           <div>
             <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
             <strong>${escHtml(e.name)}</strong>
           </div>
-        </div>
-        ${history ? `<div style="line-height:1.8">配布履歴：<br>${history}</div>` : '<div style="font-size:0.8rem;color:var(--text-muted)">未配布</div>'}
-        <div style="text-align:right">
-          <button class="btn btn-secondary btn-sm" onclick="distributeInterim(${e.id})">中間配布する</button>
-        </div>
-      </div>`;
+          ${history ? `<div style="line-height:1.6">${history}</div>` : ''}
+          <div style="text-align:right">
+            <button class="btn btn-secondary btn-sm" onclick="distributeInterim(${e.id})">内部中間配布する</button>
+          </div>
+        </div>`;
     }).join('');
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
@@ -678,11 +672,9 @@ async function loadDistributable() {
     }
     el.innerHTML = events.map(e => `
       <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:10px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
-            <strong>${escHtml(e.name)}</strong>
-          </div>
+        <div>
+          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+          <strong>${escHtml(e.name)}</strong>
         </div>
         <div style="font-size:0.82rem;color:var(--text-muted)">称号付与（任意）</div>
         <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:0.85rem">
@@ -693,7 +685,7 @@ async function loadDistributable() {
           ${AWARD_ATTRS.map(a => `<label><input type="checkbox" id="t-a${a}-${e.id}"> ${a}属性1位</label>`).join('')}
         </div>
         <div style="text-align:right">
-          <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id})">配布する</button>
+          <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id})">内部最終配布する</button>
         </div>
       </div>`).join('');
   } catch (err) {
