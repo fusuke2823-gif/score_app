@@ -44,14 +44,22 @@ router.get('/interim-distributions/recent', authenticateToken, async (req, res) 
                WHERE ph.user_id = $1
                  AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
                                        AND d.distributed_at + INTERVAL '5 minutes'
-                 AND ph.reason LIKE '%中間配布%'
+                 AND (
+                   (d.type = 'internal' AND ph.reason LIKE '%中間配布%' AND ph.reason NOT LIKE '%外部中間配布%')
+                   OR
+                   (d.type = 'external' AND ph.reason LIKE '%外部中間配布%')
+                 )
                LIMIT 1) AS user_rank,
               (SELECT ph.amount
                FROM point_history ph
                WHERE ph.user_id = $1
                  AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
                                        AND d.distributed_at + INTERVAL '5 minutes'
-                 AND ph.reason LIKE '%中間配布%'
+                 AND (
+                   (d.type = 'internal' AND ph.reason LIKE '%中間配布%' AND ph.reason NOT LIKE '%外部中間配布%')
+                   OR
+                   (d.type = 'external' AND ph.reason LIKE '%外部中間配布%')
+                 )
                LIMIT 1) AS user_pts
        FROM event_interim_distributions d
        JOIN events e ON e.id = d.event_id
