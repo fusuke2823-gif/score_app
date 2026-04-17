@@ -505,6 +505,14 @@ function getParam(name) {
   return new URLSearchParams(location.search).get(name);
 }
 
+function togglePw(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.type = el.type === 'password' ? 'text' : 'password';
+  const btn = el.parentElement?.querySelector('.pw-toggle');
+  if (btn) btn.textContent = el.type === 'password' ? '👁' : '🙈';
+}
+
 // ===== 配布通知（中間・最終） =====
 async function initInterimDistributionNotice() {
   if (!getToken()) return;

@@ -82,7 +82,10 @@
     <div id="delete-alert"></div>
     <div class="form-group">
       <label class="form-label" data-i18n="login.password">パスワード</label>
-      <input class="form-input" id="delete-pw" type="password" data-i18n-ph="user.pw_ph" placeholder="パスワードを入力">
+      <div class="pw-wrap">
+        <input class="form-input" id="delete-pw" type="password" data-i18n-ph="user.pw_ph" placeholder="パスワードを入力">
+        <button type="button" class="pw-toggle" onclick="togglePw('delete-pw')" tabindex="-1">👁</button>
+      </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:16px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeDeleteModal()" data-i18n="cancel">キャンセル</button>
@@ -166,11 +169,17 @@ async function load() {
           <div style="margin-top:12px">
             <div class="form-group">
               <label class="form-label">${t('user.pw_current')}</label>
-              <input class="form-input" id="edit-current-pw" type="password" autocomplete="current-password">
+              <div class="pw-wrap">
+                <input class="form-input" id="edit-current-pw" type="password" autocomplete="current-password">
+                <button type="button" class="pw-toggle" onclick="togglePw('edit-current-pw')" tabindex="-1">👁</button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">${t('user.pw_new')}</label>
-              <input class="form-input" id="edit-new-pw" type="password" autocomplete="new-password">
+              <div class="pw-wrap">
+                <input class="form-input" id="edit-new-pw" type="password" autocomplete="new-password">
+                <button type="button" class="pw-toggle" onclick="togglePw('edit-new-pw')" tabindex="-1">👁</button>
+              </div>
             </div>
           </div>
         </details>

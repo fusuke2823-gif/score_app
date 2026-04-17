@@ -24,7 +24,10 @@
       </div>
       <div class="form-group">
         <label class="form-label"><span data-i18n="register.password">パスワード</span> <span style="color:var(--accent)">*</span></label>
-        <input class="form-input" type="password" id="password" required minlength="6">
+        <div class="pw-wrap">
+          <input class="form-input" type="password" id="password" required minlength="6">
+          <button type="button" class="pw-toggle" onclick="togglePw('password')" tabindex="-1">👁</button>
+        </div>
         <div class="form-hint" data-i18n="register.password_hint">6文字以上</div>
       </div>
       <div class="form-group">
