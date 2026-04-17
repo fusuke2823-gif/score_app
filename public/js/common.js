@@ -463,7 +463,6 @@ async function updateGachaNav() {
     }
     const user = getUser();
     if (!user) return;
-    if (!user.is_internal && user.role !== 'admin') return;
     if (!show && user.role !== 'admin') return;
     const currentPath = location.pathname;
     const isActive = currentPath === '/gacha.html';
