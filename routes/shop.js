@@ -33,7 +33,7 @@ router.get('/frames', async (req, res) => {
 router.get('/my', authenticateToken, async (req, res) => {
   try {
     const userResult = await pool.query(
-      'SELECT points, equipped_title_id, equipped_frame_id FROM users WHERE id = $1',
+      'SELECT points, equipped_title_id, equipped_internal_title_id, equipped_frame_id FROM users WHERE id = $1',
       [req.user.id]
     );
     const user = userResult.rows[0];
@@ -59,6 +59,7 @@ router.get('/my', authenticateToken, async (req, res) => {
     res.json({
       points: user.points,
       equipped_title_id: user.equipped_title_id,
+      equipped_internal_title_id: user.equipped_internal_title_id,
       equipped_frame_id: user.equipped_frame_id,
       titles: myTitles.rows,
       frames: myFrames.rows
@@ -188,7 +189,7 @@ router.post('/frames/equip', authenticateToken, async (req, res) => {
   }
 });
 
-// 称号を装備（title_id: null で解除）― 外部ランキング用
+// 称号を装備（title_id: null で解除）― 外部ランキング用（external/common のみ）
 router.post('/equip', authenticateToken, async (req, res) => {
   const { title_id } = req.body;
   try {
@@ -199,6 +200,10 @@ router.post('/equip', authenticateToken, async (req, res) => {
       );
       if (owned.rows.length === 0)
         return res.status(403).json({ error: 'この称号を所持していません' });
+      const titleRes = await pool.query('SELECT scope FROM titles WHERE id=$1', [title_id]);
+      const scope = titleRes.rows[0]?.scope || 'common';
+      if (scope === 'internal')
+        return res.status(403).json({ error: 'この称号は内部ランキング用装備枠には使用できません' });
     }
     await pool.query(
       'UPDATE users SET equipped_title_id = $1 WHERE id = $2',
@@ -211,7 +216,7 @@ router.post('/equip', authenticateToken, async (req, res) => {
   }
 });
 
-// 内部ランキング用称号を装備（title_id: null で解除）
+// 内部ランキング用称号を装備（title_id: null で解除）― internal/common のみ
 router.post('/equip-internal', authenticateToken, async (req, res) => {
   const { title_id } = req.body;
   if (!req.user.is_internal)
@@ -224,6 +229,10 @@ router.post('/equip-internal', authenticateToken, async (req, res) => {
       );
       if (owned.rows.length === 0)
         return res.status(403).json({ error: 'この称号を所持していません' });
+      const titleRes = await pool.query('SELECT scope FROM titles WHERE id=$1', [title_id]);
+      const scope = titleRes.rows[0]?.scope || 'common';
+      if (scope === 'external')
+        return res.status(403).json({ error: 'この称号は外部ランキング用装備枠には使用できません' });
     }
     await pool.query(
       'UPDATE users SET equipped_internal_title_id = $1 WHERE id = $2',

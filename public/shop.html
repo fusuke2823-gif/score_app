@@ -193,27 +193,59 @@ async function refreshMyData() {
 }
 
 // ===== 称号 =====
+function _titleScopeFor(scope) {
+  // 外部枠に装備可能か（external/common）
+  return scope !== 'internal';
+}
+function _titleScopeForInternal(scope) {
+  // 内部枠に装備可能か（internal/common）
+  return scope !== 'external';
+}
+
 function renderShopTitles(titles) {
   const el = document.getElementById('shop-titles');
-  if (!titles || titles.length === 0) {
+  // 外部ユーザーは internal 称号を非表示
+  const visible = user && isInternal() ? titles : (titles || []).filter(ti => (ti.scope || 'common') !== 'internal');
+  if (!visible.length) {
     el.innerHTML = `<div class="empty-state"><p>${t('shop.no_titles')}</p></div>`;
     return;
   }
-  el.innerHTML = `<div class="title-grid">${titles.map(ti => {
+  el.innerHTML = `<div class="title-grid">${visible.map(ti => {
     const owned = myData?.titles.some(mt => mt.id === ti.id);
-    const equipped = myData?.equipped_title_id === ti.id;
+    const equippedExt = myData?.equipped_title_id === ti.id;
+    const equippedInt = myData?.equipped_internal_title_id === ti.id;
+    const equipped = equippedExt || equippedInt;
+    const equippedLabel = equippedInt && equippedExt ? '内部・外部装備中' : equippedInt ? '内部装備中' : equippedExt ? '装備中' : '';
     return `
       <div class="title-card ${equipped ? 'equipped' : owned ? 'owned' : ''}">
         <div class="title-name">「${escHtml(ti.name)}」</div>
         ${ti.description ? `<div class="title-desc">${escHtml(ti.description)}</div>` : '<div class="title-desc"></div>'}
         <div class="title-cost">${ti.point_cost}pt</div>
         ${equipped
-          ? `<span class="title-badge">${t('shop.equipped_badge')}</span>`
+          ? `<span class="title-badge">${equippedLabel}</span>`
           : owned
             ? `<span class="title-badge">${t('shop.owned')}</span>`
             : user
               ? `<button class="btn btn-primary btn-sm" onclick="buyTitle(${ti.id},'${escHtml(ti.name)}',${ti.point_cost})">${t('shop.buy')}</button>`
               : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
+        }
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function _renderTitleSlot(titles, equippedId, equipFn, unequipFn, emptyMsg) {
+  if (!titles.length) return `<div class="empty-state" style="padding:12px 0"><p style="font-size:0.85rem">${emptyMsg}</p></div>`;
+  return `<div class="title-grid">${titles.map(ti => {
+    const equipped = equippedId === ti.id;
+    return `
+      <div class="title-card ${equipped ? 'equipped' : ''}">
+        <div class="title-name">「${escHtml(ti.name)}」</div>
+        ${ti.description ? `<div class="title-desc">${escHtml(ti.description)}</div>` : ''}
+        ${ti.point_cost ? `<div class="title-cost">${ti.point_cost}pt</div>` : `<span class="title-badge">${t('shop.title_award')}</span>`}
+        ${equipped
+          ? `<span class="title-badge">${t('shop.equipped_badge')}</span>
+             <button class="btn btn-secondary btn-sm" onclick="${unequipFn}">${t('shop.unequip')}</button>`
+          : `<button class="btn btn-primary btn-sm" onclick="${equipFn}(${ti.id})">${t('shop.equip_btn')}</button>`
         }
       </div>`;
   }).join('')}</div>`;
@@ -225,20 +257,24 @@ function renderMyTitles() {
     el.innerHTML = `<div class="empty-state"><p>${t('shop.no_my_titles')}</p></div>`;
     return;
   }
-  el.innerHTML = `<div class="title-grid">${myData.titles.map(ti => {
-    const equipped = myData.equipped_title_id === ti.id;
-    return `
-      <div class="title-card ${equipped ? 'equipped' : ''}">
-        <div class="title-name">「${escHtml(ti.name)}」</div>
-        ${ti.description ? `<div class="title-desc">${escHtml(ti.description)}</div>` : ''}
-        ${ti.point_cost ? `<div class="title-cost">${ti.point_cost}pt</div>` : `<span class="title-badge">${t('shop.title_award')}</span>`}
-        ${equipped
-          ? `<span class="title-badge">${t('shop.equipped_badge')}</span>
-             <button class="btn btn-secondary btn-sm" onclick="equipTitle(null)">${t('shop.unequip')}</button>`
-          : `<button class="btn btn-primary btn-sm" onclick="equipTitle(${ti.id})">${t('shop.equip_btn')}</button>`
-        }
+  if (isInternal()) {
+    // 内部ユーザー：2つの装備枠
+    const intTitles = myData.titles.filter(ti => _titleScopeForInternal(ti.scope || 'common'));
+    const extTitles = myData.titles.filter(ti => _titleScopeFor(ti.scope || 'common'));
+    el.innerHTML = `
+      <div style="margin-bottom:20px">
+        <div style="font-size:0.82rem;font-weight:bold;color:var(--text-muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">内部用装備枠（内部ランキングに表示）</div>
+        ${_renderTitleSlot(intTitles, myData.equipped_internal_title_id, 'equipTitleInternal', 'equipTitleInternal(null)', '装備できる称号がありません')}
+      </div>
+      <div>
+        <div style="font-size:0.82rem;font-weight:bold;color:var(--text-muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">外部用装備枠（外部ランキングに表示）</div>
+        ${_renderTitleSlot(extTitles, myData.equipped_title_id, 'equipTitle', 'equipTitle(null)', '装備できる称号がありません')}
       </div>`;
-  }).join('')}</div>`;
+  } else {
+    // 外部ユーザー：1つの装備枠（external/common のみ）
+    const extTitles = myData.titles.filter(ti => _titleScopeFor(ti.scope || 'common'));
+    el.innerHTML = _renderTitleSlot(extTitles, myData.equipped_title_id, 'equipTitle', 'equipTitle(null)', t('shop.no_my_titles'));
+  }
 }
 
 async function buyTitle(id, name, cost) {
@@ -256,6 +292,17 @@ async function buyTitle(id, name, cost) {
 async function equipTitle(id) {
   try {
     const res = await apiFetch('/shop/equip', { method: 'POST', body: JSON.stringify({ title_id: id }) });
+    showAlert('#alert', res.message, 'success');
+    await refreshMyData();
+    const titles = await apiFetch('/shop/titles');
+    renderShopTitles(titles);
+    renderMyTitles();
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+async function equipTitleInternal(id) {
+  try {
+    const res = await apiFetch('/shop/equip-internal', { method: 'POST', body: JSON.stringify({ title_id: id }) });
     showAlert('#alert', res.message, 'success');
     await refreshMyData();
     const titles = await apiFetch('/shop/titles');
