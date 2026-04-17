@@ -44,59 +44,77 @@ router.get('/:id', optionalAuth, async (req, res) => {
       [req.params.id]
     );
 
-    // イベントごとに全属性選択時のランキング順位を計算
-    const rankResult = await pool.query(
-      `WITH all_events AS (
-         SELECT DISTINCT event_id FROM scores WHERE approved_score IS NOT NULL
-       ),
-       user_best AS (
-         SELECT
-           event_id,
-           MAX(approved_score) AS best_score
-         FROM scores
-         WHERE user_id = $1 AND approved_score IS NOT NULL
-         GROUP BY event_id
-       ),
-       event_ranks AS (
-         SELECT
-           s.event_id,
-           s.user_id,
-           MAX(s.approved_score) AS best_score,
+    const viewerIsInternal = !!(req.user && req.user.is_internal);
+
+    // 外部順位（ranking_scope='public' のみ）
+    const extRankResult = await pool.query(
+      `WITH event_ranks AS (
+         SELECT s.event_id, s.user_id,
            RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
          FROM scores s
-         WHERE s.approved_score IS NOT NULL
+         WHERE s.approved_score IS NOT NULL AND s.ranking_scope = 'public'
          GROUP BY s.event_id, s.user_id
        )
-       SELECT er.event_id, er.rank
-       FROM event_ranks er
-       WHERE er.user_id = $1`,
+       SELECT event_id, rank FROM event_ranks WHERE user_id = $1`,
       [req.params.id]
     );
+    const extRankMap = {};
+    extRankResult.rows.forEach(r => { extRankMap[r.event_id] = r.rank; });
 
-    const rankMap = {};
-    rankResult.rows.forEach((r) => { rankMap[r.event_id] = r.rank; });
-
-    // イベント・属性ごとの順位
-    const attrRankResult = await pool.query(
+    const extAttrRankResult = await pool.query(
       `WITH attr_ranks AS (
-         SELECT
-           event_id,
-           attribute,
-           user_id,
+         SELECT event_id, attribute, user_id,
            RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank
          FROM scores
-         WHERE approved_score IS NOT NULL
+         WHERE approved_score IS NOT NULL AND ranking_scope = 'public'
        )
-       SELECT event_id, attribute, rank
-       FROM attr_ranks
-       WHERE user_id = $1`,
+       SELECT event_id, attribute, rank FROM attr_ranks WHERE user_id = $1`,
       [req.params.id]
     );
+    const extAttrRankMap = {};
+    extAttrRankResult.rows.forEach(r => { extAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
 
-    const attrRankMap = {};
-    attrRankResult.rows.forEach((r) => { attrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
+    // 内部順位（全承認済みスコア対象）― 内部ユーザーが閲覧時のみ計算
+    let intRankMap = null, intAttrRankMap = null;
+    if (viewerIsInternal) {
+      const intRankResult = await pool.query(
+        `WITH event_ranks AS (
+           SELECT s.event_id, s.user_id,
+             RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
+           FROM scores s
+           WHERE s.approved_score IS NOT NULL
+           GROUP BY s.event_id, s.user_id
+         )
+         SELECT event_id, rank FROM event_ranks WHERE user_id = $1`,
+        [req.params.id]
+      );
+      intRankMap = {};
+      intRankResult.rows.forEach(r => { intRankMap[r.event_id] = r.rank; });
 
-    res.json({ ...user, equipped_title: equippedTitle?.name || null, equipped_title_desc: equippedTitle?.description || null, scores: scoresResult.rows, ranks: rankMap, attr_ranks: attrRankMap });
+      const intAttrRankResult = await pool.query(
+        `WITH attr_ranks AS (
+           SELECT event_id, attribute, user_id,
+             RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank
+           FROM scores
+           WHERE approved_score IS NOT NULL
+         )
+         SELECT event_id, attribute, rank FROM attr_ranks WHERE user_id = $1`,
+        [req.params.id]
+      );
+      intAttrRankMap = {};
+      intAttrRankResult.rows.forEach(r => { intAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
+    }
+
+    res.json({
+      ...user,
+      equipped_title: equippedTitle?.name || null,
+      equipped_title_desc: equippedTitle?.description || null,
+      scores: scoresResult.rows,
+      ranks: extRankMap,
+      attr_ranks: extAttrRankMap,
+      ranks_internal: intRankMap,
+      attr_ranks_internal: intAttrRankMap,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

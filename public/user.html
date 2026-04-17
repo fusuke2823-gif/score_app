@@ -121,7 +121,8 @@ async function load() {
           scores: []
         };
       }
-      s.attr_rank = data.attr_ranks[`${s.event_id}_${s.attribute}`] || null;
+      s.attr_rank_ext = data.attr_ranks[`${s.event_id}_${s.attribute}`] || null;
+      s.attr_rank_int = data.attr_ranks_internal?.[`${s.event_id}_${s.attribute}`] || null;
       eventMap[s.event_id].scores.push(s);
     });
 
@@ -186,14 +187,20 @@ async function load() {
                     <span style="font-size:0.8rem;color:var(--accent);margin-right:8px">第${e.event_number}回</span>
                     <a href="/ranking.html?id=${e.event_id}" class="event-score-title">${escHtml(e.event_name)}</a>
                   </div>
-                  ${data.ranks[e.event_id] ? `<span class="event-rank-badge">${t('user.all_rank', data.ranks[e.event_id])}</span>` : ''}
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    ${data.ranks_internal?.[e.event_id] ? `<span class="event-rank-badge" style="font-size:0.72rem">内部 ${data.ranks_internal[e.event_id]}位</span>` : ''}
+                    ${data.ranks[e.event_id] ? `<span class="event-rank-badge" style="font-size:0.72rem;background:var(--bg-secondary);color:var(--text-secondary)">${data.ranks_internal ? '外部 ' : ''}${data.ranks[e.event_id]}位</span>` : ''}
+                  </div>
                 </div>
                 <div class="attr-score-list">
                   ${e.scores.map(s => `
                     <div class="attr-score-item">
                       ${attrBadge(s.attribute, true)}
                       <span class="attr-score-val">${formatScore(s.approved_score)}</span>
-                      ${s.attr_rank ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank}位</span>` : ''}
+                      ${data.ranks_internal ? `
+                        ${s.attr_rank_int ? `<span style="font-size:0.72rem;color:var(--accent)">内部${s.attr_rank_int}位</span>` : ''}
+                        ${s.attr_rank_ext ? `<span style="font-size:0.72rem;color:var(--text-muted)">外部${s.attr_rank_ext}位</span>` : ''}
+                      ` : `${s.attr_rank_ext ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank_ext}位</span>` : ''}`}
                       ${s.approved_image_url
                         ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="result" onclick="openModal('${escHtml(s.approved_image_url)}')">`
                         : ''}
