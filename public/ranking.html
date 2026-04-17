@@ -302,9 +302,7 @@ async function loadRanking() {
               <td class="col-score ${fc ? 'frame-score' : ''}" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
               <td class="col-img img-col ${fc ? 'frame-img' : ''}" style="text-align:center">
                 ${r.approved_image_url
-                  ? _rankingScope === 'public'
-                    ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="result" style="filter:blur(6px);pointer-events:none">`
-                    : `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="result" onclick="openModal('${escHtml(r.approved_image_url)}')">`
+                  ? `<img class="result-thumb" src="${escHtml(r.approved_image_url)}" alt="result" onclick="openModal('${escHtml(r.approved_image_url)}')">`
                   : ''}
               </td>
               <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
