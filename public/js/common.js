@@ -515,15 +515,20 @@ async function initInterimDistributionNotice() {
       apiFetch('/events/interim-distributions/recent').catch(() => []),
       apiFetch('/events/final-distributions/recent').catch(() => []),
       isInternalUser ? apiFetch('/events/rank-pts').catch(() => null) : Promise.resolve(null),
-      isInternalUser ? Promise.resolve(null) : apiFetch('/events/ext-rank-pts').catch(() => null),
+      apiFetch('/events/ext-rank-pts').catch(() => null),
     ]);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
-    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: t('dist.type_mid') }));
-    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).map(d => ({ ...d, type: t('dist.type_final') }));
+    // 外部ユーザーは外部配布のみ表示
+    const scopeFilter = d => isInternalUser || d.type === 'external';
+    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_mid') }));
+    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_final') }));
     const unseen = [...unseenFinal, ...unseenInterim]
       .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
     if (unseen.length === 0) return;
+
+    const hasInternal = isInternalUser && unseen.some(d => d.scope === 'internal');
+    const hasExternal = unseen.some(d => d.scope === 'external');
 
     const style = document.createElement('style');
     style.textContent = `
@@ -554,15 +559,15 @@ async function initInterimDistributionNotice() {
           <div class="interim-dist-item">
             <div class="interim-dist-name">
               ${escHtml(d.event_name)}
-              <span class="interim-type-badge">${d.type}配布</span>
+              <span class="interim-type-badge">${d.period}配布</span>
             </div>
             <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
             <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
           </div>`).join('')}
         </div>
-        ${isInternalUser && rankPts ? `
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">${t('dist.detail_btn')}</button>
-        <div id="rank-pts-detail" style="display:none;margin-top:8px">
+        ${hasInternal && rankPts ? `
+        <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
+        <div id="rank-pts-detail-int" style="display:none;margin-top:8px">
           <table class="rank-pts-table">
             <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
             <tr><td>${t('dist.rank1')}</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
@@ -583,9 +588,9 @@ async function initInterimDistributionNotice() {
           </table>
           <div class="rank-pts-note">${t('dist.note')}</div>
         </div>` : ''}
-        ${!isInternalUser && extRankPts ? `
-        <button class="btn btn-secondary btn-sm" style="margin-top:12px;width:100%" onclick="document.getElementById('rank-pts-detail').style.display=document.getElementById('rank-pts-detail').style.display==='none'?'block':'none'">${t('dist.detail_btn')}</button>
-        <div id="rank-pts-detail" style="display:none;margin-top:8px">
+        ${hasExternal && extRankPts ? `
+        <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-ext').style.display=document.getElementById('rank-pts-detail-ext').style.display==='none'?'block':'none'">${isInternalUser ? '外部配布量詳細' : t('dist.detail_btn')}</button>
+        <div id="rank-pts-detail-ext" style="display:none;margin-top:8px">
           <table class="rank-pts-table">
             <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
             <tr><td>1〜5位</td><td>${extRankPts.ext_rank_pts_1_5 ?? 100}pt</td></tr>

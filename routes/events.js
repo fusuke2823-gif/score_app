@@ -70,9 +70,10 @@ router.get('/interim-distributions/recent', authenticateToken, async (req, res) 
 router.get('/final-distributions/recent', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT event_id, distributed_at, event_name, event_number, user_rank, user_pts FROM (
+      `SELECT event_id, distributed_at, event_name, event_number, user_rank, user_pts, type FROM (
          SELECT e.id AS event_id, e.points_distributed_at AS distributed_at,
                 e.name AS event_name, e.event_number,
+                'internal' AS type,
                 (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
                  FROM point_history ph
                  WHERE ph.user_id = $1
@@ -96,6 +97,7 @@ router.get('/final-distributions/recent', authenticateToken, async (req, res) =>
          UNION ALL
          SELECT e.id AS event_id, e.points_distributed_external_at AS distributed_at,
                 e.name AS event_name, e.event_number,
+                'external' AS type,
                 (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
                  FROM point_history ph
                  WHERE ph.user_id = $1
