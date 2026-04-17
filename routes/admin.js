@@ -838,7 +838,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
         : rankResult.rows.filter(r => Number(r.rank) <= def.maxRank);
       for (const row of targets) {
         awardedTitles.push(await awardTitle(client, row.user_id,
-          `${event.name} ${def.label}`, `${event.name} ${def.label}達成（外部）`, 'external'));
+          `${event.name} ${def.label}`, `${event.name} ${def.label}達成`, 'external'));
       }
     }
 
@@ -865,7 +865,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
         for (const row of attrRankResult.rows.filter(r => Number(r.rank) <= def.maxRank)) {
           awardedTitles.push(await awardTitle(client, row.user_id,
             `${event.name} ${attr}属性${def.label}`,
-            `${event.name} ${attr}属性${def.label}達成（外部）`, 'external'));
+            `${event.name} ${attr}属性${def.label}達成`, 'external'));
         }
       }
     }
