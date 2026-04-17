@@ -195,9 +195,7 @@ async function load() {
                       <span class="attr-score-val">${formatScore(s.approved_score)}</span>
                       ${s.attr_rank ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank}位</span>` : ''}
                       ${s.approved_image_url
-                        ? isInternal()
-                          ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="result" onclick="openModal('${escHtml(s.approved_image_url)}')">`
-                          : `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="result" style="filter:blur(6px);pointer-events:none">`
+                        ? `<img class="attr-score-img" src="${escHtml(s.approved_image_url)}" alt="result" onclick="openModal('${escHtml(s.approved_image_url)}')">`
                         : ''}
                     </div>`).join('')}
                 </div>
