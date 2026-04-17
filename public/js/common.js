@@ -559,7 +559,7 @@ async function initInterimDistributionNotice() {
           <div class="interim-dist-item">
             <div class="interim-dist-name">
               ${escHtml(d.event_name)}
-              <span class="interim-type-badge">${d.period}配布</span>
+              <span class="interim-type-badge">${isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : ''}${d.period}配布</span>
             </div>
             <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
             ${d.awarded_titles?.length ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--accent)">🏆 称号獲得: ${d.awarded_titles.map(n => `「${escHtml(n)}」`).join(' ')}</div>` : ''}
