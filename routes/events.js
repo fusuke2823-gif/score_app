@@ -182,8 +182,7 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
     return res.status(403).json({ error: '内部ランキングは内部ユーザーのみ閲覧できます' });
   }
 
-  // 公開スコープではアイコンを非表示にする
-  const showIcons = isInternalScope;
+  const showIcons = true;
 
   try {
     const result = await pool.query(
