@@ -6,15 +6,14 @@ const { optionalAuth } = require('../middleware/auth');
 // ユーザー詳細（承認済みスコア一覧付き）
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
-    const viewerIsInternal = !!(req.user && req.user.is_internal);
     const userResult = await pool.query(
       `SELECT u.id, u.username, u.oshi_character, u.created_at, u.equipped_title_id,
-              CASE WHEN $2 THEN gi.image_url ELSE NULL END AS equipped_icon_url,
-              CASE WHEN $2 THEN gi.rarity ELSE NULL END AS equipped_icon_rarity
+              gi.image_url AS equipped_icon_url,
+              gi.rarity AS equipped_icon_rarity
        FROM users u
        LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
        WHERE u.id = $1`,
-      [req.params.id, viewerIsInternal]
+      [req.params.id]
     );
     if (userResult.rows.length === 0)
       return res.status(404).json({ error: 'ユーザーが見つかりません' });
