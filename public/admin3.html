@@ -18,9 +18,6 @@
 .scope-common { background:#4fc3f7; color:#000; }
 .scope-internal { background:var(--accent); color:#fff; }
 .scope-external { background:#66bb6a; color:#000; }
-.enemy-ext-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-.enemy-ext-row:last-child { border-bottom:none; }
-.enemy-thumb { width:50px; height:36px; object-fit:cover; border-radius:4px; border:1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -39,7 +36,6 @@
   <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('users')">ユーザー管理</button>
     <button class="tab-btn" onclick="switchTab('titles')">称号スコープ</button>
-    <button class="tab-btn" onclick="switchTab('enemies')">外部用敵画像</button>
   </div>
 
   <!-- ユーザー管理 -->
@@ -65,18 +61,6 @@
       <div id="titles-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
     </div>
   </div>
-
-  <!-- 外部用敵画像 -->
-  <div class="tab-content" id="tab-enemies">
-    <div class="card">
-      <div class="section-title">外部ランキング用 敵画像設定</div>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-        外部ユーザーに表示する代替画像をURLで設定します。未設定の場合は画像なし表示になります。
-      </p>
-      <div id="enemies-alert" style="margin-bottom:12px"></div>
-      <div id="enemies-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
-    </div>
-  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -87,7 +71,7 @@ if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['users','titles','enemies'][i] === tab);
+    b.classList.toggle('active', ['users','titles'][i] === tab);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + tab).classList.add('active');
@@ -235,95 +219,8 @@ async function setTitleScope(titleId, scope) {
   }
 }
 
-// ===== 外部用敵画像 =====
-async function loadEnemies() {
-  try {
-    const enemies = await apiFetch('/admin/enemies');
-    renderEnemies(enemies);
-  } catch (err) {
-    document.getElementById('enemies-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-function renderEnemies(enemies) {
-  if (enemies.length === 0) {
-    document.getElementById('enemies-list').innerHTML = '<p style="color:var(--text-muted)">敵データがありません</p>';
-    return;
-  }
-  document.getElementById('enemies-list').innerHTML = enemies.map(en => `
-    <div class="enemy-ext-row" id="enemy-row-${en.id}">
-      <div style="flex:0 0 auto">
-        ${en.image_url ? `<img class="enemy-thumb" src="${escHtml(en.image_url)}" alt="${escHtml(en.name)}">` : '<div class="enemy-thumb" style="background:var(--bg-secondary)"></div>'}
-      </div>
-      <div style="flex:1;min-width:120px">
-        <div style="font-weight:bold;font-size:0.88rem">${escHtml(en.name)}</div>
-        <div style="font-size:0.76rem;color:var(--text-muted)">第${en.event_number}弾 ${escHtml(en.event_name)}</div>
-      </div>
-      <div style="flex:2;min-width:200px">
-        <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:4px">外部用画像</div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <input class="form-input" id="ext-url-${en.id}" type="text" value="${escHtml(en.external_image_url || '')}" placeholder="https://..." style="font-size:0.82rem;padding:4px 8px;flex:1;min-width:120px">
-          <button class="btn btn-sm btn-primary" onclick="saveExtImage(${en.id})">URL保存</button>
-          <label class="btn btn-sm btn-secondary" style="cursor:pointer;margin:0">
-            ファイル
-            <input type="file" accept="image/*" style="display:none" onchange="uploadExtImage(${en.id}, this)">
-          </label>
-          ${en.external_image_url ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="clearExtImage(${en.id})">削除</button>` : ''}
-        </div>
-        ${en.external_image_url ? `<div style="margin-top:6px"><img src="${escHtml(en.external_image_url)}" style="height:32px;border-radius:4px;border:1px solid var(--border)"></div>` : ''}
-        <div id="ext-upload-status-${en.id}" style="font-size:0.76rem;margin-top:4px"></div>
-      </div>
-    </div>`).join('');
-}
-
-async function saveExtImage(enemyId) {
-  const url = document.getElementById(`ext-url-${enemyId}`).value.trim();
-  try {
-    await apiFetch(`/admin/enemies/${enemyId}/external-image`, {
-      method: 'PATCH',
-      body: JSON.stringify({ image_url: url || null })
-    });
-    loadEnemies();
-  } catch (err) {
-    document.getElementById('enemies-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-async function clearExtImage(enemyId) {
-  document.getElementById(`ext-url-${enemyId}`).value = '';
-  await saveExtImage(enemyId);
-}
-
-async function uploadExtImage(enemyId, input) {
-  if (!input.files[0]) return;
-  const statusEl = document.getElementById(`ext-upload-status-${enemyId}`);
-  statusEl.textContent = 'アップロード中...';
-  statusEl.style.color = 'var(--text-muted)';
-  const formData = new FormData();
-  formData.append('image', input.files[0]);
-  try {
-    const token = getToken();
-    const res = await fetch(`/api/admin/enemies/${enemyId}/external-image/upload`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'エラー');
-    document.getElementById(`ext-url-${enemyId}`).value = data.image_url;
-    statusEl.textContent = 'アップロード完了';
-    statusEl.style.color = 'var(--success, #4caf50)';
-    loadEnemies();
-  } catch (err) {
-    statusEl.textContent = 'エラー: ' + err.message;
-    statusEl.style.color = 'var(--error, #f44336)';
-  }
-  input.value = '';
-}
-
 loadUsers();
 loadTitles();
-loadEnemies();
 </script>
 </body>
 </html>
