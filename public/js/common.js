@@ -131,6 +131,7 @@ const _i18n = {
     'filter.single':'単体','filter.multi':'複数',
     'filter.weak_attr':'弱点属性','filter.or':'いずれか','filter.and':'すべて含む',
     'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
+    'doc.terms':'利用規約','doc.privacy':'プライバシーポリシー',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -259,6 +260,7 @@ const _i18n = {
     'filter.single':'單體','filter.multi':'複數',
     'filter.weak_attr':'弱點屬性','filter.or':'任一','filter.and':'全部包含',
     'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
+    'doc.terms':'使用條款','doc.privacy':'隱私政策',
   }
 };
 
