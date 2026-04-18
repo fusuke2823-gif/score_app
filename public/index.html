@@ -28,12 +28,6 @@
   background: var(--accent-dim);
   color: var(--text-primary);
 }
-.filter-pill.active-fire   { border-color: var(--fire);    background: var(--fire-bg);    color: var(--fire);    }
-.filter-pill.active-ice    { border-color: var(--ice);     background: var(--ice-bg);     color: var(--ice);     }
-.filter-pill.active-thunder{ border-color: var(--thunder); background: var(--thunder-bg); color: var(--thunder); }
-.filter-pill.active-light  { border-color: var(--light);   background: var(--light-bg);   color: var(--light);   }
-.filter-pill.active-dark   { border-color: var(--dark);    background: var(--dark-bg);    color: var(--dark);    }
-.filter-pill.active-none   { border-color: var(--none);    background: var(--none-bg);    color: var(--none);    }
 .filter-section-label {
   font-size: 0.75rem;
   color: #9090b0;
@@ -138,7 +132,6 @@ let allEvents = [];
 const ALL_TYPES = ['score', 'seraph'];
 const ALL_ENEMY_COUNTS = ['single', 'multi'];
 const ATTRS = ['火','氷','雷','光','闇','無'];
-const ATTR_CLASS = { '火':'fire', '氷':'ice', '雷':'thunder', '光':'light', '闇':'dark', '無':'none' };
 
 const filterState = {
   types: new Set(),        // empty or all = no filter
@@ -198,8 +191,7 @@ function renderModal() {
 
   const attrPills = ATTRS.map(a => {
     const isActive = filterState.attrs.has(a);
-    const cls = isActive ? `filter-pill active-${ATTR_CLASS[a]}` : 'filter-pill';
-    return `<button class="${cls}" onclick="toggleAttr('${a}')">${a}</button>`;
+    return `<button class="attr-btn attr-${a}${isActive ? ' active' : ''}" onclick="toggleAttr('${a}')">${t('attr.' + a)}</button>`;
   }).join('');
 
   document.getElementById('modal-body').innerHTML = `
