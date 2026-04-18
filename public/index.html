@@ -13,6 +13,34 @@
   <p id="app-version" style="font-size:0.8rem;color:var(--text-muted);margin:-8px 0 4px"></p>
   <p class="page-subtitle" data-i18n="index.subtitle">制作:つんつく</p>
   <div id="alert"></div>
+  <div id="filter-panel" style="display:none;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem">
+    <div style="display:flex;flex-wrap:wrap;gap:14px 28px">
+      <div>
+        <div style="margin-bottom:5px;color:var(--text-muted);font-size:0.78rem">イベント種類</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <label><input type="radio" name="event-type" value="all" checked> すべて</label>
+          <label><input type="radio" name="event-type" value="score"> スコアアタック</label>
+          <label><input type="radio" name="event-type" value="seraph"> セラフ遭遇戦演習</label>
+        </div>
+      </div>
+      <div id="enemy-count-filter" style="display:none">
+        <div style="margin-bottom:5px;color:var(--text-muted);font-size:0.78rem">敵数</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <label><input type="radio" name="enemy-count" value="all" checked> すべて</label>
+          <label><input type="radio" name="enemy-count" value="single"> 単体</label>
+          <label><input type="radio" name="enemy-count" value="multi"> ２体以上</label>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
+          <span style="color:var(--text-muted);font-size:0.78rem">弱点属性</span>
+          <label style="font-size:0.78rem;margin:0"><input type="radio" name="attr-mode" value="or" checked> いずれか</label>
+          <label style="font-size:0.78rem;margin:0"><input type="radio" name="attr-mode" value="and"> すべて含む</label>
+        </div>
+        <div id="attr-checks" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+  </div>
   <div id="content">
     <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
   </div>
@@ -27,52 +55,121 @@ apiFetch('/version').then(d => {
   if (el && d.version) el.textContent = 'ver ' + d.version;
 }).catch(() => {});
 
+let allEvents = [];
+const ATTRS = ['火','氷','雷','光','闇','無'];
+
+function getEventType(e) {
+  if (e.name.includes('スコアアタック')) return 'score';
+  if (e.name.includes('セラフ') || e.name.includes('遭遇戦')) return 'seraph';
+  return 'other';
+}
+
+function buildFilters() {
+  const container = document.getElementById('attr-checks');
+  container.innerHTML = ATTRS.map(a =>
+    `<label style="display:flex;align-items:center;gap:3px">${attrBadge(a, true)}<input type="checkbox" value="${a}" class="attr-check" style="margin-left:2px"></label>`
+  ).join('');
+  document.querySelectorAll('input[name="event-type"], input[name="enemy-count"], input[name="attr-mode"]')
+    .forEach(el => el.addEventListener('change', onFilterChange));
+  document.querySelectorAll('.attr-check')
+    .forEach(el => el.addEventListener('change', onFilterChange));
+}
+
+function onFilterChange() {
+  const type = document.querySelector('input[name="event-type"]:checked').value;
+  const enemyCountDiv = document.getElementById('enemy-count-filter');
+  enemyCountDiv.style.display = type === 'score' ? '' : 'none';
+  if (type !== 'score') {
+    document.querySelector('input[name="enemy-count"][value="all"]').checked = true;
+  }
+  renderEvents();
+}
+
+function filterEvents() {
+  const type = document.querySelector('input[name="event-type"]:checked').value;
+  const enemyCount = document.querySelector('input[name="enemy-count"]:checked').value;
+  const attrMode = document.querySelector('input[name="attr-mode"]:checked').value;
+  const selectedAttrs = [...document.querySelectorAll('.attr-check:checked')].map(el => el.value);
+
+  return allEvents.filter(e => {
+    if (type !== 'all' && getEventType(e) !== type) return false;
+    if (type === 'score' && enemyCount !== 'all') {
+      const cnt = parseInt(e.enemy_count) || 0;
+      if (enemyCount === 'single' && cnt !== 1) return false;
+      if (enemyCount === 'multi' && cnt < 2) return false;
+    }
+    if (selectedAttrs.length > 0) {
+      const eventAttrs = new Set(
+        (e.first_enemy_weak || '').split(',').map(a => a.trim()).filter(Boolean)
+      );
+      if (attrMode === 'or') {
+        if (!selectedAttrs.some(a => eventAttrs.has(a))) return false;
+      } else {
+        if (!selectedAttrs.every(a => eventAttrs.has(a))) return false;
+      }
+    }
+    return true;
+  });
+}
+
+function renderEvents() {
+  const el = document.getElementById('content');
+  const filtered = filterEvents();
+  if (filtered.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><p>条件に一致するイベントがありません</p></div>`;
+    return;
+  }
+  const now = new Date();
+  el.innerHTML = `<div class="event-grid">${filtered.map(e => {
+    const start = e.submission_start ? new Date(e.submission_start) : null;
+    const end = e.submission_end ? new Date(e.submission_end) : null;
+    let statusLabel, statusStyle;
+    if (start && now < start) {
+      statusLabel = t('event.before');
+      statusStyle = 'color:var(--text-muted)';
+    } else if (end && now > end) {
+      statusLabel = t('event.ended');
+      statusStyle = 'color:var(--text-muted)';
+    } else if (end) {
+      const diffMs = end - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const remaining = diffHours < 24
+        ? t('event.hours_left', Math.ceil(diffHours))
+        : t('event.days_left', Math.ceil(diffHours / 24));
+      statusLabel = `${t('event.active')} ${remaining}`;
+      statusStyle = 'color:#4caf50;font-weight:bold';
+    } else {
+      statusLabel = t('event.active');
+      statusStyle = 'color:#4caf50;font-weight:bold';
+    }
+    return `
+    <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="flex:1;min-width:0">
+        <div class="event-name">${escHtml(e.name)}</div>
+        <div class="event-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="${statusStyle}">${statusLabel}</span>
+          ${e.first_enemy_weak ? e.first_enemy_weak.split(',').filter(Boolean).map(a => `<span style="font-size:0.72rem">${attrBadge(a, true)}</span>`).join('') : ''}
+        </div>
+      </div>
+      ${e.first_enemy_image ? `<img src="${escHtml(e.first_enemy_image)}" alt="" style="width:64px;height:64px;object-fit:contain;flex-shrink:0;opacity:0.92;margin:-4px 0">` : ''}
+    </a>`;
+  }).join('')}</div>`;
+}
+
 async function load() {
   try {
-    const events = await apiFetch('/events');
+    allEvents = await apiFetch('/events');
     const el = document.getElementById('content');
-    if (events.length === 0) {
+    if (allEvents.length === 0) {
       el.innerHTML = `<div class="empty-state">
         <div class="empty-state-icon">📋</div>
         <p>${t('event.empty')}</p>
       </div>`;
       return;
     }
-    const now = new Date();
-    el.innerHTML = `<div class="event-grid">${events.map(e => {
-      const start = e.submission_start ? new Date(e.submission_start) : null;
-      const end = e.submission_end ? new Date(e.submission_end) : null;
-      let statusLabel, statusStyle;
-      if (start && now < start) {
-        statusLabel = t('event.before');
-        statusStyle = 'color:var(--text-muted)';
-      } else if (end && now > end) {
-        statusLabel = t('event.ended');
-        statusStyle = 'color:var(--text-muted)';
-      } else if (end) {
-        const diffMs = end - now;
-        const diffHours = diffMs / (1000 * 60 * 60);
-        const remaining = diffHours < 24
-          ? t('event.hours_left', Math.ceil(diffHours))
-          : t('event.days_left', Math.ceil(diffHours / 24));
-        statusLabel = `${t('event.active')} ${remaining}`;
-        statusStyle = 'color:#4caf50;font-weight:bold';
-      } else {
-        statusLabel = t('event.active');
-        statusStyle = 'color:#4caf50;font-weight:bold';
-      }
-      return `
-      <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-        <div style="flex:1;min-width:0">
-          <div class="event-name">${escHtml(e.name)}</div>
-          <div class="event-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="${statusStyle}">${statusLabel}</span>
-            ${e.first_enemy_weak ? e.first_enemy_weak.split(',').filter(Boolean).map(a => `<span style="font-size:0.72rem">${attrBadge(a, true)}</span>`).join('') : ''}
-          </div>
-        </div>
-        ${e.first_enemy_image ? `<img src="${escHtml(e.first_enemy_image)}" alt="" style="width:64px;height:64px;object-fit:contain;flex-shrink:0;opacity:0.92;margin:-4px 0">` : ''}
-      </a>`;
-    }).join('')}</div>`;
+    document.getElementById('filter-panel').style.display = '';
+    buildFilters();
+    renderEvents();
   } catch (err) {
     showAlert('#alert', err.message);
   }
