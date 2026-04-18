@@ -5,6 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HBR スコアアタックランキング</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.filter-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+  white-space: nowrap;
+}
+.filter-pill:hover { border-color: var(--border-light); color: var(--text-primary); }
+.filter-pill.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+.filter-pill.active-fire   { border-color: var(--fire);    background: var(--fire-bg);    color: var(--fire);    }
+.filter-pill.active-ice    { border-color: var(--ice);     background: var(--ice-bg);     color: var(--ice);     }
+.filter-pill.active-thunder{ border-color: var(--thunder); background: var(--thunder-bg); color: var(--thunder); }
+.filter-pill.active-light  { border-color: var(--light);   background: var(--light-bg);   color: var(--light);   }
+.filter-pill.active-dark   { border-color: var(--dark);    background: var(--dark-bg);    color: var(--dark);    }
+.filter-pill.active-none   { border-color: var(--none);    background: var(--none-bg);    color: var(--none);    }
+.filter-section-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+</style>
 </head>
 <body>
 <nav id="nav"></nav>
@@ -13,34 +45,32 @@
   <p id="app-version" style="font-size:0.8rem;color:var(--text-muted);margin:-8px 0 4px"></p>
   <p class="page-subtitle" data-i18n="index.subtitle">制作:つんつく</p>
   <div id="alert"></div>
-  <div id="filter-panel" style="display:none;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.85rem">
-    <div style="display:flex;flex-wrap:wrap;gap:14px 28px">
-      <div>
-        <div style="margin-bottom:5px;color:var(--text-muted);font-size:0.78rem">イベント種類</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <label><input type="radio" name="event-type" value="all" checked> すべて</label>
-          <label><input type="radio" name="event-type" value="score"> スコアアタック</label>
-          <label><input type="radio" name="event-type" value="seraph"> セラフ遭遇戦演習</label>
-        </div>
+
+  <!-- Filter bar -->
+  <div id="filter-bar" style="display:none;align-items:center;gap:8px;margin-bottom:14px">
+    <button id="filter-open-btn" onclick="openFilterModal()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.88rem;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      フィルター
+      <span id="filter-badge" style="display:none;background:var(--accent);color:#fff;border-radius:10px;padding:0 6px;font-size:0.72rem;line-height:18px;min-width:18px;text-align:center"></span>
+    </button>
+    <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.88rem;cursor:pointer">デフォルト</button>
+  </div>
+
+  <!-- Filter modal -->
+  <div id="filter-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeFilterModal()">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:460px;padding:20px 20px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span style="font-weight:bold;font-size:1rem">フィルター</span>
+        <button onclick="closeFilterModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
       </div>
-      <div id="enemy-count-filter" style="display:none">
-        <div style="margin-bottom:5px;color:var(--text-muted);font-size:0.78rem">敵数</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <label><input type="radio" name="enemy-count" value="all" checked> すべて</label>
-          <label><input type="radio" name="enemy-count" value="single"> 単体</label>
-          <label><input type="radio" name="enemy-count" value="multi"> ２体以上</label>
-        </div>
-      </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">
-          <span style="color:var(--text-muted);font-size:0.78rem">弱点属性</span>
-          <label style="font-size:0.78rem;margin:0"><input type="radio" name="attr-mode" value="or" checked> いずれか</label>
-          <label style="font-size:0.78rem;margin:0"><input type="radio" name="attr-mode" value="and"> すべて含む</label>
-        </div>
-        <div id="attr-checks" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <div id="modal-body"></div>
+      <div style="display:flex;gap:8px;margin-top:22px">
+        <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:0.9rem;cursor:pointer">リセット</button>
+        <button onclick="closeFilterModal()" style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;cursor:pointer;font-weight:bold">適用して閉じる</button>
       </div>
     </div>
   </div>
+
   <div id="content">
     <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
   </div>
@@ -56,7 +86,16 @@ apiFetch('/version').then(d => {
 }).catch(() => {});
 
 let allEvents = [];
+
 const ATTRS = ['火','氷','雷','光','闇','無'];
+const ATTR_CLASS = { '火':'fire', '氷':'ice', '雷':'thunder', '光':'light', '闇':'dark', '無':'none' };
+
+const filterState = {
+  type: 'all',
+  enemyCount: 'all',
+  attrMode: 'or',
+  attrs: new Set(),
+};
 
 function getEventType(e) {
   if (e.name.includes('スコアアタック')) return 'score';
@@ -64,48 +103,146 @@ function getEventType(e) {
   return 'other';
 }
 
-function buildFilters() {
-  const container = document.getElementById('attr-checks');
-  container.innerHTML = ATTRS.map(a =>
-    `<label style="display:flex;align-items:center;gap:3px">${attrBadge(a, true)}<input type="checkbox" value="${a}" class="attr-check" style="margin-left:2px"></label>`
-  ).join('');
-  document.querySelectorAll('input[name="event-type"], input[name="enemy-count"], input[name="attr-mode"]')
-    .forEach(el => el.addEventListener('change', onFilterChange));
-  document.querySelectorAll('.attr-check')
-    .forEach(el => el.addEventListener('change', onFilterChange));
+function getActiveFilterCount() {
+  let n = 0;
+  if (filterState.type !== 'all') n++;
+  if (filterState.type === 'score' && filterState.enemyCount !== 'all') n++;
+  if (filterState.attrs.size > 0) n++;
+  return n;
 }
 
-function onFilterChange() {
-  const type = document.querySelector('input[name="event-type"]:checked').value;
-  const enemyCountDiv = document.getElementById('enemy-count-filter');
-  enemyCountDiv.style.display = type === 'score' ? '' : 'none';
-  if (type !== 'score') {
-    document.querySelector('input[name="enemy-count"][value="all"]').checked = true;
+function updateFilterBar() {
+  const count = getActiveFilterCount();
+  const badge = document.getElementById('filter-badge');
+  const resetBtn = document.getElementById('filter-reset-btn');
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = '';
+    resetBtn.style.display = '';
+  } else {
+    badge.style.display = 'none';
+    resetBtn.style.display = 'none';
   }
+}
+
+function renderModal() {
+  const isScore = filterState.type === 'score';
+
+  const typePills = [
+    { v: 'all', label: 'すべて' },
+    { v: 'score', label: 'スコアアタック' },
+    { v: 'seraph', label: 'セラフ遭遇戦演習' },
+  ].map(({ v, label }) => {
+    const cls = filterState.type === v ? 'filter-pill active' : 'filter-pill';
+    return `<button class="${cls}" onclick="setType('${v}')">${label}</button>`;
+  }).join('');
+
+  const enemyCountPills = [
+    { v: 'all', label: 'すべて' },
+    { v: 'single', label: '単体' },
+    { v: 'multi', label: '２体以上' },
+  ].map(({ v, label }) => {
+    const cls = filterState.enemyCount === v ? 'filter-pill active' : 'filter-pill';
+    return `<button class="${cls}" onclick="setEnemyCount('${v}')">${label}</button>`;
+  }).join('');
+
+  const attrModePills = [
+    { v: 'or', label: 'いずれか' },
+    { v: 'and', label: 'すべて含む' },
+  ].map(({ v, label }) => {
+    const cls = filterState.attrMode === v ? 'filter-pill active' : 'filter-pill';
+    return `<button class="${cls}" onclick="setAttrMode('${v}')">${label}</button>`;
+  }).join('');
+
+  const attrPills = ATTRS.map(a => {
+    const isActive = filterState.attrs.has(a);
+    const cls = isActive ? `filter-pill active-${ATTR_CLASS[a]}` : 'filter-pill';
+    return `<button class="${cls}" onclick="toggleAttr('${a}')">${a}</button>`;
+  }).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="margin-bottom:18px">
+      <div class="filter-section-label">イベント種類</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${typePills}</div>
+    </div>
+    <div style="margin-bottom:18px${isScore ? '' : ';display:none'}" id="modal-enemy-count">
+      <div class="filter-section-label">敵数</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${enemyCountPills}</div>
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="filter-section-label" style="margin:0">弱点属性</span>
+        <div style="display:flex;gap:4px">${attrModePills}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${attrPills}</div>
+    </div>
+  `;
+}
+
+function setType(v) {
+  filterState.type = v;
+  if (v !== 'score') filterState.enemyCount = 'all';
+  renderModal();
+  updateFilterBar();
   renderEvents();
 }
 
-function filterEvents() {
-  const type = document.querySelector('input[name="event-type"]:checked').value;
-  const enemyCount = document.querySelector('input[name="enemy-count"]:checked').value;
-  const attrMode = document.querySelector('input[name="attr-mode"]:checked').value;
-  const selectedAttrs = [...document.querySelectorAll('.attr-check:checked')].map(el => el.value);
+function setEnemyCount(v) {
+  filterState.enemyCount = v;
+  renderModal();
+  updateFilterBar();
+  renderEvents();
+}
 
+function setAttrMode(v) {
+  filterState.attrMode = v;
+  renderModal();
+  renderEvents();
+}
+
+function toggleAttr(a) {
+  if (filterState.attrs.has(a)) filterState.attrs.delete(a);
+  else filterState.attrs.add(a);
+  renderModal();
+  updateFilterBar();
+  renderEvents();
+}
+
+function openFilterModal() {
+  renderModal();
+  document.getElementById('filter-modal').style.display = 'flex';
+}
+
+function closeFilterModal() {
+  document.getElementById('filter-modal').style.display = 'none';
+}
+
+function resetFilters() {
+  filterState.type = 'all';
+  filterState.enemyCount = 'all';
+  filterState.attrMode = 'or';
+  filterState.attrs.clear();
+  updateFilterBar();
+  renderEvents();
+  closeFilterModal();
+}
+
+function filterEvents() {
   return allEvents.filter(e => {
-    if (type !== 'all' && getEventType(e) !== type) return false;
-    if (type === 'score' && enemyCount !== 'all') {
+    if (filterState.type !== 'all' && getEventType(e) !== filterState.type) return false;
+    if (filterState.type === 'score' && filterState.enemyCount !== 'all') {
       const cnt = parseInt(e.enemy_count) || 0;
-      if (enemyCount === 'single' && cnt !== 1) return false;
-      if (enemyCount === 'multi' && cnt < 2) return false;
+      if (filterState.enemyCount === 'single' && cnt !== 1) return false;
+      if (filterState.enemyCount === 'multi' && cnt < 2) return false;
     }
-    if (selectedAttrs.length > 0) {
+    if (filterState.attrs.size > 0) {
       const eventAttrs = new Set(
         (e.first_enemy_weak || '').split(',').map(a => a.trim()).filter(Boolean)
       );
-      if (attrMode === 'or') {
-        if (!selectedAttrs.some(a => eventAttrs.has(a))) return false;
+      if (filterState.attrMode === 'or') {
+        if (![...filterState.attrs].some(a => eventAttrs.has(a))) return false;
       } else {
-        if (!selectedAttrs.every(a => eventAttrs.has(a))) return false;
+        if (![...filterState.attrs].every(a => eventAttrs.has(a))) return false;
       }
     }
     return true;
@@ -167,8 +304,7 @@ async function load() {
       </div>`;
       return;
     }
-    document.getElementById('filter-panel').style.display = '';
-    buildFilters();
+    document.getElementById('filter-bar').style.display = 'flex';
     renderEvents();
   } catch (err) {
     showAlert('#alert', err.message);
