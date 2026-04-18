@@ -435,9 +435,10 @@ async function loadPending() {
           <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">
             第${item.event_number}回 ${escHtml(item.event_name)}
           </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
             ${attrBadge(item.attribute)}
             <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
+            ${item.is_duplicate ? `<span style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em">⚠ 既存スコアと一致</span>` : ''}
           </div>
           <div class="pending-score">${formatScore(item.pending_score)}</div>
           ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}

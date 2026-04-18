@@ -19,7 +19,14 @@ router.use(authenticateToken, requireAdmin);
 router.get('/pending', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT s.*, u.username, e.event_number, e.name AS event_name
+      `SELECT s.*, u.username, e.event_number, e.name AS event_name,
+        EXISTS (
+          SELECT 1 FROM scores s2
+          WHERE s2.event_id = s.event_id
+            AND s2.attribute = s.attribute
+            AND s2.approved_score = s.pending_score
+            AND s2.id != s.id
+        ) AS is_duplicate
        FROM scores s
        JOIN users u ON s.user_id = u.id
        JOIN events e ON s.event_id = e.id
