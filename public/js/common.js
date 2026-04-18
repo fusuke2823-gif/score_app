@@ -123,6 +123,14 @@ const _i18n = {
     'register.internal_pw':'コミュニティパスワード',
     'register.internal_pw_hint':'内部メンバー登録用のパスワードを入力してください',
     'register.internal_badge':'内部メンバー登録',
+    'filter.title':'フィルター','filter.default':'デフォルト',
+    'filter.reset':'リセット','filter.apply_close':'適用して閉じる',
+    'filter.event_type':'イベント種類',
+    'filter.score_attack':'スコアアタック','filter.seraph':'セラフ遭遇戦演習',
+    'filter.enemy_count':'敵数（スコアアタックのみ）',
+    'filter.single':'単体','filter.multi':'複数',
+    'filter.weak_attr':'弱点属性','filter.or':'いずれか','filter.and':'すべて含む',
+    'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -243,6 +251,14 @@ const _i18n = {
     'register.internal_pw':'社群密碼',
     'register.internal_pw_hint':'請輸入內部成員專用密碼',
     'register.internal_badge':'內部成員註冊',
+    'filter.title':'篩選','filter.default':'預設',
+    'filter.reset':'重置','filter.apply_close':'套用並關閉',
+    'filter.event_type':'活動類型',
+    'filter.score_attack':'分數挑戰','filter.seraph':'熾天使遭遇戰演習',
+    'filter.enemy_count':'敵人數量（僅限分數挑戰）',
+    'filter.single':'單體','filter.multi':'複數',
+    'filter.weak_attr':'弱點屬性','filter.or':'任一','filter.and':'全部包含',
+    'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
   }
 };
 
