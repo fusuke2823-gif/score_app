@@ -288,6 +288,28 @@ const initDB = async () => {
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external_at TIMESTAMPTZ;
       ALTER TABLE event_interim_distributions ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'internal';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
+    `);
+
+    // destruction_rate を VARCHAR→INTEGER に変換（既存DBのマイグレーション）
+    await client.query(`
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'enemies'
+            AND column_name = 'destruction_rate'
+            AND data_type = 'character varying'
+        ) THEN
+          UPDATE enemies
+            SET destruction_rate = regexp_replace(destruction_rate, '[^0-9]', '', 'g')
+            WHERE destruction_rate IS NOT NULL;
+          ALTER TABLE enemies
+            ALTER COLUMN destruction_rate TYPE INTEGER
+            USING destruction_rate::integer;
+        END IF;
+      END $$;
+    `);
+
+    await client.query(`
 
       CREATE TABLE IF NOT EXISTS gacha_pool_icons (
         pool_id INTEGER REFERENCES gacha_pools(id) ON DELETE CASCADE,
