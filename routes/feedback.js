@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+
+const feedbackLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'リクエストが多すぎます。しばらく待ってから再試行してください。' },
+});
 
 // メッセージ一覧をfeedback_idで取得するヘルパー
 async function getMessages(feedbackId) {
@@ -30,7 +39,7 @@ async function getHourlyChars(userId) {
 }
 
 // 送信
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', feedbackLimiter, authenticateToken, async (req, res) => {
   const { category, body } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: '内容を入力してください' });
   if (body.length > 1000) return res.status(400).json({ error: '1000文字以内で入力してください' });
@@ -152,7 +161,7 @@ router.patch('/mark-replies-read', authenticateToken, async (req, res) => {
 });
 
 // ユーザー：追加返信（自分のfeedbackのみ）
-router.post('/:id/user-reply', authenticateToken, async (req, res) => {
+router.post('/:id/user-reply', feedbackLimiter, authenticateToken, async (req, res) => {
   const { body } = req.body;
   if (!body || !body.trim()) return res.status(400).json({ error: '内容を入力してください' });
   if (body.length > 1000) return res.status(400).json({ error: '1000文字以内で入力してください' });
