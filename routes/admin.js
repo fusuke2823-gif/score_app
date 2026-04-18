@@ -880,6 +880,28 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
             `${event.name} ${attr}属性${def.label}`,
             `${event.name} ${attr}属性${def.label}達成`, 'external'));
         }
+        // 属性1位3回達成で「X神」称号（外部）
+        if (def.key === 'ext_attr1') {
+          for (const row of attrRankResult.rows.filter(r => Number(r.rank) <= 1)) {
+            const countResult = await client.query(
+              `SELECT COUNT(*) FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+               WHERE ut.user_id=$1 AND t.name LIKE $2 AND t.scope='external'`,
+              [row.user_id, `%${attr}属性1位`]
+            );
+            if (parseInt(countResult.rows[0].count) >= 3) {
+              const godTitle = `${attr}神`;
+              const already = await client.query(
+                `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+                 WHERE ut.user_id=$1 AND t.name=$2 AND t.scope='external'`,
+                [row.user_id, godTitle]
+              );
+              if (already.rows.length === 0) {
+                awardedTitles.push(await awardTitle(client, row.user_id,
+                  godTitle, `${attr}属性1位を3回達成（外部）`, 'external'));
+              }
+            }
+          }
+        }
       }
     }
 
