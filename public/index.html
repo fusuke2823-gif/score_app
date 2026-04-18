@@ -170,11 +170,11 @@ function renderModal() {
     <div>
       <div class="filter-section-label">破壊率</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <input id="dr-min" type="number" min="0" max="100" placeholder="0" value="${filterState.drMin}"
+        <input id="dr-min" type="number" min="0" step="100" placeholder="0" value="${filterState.drMin}"
           style="width:60px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2);color:var(--text-primary);font-size:0.85rem;text-align:center"
           oninput="setDr('Min',this.value)">
         <span style="color:#9090b0">%　〜　</span>
-        <input id="dr-max" type="number" min="0" max="100" placeholder="100" value="${filterState.drMax}"
+        <input id="dr-max" type="number" min="0" step="100" placeholder="100" value="${filterState.drMax}"
           style="width:60px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2);color:var(--text-primary);font-size:0.85rem;text-align:center"
           oninput="setDr('Max',this.value)">
         <span style="color:#9090b0">%</span>
