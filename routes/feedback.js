@@ -17,6 +17,18 @@ async function getMessages(feedbackId) {
   return r.rows.map(m => ({ ...m, is_admin: m.user_id === null }));
 }
 
+async function getHourlyChars(userId) {
+  const r = await pool.query(
+    `SELECT COALESCE(SUM(LENGTH(body)), 0) AS total FROM (
+       SELECT body FROM feedback WHERE user_id=$1 AND created_at > NOW() - INTERVAL '1 hour'
+       UNION ALL
+       SELECT body FROM feedback_messages WHERE user_id=$1 AND created_at > NOW() - INTERVAL '1 hour'
+     ) t`,
+    [userId]
+  );
+  return parseInt(r.rows[0].total);
+}
+
 // 送信
 router.post('/', authenticateToken, async (req, res) => {
   const { category, body } = req.body;
@@ -24,6 +36,11 @@ router.post('/', authenticateToken, async (req, res) => {
   if (body.length > 1000) return res.status(400).json({ error: '1000文字以内で入力してください' });
   const cat = ['機能要望', 'バグ報告', 'その他'].includes(category) ? category : 'その他';
   try {
+    if (req.user.role !== 'admin') {
+      const used = await getHourlyChars(req.user.id);
+      if (used + body.trim().length > 2000)
+        return res.status(429).json({ error: `1時間あたり2000文字の上限に達しています（使用済み: ${used}文字）` });
+    }
     await pool.query(
       'INSERT INTO feedback (user_id, category, body) VALUES ($1,$2,$3)',
       [req.user.id, cat, body.trim()]
@@ -143,6 +160,11 @@ router.post('/:id/user-reply', authenticateToken, async (req, res) => {
   try {
     const check = await pool.query('SELECT id FROM feedback WHERE id=$1 AND user_id=$2', [fid, req.user.id]);
     if (check.rows.length === 0) return res.status(403).json({ error: '権限がありません' });
+    if (req.user.role !== 'admin') {
+      const used = await getHourlyChars(req.user.id);
+      if (used + body.trim().length > 2000)
+        return res.status(429).json({ error: `1時間あたり2000文字の上限に達しています（使用済み: ${used}文字）` });
+    }
     await pool.query(
       'INSERT INTO feedback_messages (feedback_id, user_id, body) VALUES ($1, $2, $3)',
       [fid, req.user.id, body.trim()]
