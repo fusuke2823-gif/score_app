@@ -242,7 +242,7 @@ function renderEnemy(enemy) {
     <div class="enemy-name">${escHtml(enemy.name)}</div>
     <div class="enemy-stats">
       ${hpDpEp}
-      ${enemy.destruction_rate ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${escHtml(enemy.destruction_rate)}</span></span>` : ''}
+      ${enemy.destruction_rate != null ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${enemy.destruction_rate}%</span></span>` : ''}
     </div>
     ${weakBadges ? `<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:0.75rem;color:var(--text-muted);margin-right:2px">${t('ranking.weak')}</span>${weakBadges}</div>` : ''}
   </div>`;

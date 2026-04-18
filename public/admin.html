@@ -298,7 +298,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">破壊率</label>
-            <input class="form-input" type="text" id="enemy-dest" placeholder="例: 100%">
+            <input class="form-input" type="number" id="enemy-dest" min="0" max="9999" placeholder="例: 100">
           </div>
         </div>
         <div class="form-group">
@@ -543,7 +543,7 @@ async function loadEnemyList(eventId) {
             <div style="font-size:0.75rem;color:var(--text-muted)">
               HP: ${en.hp ? Number(en.hp).toLocaleString() : '-'} /
               ${en.use_ep ? 'EP' : 'DP'}: ${(en.use_ep ? en.ep : en.dp) ? Number(en.use_ep ? en.ep : en.dp).toLocaleString() : '-'} /
-              破壊率: ${en.destruction_rate || '-'}
+              破壊率: ${en.destruction_rate != null ? en.destruction_rate + '%' : '-'}
             </div>
           </div>
         </div>

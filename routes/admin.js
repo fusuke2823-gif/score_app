@@ -168,7 +168,7 @@ router.post('/events/:id/enemies', upload.single('image'), async (req, res) => {
       [
         req.params.id, name, imageUrl,
         hp || null, dp || null, ep || null,
-        use_ep === 'true', destruction_rate || null,
+        use_ep === 'true', destruction_rate ? parseInt(destruction_rate) : null,
         parseInt(order_index) || 0, weak_attributes || null
       ]
     );

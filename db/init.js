@@ -32,7 +32,7 @@ const initDB = async () => {
         dp BIGINT,
         ep BIGINT,
         use_ep BOOLEAN DEFAULT FALSE,
-        destruction_rate VARCHAR(50),
+        destruction_rate INTEGER,
         order_index INTEGER DEFAULT 0
       );
 
