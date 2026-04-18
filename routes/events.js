@@ -8,7 +8,8 @@ router.get('/', optionalAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT e.*,
-        (SELECT en.image_url FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_image
+        (SELECT en.image_url FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_image,
+        (SELECT en.weak_attributes FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_weak
        FROM events e WHERE e.is_active = TRUE ORDER BY e.event_number DESC`
     );
     res.json(result.rows);

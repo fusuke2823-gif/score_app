@@ -65,7 +65,10 @@ async function load() {
       <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <div class="event-name">${escHtml(e.name)}</div>
-          <div class="event-meta" style="${statusStyle}">${statusLabel}</div>
+          <div class="event-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="${statusStyle}">${statusLabel}</span>
+            ${e.first_enemy_weak ? e.first_enemy_weak.split(',').filter(Boolean).map(a => `<span style="font-size:0.72rem">${attrBadge(a, true)}</span>`).join('') : ''}
+          </div>
         </div>
         ${e.first_enemy_image ? `<img src="${escHtml(e.first_enemy_image)}" alt="" style="width:64px;height:64px;object-fit:contain;flex-shrink:0;opacity:0.92;margin:-4px 0">` : ''}
       </a>`;
