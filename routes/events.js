@@ -10,7 +10,8 @@ router.get('/', optionalAuth, async (req, res) => {
       `SELECT e.*,
         (SELECT en.image_url FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_image,
         (SELECT en.weak_attributes FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_weak,
-        (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) AS enemy_count
+        (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) AS enemy_count,
+        (SELECT en.destruction_rate FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_destruction_rate
        FROM events e WHERE e.is_active = TRUE ORDER BY e.event_number DESC`
     );
     res.json(result.rows);

@@ -94,6 +94,8 @@ const filterState = {
   enemyCounts: new Set(),  // empty or all = no filter
   attrMode: 'or',
   attrs: new Set(),
+  drMin: '',
+  drMax: '',
 };
 
 function getEventType(e) {
@@ -110,6 +112,7 @@ function isFiltered() {
   if (filterState.types.size > 0 && filterState.types.size < ALL_TYPES.length) return true;
   if (isScoreOnly() && filterState.enemyCounts.size > 0 && filterState.enemyCounts.size < ALL_ENEMY_COUNTS.length) return true;
   if (filterState.attrs.size > 0) return true;
+  if (filterState.drMin !== '' || filterState.drMax !== '') return true;
   return false;
 }
 
@@ -157,12 +160,26 @@ function renderModal() {
       <div class="filter-section-label">敵数（スコアアタックのみ）</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${enemyCountPills}</div>
     </div>
-    <div>
+    <div style="margin-bottom:18px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span class="filter-section-label" style="margin:0">弱点属性</span>
         <div style="display:flex;gap:4px">${attrModePills}</div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${attrPills}</div>
+    </div>
+    <div>
+      <div class="filter-section-label">破壊率</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <input id="dr-min" type="number" min="0" max="100" placeholder="0" value="${filterState.drMin}"
+          style="width:60px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2);color:var(--text-primary);font-size:0.85rem;text-align:center"
+          oninput="setDr('Min',this.value)">
+        <span style="color:#9090b0">%　〜　</span>
+        <input id="dr-max" type="number" min="0" max="100" placeholder="100" value="${filterState.drMax}"
+          style="width:60px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2);color:var(--text-primary);font-size:0.85rem;text-align:center"
+          oninput="setDr('Max',this.value)">
+        <span style="color:#9090b0">%</span>
+        <button onclick="resetDr()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.82rem;cursor:pointer">リセット</button>
+      </div>
     </div>
   `;
 }
@@ -180,6 +197,23 @@ function toggleEnemyCount(v) {
   if (filterState.enemyCounts.has(v)) filterState.enemyCounts.delete(v);
   else filterState.enemyCounts.add(v);
   renderModal();
+  updateFilterBar();
+  renderEvents();
+}
+
+function setDr(type, value) {
+  filterState['dr' + type] = value;
+  updateFilterBar();
+  renderEvents();
+}
+
+function resetDr() {
+  filterState.drMin = '';
+  filterState.drMax = '';
+  const minEl = document.getElementById('dr-min');
+  const maxEl = document.getElementById('dr-max');
+  if (minEl) minEl.value = '';
+  if (maxEl) maxEl.value = '';
   updateFilterBar();
   renderEvents();
 }
@@ -212,6 +246,8 @@ function resetFilters() {
   filterState.enemyCounts.clear();
   filterState.attrMode = 'or';
   filterState.attrs.clear();
+  filterState.drMin = '';
+  filterState.drMax = '';
   updateFilterBar();
   renderEvents();
   closeFilterModal();
@@ -237,6 +273,12 @@ function filterEvents() {
       } else {
         if (![...filterState.attrs].every(a => eventAttrs.has(a))) return false;
       }
+    }
+    if (filterState.drMin !== '' || filterState.drMax !== '') {
+      const dr = e.first_enemy_destruction_rate;
+      if (dr == null) return false;
+      if (filterState.drMin !== '' && dr < parseInt(filterState.drMin)) return false;
+      if (filterState.drMax !== '' && dr > parseInt(filterState.drMax)) return false;
     }
     return true;
   });
