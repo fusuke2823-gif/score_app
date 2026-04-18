@@ -86,12 +86,13 @@ apiFetch('/version').then(d => {
 let allEvents = [];
 
 const ALL_TYPES = ['score', 'seraph'];
+const ALL_ENEMY_COUNTS = ['single', 'multi'];
 const ATTRS = ['火','氷','雷','光','闇','無'];
 const ATTR_CLASS = { '火':'fire', '氷':'ice', '雷':'thunder', '光':'light', '闇':'dark', '無':'none' };
 
 const filterState = {
-  types: new Set(),   // empty or all = no filter
-  enemyCount: 'all',
+  types: new Set(),        // empty or all = no filter
+  enemyCounts: new Set(),  // empty or all = no filter
   attrMode: 'or',
   attrs: new Set(),
 };
@@ -109,7 +110,7 @@ function isScoreOnly() {
 function getActiveFilterCount() {
   let n = 0;
   if (filterState.types.size > 0 && filterState.types.size < ALL_TYPES.length) n++;
-  if (isScoreOnly() && filterState.enemyCount !== 'all') n++;
+  if (isScoreOnly() && filterState.enemyCounts.size > 0 && filterState.enemyCounts.size < ALL_ENEMY_COUNTS.length) n++;
   if (filterState.attrs.size > 0) n++;
   return n;
 }
@@ -138,12 +139,11 @@ function renderModal() {
   }).join('');
 
   const enemyCountPills = [
-    { v: 'all', label: 'すべて' },
     { v: 'single', label: '単体' },
-    { v: 'multi', label: '２体以上' },
+    { v: 'multi', label: '複数' },
   ].map(({ v, label }) => {
-    const cls = filterState.enemyCount === v ? 'filter-pill active' : 'filter-pill';
-    return `<button class="${cls}" onclick="setEnemyCount('${v}')">${label}</button>`;
+    const cls = filterState.enemyCounts.has(v) ? 'filter-pill active' : 'filter-pill';
+    return `<button class="${cls}" onclick="toggleEnemyCount('${v}')">${label}</button>`;
   }).join('');
 
   const attrModePills = [
@@ -182,14 +182,15 @@ function renderModal() {
 function toggleType(v) {
   if (filterState.types.has(v)) filterState.types.delete(v);
   else filterState.types.add(v);
-  if (!isScoreOnly()) filterState.enemyCount = 'all';
+  if (!isScoreOnly()) filterState.enemyCounts.clear();
   renderModal();
   updateFilterBar();
   renderEvents();
 }
 
-function setEnemyCount(v) {
-  filterState.enemyCount = v;
+function toggleEnemyCount(v) {
+  if (filterState.enemyCounts.has(v)) filterState.enemyCounts.delete(v);
+  else filterState.enemyCounts.add(v);
   renderModal();
   updateFilterBar();
   renderEvents();
@@ -220,7 +221,7 @@ function closeFilterModal() {
 
 function resetFilters() {
   filterState.types.clear();
-  filterState.enemyCount = 'all';
+  filterState.enemyCounts.clear();
   filterState.attrMode = 'or';
   filterState.attrs.clear();
   updateFilterBar();
@@ -234,10 +235,10 @@ function filterEvents() {
     if (filterState.types.size > 0 && filterState.types.size < ALL_TYPES.length) {
       if (!filterState.types.has(getEventType(e))) return false;
     }
-    if (isScoreOnly() && filterState.enemyCount !== 'all') {
+    if (isScoreOnly() && filterState.enemyCounts.size > 0 && filterState.enemyCounts.size < ALL_ENEMY_COUNTS.length) {
       const cnt = parseInt(e.enemy_count) || 0;
-      if (filterState.enemyCount === 'single' && cnt !== 1) return false;
-      if (filterState.enemyCount === 'multi' && cnt < 2) return false;
+      if (filterState.enemyCounts.has('single') && !filterState.enemyCounts.has('multi') && cnt !== 1) return false;
+      if (filterState.enemyCounts.has('multi') && !filterState.enemyCounts.has('single') && cnt < 2) return false;
     }
     if (filterState.attrs.size > 0) {
       const eventAttrs = new Set(
