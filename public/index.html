@@ -101,7 +101,7 @@ renderNav();
 applyI18n();
 
 function copyPageLink() {
-  navigator.clipboard.writeText(location.href).then(() => {
+  navigator.clipboard.writeText(location.origin).then(() => {
     const el = document.getElementById('copy-link-label');
     const orig = el.textContent;
     el.textContent = t('doc.copy_done');
