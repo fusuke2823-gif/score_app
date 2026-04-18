@@ -41,6 +41,31 @@
 </head>
 <body>
 <nav id="nav"></nav>
+
+<!-- 重複リザルト比較モーダル -->
+<div id="dup-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeDupModal()">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:900px;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-weight:bold;font-size:1rem;color:var(--warning)">⚠ リザルト比較</span>
+      <button onclick="closeDupModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div id="dup-label-new" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;text-align:center"></div>
+        <a id="dup-link-new" href="#" target="_blank">
+          <img id="dup-img-new" src="" alt="投稿リザルト" style="width:100%;border-radius:6px;border:2px solid var(--accent);cursor:pointer">
+        </a>
+      </div>
+      <div>
+        <div id="dup-label-existing" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;text-align:center"></div>
+        <a id="dup-link-existing" href="#" target="_blank">
+          <img id="dup-img-existing" src="" alt="既存リザルト" style="width:100%;border-radius:6px;border:2px solid var(--border-light);cursor:pointer">
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <main>
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
     <h1 class="page-title" style="margin:0">管理画面</h1>
@@ -417,6 +442,20 @@ document.querySelectorAll('input[name="dpep"]').forEach(r => {
 });
 
 // ===== 承認待ち =====
+function openDupModal(newImg, newUser, existingImg, existingUser) {
+  document.getElementById('dup-img-new').src = newImg;
+  document.getElementById('dup-link-new').href = newImg;
+  document.getElementById('dup-label-new').textContent = `投稿: ${newUser}`;
+  document.getElementById('dup-img-existing').src = existingImg;
+  document.getElementById('dup-link-existing').href = existingImg;
+  document.getElementById('dup-label-existing').textContent = `既存: ${existingUser}`;
+  document.getElementById('dup-modal').style.display = 'flex';
+}
+
+function closeDupModal() {
+  document.getElementById('dup-modal').style.display = 'none';
+}
+
 async function loadPending() {
   const el = document.getElementById('pending-list');
   el.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
@@ -438,7 +477,7 @@ async function loadPending() {
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
             ${attrBadge(item.attribute)}
             <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
-            ${item.is_duplicate ? `<span style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em">⚠ 既存スコアと一致</span>` : ''}
+            ${item.dup_image_url ? `<button onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')" style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em;border:none;cursor:pointer">⚠ 既存スコアと一致</button>` : ''}
           </div>
           <div class="pending-score">${formatScore(item.pending_score)}</div>
           ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}
