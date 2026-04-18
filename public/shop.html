@@ -8,8 +8,7 @@
 <style>
 .points-bar {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -90,10 +89,12 @@
   <div id="alert"></div>
 
   <div id="points-bar" style="display:none" class="points-bar">
-    <span class="points-label" data-i18n="shop.my_points">所持ポイント</span>
-    <span class="points-value" id="my-points">0</span>
-    <span class="points-label">pt</span>
-    <span class="points-label" style="font-size:0.75rem;color:var(--text-muted);margin-left:10px" data-i18n="shop.points_hint">※ポイントはランキングに応じて配布されます</span>
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px" data-i18n="shop.points_hint">※ポイントはランキングに応じて配布されます</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="points-label" data-i18n="shop.my_points">所持ポイント</span>
+      <span class="points-value" id="my-points">0</span>
+      <span class="points-label">pt</span>
+    </div>
   </div>
 
   <!-- ショップ（称号・フレームのサブタブ） -->
