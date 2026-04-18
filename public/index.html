@@ -9,15 +9,15 @@
 .filter-pill {
   padding: 5px 14px;
   border-radius: 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-light);
   background: transparent;
-  color: var(--text-secondary);
+  color: #c0c0d8;
   font-size: 0.85rem;
   cursor: pointer;
   transition: border-color .15s, background .15s, color .15s;
   white-space: nowrap;
 }
-.filter-pill:hover { border-color: var(--border-light); color: var(--text-primary); }
+.filter-pill:hover { border-color: #5a5a80; color: var(--text-primary); }
 .filter-pill.active {
   border-color: var(--accent);
   background: var(--accent-dim);
@@ -31,7 +31,7 @@
 .filter-pill.active-none   { border-color: var(--none);    background: var(--none-bg);    color: var(--none);    }
 .filter-section-label {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: #9090b0;
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: .05em;
@@ -46,7 +46,6 @@
   <p class="page-subtitle" data-i18n="index.subtitle">制作:つんつく</p>
   <div id="alert"></div>
 
-  <!-- Filter bar -->
   <div id="filter-bar" style="display:none;align-items:center;gap:8px;margin-bottom:14px">
     <button id="filter-open-btn" onclick="openFilterModal()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.88rem;cursor:pointer">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
@@ -56,7 +55,6 @@
     <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.88rem;cursor:pointer">デフォルト</button>
   </div>
 
-  <!-- Filter modal -->
   <div id="filter-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeFilterModal()">
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:460px;padding:20px 20px 24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
@@ -65,7 +63,7 @@
       </div>
       <div id="modal-body"></div>
       <div style="display:flex;gap:8px;margin-top:22px">
-        <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:0.9rem;cursor:pointer">リセット</button>
+        <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.9rem;cursor:pointer">リセット</button>
         <button onclick="closeFilterModal()" style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;cursor:pointer;font-weight:bold">適用して閉じる</button>
       </div>
     </div>
@@ -87,11 +85,12 @@ apiFetch('/version').then(d => {
 
 let allEvents = [];
 
+const ALL_TYPES = ['score', 'seraph'];
 const ATTRS = ['火','氷','雷','光','闇','無'];
 const ATTR_CLASS = { '火':'fire', '氷':'ice', '雷':'thunder', '光':'light', '闇':'dark', '無':'none' };
 
 const filterState = {
-  type: 'all',
+  types: new Set(),   // empty or all = no filter
   enemyCount: 'all',
   attrMode: 'or',
   attrs: new Set(),
@@ -103,10 +102,14 @@ function getEventType(e) {
   return 'other';
 }
 
+function isScoreOnly() {
+  return filterState.types.size === 1 && filterState.types.has('score');
+}
+
 function getActiveFilterCount() {
   let n = 0;
-  if (filterState.type !== 'all') n++;
-  if (filterState.type === 'score' && filterState.enemyCount !== 'all') n++;
+  if (filterState.types.size > 0 && filterState.types.size < ALL_TYPES.length) n++;
+  if (isScoreOnly() && filterState.enemyCount !== 'all') n++;
   if (filterState.attrs.size > 0) n++;
   return n;
 }
@@ -126,15 +129,12 @@ function updateFilterBar() {
 }
 
 function renderModal() {
-  const isScore = filterState.type === 'score';
+  const scoreOnly = isScoreOnly();
 
-  const typePills = [
-    { v: 'all', label: 'すべて' },
-    { v: 'score', label: 'スコアアタック' },
-    { v: 'seraph', label: 'セラフ遭遇戦演習' },
-  ].map(({ v, label }) => {
-    const cls = filterState.type === v ? 'filter-pill active' : 'filter-pill';
-    return `<button class="${cls}" onclick="setType('${v}')">${label}</button>`;
+  const typePills = ALL_TYPES.map(v => {
+    const label = v === 'score' ? 'スコアアタック' : 'セラフ遭遇戦演習';
+    const cls = filterState.types.has(v) ? 'filter-pill active' : 'filter-pill';
+    return `<button class="${cls}" onclick="toggleType('${v}')">${label}</button>`;
   }).join('');
 
   const enemyCountPills = [
@@ -165,8 +165,8 @@ function renderModal() {
       <div class="filter-section-label">イベント種類</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${typePills}</div>
     </div>
-    <div style="margin-bottom:18px${isScore ? '' : ';display:none'}" id="modal-enemy-count">
-      <div class="filter-section-label">敵数</div>
+    <div style="margin-bottom:18px;transition:opacity .2s;${scoreOnly ? '' : 'opacity:0.3;pointer-events:none'}">
+      <div class="filter-section-label">敵数（スコアアタックのみ）</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${enemyCountPills}</div>
     </div>
     <div>
@@ -179,9 +179,10 @@ function renderModal() {
   `;
 }
 
-function setType(v) {
-  filterState.type = v;
-  if (v !== 'score') filterState.enemyCount = 'all';
+function toggleType(v) {
+  if (filterState.types.has(v)) filterState.types.delete(v);
+  else filterState.types.add(v);
+  if (!isScoreOnly()) filterState.enemyCount = 'all';
   renderModal();
   updateFilterBar();
   renderEvents();
@@ -218,7 +219,7 @@ function closeFilterModal() {
 }
 
 function resetFilters() {
-  filterState.type = 'all';
+  filterState.types.clear();
   filterState.enemyCount = 'all';
   filterState.attrMode = 'or';
   filterState.attrs.clear();
@@ -229,8 +230,11 @@ function resetFilters() {
 
 function filterEvents() {
   return allEvents.filter(e => {
-    if (filterState.type !== 'all' && getEventType(e) !== filterState.type) return false;
-    if (filterState.type === 'score' && filterState.enemyCount !== 'all') {
+    // empty or all selected = no filter
+    if (filterState.types.size > 0 && filterState.types.size < ALL_TYPES.length) {
+      if (!filterState.types.has(getEventType(e))) return false;
+    }
+    if (isScoreOnly() && filterState.enemyCount !== 'all') {
       const cnt = parseInt(e.enemy_count) || 0;
       if (filterState.enemyCount === 'single' && cnt !== 1) return false;
       if (filterState.enemyCount === 'multi' && cnt < 2) return false;
