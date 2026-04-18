@@ -897,7 +897,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
               );
               if (already.rows.length === 0) {
                 awardedTitles.push(await awardTitle(client, row.user_id,
-                  godTitle, `${attr}属性1位を3回達成（外部）`, 'external'));
+                  godTitle, `${attr}属性1位を3回達成`, 'external'));
               }
             }
           }
