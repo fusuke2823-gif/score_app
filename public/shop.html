@@ -402,7 +402,7 @@ const UNIT_ORDER = ['31A','31B','31C','31D','31E','31F','30G','31X'];
 const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
 
 function iconCardHtml(icon, equippedId) {
-  const equipped = icon.id === equippedId || icon.is_equipped;
+  const equipped = icon.id === equippedId;
   return `<div class="equip-icon-card${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})">
     <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
     <div class="iname">${escHtml(icon.name)}</div>
