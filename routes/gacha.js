@@ -101,12 +101,13 @@ router.get('/my', authenticateToken, async (req, res) => {
          ORDER BY gi.id ASC`,
         [req.user.id]
       ),
-      pool.query('SELECT points, gp FROM users WHERE id=$1', [req.user.id])
+      pool.query('SELECT points, gp, equipped_icon_id FROM users WHERE id=$1', [req.user.id])
     ]);
     res.json({
       icons: iconsResult.rows,
       points: userResult.rows[0]?.points || 0,
-      gp: userResult.rows[0]?.gp || 0
+      gp: userResult.rows[0]?.gp || 0,
+      equipped_icon_id: userResult.rows[0]?.equipped_icon_id ?? null
     });
   } catch (err) {
     console.error(err);
