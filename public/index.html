@@ -42,7 +42,7 @@
 <main>
   <div style="position:relative">
     <h1 class="page-title" data-i18n="index.title">ヘブバン ランキングボード</h1>
-    <p id="app-version" style="font-size:0.8rem;color:var(--text-muted);margin:-8px 0 4px"></p>
+    <p id="app-version" onclick="openVersionModal()" style="font-size:0.8rem;color:var(--text-muted);margin:-8px 0 4px;cursor:pointer;display:inline-block;text-decoration:underline dotted"></p>
     <p class="page-subtitle" data-i18n="index.subtitle">制作:つんつく</p>
 
     <!-- ドキュメントメニュー -->
@@ -90,6 +90,47 @@
     </div>
   </div>
 
+  <!-- バージョン履歴モーダル -->
+  <div id="version-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeVersionModal()">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding:20px 20px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span style="font-weight:bold;font-size:1rem">バージョン履歴</span>
+        <button onclick="closeVersionModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">（予定）</div>
+          <div style="font-weight:bold;font-size:0.95rem;color:var(--accent);margin-bottom:4px">ver 4.03.00</div>
+          <div style="font-size:0.85rem;color:var(--text)">一般公開</div>
+        </div>
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 4.02.00</div>
+          <div style="font-size:0.85rem;color:var(--text)">繁体字対応・外部公開準備</div>
+        </div>
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 4.01.00</div>
+          <div style="font-size:0.85rem;color:var(--text)">ガチャ機能実装</div>
+        </div>
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 4.00.00</div>
+          <div style="font-size:0.85rem;color:var(--text)">Webサイトとして公開</div>
+        </div>
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 3</div>
+          <div style="font-size:0.85rem;color:var(--text)">Unity再開発・手動集計。各プレイヤーの各属性スコアを保存可能に</div>
+        </div>
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 2</div>
+          <div style="font-size:0.85rem;color:var(--text)">Unityにて開発・手動集計</div>
+        </div>
+        <div style="padding:12px 0">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 1</div>
+          <div style="font-size:0.85rem;color:var(--text)">テキストのみ・手動集計</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="content">
     <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
   </div>
@@ -126,6 +167,14 @@ apiFetch('/version').then(d => {
   const el = document.getElementById('app-version');
   if (el && d.version) el.textContent = 'ver ' + d.version;
 }).catch(() => {});
+
+function openVersionModal() {
+  const m = document.getElementById('version-modal');
+  m.style.display = 'flex';
+}
+function closeVersionModal() {
+  document.getElementById('version-modal').style.display = 'none';
+}
 
 let allEvents = [];
 

@@ -1112,7 +1112,7 @@ async function loadSettings() {
     const s = await apiFetch('/admin/settings');
     document.getElementById('notify-toggle').checked = s.notify_on_submit;
     document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
-    setVersionFields(s.app_version || '4.00.65');
+    setVersionFields(s.app_version || '4.02.46');
   } catch (err) {
     showAlert('#settings-alert', err.message);
   }
