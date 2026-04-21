@@ -17,12 +17,12 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
               CASE WHEN u.comp_rank = 'Ex' THEN
                 (SELECT COUNT(*)+1 FROM users u2 WHERE u2.comp_rank='Ex' AND u2.x_rate > u.x_rate)
               ELSE NULL END AS ex_rank,
-              t.name AS equipped_title,
               gi.image_url AS equipped_icon_url,
-              gi.rarity AS equipped_icon_rarity
+              gi.rarity AS equipped_icon_rarity,
+              f.css_class AS equipped_frame
        FROM users u
-       LEFT JOIN titles t ON u.equipped_title_id = t.id
        LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
+       LEFT JOIN frames f ON u.equipped_frame_id = f.id
        WHERE u.comp_rank IN ('X','Ex') ${scopeFilter}
        ORDER BY u.x_rate DESC NULLS LAST`
     );
