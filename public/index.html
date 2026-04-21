@@ -214,12 +214,36 @@ function rateLabel(rank, sRate, xRate) {
   return null;
 }
 
+const RANK_ORDER = ['C','B','A','S','X','Ex'];
+const RANK_BAR_CFG = {
+  C: { min:0,    max:400,  col:'#aaa',    next:'B' },
+  B: { min:400,  max:1300, col:'#5cb85c', next:'A' },
+  A: { min:1300, max:3000, col:'#5b9bd5', next:'S' },
+  S: { min:0,    max:1000, col:'#e6a028', next:'X' },
+};
+
+function rankBarHtml(rank, val, animate, fromPct) {
+  const cfg = RANK_BAR_CFG[rank];
+  if (!cfg) return '';
+  const pct = Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100));
+  const startPct = fromPct != null ? fromPct : pct;
+  return `
+    <div style="margin-top:12px;text-align:left">
+      <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">
+        <span>${rank}</span><span style="color:${cfg.col}">${Math.floor(val)} / ${cfg.max}</span><span>${cfg.next}</span>
+      </div>
+      <div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.1);overflow:hidden">
+        <div id="rank-bar-fill" style="height:100%;width:${startPct}%;background:${cfg.col};border-radius:4px;transition:width 0.9s ease"></div>
+      </div>
+    </div>`;
+}
+
 async function checkRankUpdate() {
   const user = getUser();
   if (!user) return;
   try {
     const data = await apiFetch(`/users/${user.id}`);
-    const cur = { rank: data.comp_rank || 'C', sRate: data.s_rate, xRate: data.x_rate };
+    const cur = { rank: data.comp_rank || 'C', rankPoints: data.rank_points || 0, sRate: data.s_rate, xRate: data.x_rate };
     const key = `hbr_rank_${user.id}`;
     const stored = JSON.parse(localStorage.getItem(key) || 'null');
 
@@ -227,11 +251,11 @@ async function checkRankUpdate() {
       const rankChanged = stored.rank !== cur.rank;
       const sChanged = cur.rank === 'S' && Math.abs((cur.sRate || 0) - (stored.sRate || 0)) >= 1;
       const xChanged = (cur.rank === 'X' || cur.rank === 'Ex') && Math.abs((cur.xRate || 0) - (stored.xRate || 0)) >= 1;
+      const barRank = RANK_BAR_CFG[cur.rank] ? cur.rank : null;
+      const ptChanged = barRank && !rankChanged && Math.abs((cur.rankPoints || 0) - (stored.rankPoints || 0)) >= 1;
 
-      if (rankChanged || sChanged || xChanged) {
-        const prevRateLabel = rateLabel(stored.rank, stored.sRate, stored.xRate);
-        const curRateLabel  = rateLabel(cur.rank,    cur.sRate,   cur.xRate);
-        const isUp = ['C','B','A','S','X','Ex'].indexOf(cur.rank) >= ['C','B','A','S','X','Ex'].indexOf(stored.rank);
+      if (rankChanged || sChanged || xChanged || ptChanged) {
+        const isUp = RANK_ORDER.indexOf(cur.rank) >= RANK_ORDER.indexOf(stored.rank);
 
         let html = '';
         if (rankChanged) {
@@ -242,9 +266,22 @@ async function checkRankUpdate() {
               ${rankBadgeLg(cur.rank)}
             </div>
             <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? 'ランクアップ！' : 'ランク降格'}</div>`;
+          // バーあり（C〜S）
+          if (RANK_BAR_CFG[cur.rank]) {
+            const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
+            html += rankBarHtml(cur.rank, barVal, true, 0);
+          }
+        } else if (barRank) {
+          const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
+          const prevVal = cur.rank === 'S' ? (stored.sRate || 0) : (stored.rankPoints || 0);
+          const cfg = RANK_BAR_CFG[cur.rank];
+          const fromPct = Math.min(100, Math.max(0, ((prevVal - cfg.min) / (cfg.max - cfg.min)) * 100));
+          html = `
+            <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>` +
+            rankBarHtml(cur.rank, barVal, true, fromPct);
         } else {
-          const prev = prevRateLabel || '-';
-          const next = curRateLabel  || '-';
+          const prev = rateLabel(stored.rank, stored.sRate, stored.xRate) || '-';
+          const next = rateLabel(cur.rank, cur.sRate, cur.xRate) || '-';
           html = `
             <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>
             <div style="font-size:1rem;margin-top:8px">
@@ -253,8 +290,21 @@ async function checkRankUpdate() {
               <span style="font-weight:bold;color:var(--accent)">${next}</span>
             </div>`;
         }
+
         document.getElementById('rank-update-body').innerHTML = html;
         document.getElementById('rank-update-modal').style.display = 'flex';
+        // バーアニメーション：少し遅らせてから伸ばす
+        if (RANK_BAR_CFG[cur.rank]) {
+          setTimeout(() => {
+            const fill = document.getElementById('rank-bar-fill');
+            if (fill) {
+              const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
+              const cfg = RANK_BAR_CFG[cur.rank];
+              const pct = Math.min(100, Math.max(0, ((barVal - cfg.min) / (cfg.max - cfg.min)) * 100));
+              fill.style.width = pct + '%';
+            }
+          }, 80);
+        }
       }
     }
 

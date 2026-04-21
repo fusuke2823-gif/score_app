@@ -118,6 +118,31 @@ function compRankBadge(rank, sRate, xRate) {
   return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}</span>`;
 }
 
+function rankProgressBar(rank, rankPoints, sRate) {
+  const RANKS = {
+    C: { min: 0,    max: 400,  next: 'B' },
+    B: { min: 400,  max: 1300, next: 'A' },
+    A: { min: 1300, max: 3000, next: 'S' },
+    S: { min: 0,    max: 1000, next: 'X' },
+  };
+  const cfg = RANKS[rank];
+  if (!cfg) return '';
+  const val  = rank === 'S' ? (sRate || 0) : (rankPoints || 0);
+  const pct  = Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100));
+  const colors = { C:'#aaa', B:'#5cb85c', A:'#5b9bd5', S:'#e6a028' };
+  const col = colors[rank];
+  const cur  = rank === 'S' ? Math.floor(sRate || 0) : (rankPoints || 0);
+  return `
+    <div style="margin-top:10px;max-width:280px">
+      <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">
+        <span>${rank}</span><span style="color:${col}">${cur} / ${cfg.max}</span><span>${cfg.next}</span>
+      </div>
+      <div style="height:6px;border-radius:3px;background:var(--bg-card2);overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width 0.8s ease"></div>
+      </div>
+    </div>`;
+}
+
 async function load() {
   try {
     const currentUser = getUser();
@@ -160,6 +185,7 @@ async function load() {
             <h2 style="margin:0">${escHtml(data.username)}</h2>
             ${compRankBadge(data.comp_rank, data.s_rate, data.x_rate)}
           </div>
+          ${rankProgressBar(data.comp_rank, data.rank_points, data.s_rate)}
           ${data.oshi_character
             ? `<div class="user-oshi">${t('user.oshi')}${escHtml(data.oshi_character)}</div>`
             : ''}
