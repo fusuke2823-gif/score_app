@@ -139,6 +139,8 @@ const _i18n = {
     'rate.th_player':'プレイヤー','rate.th_rank':'ランク','rate.th_rate':'レート',
     'rate.empty':'該当ユーザーがいません','rate.back':'← トップ',
     'rate.btn':'レートランキング',
+    'submit.yt_url':'YouTube動画URL（任意）','submit.yt_hint':'YouTubeのURLのみ入力できます',
+    'ranking.yt_watch':'YouTube動画を見る',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -275,6 +277,8 @@ const _i18n = {
     'rate.th_player':'玩家','rate.th_rank':'等級','rate.th_rate':'評分',
     'rate.empty':'沒有符合條件的玩家','rate.back':'← 首頁',
     'rate.btn':'評分排行榜',
+    'submit.yt_url':'YouTube影片網址（選填）','submit.yt_hint':'僅限YouTube網址',
+    'ranking.yt_watch':'觀看YouTube影片',
   }
 };
 
