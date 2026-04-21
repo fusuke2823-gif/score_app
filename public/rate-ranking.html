@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レートランキング - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.scope-toggle {
+  display: inline-flex;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.scope-toggle button {
+  padding: 6px 20px;
+  font-size: 0.85rem;
+  background: var(--bg-card);
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: bold;
+  transition: background 0.15s, color 0.15s;
+}
+.scope-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+}
+.my-rate-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.my-rate-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; }
+.my-rate-name { font-weight: bold; font-size: 0.95rem; }
+.rate-rank-badge { font-weight: bold; font-size: 1.1rem; min-width: 36px; text-align: center; }
+.rate-rank-badge.rank-X  { color: #a855f7; }
+.rate-rank-badge.rank-Ex { color: #f0c040; }
+.rate-val { font-size: 1.4rem; font-weight: bold; }
+
+.rate-table { width: 100%; border-collapse: collapse; }
+.rate-table th {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.rate-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.rate-table tr.is-me td { background: rgba(100,100,220,0.08); }
+.rate-table tr:last-child td { border-bottom: none; }
+.rate-num { font-size: 0.85rem; color: var(--text-muted); font-weight: bold; min-width: 28px; text-align: center; }
+.rate-avatar {
+  width: 32px; height: 32px; border-radius: 20%; background: var(--bg-card2);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: bold; color: var(--text-muted); overflow: hidden; flex-shrink: 0;
+  text-decoration: none;
+}
+.rate-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 20%; }
+.rate-username { font-size: 0.9rem; font-weight: bold; }
+.rate-username a { color: var(--text-primary); text-decoration: none; }
+.rate-username a:hover { color: var(--accent); }
+.rank-badge-sm { font-weight: bold; font-size: 0.9rem; }
+.rank-badge-sm.rank-X  { color: #a855f7; }
+.rank-badge-sm.rank-Ex { color: #f0c040; }
+.rate-score { font-size: 0.95rem; font-weight: bold; text-align: right; }
+.sub-text { font-size: 0.72rem; color: var(--text-muted); display: block; line-height: 1.1; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <a href="/index.html" class="back-link" data-i18n="rate.back">← トップ</a>
+  <h2 class="page-title" style="margin-bottom:4px" data-i18n="rate.title">レートランキング</h2>
+  <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:16px" data-i18n="rate.subtitle">X・Exランクユーザーのレート順</p>
+
+  <div id="scope-area"></div>
+  <div id="my-rate-area"></div>
+
+  <div class="card">
+    <div id="rate-ranking-content">
+      <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+
+const me = getUser();
+let currentScope = 'external';
+
+function renderScopeToggle(showInternal) {
+  const area = document.getElementById('scope-area');
+  if (!showInternal) { area.innerHTML = ''; return; }
+  area.innerHTML = `
+    <div class="scope-toggle">
+      <button id="scope-ext" onclick="setScope('external')" class="${currentScope === 'external' ? 'active' : ''}">${t('rate.scope_ext')}</button>
+      <button id="scope-int" onclick="setScope('internal')" class="${currentScope === 'internal' ? 'active' : ''}">${t('rate.scope_int')}</button>
+    </div>`;
+}
+
+function setScope(s) {
+  currentScope = s;
+  document.querySelectorAll('.scope-toggle button').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(s === 'internal' ? 'scope-int' : 'scope-ext');
+  if (btn) btn.classList.add('active');
+  load();
+}
+
+function renderMyCard(rows) {
+  const area = document.getElementById('my-rate-area');
+  if (!me) { area.innerHTML = ''; return; }
+  const my = rows.find(r => r.id === me.id);
+  if (!my) { area.innerHTML = ''; return; }
+  const pos = rows.indexOf(my) + 1;
+  const rateDisp = my.x_rate != null ? Math.floor(my.x_rate) : '-';
+  const posLabel = my.comp_rank === 'Ex' && my.ex_rank != null
+    ? `Ex ${my.ex_rank}位`
+    : `${pos}位`;
+  area.innerHTML = `
+    <div class="my-rate-card">
+      <div style="flex:1">
+        <div class="my-rate-label">${t('rate.my_label')}</div>
+        <div class="my-rate-name">${escHtml(my.username)}</div>
+      </div>
+      <div style="text-align:center">
+        <div class="rate-rank-badge rank-${my.comp_rank}">${my.comp_rank}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">${posLabel}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="rate-val">${rateDisp}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">${t('rate.th_rate')}</div>
+      </div>
+    </div>`;
+}
+
+function renderTable(rows) {
+  if (rows.length === 0) {
+    return `<div class="empty-state"><div class="empty-state-icon">📊</div><p>${t('rate.empty')}</p></div>`;
+  }
+  const meId = me ? me.id : null;
+  const rowsHtml = rows.map((r, i) => {
+    const pos = i + 1;
+    const isSelf = meId && r.id === meId;
+    const rateDisp = r.x_rate != null ? Math.floor(r.x_rate) : '-';
+    const rankLabel = r.comp_rank === 'Ex' && r.ex_rank != null
+      ? `<span class="rank-badge-sm rank-Ex">Ex</span><span class="sub-text">${r.ex_rank}位</span>`
+      : `<span class="rank-badge-sm rank-${r.comp_rank}">${r.comp_rank}</span>`;
+    const avatarInner = r.equipped_icon_url
+      ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}">`
+      : escHtml(r.username.charAt(0));
+    return `
+      <tr class="${isSelf ? 'is-me' : ''}">
+        <td><span class="rate-num">${pos}</span></td>
+        <td><a class="rate-avatar" href="/user.html?id=${r.id}">${avatarInner}</a></td>
+        <td class="rate-username">
+          <a href="/user.html?id=${r.id}">${escHtml(r.username)}</a>
+          ${r.equipped_title ? `<span style="font-size:0.72rem;color:var(--text-muted);margin-left:4px">「${escHtml(r.equipped_title)}」</span>` : ''}
+        </td>
+        <td style="text-align:center">${rankLabel}</td>
+        <td class="rate-score">${rateDisp}</td>
+      </tr>`;
+  }).join('');
+  return `
+    <table class="rate-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th></th>
+          <th>${t('rate.th_player')}</th>
+          <th style="text-align:center">${t('rate.th_rank')}</th>
+          <th style="text-align:right">${t('rate.th_rate')}</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>`;
+}
+
+async function load() {
+  const el = document.getElementById('rate-ranking-content');
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><span>${t('loading')}</span></div>`;
+  try {
+    const rows = await apiFetch(`/users/rate-ranking?scope=${currentScope}`);
+    renderMyCard(rows);
+    el.innerHTML = renderTable(rows);
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function init() {
+  let isInternal = false;
+  if (me) {
+    try {
+      const meData = await apiFetch('/auth/me');
+      isInternal = !!(meData && meData.is_internal);
+    } catch {}
+  }
+  if (isInternal) currentScope = 'internal';
+  renderScopeToggle(isInternal);
+  load();
+}
+
+init();
+</script>
+</body>
+</html>

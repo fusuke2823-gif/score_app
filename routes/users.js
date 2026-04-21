@@ -3,6 +3,36 @@ const router = express.Router();
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 
+// レートランキング（X/Ex ユーザー）
+router.get('/rate-ranking', optionalAuth, async (req, res) => {
+  const { scope } = req.query;
+  const isInternal = scope === 'internal';
+  if (isInternal && (!req.user || !req.user.is_internal)) {
+    return res.status(403).json({ error: '内部ユーザーのみ閲覧できます' });
+  }
+  try {
+    const scopeFilter = isInternal ? 'AND u.is_internal = TRUE' : '';
+    const result = await pool.query(
+      `SELECT u.id, u.username, u.comp_rank, u.x_rate,
+              CASE WHEN u.comp_rank = 'Ex' THEN
+                (SELECT COUNT(*)+1 FROM users u2 WHERE u2.comp_rank='Ex' AND u2.x_rate > u.x_rate)
+              ELSE NULL END AS ex_rank,
+              t.name AS equipped_title,
+              gi.image_url AS equipped_icon_url,
+              gi.rarity AS equipped_icon_rarity
+       FROM users u
+       LEFT JOIN titles t ON u.equipped_title_id = t.id
+       LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
+       WHERE u.comp_rank IN ('X','Ex') ${scopeFilter}
+       ORDER BY u.x_rate DESC NULLS LAST`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // ユーザー詳細（承認済みスコア一覧付き）
 router.get('/:id', optionalAuth, async (req, res) => {
   try {

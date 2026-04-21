@@ -133,6 +133,12 @@ const _i18n = {
     'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
     'doc.terms':'利用規約','doc.privacy':'プライバシーポリシー',
     'doc.copy_link':'リンクをコピー','doc.copy_done':'コピーしました！',
+    'rate.title':'レートランキング','rate.subtitle':'X・Exランクユーザーのレート順',
+    'rate.scope_ext':'外部','rate.scope_int':'内部',
+    'rate.my_label':'あなたのレート',
+    'rate.th_player':'プレイヤー','rate.th_rank':'ランク','rate.th_rate':'レート',
+    'rate.empty':'該当ユーザーがいません','rate.back':'← トップ',
+    'rate.btn':'レートランキング',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -263,6 +269,12 @@ const _i18n = {
     'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
     'doc.terms':'使用條款','doc.privacy':'隱私政策',
     'doc.copy_link':'複製連結','doc.copy_done':'已複製！',
+    'rate.title':'評分排行榜','rate.subtitle':'X・Ex等級玩家評分排名',
+    'rate.scope_ext':'外部','rate.scope_int':'內部',
+    'rate.my_label':'你的評分',
+    'rate.th_player':'玩家','rate.th_rank':'等級','rate.th_rate':'評分',
+    'rate.empty':'沒有符合條件的玩家','rate.back':'← 首頁',
+    'rate.btn':'評分排行榜',
   }
 };
 
