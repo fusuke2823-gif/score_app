@@ -8,6 +8,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const userResult = await pool.query(
       `SELECT u.id, u.username, u.oshi_character, u.created_at, u.equipped_title_id,
+              u.comp_rank, u.s_rate, u.x_rate,
               gi.image_url AS equipped_icon_url,
               gi.rarity AS equipped_icon_rarity
        FROM users u

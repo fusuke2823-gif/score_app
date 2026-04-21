@@ -44,6 +44,7 @@
     <div id="col-toggle">
       <button class="active" onclick="setColMode('score')" data-i18n="ranking.col_score">スコア</button>
       <button onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
+      <button onclick="setColMode('rank')">ランク</button>
     </div>
     <div id="ranking-updated" style="font-size:0.75rem;color:var(--text-muted);text-align:right;margin-bottom:4px"></div>
     <div id="ranking-content">
@@ -74,10 +75,17 @@
 @media (max-width: 640px) {
   .oshi-tag { display: none; }
 }
-/* 称号列はスマホのみ（PC非表示） */
+/* 称号・ランク列はスマホのみ（PC非表示） */
 .col-title { display: none; }
+.col-rank  { display: none; }
 /* スマホ表示切替 */
 #col-toggle { display:none; }
+.rank-C  { color:#aaa; }
+.rank-B  { color:#5cb85c; }
+.rank-A  { color:#5b9bd5; }
+.rank-S  { color:#e6a028; }
+.rank-X  { color:#a855f7; }
+.rank-Ex { color:#f0c040; }
 @media (max-width: 640px) {
   #col-toggle {
     display: flex;
@@ -102,9 +110,13 @@
     font-weight: bold;
   }
   .col-title { display: none; }
+  .col-rank  { display: none; }
   .ranking-table.show-title .col-score,
   .ranking-table.show-title .col-img { display: none; }
   .ranking-table.show-title .col-title { display: table-cell; }
+  .ranking-table.show-rank .col-score,
+  .ranking-table.show-rank .col-img { display: none; }
+  .ranking-table.show-rank .col-rank { display: table-cell; }
 }
 </style>
 
@@ -282,6 +294,7 @@ async function loadRanking() {
             <th class="col-score" style="text-align:right">${t('ranking.th_score')}</th>
             <th class="col-img"></th>
             <th class="col-title" style="font-size:0.8rem">${t('ranking.th_title')}</th>
+            <th class="col-rank" style="font-size:0.8rem">ランク</th>
           </tr>
         </thead>
         <tbody>
@@ -306,6 +319,7 @@ async function loadRanking() {
                   : ''}
               </td>
               <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
+              <td class="col-rank ${fc ? 'frame-title' : ''}" style="text-align:center">${renderCompRank(r.comp_rank, r.s_rate, r.x_rate)}</td>
             </tr>`;
           }).join(''); })()}
         </tbody>
@@ -318,10 +332,22 @@ async function loadRanking() {
 
 function setColMode(mode) {
   const table = document.querySelector('.ranking-table');
-  if (table) table.classList.toggle('show-title', mode === 'title');
+  if (table) {
+    table.classList.toggle('show-title', mode === 'title');
+    table.classList.toggle('show-rank', mode === 'rank');
+  }
   document.querySelectorAll('#col-toggle button').forEach((b, i) => {
-    b.classList.toggle('active', ['score', 'title'][i] === mode);
+    b.classList.toggle('active', ['score', 'title', 'rank'][i] === mode);
   });
+}
+
+function renderCompRank(rank, sRate, xRate) {
+  if (!rank || rank === 'C') return `<span class="rank-C" style="font-weight:bold">C</span>`;
+  if (rank === 'B') return `<span class="rank-B" style="font-weight:bold">B</span>`;
+  if (rank === 'A') return `<span class="rank-A" style="font-weight:bold">A</span>`;
+  const rate = rank === 'S' ? sRate : xRate;
+  const rateStr = rate != null ? `<br><span style="font-size:0.7rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
+  return `<span class="rank-${rank}" style="font-weight:bold">${rank}${rateStr}</span>`;
 }
 
 function openModal(url) {

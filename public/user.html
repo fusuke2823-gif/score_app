@@ -63,6 +63,13 @@
 .attr-score-val { font-weight: bold; font-variant-numeric: tabular-nums; }
 .attr-score-img { width:32px; height:22px; object-fit:cover; border-radius:3px; cursor:pointer; border:1px solid var(--border); }
 
+.comp-rank-badge { display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.8rem;padding:2px 10px;border-radius:12px;letter-spacing:0.05em; }
+.rank-C  { background:rgba(160,160,160,0.2);color:#aaa;border:1px solid #aaa; }
+.rank-B  { background:rgba(80,180,80,0.2);color:#5cb85c;border:1px solid #5cb85c; }
+.rank-A  { background:rgba(70,130,200,0.2);color:#5b9bd5;border:1px solid #5b9bd5; }
+.rank-S  { background:rgba(230,160,40,0.2);color:#e6a028;border:1px solid #e6a028; }
+.rank-X  { background:rgba(150,80,220,0.2);color:#a855f7;border:1px solid #a855f7; }
+.rank-Ex { background:linear-gradient(90deg,rgba(230,160,40,0.2),rgba(150,80,220,0.2));color:#f0c040;border:1px solid #f0c040; }
 #img-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; }
 #img-modal.open { display:flex; }
 #img-modal img { max-width:90vw; max-height:90vh; border-radius:8px; }
@@ -102,6 +109,15 @@ applyI18n();
 const userId = getParam('id');
 if (!userId) location.href = '/index.html';
 
+function compRankBadge(rank, sRate, xRate) {
+  if (!rank || rank === 'C') return `<span class="comp-rank-badge rank-C">C</span>`;
+  if (rank === 'B') return `<span class="comp-rank-badge rank-B">B</span>`;
+  if (rank === 'A') return `<span class="comp-rank-badge rank-A">A</span>`;
+  const rate = rank === 'S' ? sRate : xRate;
+  const rateStr = rate != null ? ` <span style="font-size:0.72rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
+  return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}</span>`;
+}
+
 async function load() {
   try {
     const currentUser = getUser();
@@ -140,7 +156,10 @@ async function load() {
       <div class="user-header">
         <div class="user-avatar" style="${data.equipped_icon_url ? 'border:none' : ''}">${data.equipped_icon_url ? `<img src="${escHtml(data.equipped_icon_url)}" alt="${escHtml(data.username)}" class="${data.equipped_icon_rarity ? `icon-rarity-${escHtml(data.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(data.username.charAt(0))}</div>
         <div class="user-info">
-          <h2>${escHtml(data.username)}</h2>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <h2 style="margin:0">${escHtml(data.username)}</h2>
+            ${compRankBadge(data.comp_rank, data.s_rate, data.x_rate)}
+          </div>
           ${data.oshi_character
             ? `<div class="user-oshi">${t('user.oshi')}${escHtml(data.oshi_character)}</div>`
             : ''}

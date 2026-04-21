@@ -109,6 +109,13 @@
           </div>
         </div>
         <div class="form-group">
+          <label class="form-label">イベント種別</label>
+          <select class="form-input" id="event-type">
+            <option value="score_attack">スコアアタック</option>
+            <option value="seraph">遭遇戦</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">説明（任意）</label>
           <textarea class="form-textarea" id="event-desc" rows="2"></textarea>
         </div>
@@ -379,6 +386,13 @@
           <input class="form-input" type="text" id="edit-event-name" required>
         </div>
         <div class="form-group">
+          <label class="form-label">イベント種別</label>
+          <select class="form-input" id="edit-event-type">
+            <option value="score_attack">スコアアタック</option>
+            <option value="seraph">遭遇戦</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label class="form-label">説明（任意）</label>
           <textarea class="form-textarea" id="edit-event-desc" rows="2"></textarea>
         </div>
@@ -614,6 +628,7 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
       body: JSON.stringify({
         event_number: parseInt(document.getElementById('event-number').value),
         name: document.getElementById('event-name').value,
+        event_type: document.getElementById('event-type').value,
         description: document.getElementById('event-desc').value,
         submission_start: toISO(document.getElementById('event-start').value),
         submission_end: toISO(document.getElementById('event-end').value)
@@ -653,6 +668,7 @@ async function openEditEvent(id) {
   if (!e) return;
   document.getElementById('edit-event-id').value = e.id;
   document.getElementById('edit-event-name').value = e.name;
+  document.getElementById('edit-event-type').value = e.event_type || 'score_attack';
   document.getElementById('edit-event-desc').value = e.description || '';
   document.getElementById('edit-event-start').value = toLocalDatetime(e.submission_start);
   document.getElementById('edit-event-end').value = toLocalDatetime(e.submission_end);
@@ -688,6 +704,7 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
       method: 'PUT',
       body: JSON.stringify({
         name: document.getElementById('edit-event-name').value,
+        event_type: document.getElementById('edit-event-type').value,
         description: document.getElementById('edit-event-desc').value,
         submission_start: toISO(document.getElementById('edit-event-start').value),
         submission_end: toISO(document.getElementById('edit-event-end').value),
@@ -1112,7 +1129,7 @@ async function loadSettings() {
     const s = await apiFetch('/admin/settings');
     document.getElementById('notify-toggle').checked = s.notify_on_submit;
     document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
-    setVersionFields(s.app_version || '4.02.46');
+    setVersionFields(s.app_version || '4.03.00');
   } catch (err) {
     showAlert('#settings-alert', err.message);
   }

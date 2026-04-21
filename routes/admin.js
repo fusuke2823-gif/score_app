@@ -4,6 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { updateUserRanks } = require('./rankUtils');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -106,11 +107,11 @@ router.get('/events', async (req, res) => {
 
 // イベント作成
 router.post('/events', async (req, res) => {
-  const { event_number, name, description, submission_start, submission_end } = req.body;
+  const { event_number, name, description, submission_start, submission_end, event_type } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO events (event_number, name, description, submission_start, submission_end) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [event_number, name, description || null, submission_start || null, submission_end || null]
+      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack']
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -123,11 +124,11 @@ router.post('/events', async (req, res) => {
 
 // イベント更新
 router.put('/events/:id', async (req, res) => {
-  const { name, description, is_active, submission_start, submission_end } = req.body;
+  const { name, description, is_active, submission_start, submission_end, event_type } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5 WHERE id=$6 RETURNING *',
-      [name, description || null, is_active !== false, submission_start || null, submission_end || null, req.params.id]
+      'UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6 WHERE id=$7 RETURNING *',
+      [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -824,13 +825,15 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
     };
 
     let distributed = 0;
+    const rankUpdateUserIdsExt = [];
     for (const row of rankResult.rows) {
       const pts = rankPts(Number(row.rank));
-      await client.query('UPDATE users SET points = points + $1 WHERE id = $2', [pts, row.user_id]);
+      await client.query('UPDATE users SET points = points + $1, rank_points = rank_points + $1 WHERE id = $2', [pts, row.user_id]);
       await client.query(
         'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
         [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位（外部）`]
       );
+      rankUpdateUserIdsExt.push(row.user_id);
       distributed++;
     }
 
@@ -905,6 +908,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       }
     }
 
+    await updateUserRanks(client, rankUpdateUserIdsExt);
     await client.query('UPDATE events SET points_distributed_external=TRUE, points_distributed_external_at=NOW() WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
     const titleMsg = awardedTitles.length ? `　称号付与: ${[...new Set(awardedTitles)].join(', ')}` : '';

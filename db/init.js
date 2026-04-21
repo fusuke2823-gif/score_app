@@ -288,6 +288,11 @@ const initDB = async () => {
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external_at TIMESTAMPTZ;
       ALTER TABLE event_interim_distributions ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'internal';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS comp_rank VARCHAR(5) DEFAULT 'C';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS rank_points INTEGER DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS s_rate FLOAT DEFAULT NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS x_rate FLOAT DEFAULT NULL;
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS event_type VARCHAR(20) DEFAULT 'score_attack';
     `);
 
     // destruction_rate を VARCHAR→INTEGER に変換（既存DBのマイグレーション）
