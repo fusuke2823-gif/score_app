@@ -545,6 +545,10 @@ async function loadEvents() {
   try {
     const events = await apiFetch('/admin/events');
     currentEvents = events;
+    if (events.length > 0) {
+      const maxNum = Math.max(...events.map(e => e.event_number || 0));
+      document.getElementById('event-number').value = maxNum + 1;
+    }
     if (events.length === 0) {
       el.innerHTML = '<div class="empty-state"><p>イベントがありません</p></div>';
       return;
