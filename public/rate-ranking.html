@@ -130,7 +130,7 @@ function renderTable(rows) {
       <tr class="${fr}${isSelf ? ' is-me' : ''}">
         <td><span class="rank-num">${pos}</span></td>
         <td class="col-avatar"><a class="rank-avatar" href="/user.html?id=${r.id}">${avatarInner}</a></td>
-        <td class="${fc ? 'frame-name' : ''}"><a href="/user.html?id=${r.id}" style="color:var(--text-primary);text-decoration:none;font-weight:bold">${escHtml(r.username)}</a></td>
+        <td class="${fc ? 'frame-name' : ''}" style="text-align:center"><a href="/user.html?id=${r.id}" style="color:var(--text-primary);text-decoration:none;font-weight:bold">${escHtml(r.username)}</a></td>
         <td style="text-align:center">${rankLabel}</td>
         <td class="rate-score"><span class="score-val">${rateDisp}</span></td>
       </tr>`;
