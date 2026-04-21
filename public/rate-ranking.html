@@ -128,23 +128,17 @@ function renderMyCard(rows) {
   if (!my) { area.innerHTML = ''; return; }
   const pos = rows.indexOf(my) + 1;
   const rateDisp = my.x_rate != null ? Math.floor(my.x_rate) : '-';
-  const posLabel = my.comp_rank === 'Ex' && my.ex_rank != null
-    ? `Ex ${my.ex_rank}位`
-    : `${pos}位`;
+  const rankDisp = my.comp_rank === 'Ex' && my.ex_rank != null
+    ? `Ex${my.ex_rank}位`
+    : my.comp_rank;
   area.innerHTML = `
     <div class="my-rate-card">
       <div style="flex:1">
         <div class="my-rate-label">${t('rate.my_label')}</div>
         <div class="my-rate-name">${escHtml(my.username)}</div>
       </div>
-      <div style="text-align:center">
-        <div class="rate-rank-badge rank-${my.comp_rank}">${my.comp_rank}</div>
-        <div style="font-size:0.72rem;color:var(--text-muted)">${posLabel}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="rate-val">${rateDisp}</div>
-        <div style="font-size:0.72rem;color:var(--text-muted)">${t('rate.th_rate')}</div>
-      </div>
+      <div class="rate-rank-badge rank-${my.comp_rank}">${rankDisp}</div>
+      <div class="rate-val">${rateDisp}</div>
     </div>`;
 }
 
