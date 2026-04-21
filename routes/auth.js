@@ -8,7 +8,7 @@ const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 router.post('/register', async (req, res) => {
-  const { username, password, oshi_character, ref } = req.body;
+  const { username, password, oshi_character, ref, twitter_username } = req.body;
 
   if (!username || !password)
     return res.status(400).json({ error: 'ユーザー名とパスワードは必須です' });
@@ -16,6 +16,8 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
   if (password.length < 6)
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
+  if (twitter_username && !/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
+    return res.status(400).json({ error: 'XユーザーIDは英数字・アンダースコア1〜15文字で入力してください' });
 
   // 内部登録: URLトークン(ref) が一致する場合のみ
   const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
@@ -26,8 +28,8 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ error: 'このユーザー名は既に使用されています [dup]' });
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character) VALUES ($1, $2, $3) RETURNING id, username, role, oshi_character',
-      [username, hash, oshi_character || null]
+      'INSERT INTO users (username, password_hash, oshi_character, twitter_username) VALUES ($1, $2, $3, $4) RETURNING id, username, role, oshi_character',
+      [username, hash, oshi_character || null, twitter_username || null]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
