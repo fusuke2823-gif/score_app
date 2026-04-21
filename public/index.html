@@ -206,6 +206,10 @@ apiFetch('/version').then(d => {
 
 function closeRankModal() {
   document.getElementById('rank-update-modal').style.display = 'none';
+  if (window._pendingDistNotice) {
+    window._pendingDistNotice = false;
+    if (typeof initInterimDistributionNotice === 'function') initInterimDistributionNotice();
+  }
 }
 
 function rankBadgeLg(rank) {
