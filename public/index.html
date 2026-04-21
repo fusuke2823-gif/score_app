@@ -216,10 +216,10 @@ function rateLabel(rank, sRate, xRate) {
 
 const RANK_ORDER = ['C','B','A','S','X','Ex'];
 const RANK_BAR_CFG = {
-  C: { min:0,    max:400,  col:'#aaa',    next:'B' },
-  B: { min:400,  max:1300, col:'#5cb85c', next:'A' },
-  A: { min:1300, max:3000, col:'#5b9bd5', next:'S' },
-  S: { min:0,    max:1000, col:'#e6a028', next:'X' },
+  C: { min:0, max:400,  col:'#aaa',    next:'B' },
+  B: { min:0, max:1300, col:'#5cb85c', next:'A' },
+  A: { min:0, max:3000, col:'#5b9bd5', next:'S' },
+  S: { min:0, max:1000, col:'#e6a028', next:'X' },
 };
 
 function rankBarHtml(rank, val, animate, fromPct) {

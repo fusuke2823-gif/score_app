@@ -121,10 +121,10 @@ function compRankBadge(rank, sRate, xRate, exRank) {
 
 function rankProgressBar(rank, rankPoints, sRate) {
   const RANKS = {
-    C: { min: 0,    max: 400,  next: 'B' },
-    B: { min: 400,  max: 1300, next: 'A' },
-    A: { min: 1300, max: 3000, next: 'S' },
-    S: { min: 0,    max: 1000, next: 'X' },
+    C: { min: 0, max: 400,  next: 'B' },
+    B: { min: 0, max: 1300, next: 'A' },
+    A: { min: 0, max: 3000, next: 'S' },
+    S: { min: 0, max: 1000, next: 'X' },
   };
   const cfg = RANKS[rank];
   if (!cfg) return '';
