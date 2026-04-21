@@ -534,11 +534,13 @@ function togglePw(id) {
 // ===== 配布通知（中間・最終） =====
 async function initInterimDistributionNotice() {
   if (!getToken()) return;
+  if (window._distNoticeStarted) return;
   const rankModal = document.getElementById('rank-update-modal');
   if (rankModal && rankModal.style.display === 'flex') {
     window._pendingDistNotice = true;
     return;
   }
+  window._distNoticeStarted = true;
   try {
     const meData = await apiFetch('/auth/me').catch(() => null);
     const isInternalUser = !!(meData && meData.is_internal);
