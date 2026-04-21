@@ -4,7 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { updateUserRanks } = require('./rankUtils');
+const { updateUserRanks, convertScoreToPoints } = require('./rankUtils');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -824,11 +824,19 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       return rp.ext_rank_pts_101plus ?? 5;
     };
 
+    // 敵数取得（複数敵補正用）
+    const enemyCountResult = await client.query(
+      'SELECT COUNT(*) AS cnt FROM enemies WHERE event_id=$1', [req.params.id]
+    );
+    const enemyCount = parseInt(enemyCountResult.rows[0].cnt);
+
     let distributed = 0;
     const rankUpdateUserIdsExt = [];
     for (const row of rankResult.rows) {
       const pts = rankPts(Number(row.rank));
-      await client.query('UPDATE users SET points = points + $1, rank_points = rank_points + $1 WHERE id = $2', [pts, row.user_id]);
+      const correctedScore = enemyCount > 1 ? row.approved_score / 1.05 : row.approved_score;
+      const rankPtsFromScore = convertScoreToPoints(correctedScore);
+      await client.query('UPDATE users SET points = points + $1, rank_points = rank_points + $2 WHERE id = $3', [pts, rankPtsFromScore, row.user_id]);
       await client.query(
         'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
         [row.user_id, pts, `第${event.event_number}回 ${event.name} ${row.rank}位（外部）`]
