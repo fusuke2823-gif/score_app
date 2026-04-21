@@ -121,7 +121,7 @@ function renderTable(rows) {
     const fc = r.equipped_frame || '';
     const fr = fc ? `has-frame ${fc}` : '';
     const rankLabel = r.comp_rank === 'Ex'
-      ? `<span class="rank-X" style="font-weight:bold">Ex${r.ex_rank != null ? `${r.ex_rank}位` : ''}</span>`
+      ? `<span class="rank-Ex" style="font-weight:bold">Ex${r.ex_rank != null ? `${r.ex_rank}位` : ''}</span>`
       : `<span class="rank-${r.comp_rank}" style="font-weight:bold">${r.comp_rank}</span>`;
     const avatarInner = r.equipped_icon_url
       ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}">`
