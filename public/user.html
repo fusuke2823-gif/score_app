@@ -115,8 +115,11 @@ function compRankBadge(rank, sRate, xRate, exRank) {
   if (rank === 'A') return `<span class="comp-rank-badge rank-A">A</span>`;
   const rate = rank === 'S' ? sRate : xRate;
   const rateStr = rate != null ? ` <span style="font-size:0.72rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
-  const exStr = rank === 'Ex' && exRank != null ? `<span style="font-size:0.72rem;font-weight:normal;margin-left:4px">${exRank}位</span>` : '';
-  return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}${exStr}</span>`;
+  if (rank === 'Ex') {
+    const exStr = exRank != null ? `${exRank}位` : '';
+    return `<span class="comp-rank-badge rank-Ex">Ex${exStr}${rateStr}</span>`;
+  }
+  return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}</span>`;
 }
 
 function rankProgressBar(rank, rankPoints, sRate) {
