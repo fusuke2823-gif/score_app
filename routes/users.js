@@ -38,7 +38,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const userResult = await pool.query(
       `SELECT u.id, u.username, u.oshi_character, u.created_at, u.equipped_title_id,
-              u.comp_rank, u.rank_points, u.s_rate, u.x_rate,
+              u.comp_rank, u.rank_points, u.s_rate, u.x_rate, u.twitter_username,
               CASE WHEN u.comp_rank = 'Ex' THEN
                 (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.comp_rank = 'Ex' AND u2.x_rate > u.x_rate)
               ELSE NULL END AS ex_rank,

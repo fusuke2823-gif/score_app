@@ -196,6 +196,7 @@ async function load() {
           ${data.equipped_title
             ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">${t('user.title_label')}</span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
             : ''}
+          ${data.twitter_username ? `<div style="font-size:0.85rem;margin-top:4px"><a href="https://x.com/${escHtml(data.twitter_username)}" target="_blank" rel="noopener noreferrer" style="color:var(--text-muted);text-decoration:none;display:inline-flex;align-items:center;gap:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@${escHtml(data.twitter_username)}</a></div>` : ''}
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${t('user.joined')}${formatDate(data.created_at)}</div>
           ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
         </div>
@@ -212,6 +213,14 @@ async function load() {
         <div class="form-group">
           <label class="form-label">${t('user.oshi_field')}</label>
           <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="${t('user.oshi_ph')}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">X (Twitter) ID</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--text-muted);font-size:0.9rem">@</span>
+            <input class="form-input" id="edit-twitter" type="text" value="${escHtml(data.twitter_username || '')}" maxlength="15" placeholder="username" style="flex:1" autocomplete="off">
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">英数字・アンダースコアのみ（x.com/usernameの形式で表示）</div>
         </div>
         <details style="margin-bottom:16px">
           <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">${t('user.pw_section')}</summary>
@@ -281,12 +290,18 @@ function toggleEditForm() {
 async function saveProfile() {
   const username = document.getElementById('edit-username')?.value.trim();
   const oshi = document.getElementById('edit-oshi')?.value.trim();
+  const twitterRaw = document.getElementById('edit-twitter')?.value.trim().replace(/^@/, '');
   const currentPw = document.getElementById('edit-current-pw')?.value;
   const newPw = document.getElementById('edit-new-pw')?.value;
   const alertEl = document.getElementById('edit-alert');
   alertEl.innerHTML = '';
 
-  const body = { username, oshi_character: oshi || null };
+  if (twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
+    alertEl.innerHTML = `<div class="alert alert-error">XのIDは英数字・アンダースコア1〜15文字で入力してください</div>`;
+    return;
+  }
+
+  const body = { username, oshi_character: oshi || null, twitter_username: twitterRaw || null };
   if (newPw) { body.current_password = currentPw; body.new_password = newPw; }
 
   try {
