@@ -248,6 +248,9 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
         bs.comp_rank,
         bs.s_rate,
         bs.x_rate,
+        CASE WHEN bs.comp_rank = 'Ex' THEN
+          (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.comp_rank = 'Ex' AND u2.x_rate > bs.x_rate)
+        ELSE NULL END AS ex_rank,
         bs.attribute,
         bs.approved_score,
         bs.approved_image_url,

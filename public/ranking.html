@@ -319,7 +319,7 @@ async function loadRanking() {
                   : ''}
               </td>
               <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
-              <td class="col-rank ${fc ? 'frame-title' : ''}" style="text-align:center">${renderCompRank(r.comp_rank, r.s_rate, r.x_rate)}</td>
+              <td class="col-rank ${fc ? 'frame-title' : ''}" style="text-align:center">${renderCompRank(r.comp_rank, r.s_rate, r.x_rate, r.ex_rank)}</td>
             </tr>`;
           }).join(''); })()}
         </tbody>
@@ -341,13 +341,14 @@ function setColMode(mode) {
   });
 }
 
-function renderCompRank(rank, sRate, xRate) {
+function renderCompRank(rank, sRate, xRate, exRank) {
   if (!rank || rank === 'C') return `<span class="rank-C" style="font-weight:bold">C</span>`;
   if (rank === 'B') return `<span class="rank-B" style="font-weight:bold">B</span>`;
   if (rank === 'A') return `<span class="rank-A" style="font-weight:bold">A</span>`;
   const rate = rank === 'S' ? sRate : xRate;
   const rateStr = rate != null ? `<br><span style="font-size:0.7rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
-  return `<span class="rank-${rank}" style="font-weight:bold">${rank}${rateStr}</span>`;
+  const exStr = rank === 'Ex' && exRank != null ? `<br><span style="font-size:0.7rem;font-weight:normal">${exRank}位</span>` : '';
+  return `<span class="rank-${rank}" style="font-weight:bold">${rank}${rateStr}${exStr}</span>`;
 }
 
 function openModal(url) {

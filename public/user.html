@@ -109,13 +109,14 @@ applyI18n();
 const userId = getParam('id');
 if (!userId) location.href = '/index.html';
 
-function compRankBadge(rank, sRate, xRate) {
+function compRankBadge(rank, sRate, xRate, exRank) {
   if (!rank || rank === 'C') return `<span class="comp-rank-badge rank-C">C</span>`;
   if (rank === 'B') return `<span class="comp-rank-badge rank-B">B</span>`;
   if (rank === 'A') return `<span class="comp-rank-badge rank-A">A</span>`;
   const rate = rank === 'S' ? sRate : xRate;
   const rateStr = rate != null ? ` <span style="font-size:0.72rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
-  return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}</span>`;
+  const exStr = rank === 'Ex' && exRank != null ? `<span style="font-size:0.72rem;font-weight:normal;margin-left:4px">${exRank}位</span>` : '';
+  return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}${exStr}</span>`;
 }
 
 function rankProgressBar(rank, rankPoints, sRate) {
@@ -183,7 +184,7 @@ async function load() {
         <div class="user-info">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <h2 style="margin:0">${escHtml(data.username)}</h2>
-            ${compRankBadge(data.comp_rank, data.s_rate, data.x_rate)}
+            ${compRankBadge(data.comp_rank, data.s_rate, data.x_rate, data.ex_rank)}
           </div>
           ${rankProgressBar(data.comp_rank, data.rank_points, data.s_rate)}
           ${data.oshi_character
