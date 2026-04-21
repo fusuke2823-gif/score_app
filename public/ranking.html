@@ -347,8 +347,11 @@ function renderCompRank(rank, sRate, xRate, exRank) {
   if (rank === 'A') return `<span class="rank-A" style="font-weight:bold">A</span>`;
   const rate = rank === 'S' ? sRate : xRate;
   const rateStr = rate != null ? `<br><span style="font-size:0.7rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
-  const exStr = rank === 'Ex' && exRank != null ? `<br><span style="font-size:0.7rem;font-weight:normal">${exRank}位</span>` : '';
-  return `<span class="rank-${rank}" style="font-weight:bold">${rank}${rateStr}${exStr}</span>`;
+  if (rank === 'Ex') {
+    const exStr = exRank != null ? `<span style="font-size:0.7rem;font-weight:normal">${exRank}位</span>` : '';
+    return `<span class="rank-Ex" style="font-weight:bold">Ex ${exStr}${rateStr}</span>`;
+  }
+  return `<span class="rank-${rank}" style="font-weight:bold">${rank}${rateStr}</span>`;
 }
 
 function openModal(url) {
