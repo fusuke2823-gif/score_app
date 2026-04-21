@@ -35,6 +35,26 @@
   text-transform: uppercase;
   letter-spacing: .05em;
 }
+@keyframes rankCardIn {
+  from { opacity:0; transform:scale(0.8) translateY(20px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+@keyframes rankGlow {
+  0%,100% { box-shadow:0 0 0px transparent; }
+  50%      { box-shadow:0 0 24px var(--rank-glow, #a855f7); }
+}
+#rank-update-card { animation: rankCardIn 0.35s cubic-bezier(.34,1.56,.64,1) both; }
+.rank-badge-lg {
+  display:inline-block;font-size:2rem;font-weight:bold;
+  padding:8px 24px;border-radius:16px;letter-spacing:0.05em;
+  animation: rankGlow 1.8s ease-in-out infinite;
+}
+.rank-badge-lg.rank-C  { background:rgba(160,160,160,0.15);color:#aaa;border:2px solid #aaa;--rank-glow:#aaa; }
+.rank-badge-lg.rank-B  { background:rgba(80,180,80,0.15);color:#5cb85c;border:2px solid #5cb85c;--rank-glow:#5cb85c; }
+.rank-badge-lg.rank-A  { background:rgba(70,130,200,0.15);color:#5b9bd5;border:2px solid #5b9bd5;--rank-glow:#5b9bd5; }
+.rank-badge-lg.rank-S  { background:rgba(230,160,40,0.15);color:#e6a028;border:2px solid #e6a028;--rank-glow:#e6a028; }
+.rank-badge-lg.rank-X  { background:rgba(150,80,220,0.15);color:#a855f7;border:2px solid #a855f7;--rank-glow:#a855f7; }
+.rank-badge-lg.rank-Ex { background:linear-gradient(135deg,rgba(230,160,40,0.15),rgba(150,80,220,0.15));color:#f0c040;border:2px solid #f0c040;--rank-glow:#f0c040; }
 </style>
 </head>
 <body>
@@ -87,6 +107,15 @@
         <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.9rem;cursor:pointer" data-i18n="filter.reset">リセット</button>
         <button onclick="closeFilterModal()" style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;cursor:pointer;font-weight:bold" data-i18n="filter.apply_close">適用して閉じる</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ランク更新モーダル -->
+  <div id="rank-update-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeRankModal()">
+    <div id="rank-update-card" style="background:var(--bg-card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:360px;padding:28px 24px;text-align:center;position:relative">
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.08em">RANK UPDATE</div>
+      <div id="rank-update-body"></div>
+      <button onclick="closeRankModal()" style="margin-top:20px;padding:8px 32px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;font-weight:bold;cursor:pointer">OK</button>
     </div>
   </div>
 
@@ -170,6 +199,70 @@ apiFetch('/version').then(d => {
   const el = document.getElementById('app-version');
   if (el && d.version) el.textContent = 'ver ' + d.version;
 }).catch(() => {});
+
+function closeRankModal() {
+  document.getElementById('rank-update-modal').style.display = 'none';
+}
+
+function rankBadgeLg(rank) {
+  return `<span class="rank-badge-lg rank-${rank || 'C'}">${rank || 'C'}</span>`;
+}
+
+function rateLabel(rank, sRate, xRate) {
+  if (rank === 'S' && sRate != null) return `レート ${Math.floor(sRate)}`;
+  if ((rank === 'X' || rank === 'Ex') && xRate != null) return `レート ${Math.floor(xRate)}`;
+  return null;
+}
+
+async function checkRankUpdate() {
+  const user = getUser();
+  if (!user) return;
+  try {
+    const data = await apiFetch(`/users/${user.id}`);
+    const cur = { rank: data.comp_rank || 'C', sRate: data.s_rate, xRate: data.x_rate };
+    const key = `hbr_rank_${user.id}`;
+    const stored = JSON.parse(localStorage.getItem(key) || 'null');
+
+    if (stored) {
+      const rankChanged = stored.rank !== cur.rank;
+      const sChanged = cur.rank === 'S' && Math.abs((cur.sRate || 0) - (stored.sRate || 0)) >= 1;
+      const xChanged = (cur.rank === 'X' || cur.rank === 'Ex') && Math.abs((cur.xRate || 0) - (stored.xRate || 0)) >= 1;
+
+      if (rankChanged || sChanged || xChanged) {
+        const prevRateLabel = rateLabel(stored.rank, stored.sRate, stored.xRate);
+        const curRateLabel  = rateLabel(cur.rank,    cur.sRate,   cur.xRate);
+        const isUp = ['C','B','A','S','X','Ex'].indexOf(cur.rank) >= ['C','B','A','S','X','Ex'].indexOf(stored.rank);
+
+        let html = '';
+        if (rankChanged) {
+          html = `
+            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0">
+              ${rankBadgeLg(stored.rank)}
+              <span style="font-size:1.4rem;color:var(--text-muted)">→</span>
+              ${rankBadgeLg(cur.rank)}
+            </div>
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? 'ランクアップ！' : 'ランク降格'}</div>`;
+        } else {
+          const prev = prevRateLabel || '-';
+          const next = curRateLabel  || '-';
+          html = `
+            <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>
+            <div style="font-size:1rem;margin-top:8px">
+              <span style="color:var(--text-muted)">${prev}</span>
+              <span style="margin:0 8px;color:var(--text-muted)">→</span>
+              <span style="font-weight:bold;color:var(--accent)">${next}</span>
+            </div>`;
+        }
+        document.getElementById('rank-update-body').innerHTML = html;
+        document.getElementById('rank-update-modal').style.display = 'flex';
+      }
+    }
+
+    localStorage.setItem(key, JSON.stringify(cur));
+  } catch {}
+}
+
+checkRankUpdate();
 
 function openVersionModal() {
   const m = document.getElementById('version-modal');
