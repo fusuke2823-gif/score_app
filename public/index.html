@@ -40,21 +40,53 @@
   to   { opacity:1; transform:scale(1) translateY(0); }
 }
 @keyframes rankGlow {
-  0%,100% { box-shadow:0 0 0px transparent; }
-  50%      { box-shadow:0 0 24px var(--rank-glow, #a855f7); }
+  0%,100% { filter: drop-shadow(0 0 3px var(--rank-glow,#a855f7)); }
+  50%      { filter: drop-shadow(0 0 18px var(--rank-glow,#a855f7)) drop-shadow(0 0 6px var(--rank-glow,#a855f7)); }
+}
+@keyframes exGlow {
+  0%,100% { filter: drop-shadow(0 0 4px #f0c040) drop-shadow(0 0 2px #a855f7); transform: scale(1); }
+  50%      { filter: drop-shadow(0 0 22px #f0c040) drop-shadow(0 0 10px #a855f7); transform: scale(1.05); }
 }
 #rank-update-card { animation: rankCardIn 0.35s cubic-bezier(.34,1.56,.64,1) both; }
 .rank-badge-lg {
-  display:inline-block;font-size:2rem;font-weight:bold;
-  padding:8px 24px;border-radius:16px;letter-spacing:0.05em;
+  display:inline-block; font-size:2rem; font-weight:bold; letter-spacing:0.05em;
   animation: rankGlow 1.8s ease-in-out infinite;
 }
-.rank-badge-lg.rank-C  { background:rgba(160,160,160,0.15);color:#aaa;border:2px solid #aaa;--rank-glow:#aaa; }
-.rank-badge-lg.rank-B  { background:rgba(80,180,80,0.15);color:#5cb85c;border:2px solid #5cb85c;--rank-glow:#5cb85c; }
-.rank-badge-lg.rank-A  { background:rgba(70,130,200,0.15);color:#5b9bd5;border:2px solid #5b9bd5;--rank-glow:#5b9bd5; }
-.rank-badge-lg.rank-S  { background:rgba(230,160,40,0.15);color:#e6a028;border:2px solid #e6a028;--rank-glow:#e6a028; }
-.rank-badge-lg.rank-X  { background:rgba(150,80,220,0.15);color:#a855f7;border:2px solid #a855f7;--rank-glow:#a855f7; }
-.rank-badge-lg.rank-Ex { background:linear-gradient(135deg,rgba(230,160,40,0.15),rgba(150,80,220,0.15));color:#f0c040;border:2px solid #f0c040;--rank-glow:#f0c040; }
+/* C: 素のRect */
+.rank-badge-lg.rank-C {
+  padding:8px 20px; border-radius:3px;
+  background:rgba(160,160,160,0.15); color:#aaa; border:2px solid #aaa; --rank-glow:#aaa;
+}
+/* B: 丸角Rect */
+.rank-badge-lg.rank-B {
+  padding:8px 20px; border-radius:12px;
+  background:rgba(80,180,80,0.15); color:#5cb85c; border:2px solid #5cb85c; --rank-glow:#5cb85c;
+}
+/* A: 面取り八角形 */
+.rank-badge-lg.rank-A {
+  padding:10px 22px;
+  clip-path:polygon(14px 0%,calc(100% - 14px) 0%,100% 14px,100% calc(100% - 14px),calc(100% - 14px) 100%,14px 100%,0% calc(100% - 14px),0% 14px);
+  background:rgba(70,130,200,0.25); color:#5b9bd5; --rank-glow:#5b9bd5;
+}
+/* S: シールド（下尖り） */
+.rank-badge-lg.rank-S {
+  padding:10px 24px 22px;
+  clip-path:polygon(0% 0%,100% 0%,100% 62%,50% 100%,0% 62%);
+  background:rgba(230,160,40,0.25); color:#e6a028; --rank-glow:#e6a028;
+}
+/* X: ダイヤモンド */
+.rank-badge-lg.rank-X {
+  padding:22px 34px;
+  clip-path:polygon(50% 0%,100% 50%,50% 100%,0% 50%);
+  background:rgba(150,80,220,0.3); color:#a855f7; --rank-glow:#a855f7;
+}
+/* Ex: ヘキサゴン（クリスタル）+ デュアルグロー */
+.rank-badge-lg.rank-Ex {
+  padding:14px 22px;
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  background:linear-gradient(135deg,rgba(230,160,40,0.3),rgba(150,80,220,0.35));
+  color:#f0c040; animation: exGlow 1.5s ease-in-out infinite;
+}
 </style>
 </head>
 <body>
