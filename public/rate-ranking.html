@@ -157,8 +157,8 @@ function renderTable(rows) {
     const pos = i + 1;
     const isSelf = meId && r.id === meId;
     const rateDisp = r.x_rate != null ? Math.floor(r.x_rate) : '-';
-    const rankLabel = r.comp_rank === 'Ex' && r.ex_rank != null
-      ? `<span class="rank-badge-sm rank-Ex">Ex</span><span class="sub-text">${r.ex_rank}位</span>`
+    const rankLabel = r.comp_rank === 'Ex'
+      ? `<span class="rank-badge-sm rank-Ex">Ex${r.ex_rank != null ? `${r.ex_rank}位` : ''}</span>`
       : `<span class="rank-badge-sm rank-${r.comp_rank}">${r.comp_rank}</span>`;
     const avatarInner = r.equipped_icon_url
       ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}">`
@@ -167,10 +167,7 @@ function renderTable(rows) {
       <tr class="${isSelf ? 'is-me' : ''}">
         <td><span class="rate-num">${pos}</span></td>
         <td><a class="rate-avatar" href="/user.html?id=${r.id}">${avatarInner}</a></td>
-        <td class="rate-username">
-          <a href="/user.html?id=${r.id}">${escHtml(r.username)}</a>
-          ${r.equipped_title ? `<span style="font-size:0.72rem;color:var(--text-muted);margin-left:4px">「${escHtml(r.equipped_title)}」</span>` : ''}
-        </td>
+        <td class="rate-username"><a href="/user.html?id=${r.id}">${escHtml(r.username)}</a></td>
         <td style="text-align:center">${rankLabel}</td>
         <td class="rate-score">${rateDisp}</td>
       </tr>`;
