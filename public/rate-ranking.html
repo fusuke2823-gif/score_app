@@ -93,15 +93,17 @@ function renderMyCard(rows) {
   const my = rows.find(r => String(r.id) === String(me.id));
   if (!my) { area.innerHTML = ''; return; }
   const rateDisp = my.x_rate != null ? Math.floor(my.x_rate) : '-';
-  const exStr = my.comp_rank === 'Ex' && my.ex_rank != null ? `<span style="font-size:0.95rem;font-weight:700;color:#a855f7;margin-left:4px">${my.ex_rank}位</span>` : '';
+  const exStr = my.comp_rank === 'Ex' && my.ex_rank != null ? `<span style="font-size:1.2rem;font-weight:700;color:#a855f7">${my.ex_rank}位</span>` : '';
   area.innerHTML = `
     <div class="my-rate-card">
-      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px">${t('rate.my_label')}</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span style="font-weight:bold;font-size:0.95rem">${escHtml(my.username)}</span>
-        <img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:56px;height:56px;object-fit:contain" alt="${my.comp_rank}">
-        ${exStr}
-        <span class="rate-val">${rateDisp}</span>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px">${t('rate.my_label')}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <span style="font-weight:bold;font-size:1.1rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(my.username)}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:72px;height:72px;object-fit:contain" alt="${my.comp_rank}">
+          ${exStr}
+          <span style="font-size:2rem;font-weight:bold">${rateDisp}</span>
+        </div>
       </div>
     </div>`;
 }
