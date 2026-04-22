@@ -69,7 +69,9 @@ router.get('/:id', optionalAuth, async (req, res) => {
          e.name AS event_name,
          s.attribute,
          s.approved_score,
-         s.approved_image_url
+         s.approved_image_url,
+         s.youtube_url,
+         s.youtube_score
        FROM scores s
        JOIN events e ON s.event_id = e.id
        WHERE s.user_id = $1
