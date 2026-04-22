@@ -85,6 +85,20 @@
   </div>
 </div>
 
+<!-- 既存動画保持確認モーダル -->
+<div id="yt-keep-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:380px;width:90%;text-align:center">
+    <div style="font-weight:bold;font-size:1rem;margin-bottom:8px">既存の動画リンクを残しますか？</div>
+    <div id="yt-keep-score-info" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px"></div>
+    <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px">今回の投稿には動画リンクが含まれていません。</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="submitWithYtKeep(true)" class="btn btn-primary" style="flex:1">残す</button>
+      <button onclick="submitWithYtKeep(false)" class="btn" style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text)">削除する</button>
+    </div>
+    <button onclick="closeYtKeepModal()" style="margin-top:14px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer" data-i18n="cancel">キャンセル</button>
+  </div>
+</div>
+
 <script src="/js/common.js"></script>
 <script>
 renderNav();
@@ -161,14 +175,17 @@ async function loadEvents() {
   }
 }
 
+let myScores = [];
+
 // 自分のスコア表示
 async function loadMyScores() {
   const eventId = document.getElementById('event-select').value;
   const container = document.getElementById('my-scores');
-  if (!eventId) { container.innerHTML = ''; return; }
+  if (!eventId) { container.innerHTML = ''; myScores = []; return; }
 
   try {
     const scores = await apiFetch(`/scores/my/${eventId}`);
+    myScores = scores;
     if (scores.length === 0) { container.innerHTML = ''; return; }
 
     container.innerHTML = `
@@ -190,6 +207,8 @@ async function loadMyScores() {
   } catch {}
 }
 
+let _pendingIsAnon = false;
+
 // フォーム送信
 document.getElementById('submit-form').addEventListener('submit', async e => {
   e.preventDefault();
@@ -208,7 +227,8 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
   if (needsAnonPrompt) {
     document.getElementById('anon-modal').style.display = 'flex';
   } else {
-    await doSubmit(false);
+    _pendingIsAnon = false;
+    await checkYtKeepThenSubmit();
   }
 });
 
@@ -218,10 +238,35 @@ function closeAnonModal() {
 
 async function submitWithAnon(isAnon) {
   closeAnonModal();
-  await doSubmit(isAnon);
+  _pendingIsAnon = isAnon;
+  await checkYtKeepThenSubmit();
 }
 
-async function doSubmit(isAnon) {
+function closeYtKeepModal() {
+  document.getElementById('yt-keep-modal').style.display = 'none';
+}
+
+async function submitWithYtKeep(keep) {
+  closeYtKeepModal();
+  await doSubmit(_pendingIsAnon, keep);
+}
+
+async function checkYtKeepThenSubmit() {
+  const attrInput = document.querySelector('input[name="attribute"]:checked');
+  const ytUrl = document.getElementById('youtube-input')?.value.trim();
+  if (!ytUrl && attrInput) {
+    const existing = myScores.find(s => s.attribute === attrInput.value);
+    if (existing?.youtube_url) {
+      const scoreInfo = existing.youtube_score ? `動画投稿時のスコア: ${formatScore(existing.youtube_score)}` : '';
+      document.getElementById('yt-keep-score-info').textContent = scoreInfo;
+      document.getElementById('yt-keep-modal').style.display = 'flex';
+      return;
+    }
+  }
+  await doSubmit(_pendingIsAnon, false);
+}
+
+async function doSubmit(isAnon, keepYt) {
   const eventId = document.getElementById('event-select').value;
   const attrInput = document.querySelector('input[name="attribute"]:checked');
   const score = document.getElementById('score-input').value;
@@ -240,6 +285,7 @@ async function doSubmit(isAnon) {
   if (imageFile) formData.append('image', imageFile);
   const ytUrl = document.getElementById('youtube-input')?.value.trim();
   if (ytUrl) formData.append('youtube_url', ytUrl);
+  formData.append('keep_youtube', keepYt ? 'true' : 'false');
 
   btn.disabled = true;
   btn.textContent = t('submit.btn_loading');
@@ -250,6 +296,7 @@ async function doSubmit(isAnon) {
     document.getElementById('score-input').value = '';
     document.getElementById('image-input').value = '';
     document.getElementById('image-preview').style.display = 'none';
+    document.getElementById('youtube-input').value = '';
     loadMyScores();
   } catch (err) {
     showAlert('#alert', err.message);

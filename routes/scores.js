@@ -21,7 +21,7 @@ const VALID_ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 
 // スコア投稿
 router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
-  const { event_id, attribute, score, is_anonymous, ranking_scope, youtube_url } = req.body;
+  const { event_id, attribute, score, is_anonymous, ranking_scope, youtube_url, keep_youtube } = req.body;
 
   if (!event_id || !attribute || score === undefined)
     return res.status(400).json({ error: '必須項目が不足しています' });
@@ -35,6 +35,7 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
   const ytUrl = youtube_url ? youtube_url.trim() : null;
   if (ytUrl && !/^https?:\/\/(www\.)?(youtube\.com\/(watch|shorts|live)|youtu\.be\/)/.test(ytUrl))
     return res.status(400).json({ error: 'YouTubeのURLのみ入力できます' });
+  const keepYt = keep_youtube === 'true' || keep_youtube === true;
 
   try {
     // 投稿期間チェック
@@ -66,18 +67,19 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     const scopeVal = isInternal && ranking_scope === 'public' ? 'public' : (isInternal ? 'internal' : 'public');
 
     const result = await pool.query(
-      `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, youtube_url)
-       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), $6, $7, $8)
+      `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, youtube_url, youtube_score)
+       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), $6, $7, $8, CASE WHEN $8 IS NOT NULL THEN $4 ELSE NULL END)
        ON CONFLICT (user_id, event_id, attribute) DO UPDATE SET
          pending_score = $4,
          pending_image_url = COALESCE($5, scores.pending_image_url),
          status = 'pending',
          is_anonymous = $6,
          ranking_scope = $7,
-         youtube_url = $8,
+         youtube_url = CASE WHEN $8 IS NOT NULL THEN $8 WHEN $9 THEN scores.youtube_url ELSE NULL END,
+         youtube_score = CASE WHEN $8 IS NOT NULL THEN $4 WHEN $9 THEN scores.youtube_score ELSE NULL END,
          updated_at = NOW()
        RETURNING *`,
-      [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true, scopeVal, ytUrl]
+      [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true, scopeVal, ytUrl, keepYt]
     );
 
     res.json({ message: 'スコアを投稿しました。管理者の承認をお待ちください。', score: result.rows[0] });

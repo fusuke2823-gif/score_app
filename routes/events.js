@@ -226,6 +226,7 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
           s.approved_score,
           s.approved_image_url,
           s.youtube_url,
+          s.youtube_score,
           s.is_anonymous,
           s.updated_at
         FROM scores s
@@ -256,6 +257,7 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
         bs.approved_score,
         bs.approved_image_url,
         bs.youtube_url,
+        bs.youtube_score,
         bs.is_anonymous,
         MAX(bs.updated_at) OVER () AS last_updated_at
       FROM best_scores bs
