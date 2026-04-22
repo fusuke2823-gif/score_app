@@ -141,6 +141,10 @@ const _i18n = {
     'rate.btn':'レートランキング',
     'submit.yt_url':'YouTube動画URL（任意）','submit.yt_hint':'YouTubeのURLのみ入力できます',
     'ranking.yt_watch':'YouTube動画を見る',
+    'user.x_id':'X (Twitter) ID','user.x_id_optional':'X (Twitter) ID（任意）',
+    'user.x_hint':'英数字・アンダースコアのみ（x.com/usernameの形式で表示）',
+    'user.x_hint_short':'英数字・アンダースコアのみ',
+    'user.x_err':'XのIDは英数字・アンダースコア1〜15文字で入力してください',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -279,6 +283,10 @@ const _i18n = {
     'rate.btn':'評分排行榜',
     'submit.yt_url':'YouTube影片網址（選填）','submit.yt_hint':'僅限YouTube網址',
     'ranking.yt_watch':'觀看YouTube影片',
+    'user.x_id':'X (Twitter) ID','user.x_id_optional':'X (Twitter) ID（選填）',
+    'user.x_hint':'僅限英數字・底線（以x.com/username格式顯示）',
+    'user.x_hint_short':'僅限英數字・底線',
+    'user.x_err':'X的ID請輸入英數字・底線1〜15個字元',
   }
 };
 
