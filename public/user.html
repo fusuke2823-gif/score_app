@@ -223,6 +223,9 @@ async function load() {
           <label class="form-label">${t('user.oshi_field')}</label>
           <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="${t('user.oshi_ph')}">
         </div>
+        <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-card2);border-radius:8px;padding:8px 12px;margin-bottom:4px">
+          ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。
+        </div>
         <div class="form-group">
           <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
             <span data-i18n="user.x_id">X (Twitter) ID</span>
