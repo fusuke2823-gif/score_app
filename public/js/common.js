@@ -145,6 +145,8 @@ const _i18n = {
     'user.x_hint':'英数字・アンダースコアのみ（x.com/usernameの形式で表示）',
     'user.x_hint_short':'英数字・アンダースコアのみ',
     'user.x_err':'XのIDは英数字・アンダースコア1〜15文字で入力してください',
+    'user.yt_channel_optional':'YouTubeチャンネル（任意）',
+    'user.yt_channel_hint':'チャンネルURL または @ハンドル',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -287,6 +289,8 @@ const _i18n = {
     'user.x_hint':'僅限英數字・底線（以x.com/username格式顯示）',
     'user.x_hint_short':'僅限英數字・底線',
     'user.x_err':'X的ID請輸入英數字・底線1〜15個字元',
+    'user.yt_channel_optional':'YouTube頻道（選填）',
+    'user.yt_channel_hint':'頻道URL 或 @handle',
   }
 };
 

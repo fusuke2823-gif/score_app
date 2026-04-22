@@ -296,6 +296,7 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS twitter_username VARCHAR(15) DEFAULT NULL;
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS youtube_url VARCHAR(255) DEFAULT NULL;
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS youtube_score INTEGER DEFAULT NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS youtube_channel VARCHAR(200) DEFAULT NULL;
     `);
 
     // destruction_rate を VARCHAR→INTEGER に変換（既存DBのマイグレーション）

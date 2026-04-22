@@ -18,29 +18,42 @@
     <div id="alert"></div>
     <form id="register-form">
       <div class="form-group">
-        <label class="form-label"><span data-i18n="register.username">ユーザー名</span> <span style="color:var(--accent)">*</span></label>
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
+          <span><span data-i18n="register.username">ユーザー名</span> <span style="color:var(--accent)">*</span></span>
+          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="register.username_hint">1〜12文字</span>
+        </label>
         <input class="form-input" type="text" id="username" required autofocus minlength="1" maxlength="12">
-        <div class="form-hint" data-i18n="register.username_hint">1〜12文字</div>
       </div>
       <div class="form-group">
-        <label class="form-label"><span data-i18n="register.password">パスワード</span> <span style="color:var(--accent)">*</span></label>
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
+          <span><span data-i18n="register.password">パスワード</span> <span style="color:var(--accent)">*</span></span>
+          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="register.password_hint">6文字以上</span>
+        </label>
         <div class="pw-wrap">
           <input class="form-input" type="password" id="password" required minlength="6">
           <button type="button" class="pw-toggle" onclick="togglePw('password')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
-        <div class="form-hint" data-i18n="register.password_hint">6文字以上</div>
       </div>
       <div class="form-group">
         <label class="form-label" data-i18n="register.oshi">推しキャラクター（任意）</label>
         <input class="form-input" type="text" id="oshi" maxlength="100" data-i18n-ph="register.oshi_ph" placeholder="例: 茅森月歌">
       </div>
       <div class="form-group">
-        <label class="form-label" data-i18n="user.x_id_optional">X (Twitter) ID（任意）</label>
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
+          <span data-i18n="user.x_id_optional">X (Twitter) ID（任意）</span>
+          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.x_hint_short">英数字・アンダースコアのみ</span>
+        </label>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--text-muted);font-size:0.9rem">@</span>
           <input class="form-input" type="text" id="twitter" maxlength="15" placeholder="username" style="flex:1" autocomplete="off">
         </div>
-        <div class="form-hint" data-i18n="user.x_hint_short">英数字・アンダースコアのみ</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
+          <span data-i18n="user.yt_channel_optional">YouTubeチャンネル（任意）</span>
+          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.yt_channel_hint">チャンネルURL または @ハンドル</span>
+        </label>
+        <input class="form-input" type="text" id="youtube-channel" maxlength="200" placeholder="https://youtube.com/@..." autocomplete="off">
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
     </form>
@@ -157,11 +170,13 @@ document.getElementById('register-form').addEventListener('submit', async e => {
       btn.textContent = t('register.btn');
       return;
     }
+    const ytChannel = document.getElementById('youtube-channel').value.trim() || undefined;
     const body = {
       username: document.getElementById('username').value,
       password: document.getElementById('password').value,
       oshi_character: document.getElementById('oshi').value || undefined,
       twitter_username: twitterRaw || undefined,
+      youtube_channel: ytChannel,
       ref: getParam('ref') || undefined
     };
 
