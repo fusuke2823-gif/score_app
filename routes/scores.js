@@ -36,6 +36,7 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
   if (ytUrl && !/^https?:\/\/(www\.)?(youtube\.com\/(watch|shorts|live)|youtu\.be\/)/.test(ytUrl))
     return res.status(400).json({ error: 'YouTubeのURLのみ入力できます' });
   const keepYt = keep_youtube === 'true' || keep_youtube === true;
+  const ytScore = ytUrl ? parseInt(score) : null;
 
   try {
     // 投稿期間チェック
@@ -68,18 +69,18 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
 
     const result = await pool.query(
       `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, youtube_url, youtube_score)
-       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), $6, $7, $8, CASE WHEN $8 IS NOT NULL THEN $4 ELSE NULL END)
+       VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), $6, $7, $8, $9)
        ON CONFLICT (user_id, event_id, attribute) DO UPDATE SET
          pending_score = $4,
          pending_image_url = COALESCE($5, scores.pending_image_url),
          status = 'pending',
          is_anonymous = $6,
          ranking_scope = $7,
-         youtube_url = CASE WHEN $8 IS NOT NULL THEN $8 WHEN $9 THEN scores.youtube_url ELSE NULL END,
-         youtube_score = CASE WHEN $8 IS NOT NULL THEN $4 WHEN $9 THEN scores.youtube_score ELSE NULL END,
+         youtube_url = CASE WHEN $8 IS NOT NULL THEN $8 WHEN $10 THEN scores.youtube_url ELSE NULL END,
+         youtube_score = CASE WHEN $8 IS NOT NULL THEN $9 WHEN $10 THEN scores.youtube_score ELSE NULL END,
          updated_at = NOW()
        RETURNING *`,
-      [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true, scopeVal, ytUrl, keepYt]
+      [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true, scopeVal, ytUrl, ytScore, keepYt]
     );
 
     res.json({ message: 'スコアを投稿しました。管理者の承認をお待ちください。', score: result.rows[0] });
