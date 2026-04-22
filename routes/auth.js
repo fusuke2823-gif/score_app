@@ -91,7 +91,7 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 router.put('/me', authenticateToken, async (req, res) => {
-  const { username, oshi_character, current_password, new_password, twitter_username } = req.body;
+  const { username, oshi_character, current_password, new_password, twitter_username, youtube_channel } = req.body;
 
   if (username !== undefined) {
     if (username.length < 1 || username.length > 12)
@@ -101,6 +101,10 @@ router.put('/me', authenticateToken, async (req, res) => {
   if (twitter_username !== undefined && twitter_username !== null && twitter_username !== '') {
     if (!/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
       return res.status(400).json({ error: 'XユーザーIDは英数字・アンダースコア1〜15文字で入力してください' });
+  }
+  if (youtube_channel !== undefined && youtube_channel !== null && youtube_channel !== '') {
+    if (youtube_channel.length > 200)
+      return res.status(400).json({ error: 'YouTubeチャンネルは200文字以内で入力してください' });
   }
 
   try {
@@ -121,17 +125,18 @@ router.put('/me', authenticateToken, async (req, res) => {
     }
 
     const twName = twitter_username === '' ? null : (twitter_username ?? null);
+    const ytCh = youtube_channel === '' ? null : (youtube_channel ?? null);
     let result;
     if (new_password) {
       const hash = await bcrypt.hash(new_password, 10);
       result = await pool.query(
-        'UPDATE users SET username=COALESCE($1,username), oshi_character=$2, password_hash=$3, twitter_username=$4 WHERE id=$5 RETURNING id, username, role, oshi_character',
-        [username || null, oshi_character ?? null, hash, twName, req.user.id]
+        'UPDATE users SET username=COALESCE($1,username), oshi_character=$2, password_hash=$3, twitter_username=$4, youtube_channel=$5 WHERE id=$6 RETURNING id, username, role, oshi_character',
+        [username || null, oshi_character ?? null, hash, twName, ytCh, req.user.id]
       );
     } else {
       result = await pool.query(
-        'UPDATE users SET username=COALESCE($1,username), oshi_character=$2, twitter_username=$3 WHERE id=$4 RETURNING id, username, role, oshi_character',
-        [username || null, oshi_character ?? null, twName, req.user.id]
+        'UPDATE users SET username=COALESCE($1,username), oshi_character=$2, twitter_username=$3, youtube_channel=$4 WHERE id=$5 RETURNING id, username, role, oshi_character',
+        [username || null, oshi_character ?? null, twName, ytCh, req.user.id]
       );
     }
 
