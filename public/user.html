@@ -64,13 +64,13 @@
 .attr-score-img { width:32px; height:22px; object-fit:cover; border-radius:3px; cursor:pointer; border:1px solid var(--border); }
 .attr-score-img.has-yt { border:2px solid #ff4444; }
 
-.comp-rank-badge { display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.8rem;padding:2px 10px;border-radius:12px;letter-spacing:0.05em; }
-.rank-C  { background:rgba(160,160,160,0.2);color:#aaa;border:1px solid #aaa; }
-.rank-B  { background:rgba(80,180,80,0.2);color:#5cb85c;border:1px solid #5cb85c; }
-.rank-A  { background:rgba(70,130,200,0.2);color:#5b9bd5;border:1px solid #5b9bd5; }
-.rank-S  { background:rgba(230,160,40,0.2);color:#e6a028;border:1px solid #e6a028; }
-.rank-X  { background:rgba(230,160,40,0.2);color:#f0c040;border:1px solid #f0c040; }
-.rank-Ex { background:linear-gradient(90deg,rgba(150,80,220,0.2),rgba(230,160,40,0.2));color:#a855f7;border:1px solid #a855f7; }
+.comp-rank-badge { display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.8rem;padding:2px 4px;letter-spacing:0.05em; }
+.rank-C  { color:#aaa; }
+.rank-B  { color:#5cb85c; }
+.rank-A  { color:#5b9bd5; }
+.rank-S  { color:#e6a028; }
+.rank-X  { color:#f0c040; }
+.rank-Ex { color:#a855f7; }
 #img-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; flex-direction:column; padding:48px 16px 24px; }
 #img-modal.open { display:flex; }
 #img-modal img { max-width:90vw; max-height:75vh; border-radius:8px; }
@@ -121,10 +121,10 @@ function compRankBadge(rank, sRate, xRate, exRank) {
   const r = (rank || 'C').toLowerCase();
   const img = `<img src="/img/rank_${r}.png" style="width:32px;height:32px;object-fit:contain;vertical-align:middle" alt="${rank || 'C'}">`;
   const rate = rank === 'S' ? sRate : xRate;
-  const rateStr = rate != null ? `<span style="font-size:0.72rem;font-weight:normal;margin-left:4px">${Math.floor(rate)}</span>` : '';
+  const rateStr = rate != null ? `<span style="font-size:0.9rem;font-weight:bold;margin-left:4px">${Math.floor(rate)}</span>` : '';
   if (!rank || rank === 'C' || rank === 'B' || rank === 'A') return `<span class="comp-rank-badge rank-${rank || 'C'}">${img}</span>`;
   if (rank === 'Ex') {
-    const exStr = exRank != null ? `<span style="font-size:0.72rem;margin-left:2px">${exRank}位</span>` : '';
+    const exStr = exRank != null ? `<span style="font-size:0.9rem;font-weight:bold;margin-left:2px">${exRank}位</span>` : '';
     return `<span class="comp-rank-badge rank-Ex">${img}${exStr}${rateStr}</span>`;
   }
   return `<span class="comp-rank-badge rank-${rank}">${img}${rateStr}</span>`;
