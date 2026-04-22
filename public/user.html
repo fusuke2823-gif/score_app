@@ -118,16 +118,16 @@ const userId = getParam('id');
 if (!userId) location.href = '/index.html';
 
 function compRankBadge(rank, sRate, xRate, exRank) {
-  if (!rank || rank === 'C') return `<span class="comp-rank-badge rank-C">C</span>`;
-  if (rank === 'B') return `<span class="comp-rank-badge rank-B">B</span>`;
-  if (rank === 'A') return `<span class="comp-rank-badge rank-A">A</span>`;
+  const r = (rank || 'C').toLowerCase();
+  const img = `<img src="/img/rank_${r}.png" style="width:32px;height:32px;object-fit:contain;vertical-align:middle" alt="${rank || 'C'}">`;
   const rate = rank === 'S' ? sRate : xRate;
-  const rateStr = rate != null ? ` <span style="font-size:0.72rem;font-weight:normal">${Math.floor(rate)}</span>` : '';
+  const rateStr = rate != null ? `<span style="font-size:0.72rem;font-weight:normal;margin-left:4px">${Math.floor(rate)}</span>` : '';
+  if (!rank || rank === 'C' || rank === 'B' || rank === 'A') return `<span class="comp-rank-badge rank-${rank || 'C'}">${img}</span>`;
   if (rank === 'Ex') {
-    const exStr = exRank != null ? `${exRank}位` : '';
-    return `<span class="comp-rank-badge rank-Ex">Ex${exStr}${rateStr}</span>`;
+    const exStr = exRank != null ? `<span style="font-size:0.72rem;margin-left:2px">${exRank}位</span>` : '';
+    return `<span class="comp-rank-badge rank-Ex">${img}${exStr}${rateStr}</span>`;
   }
-  return `<span class="comp-rank-badge rank-${rank}">${rank}${rateStr}</span>`;
+  return `<span class="comp-rank-badge rank-${rank}">${img}${rateStr}</span>`;
 }
 
 function rankProgressBar(rank, rankPoints, sRate) {

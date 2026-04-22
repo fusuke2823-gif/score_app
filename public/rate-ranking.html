@@ -104,7 +104,7 @@ function renderMyCard(rows) {
         <div class="my-rate-label">${t('rate.my_label')}</div>
         <div class="my-rate-name">${escHtml(my.username)}</div>
       </div>
-      <div class="rate-rank-badge rank-${my.comp_rank}">${rankDisp}</div>
+      <div class="rate-rank-badge rank-${my.comp_rank}"><img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:48px;height:48px;object-fit:contain" alt="${my.comp_rank}">${my.comp_rank === 'Ex' && my.ex_rank != null ? `<div style="font-size:0.72rem;text-align:center;margin-top:2px">${my.ex_rank}位</div>` : ''}</div>
       <div class="rate-val">${rateDisp}</div>
     </div>`;
 }
@@ -120,9 +120,10 @@ function renderTable(rows) {
     const rateDisp = r.x_rate != null ? Math.floor(r.x_rate) : '-';
     const fc = r.equipped_frame || '';
     const fr = fc ? `has-frame ${fc}` : '';
-    const rankLabel = r.comp_rank === 'Ex'
-      ? `<span class="rank-Ex" style="font-weight:bold">Ex${r.ex_rank != null ? `${r.ex_rank}位` : ''}</span>`
-      : `<span class="rank-${r.comp_rank}" style="font-weight:bold">${r.comp_rank}</span>`;
+    const rankLabel = `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:1px">
+      <img src="/img/rank_${r.comp_rank.toLowerCase()}.png" style="width:28px;height:28px;object-fit:contain" alt="${r.comp_rank}">
+      ${r.comp_rank === 'Ex' && r.ex_rank != null ? `<span style="font-size:0.65rem;color:#f0c040">${r.ex_rank}位</span>` : ''}
+    </span>`;
     const avatarInner = r.equipped_icon_url
       ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}">`
       : escHtml(r.username.charAt(0));
