@@ -38,12 +38,12 @@
 .my-rate-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; }
 .my-rate-name { font-weight: bold; font-size: 0.95rem; }
 .rate-rank-badge { font-weight: bold; font-size: 1.1rem; min-width: 36px; text-align: center; }
-.rate-rank-badge.rank-X  { color: #a855f7; }
-.rate-rank-badge.rank-Ex { color: #f0c040; }
+.rate-rank-badge.rank-X  { color: #f0c040; }
+.rate-rank-badge.rank-Ex { color: #a855f7; }
 .rate-val { font-size: 1.4rem; font-weight: bold; }
 
-.rank-X  { color: #a855f7; }
-.rank-Ex { color: #f0c040; }
+.rank-X  { color: #f0c040; }
+.rank-Ex { color: #a855f7; }
 .rate-score { font-size: 0.95rem; font-weight: bold; text-align: right; }
 </style>
 </head>
@@ -93,7 +93,7 @@ function setScope(s) {
 function renderMyCard(rows) {
   const area = document.getElementById('my-rate-area');
   if (!me) { area.innerHTML = ''; return; }
-  const my = rows.find(r => r.id === me.id);
+  const my = rows.find(r => String(r.id) === String(me.id));
   if (!my) { area.innerHTML = ''; return; }
   const rateDisp = my.x_rate != null ? Math.floor(my.x_rate) : '-';
   const rankDisp = my.comp_rank === 'Ex' && my.ex_rank != null
@@ -104,7 +104,7 @@ function renderMyCard(rows) {
         <div class="my-rate-label">${t('rate.my_label')}</div>
         <div class="my-rate-name">${escHtml(my.username)}</div>
       </div>
-      <div class="rate-rank-badge rank-${my.comp_rank}"><img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:48px;height:48px;object-fit:contain" alt="${my.comp_rank}">${my.comp_rank === 'Ex' && my.ex_rank != null ? `<div style="font-size:0.72rem;text-align:center;margin-top:2px">${my.ex_rank}位</div>` : ''}</div>
+      <div class="rate-rank-badge rank-${my.comp_rank}"><img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:48px;height:48px;object-fit:contain" alt="${my.comp_rank}">${my.comp_rank === 'Ex' && my.ex_rank != null ? `<div style="font-size:0.72rem;text-align:center;margin-top:2px;color:#a855f7;font-weight:700">${my.ex_rank}位</div>` : ''}</div>
       <div class="rate-val">${rateDisp}</div>
     </div>`;
 }
@@ -120,9 +120,9 @@ function renderTable(rows) {
     const rateDisp = r.x_rate != null ? Math.floor(r.x_rate) : '-';
     const fc = r.equipped_frame || '';
     const fr = fc ? `has-frame ${fc}` : '';
-    const rankLabel = `<span style="display:inline-flex;flex-direction:column;align-items:center;gap:1px">
+    const rankLabel = `<span style="display:inline-flex;align-items:center;gap:4px">
       <img src="/img/rank_${r.comp_rank.toLowerCase()}.png" style="width:28px;height:28px;object-fit:contain" alt="${r.comp_rank}">
-      ${r.comp_rank === 'Ex' && r.ex_rank != null ? `<span style="font-size:0.65rem;color:#f0c040">${r.ex_rank}位</span>` : ''}
+      ${r.comp_rank === 'Ex' && r.ex_rank != null ? `<span style="font-weight:700;font-size:0.9rem;color:#a855f7">${r.ex_rank}位</span>` : ''}
     </span>`;
     const avatarInner = r.equipped_icon_url
       ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}">`
