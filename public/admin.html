@@ -495,6 +495,7 @@ async function loadPending() {
           </div>
           <div class="pending-score">${formatScore(item.pending_score)}</div>
           ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}
+          ${item.youtube_url ? `<div style="margin-top:4px"><a href="${escHtml(item.youtube_url)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#ff4444;display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>YouTube動画を見る</a></div>` : ''}
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${formatDate(item.updated_at)}</div>
           <div style="margin-top:8px">
             <input class="form-input" type="text" placeholder="却下理由（任意）" id="note-${item.id}" style="font-size:0.85rem">
@@ -811,7 +812,7 @@ async function loadAllScores() {
     }
     el.innerHTML = `
       <table class="ranking-table">
-        <thead><tr><th>ユーザー</th><th>イベント</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th>状態</th></tr></thead>
+        <thead><tr><th>ユーザー</th><th>イベント</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th>状態</th><th></th></tr></thead>
         <tbody>
           ${scores.map(s => `
             <tr>
@@ -821,6 +822,7 @@ async function loadAllScores() {
               <td>${formatScore(s.approved_score)}</td>
               <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
               <td>${statusBadge(s.status)}</td>
+              <td>${s.youtube_url ? `<a href="${escHtml(s.youtube_url)}" target="_blank" rel="noopener" title="YouTube動画"><svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>` : ''}</td>
             </tr>`).join('')}
         </tbody>
       </table>`;
