@@ -18,8 +18,8 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
   if (twitter_username && !/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
     return res.status(400).json({ error: 'XユーザーIDは英数字・アンダースコア1〜15文字で入力してください' });
-  if (youtube_channel && youtube_channel.length > 200)
-    return res.status(400).json({ error: 'YouTubeチャンネルは200文字以内で入力してください' });
+  if (youtube_channel && !/^[A-Za-z0-9._-]{3,30}$/.test(youtube_channel))
+    return res.status(400).json({ error: 'YouTubeハンドルは英数字・アンダースコア・ハイフン・ドット3〜30文字で入力してください' });
 
   // 内部登録: URLトークン(ref) が一致する場合のみ
   const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
@@ -103,8 +103,8 @@ router.put('/me', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'XユーザーIDは英数字・アンダースコア1〜15文字で入力してください' });
   }
   if (youtube_channel !== undefined && youtube_channel !== null && youtube_channel !== '') {
-    if (youtube_channel.length > 200)
-      return res.status(400).json({ error: 'YouTubeチャンネルは200文字以内で入力してください' });
+    if (!/^[A-Za-z0-9._-]{3,30}$/.test(youtube_channel))
+      return res.status(400).json({ error: 'YouTubeハンドルは英数字・アンダースコア・ハイフン・ドット3〜30文字で入力してください' });
   }
 
   try {

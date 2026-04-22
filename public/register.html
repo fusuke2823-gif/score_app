@@ -53,7 +53,10 @@
           <span data-i18n="user.yt_channel_optional">YouTubeチャンネル（任意）</span>
           <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.yt_channel_hint">チャンネルURL または @ハンドル</span>
         </label>
-        <input class="form-input" type="text" id="youtube-channel" maxlength="200" placeholder="https://youtube.com/@..." autocomplete="off">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="color:var(--text-muted);font-size:0.9rem">@</span>
+          <input class="form-input" type="text" id="youtube-channel" maxlength="30" placeholder="handle" style="flex:1" autocomplete="off">
+        </div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
     </form>
@@ -170,7 +173,7 @@ document.getElementById('register-form').addEventListener('submit', async e => {
       btn.textContent = t('register.btn');
       return;
     }
-    const ytChannel = document.getElementById('youtube-channel').value.trim() || undefined;
+    const ytChannel = document.getElementById('youtube-channel').value.trim().replace(/^@/, '') || undefined;
     const body = {
       username: document.getElementById('username').value,
       password: document.getElementById('password').value,
