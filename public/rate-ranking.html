@@ -29,11 +29,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 14px 18px;
+  padding: 12px 18px;
   margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
 }
 .my-rate-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; }
 .my-rate-name { font-weight: bold; font-size: 0.95rem; }
@@ -96,16 +93,15 @@ function renderMyCard(rows) {
   const my = rows.find(r => String(r.id) === String(me.id));
   if (!my) { area.innerHTML = ''; return; }
   const rateDisp = my.x_rate != null ? Math.floor(my.x_rate) : '-';
-  const rankDisp = my.comp_rank === 'Ex' && my.ex_rank != null
-    ? `Ex${my.ex_rank}位` : my.comp_rank;
+  const exStr = my.comp_rank === 'Ex' && my.ex_rank != null ? `<span style="font-size:0.95rem;font-weight:700;color:#a855f7;margin-left:4px">${my.ex_rank}位</span>` : '';
   area.innerHTML = `
     <div class="my-rate-card">
-      <div style="flex:1">
-        <div class="my-rate-label">${t('rate.my_label')}</div>
-        <div class="my-rate-name">${escHtml(my.username)}</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">${t('rate.my_label')} — ${escHtml(my.username)}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:56px;height:56px;object-fit:contain" alt="${my.comp_rank}">
+        ${exStr}
+        <span class="rate-val">${rateDisp}</span>
       </div>
-      <div class="rate-rank-badge rank-${my.comp_rank}"><img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:48px;height:48px;object-fit:contain" alt="${my.comp_rank}">${my.comp_rank === 'Ex' && my.ex_rank != null ? `<div style="font-size:0.72rem;text-align:center;margin-top:2px;color:#a855f7;font-weight:700">${my.ex_rank}位</div>` : ''}</div>
-      <div class="rate-val">${rateDisp}</div>
     </div>`;
 }
 
