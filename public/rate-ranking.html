@@ -98,10 +98,10 @@ function renderMyCard(rows) {
     <div class="my-rate-card">
       <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px">${t('rate.my_label')}</div>
       <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-weight:bold;font-size:0.95rem">${escHtml(my.username)}</span>
         <img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:56px;height:56px;object-fit:contain" alt="${my.comp_rank}">
         ${exStr}
         <span class="rate-val">${rateDisp}</span>
-        <span style="font-weight:bold;font-size:0.95rem;margin-left:4px">${escHtml(my.username)}</span>
       </div>
     </div>`;
 }
