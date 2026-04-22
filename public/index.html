@@ -50,14 +50,14 @@
 #rank-update-card { animation: rankCardIn 0.35s cubic-bezier(.34,1.56,.64,1) both; }
 .rank-badge-lg {
   display:inline-block; width:90px; height:90px; object-fit:contain;
-  animation: rankGlow 1.8s ease-in-out infinite;
 }
+.rank-badge-lg.glow    { animation: rankGlow 1.8s ease-in-out infinite; }
 .rank-badge-lg.rank-C  { --rank-glow:#aaa; }
 .rank-badge-lg.rank-B  { --rank-glow:#5cb85c; }
 .rank-badge-lg.rank-A  { --rank-glow:#5b9bd5; }
 .rank-badge-lg.rank-S  { --rank-glow:#e6a028; }
 .rank-badge-lg.rank-X  { --rank-glow:#a855f7; }
-.rank-badge-lg.rank-Ex { animation: exGlow 1.5s ease-in-out infinite; }
+.rank-badge-lg.rank-Ex.glow { animation: exGlow 1.5s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -236,9 +236,9 @@ function closeRankModal() {
   }
 }
 
-function rankBadgeLg(rank) {
+function rankBadgeLg(rank, glow = false) {
   const r = (rank || 'C').toLowerCase();
-  return `<img src="/img/rank_${r}.png" class="rank-badge-lg rank-${rank || 'C'}" alt="${rank || 'C'}">`;
+  return `<img src="/img/rank_${r}.png" class="rank-badge-lg rank-${rank || 'C'}${glow ? ' glow' : ''}" alt="${rank || 'C'}">`;
 }
 
 function rateLabel(rank, sRate, xRate) {
@@ -296,7 +296,7 @@ async function checkRankUpdate() {
             <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0">
               ${rankBadgeLg(stored.rank)}
               <span style="font-size:1.4rem;color:var(--text-muted)">→</span>
-              ${rankBadgeLg(cur.rank)}
+              ${rankBadgeLg(cur.rank, isUp)}
             </div>
             <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? 'ランクアップ！' : 'ランク降格'}</div>`;
           // バーあり（C〜S）
