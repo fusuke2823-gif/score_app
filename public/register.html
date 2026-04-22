@@ -35,12 +35,12 @@
         <input class="form-input" type="text" id="oshi" maxlength="100" data-i18n-ph="register.oshi_ph" placeholder="例: 茅森月歌">
       </div>
       <div class="form-group">
-        <label class="form-label">X (Twitter) ID（任意）</label>
+        <label class="form-label" data-i18n="user.x_id_optional">X (Twitter) ID（任意）</label>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="color:var(--text-muted);font-size:0.9rem">@</span>
           <input class="form-input" type="text" id="twitter" maxlength="15" placeholder="username" style="flex:1" autocomplete="off">
         </div>
-        <div class="form-hint">英数字・アンダースコアのみ</div>
+        <div class="form-hint" data-i18n="user.x_hint_short">英数字・アンダースコアのみ</div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
     </form>
@@ -152,7 +152,7 @@ document.getElementById('register-form').addEventListener('submit', async e => {
   try {
     const twitterRaw = document.getElementById('twitter').value.trim().replace(/^@/, '');
     if (twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
-      showAlert('#alert', 'XのIDは英数字・アンダースコア1〜15文字で入力してください');
+      showAlert('#alert', t('user.x_err'));
       btn.disabled = false;
       btn.textContent = t('register.btn');
       return;

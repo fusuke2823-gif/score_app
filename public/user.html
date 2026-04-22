@@ -215,12 +215,12 @@ async function load() {
           <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="${t('user.oshi_ph')}">
         </div>
         <div class="form-group">
-          <label class="form-label">X (Twitter) ID</label>
+          <label class="form-label" data-i18n="user.x_id">X (Twitter) ID</label>
           <div style="display:flex;align-items:center;gap:6px">
             <span style="color:var(--text-muted);font-size:0.9rem">@</span>
             <input class="form-input" id="edit-twitter" type="text" value="${escHtml(data.twitter_username || '')}" maxlength="15" placeholder="username" style="flex:1" autocomplete="off">
           </div>
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">英数字・アンダースコアのみ（x.com/usernameの形式で表示）</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px" data-i18n="user.x_hint">英数字・アンダースコアのみ（x.com/usernameの形式で表示）</div>
         </div>
         <details style="margin-bottom:16px">
           <summary style="cursor:pointer;font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px">${t('user.pw_section')}</summary>
@@ -297,7 +297,7 @@ async function saveProfile() {
   alertEl.innerHTML = '';
 
   if (twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
-    alertEl.innerHTML = `<div class="alert alert-error">XのIDは英数字・アンダースコア1〜15文字で入力してください</div>`;
+    alertEl.innerHTML = `<div class="alert alert-error">${t('user.x_err')}</div>`;
     return;
   }
 
