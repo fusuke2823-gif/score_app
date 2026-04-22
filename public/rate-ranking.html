@@ -96,11 +96,12 @@ function renderMyCard(rows) {
   const exStr = my.comp_rank === 'Ex' && my.ex_rank != null ? `<span style="font-size:0.95rem;font-weight:700;color:#a855f7;margin-left:4px">${my.ex_rank}位</span>` : '';
   area.innerHTML = `
     <div class="my-rate-card">
-      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px">${t('rate.my_label')} — ${escHtml(my.username)}</div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px">${t('rate.my_label')}</div>
       <div style="display:flex;align-items:center;gap:8px">
         <img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:56px;height:56px;object-fit:contain" alt="${my.comp_rank}">
         ${exStr}
         <span class="rate-val">${rateDisp}</span>
+        <span style="font-weight:bold;font-size:0.95rem;margin-left:4px">${escHtml(my.username)}</span>
       </div>
     </div>`;
 }
