@@ -507,6 +507,7 @@ async function loadPending() {
              </div>` : ''}
         <div class="pending-actions">
           <button class="btn btn-success btn-sm" onclick="approveScore(${item.id})">承認</button>
+          ${item.youtube_url ? `<button class="btn btn-sm" style="background:#e67e22;color:#fff;border:none" onclick="approveScore(${item.id}, true)">動画なし承認</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="rejectScore(${item.id})">却下</button>
         </div>
       </div>`).join('');
@@ -515,11 +516,14 @@ async function loadPending() {
   }
 }
 
-async function approveScore(id) {
+async function approveScore(id, clearYoutube = false) {
   try {
-    await apiFetch(`/admin/scores/${id}/approve`, { method: 'POST' });
+    const res = await apiFetch(`/admin/scores/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ clear_youtube: clearYoutube })
+    });
     document.getElementById(`pending-${id}`)?.remove();
-    showAlert('#alert', '承認しました', 'success');
+    showAlert('#alert', res.message, 'success');
     const cnt = document.querySelectorAll('[id^="pending-"]').length;
     document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
   } catch (err) { showAlert('#alert', err.message); }

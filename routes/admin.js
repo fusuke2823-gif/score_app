@@ -49,6 +49,7 @@ router.get('/pending', async (req, res) => {
 
 // 承認
 router.post('/scores/:id/approve', async (req, res) => {
+  const clearYoutube = req.body?.clear_youtube === true;
   try {
     const result = await pool.query(
       `UPDATE scores SET
@@ -58,14 +59,16 @@ router.post('/scores/:id/approve', async (req, res) => {
          pending_image_url = NULL,
          status = 'approved',
          admin_note = NULL,
+         youtube_url = CASE WHEN $2 THEN NULL ELSE youtube_url END,
+         youtube_score = CASE WHEN $2 THEN NULL ELSE youtube_score END,
          updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
-      [req.params.id]
+      [req.params.id, clearYoutube]
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: 'スコアが見つかりません' });
-    res.json({ message: '承認しました', score: result.rows[0] });
+    res.json({ message: clearYoutube ? 'スコアのみ承認しました' : '承認しました', score: result.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
