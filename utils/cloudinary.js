@@ -1,4 +1,4 @@
-const TRANSFORM = 'q_auto,f_auto,w_1920,c_limit';
+const TRANSFORM = 'q_auto,f_auto,w_1080,c_limit';
 
 function optimizeUrl(url) {
   if (!url || !url.includes('res.cloudinary.com')) return url;

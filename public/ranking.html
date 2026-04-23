@@ -327,7 +327,7 @@ async function loadRanking() {
               <td class="col-score ${fc ? 'frame-score' : ''}" style="text-align:right"><span class="score-val">${formatScore(r.approved_score)}</span></td>
               <td class="col-img img-col ${fc ? 'frame-img' : ''}" style="text-align:center">
                 ${r.approved_image_url
-                  ? `<img class="result-thumb${r.youtube_url ? ' has-yt' : ''}" src="${escHtml(r.approved_image_url)}" alt="result" onclick="openModal('${escHtml(r.approved_image_url)}','${r.youtube_url ? escHtml(r.youtube_url) : ''}',${r.youtube_score ? r.youtube_score : 'null'})">`
+                  ? `<img class="result-thumb${r.youtube_url ? ' has-yt' : ''}" src="${escHtml(r.approved_image_url)}" alt="result" loading="lazy" onclick="openModal('${escHtml(r.approved_image_url)}','${r.youtube_url ? escHtml(r.youtube_url) : ''}',${r.youtube_score ? r.youtube_score : 'null'})">`
                   : ''}
               </td>
               <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
