@@ -297,31 +297,30 @@ function animateCounter(from, to, duration) {
   requestAnimationFrame(step);
 }
 
-async function animateRankBars(fromRank, cur) {
-  const fromIdx = RANK_ORDER.indexOf(fromRank);
-  const toIdx = RANK_ORDER.indexOf(cur.rank);
-  const steps = [];
-  for (let i = fromIdx; i <= toIdx; i++) {
-    const rank = RANK_ORDER[i];
-    if (!RANK_BAR_CFG[rank]) continue;
-    const isFinal = (i === toIdx);
-    const val = isFinal
-      ? (rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0))
-      : RANK_BAR_CFG[rank].max;
-    steps.push({ rank, val, isFinal });
-  }
-  for (const step of steps) {
-    const cfg = RANK_BAR_CFG[step.rank];
-    const targetPct = step.isFinal
-      ? Math.min(100, Math.max(0, ((step.val - cfg.min) / (cfg.max - cfg.min)) * 100))
-      : 100;
+async function runAnimSteps(steps) {
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const isLast = i === steps.length - 1;
     const wrap = document.getElementById('rank-bar-wrap');
     if (!wrap) return;
-    wrap.innerHTML = rankBarHtml(step.rank, step.val, true, 0);
-    await new Promise(r => setTimeout(r, 80));
-    const fill = document.getElementById('rank-bar-fill');
-    if (fill) fill.style.width = targetPct + '%';
-    if (!step.isFinal) await new Promise(r => setTimeout(r, 1300));
+    if (step.type === 'bar') {
+      wrap.innerHTML = rankBarHtml(step.rank, step.val, true, step.startPct ?? 0);
+      await new Promise(r => setTimeout(r, 80));
+      const fill = document.getElementById('rank-bar-fill');
+      if (fill) fill.style.width = step.targetPct + '%';
+      if (!isLast) await new Promise(r => setTimeout(r, 1300));
+    } else if (step.type === 'rate') {
+      const delta = step.to - step.from;
+      const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
+      const deltaColor = delta >= 0 ? 'var(--accent)' : '#e05555';
+      wrap.innerHTML = `
+        <div style="font-size:1.1rem;font-weight:bold;margin-top:12px">
+          レート <span id="rate-counter">${step.from}</span><span style="font-size:0.9rem;color:${deltaColor};margin-left:6px">(${deltaStr})</span>
+        </div>`;
+      await new Promise(r => setTimeout(r, 100));
+      if (step.from !== step.to) animateCounter(step.from, step.to, 1000);
+      if (!isLast) await new Promise(r => setTimeout(r, 1200));
+    }
   }
 }
 
@@ -343,7 +342,7 @@ async function checkRankUpdate() {
 
       if (rankChanged || sChanged || xChanged || ptChanged) {
         const isUp = RANK_ORDER.indexOf(cur.rank) >= RANK_ORDER.indexOf(stored.rank);
-        let doMultiStep = false;
+        let animSteps = null;
         let doRateCounter = false, rateFrom = 0, rateTo = 0;
 
         let html = '';
@@ -355,12 +354,49 @@ async function checkRankUpdate() {
               ${rankBadgeLg(cur.rank, isUp)}
             </div>
             <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? 'ランクアップ！' : 'ランク降格'}</div>`;
-          if (isUp && RANK_BAR_CFG[stored.rank]) {
+          const steps = [];
+          if (isUp) {
+            const fromIdx = RANK_ORDER.indexOf(stored.rank);
+            const lastBarIdx = Math.min(RANK_ORDER.indexOf(cur.rank), RANK_ORDER.indexOf('S'));
+            for (let i = fromIdx; i <= lastBarIdx; i++) {
+              const rank = RANK_ORDER[i];
+              if (!RANK_BAR_CFG[rank]) continue;
+              const isFinalBar = (i === lastBarIdx) && !(cur.rank === 'X' || cur.rank === 'Ex');
+              const val = isFinalBar
+                ? (rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0))
+                : RANK_BAR_CFG[rank].max;
+              const cfg = RANK_BAR_CFG[rank];
+              // 最初のバーのみ stored の値から開始、中間・終端は 0 から
+              let startPct = 0;
+              if (i === fromIdx) {
+                const storedVal = stored.rank === 'S' ? (stored.sRate || 0) : (stored.rankPoints || 0);
+                startPct = Math.min(100, Math.max(0, ((storedVal - cfg.min) / (cfg.max - cfg.min)) * 100));
+              }
+              steps.push({ type: 'bar', rank, val, startPct,
+                targetPct: Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100)) });
+            }
+            if (cur.rank === 'X' || cur.rank === 'Ex') {
+              const fromRate = (stored.rank === 'X' || stored.rank === 'Ex') ? Math.floor(stored.xRate || 0) : 0;
+              steps.push({ type: 'rate', from: fromRate, to: Math.floor(cur.xRate || 0) });
+            }
+          } else {
+            if ((stored.rank === 'X' || stored.rank === 'Ex') && cur.rank === 'X') {
+              steps.push({ type: 'rate', from: Math.floor(stored.xRate || 0), to: Math.floor(cur.xRate || 0) });
+            } else if ((stored.rank === 'X' || stored.rank === 'Ex') && cur.rank === 'S') {
+              const sRate = Math.floor(cur.sRate || 0);
+              const sPct = Math.min(100, Math.max(0, ((sRate - RANK_BAR_CFG.S.min) / (RANK_BAR_CFG.S.max - RANK_BAR_CFG.S.min)) * 100));
+              steps.push({ type: 'rate', from: Math.floor(stored.xRate || 0), to: 0 });
+              steps.push({ type: 'bar', rank: 'S', val: sRate, startPct: 100, targetPct: sPct });
+            } else if (RANK_BAR_CFG[cur.rank]) {
+              const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
+              const cfg = RANK_BAR_CFG[cur.rank];
+              steps.push({ type: 'bar', rank: cur.rank, val: barVal, startPct: 0,
+                targetPct: Math.min(100, Math.max(0, ((barVal - cfg.min) / (cfg.max - cfg.min)) * 100)) });
+            }
+          }
+          if (steps.length) {
             html += '<div id="rank-bar-wrap"></div>';
-            doMultiStep = true;
-          } else if (RANK_BAR_CFG[cur.rank]) {
-            const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
-            html += rankBarHtml(cur.rank, barVal, true, 0);
+            animSteps = steps;
           }
         } else if (barRank) {
           const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
@@ -396,8 +432,8 @@ async function checkRankUpdate() {
 
         document.getElementById('rank-update-body').innerHTML = html;
         document.getElementById('rank-update-modal').style.display = 'flex';
-        if (doMultiStep) {
-          animateRankBars(stored.rank, cur);
+        if (animSteps) {
+          runAnimSteps(animSteps);
         } else if (doRateCounter) {
           setTimeout(() => animateCounter(rateFrom, rateTo, 1000), 100);
         } else if (RANK_BAR_CFG[cur.rank]) {
