@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理メニュー - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.admin-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+.admin-nav-card {
+  display: block;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 20px;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+.admin-nav-card:hover {
+  border-color: var(--accent);
+  background: var(--bg-card2);
+}
+.admin-nav-icon { font-size: 2rem; margin-bottom: 10px; }
+.admin-nav-title { font-size: 1.05rem; font-weight: bold; color: var(--text-primary); margin-bottom: 6px; }
+.admin-nav-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title" style="margin-bottom:20px">管理メニュー</h1>
+  <div class="admin-nav-grid">
+    <a href="/admin_scores.html" class="admin-nav-card">
+      <div class="admin-nav-icon">✅</div>
+      <div class="admin-nav-title">スコア管理</div>
+      <div class="admin-nav-desc">承認待ちスコアの確認・承認・却下、全スコア一覧の閲覧</div>
+    </a>
+    <a href="/admin_events.html" class="admin-nav-card">
+      <div class="admin-nav-icon">🗓️</div>
+      <div class="admin-nav-title">イベント管理</div>
+      <div class="admin-nav-desc">イベントの作成・編集、敵情報の追加・削除</div>
+    </a>
+    <a href="/admin_users.html" class="admin-nav-card">
+      <div class="admin-nav-icon">👤</div>
+      <div class="admin-nav-title">ユーザー管理</div>
+      <div class="admin-nav-desc">ユーザー一覧、ロール変更、内部/外部フラグ、パスワード変更</div>
+    </a>
+    <a href="/admin_shop.html" class="admin-nav-card">
+      <div class="admin-nav-icon">🛒</div>
+      <div class="admin-nav-title">ショップ管理</div>
+      <div class="admin-nav-desc">称号・フレーム・ガチャアイコンの追加・管理、ガチャプール設定</div>
+    </a>
+    <a href="/admin_distribute.html" class="admin-nav-card">
+      <div class="admin-nav-icon">🎁</div>
+      <div class="admin-nav-title">配布管理</div>
+      <div class="admin-nav-desc">手動ポイント付与、順位ポイント設定、中間・最終配布の実行、ポイント履歴</div>
+    </a>
+    <a href="/admin_settings.html" class="admin-nav-card">
+      <div class="admin-nav-icon">⚙️</div>
+      <div class="admin-nav-title">設定</div>
+      <div class="admin-nav-desc">バージョン・通知設定、ログインボーナス、称号スコープ、お便り箱</div>
+    </a>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+</script>
+</body>
+</html>

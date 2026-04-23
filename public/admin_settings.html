@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>設定 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
+.enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+@media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
+.scope-badge { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:4px; }
+.scope-common { background:#4fc3f7; color:#000; }
+.scope-internal { background:var(--accent); color:#fff; }
+.scope-external { background:#66bb6a; color:#000; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <h1 class="page-title" style="margin:0">設定</h1>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <a href="/admin_scores.html" class="btn btn-sm btn-secondary">スコア</a>
+      <a href="/admin_events.html" class="btn btn-sm btn-secondary">イベント</a>
+      <a href="/admin_users.html" class="btn btn-sm btn-secondary">ユーザー</a>
+      <a href="/admin_shop.html" class="btn btn-sm btn-secondary">ショップ</a>
+      <a href="/admin_distribute.html" class="btn btn-sm btn-secondary">配布</a>
+      <span class="btn btn-sm btn-primary" style="cursor:default">設定</span>
+    </div>
+  </div>
+  <div id="alert"></div>
+
+  <div class="tabs" style="margin-bottom:0">
+    <button class="tab-btn active" onclick="switchTab('general')">一般設定</button>
+    <button class="tab-btn" onclick="switchTab('loginbonus')">ログインボーナス</button>
+    <button class="tab-btn" onclick="switchTab('titles')">称号スコープ</button>
+    <button class="tab-btn" onclick="switchTab('feedback')">お便り箱</button>
+  </div>
+
+  <!-- 一般設定タブ -->
+  <div class="tab-content active" id="tab-general">
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">バージョン表示</div>
+      <div id="version-alert" style="margin-bottom:12px"></div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(0,-1)">－</button>
+            <span id="ver0" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">0</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(0,1)">＋</button>
+          </div>
+          <button class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:var(--bg-card2);color:var(--text-muted);border:1px solid var(--border)" onclick="resetVer(0)">0に戻す</button>
+        </div>
+        <span style="color:var(--text-muted);font-size:1.2rem">.</span>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(1,-1)">－</button>
+            <span id="ver1" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(1,1)">＋</button>
+          </div>
+          <button class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:var(--bg-card2);color:var(--text-muted);border:1px solid var(--border)" onclick="resetVer(1)">0に戻す</button>
+        </div>
+        <span style="color:var(--text-muted);font-size:1.2rem">.</span>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(2,-1)">－</button>
+            <span id="ver2" style="min-width:28px;text-align:center;font-size:1.1rem;font-weight:bold">00</span>
+            <button class="btn btn-secondary btn-sm" onclick="changeVer(2,1)">＋</button>
+          </div>
+          <button class="btn btn-sm" style="font-size:0.7rem;padding:2px 8px;background:var(--bg-card2);color:var(--text-muted);border:1px solid var(--border)" onclick="resetVer(2)">0に戻す</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="saveVersion()">保存</button>
+      </div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
+        トップページのタイトル下に表示されるバージョン番号を設定します。
+      </p>
+    </div>
+    <div class="card">
+      <div class="section-title">通知設定</div>
+      <div id="settings-alert" style="margin-bottom:12px"></div>
+      <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+        <input type="checkbox" id="notify-toggle" onchange="saveNotifySetting()" style="width:18px;height:18px">
+        <span>スコアが投稿されたらメールで通知する</span>
+      </label>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
+        送信先: <code id="notify-email-display"></code><br>
+        環境変数 <code>ADMIN_NOTIFY_EMAIL</code> / <code>GMAIL_USER</code> / <code>GMAIL_APP_PASSWORD</code> が設定されている場合のみ機能します。
+      </p>
+    </div>
+  </div>
+
+  <!-- ログインボーナスタブ -->
+  <div class="tab-content" id="tab-loginbonus">
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">通常ログインボーナス設定</div>
+      <div id="lb-alert" style="margin-bottom:12px"></div>
+      <div id="lb-day-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px"></div>
+      <button class="btn btn-primary" onclick="saveLBSettings()">保存</button>
+    </div>
+
+    <div class="card">
+      <div class="section-title">特別ログインボーナス</div>
+      <div id="sb-alert" style="margin-bottom:12px"></div>
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
+        <div style="font-size:0.85rem;font-weight:bold;margin-bottom:12px;color:var(--text-muted)">新規作成</div>
+        <div class="form-group"><label class="form-label">題名</label>
+          <input class="form-input" id="sb-title" placeholder="例: GW特別ボーナス"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group"><label class="form-label">開始日</label>
+            <input class="form-input" id="sb-start" type="date"></div>
+          <div class="form-group"><label class="form-label">終了日</label>
+            <input class="form-input" id="sb-end" type="date"></div>
+          <div class="form-group"><label class="form-label">獲得可能回数</label>
+            <input class="form-input" id="sb-max" type="number" min="1" value="1"></div>
+          <div class="form-group"><label class="form-label">1回のpt</label>
+            <input class="form-input" id="sb-pts" type="number" min="1" value="5"></div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:4px" onclick="createSpecialBonus()">作成</button>
+      </div>
+      <div id="sb-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+
+  <!-- 称号スコープタブ -->
+  <div class="tab-content" id="tab-titles">
+    <div class="card">
+      <div class="section-title">称号スコープ設定</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+        <b>common</b>=全員表示 / <b>internal</b>=内部ランキングのみ / <b>external</b>=外部ランキングのみ
+      </p>
+      <div id="titles-alert" style="margin-bottom:12px"></div>
+      <div id="titles-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
+    </div>
+  </div>
+
+  <!-- お便り箱タブ -->
+  <div class="tab-content" id="tab-feedback">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">お便り箱</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadFeedback()">更新</button>
+      </div>
+      <div id="feedback-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['general','loginbonus','titles','feedback'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'general') loadSettings();
+  if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
+  if (name === 'titles') loadTitles();
+  if (name === 'feedback') loadFeedback();
+}
+
+// ===== 一般設定 =====
+async function loadSettings() {
+  try {
+    const s = await apiFetch('/admin/settings');
+    document.getElementById('notify-toggle').checked = s.notify_on_submit;
+    document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
+    setVersionFields(s.app_version || '4.03.00');
+  } catch (err) {
+    showAlert('#settings-alert', err.message);
+  }
+}
+
+let verNums = [4, 0, 65];
+
+function setVersionFields(str) {
+  const parts = String(str).split('.');
+  verNums = [
+    parseInt(parts[0]) || 0,
+    parseInt(parts[1]) || 0,
+    parseInt(parts[2]) || 0
+  ];
+  renderVersionFields();
+}
+
+function renderVersionFields() {
+  document.getElementById('ver0').textContent = verNums[0];
+  document.getElementById('ver1').textContent = String(verNums[1]).padStart(2, '0');
+  document.getElementById('ver2').textContent = String(verNums[2]).padStart(2, '0');
+}
+
+function changeVer(idx, delta) {
+  verNums[idx] = Math.max(0, verNums[idx] + delta);
+  renderVersionFields();
+}
+
+function resetVer(idx) {
+  const labels = ['第1', '第2', '第3'];
+  if (!confirm(`${labels[idx]}の数字を 0 に戻しますか？`)) return;
+  verNums[idx] = 0;
+  renderVersionFields();
+}
+
+async function saveVersion() {
+  const v = `${verNums[0]}.${String(verNums[1]).padStart(2,'0')}.${String(verNums[2]).padStart(2,'0')}`;
+  try {
+    await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ app_version: v }) });
+    showAlert('#version-alert', `バージョンを ${v} に更新しました`, 'success');
+  } catch (err) {
+    showAlert('#version-alert', err.message);
+  }
+}
+
+async function saveNotifySetting() {
+  const enabled = document.getElementById('notify-toggle').checked;
+  try {
+    await apiFetch('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ notify_on_submit: enabled })
+    });
+    showAlert('#settings-alert', enabled ? '通知をオンにしました' : '通知をオフにしました', 'success');
+  } catch (err) {
+    showAlert('#settings-alert', err.message);
+  }
+}
+
+// ===== ログインボーナス設定 =====
+async function loadLBSettings() {
+  try {
+    const data = await apiFetch('/admin/login-bonus-settings');
+    const days = ['day1','day2','day3','day4','day5','day6','day7'];
+    document.getElementById('lb-day-inputs').innerHTML = days.map(d => `
+      <div>
+        <label class="form-label">${d.replace('day','')}日目</label>
+        <input class="form-input" id="lb-${d}" type="number" min="0" value="${data[d] ?? 1}">
+      </div>`).join('');
+  } catch (err) { showAlert('#lb-alert', err.message); }
+}
+
+async function saveLBSettings() {
+  const days = ['day1','day2','day3','day4','day5','day6','day7'];
+  const body = {};
+  for (const d of days) body[d] = document.getElementById(`lb-${d}`)?.value;
+  try {
+    await apiFetch('/admin/login-bonus-settings', { method: 'PUT', body: JSON.stringify(body) });
+    showAlert('#lb-alert', '保存しました', 'success');
+  } catch (err) { showAlert('#lb-alert', err.message); }
+}
+
+// ===== 特別ログインボーナス =====
+async function loadSpecialBonuses() {
+  const el = document.getElementById('sb-list');
+  try {
+    const list = await apiFetch('/admin/special-bonuses');
+    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">特別ボーナスなし</div>'; return; }
+    el.innerHTML = list.map(b => `
+      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:bold;margin-bottom:2px">${escHtml(b.title)}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted)">${escHtml(b.start_date.slice(0,10))} 〜 ${escHtml(b.end_date.slice(0,10))} ／ 上限${b.max_claims}回 ／ ${b.points_per_claim}pt</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span style="font-size:0.72rem;padding:2px 8px;border-radius:10px;background:${b.is_active ? 'var(--accent-dim)' : 'var(--bg-card)'};color:${b.is_active ? 'var(--accent)' : 'var(--text-muted)'}">${b.is_active ? '有効' : '無効'}</span>
+            <button class="btn btn-secondary btn-sm" onclick="toggleSB(${b.id},${!b.is_active},this)">${b.is_active ? '無効化' : '有効化'}</button>
+            <button class="btn btn-secondary btn-sm" onclick="deleteSB(${b.id},this)" style="color:#f87171">削除</button>
+          </div>
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
+}
+
+async function createSpecialBonus() {
+  const body = {
+    title: document.getElementById('sb-title').value,
+    start_date: document.getElementById('sb-start').value,
+    end_date: document.getElementById('sb-end').value,
+    max_claims: document.getElementById('sb-max').value,
+    points_per_claim: document.getElementById('sb-pts').value,
+  };
+  try {
+    await apiFetch('/admin/special-bonuses', { method: 'POST', body: JSON.stringify(body) });
+    showAlert('#sb-alert', '作成しました', 'success');
+    ['sb-title','sb-start','sb-end'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('sb-max').value = '1';
+    document.getElementById('sb-pts').value = '5';
+    loadSpecialBonuses();
+  } catch (err) { showAlert('#sb-alert', err.message); }
+}
+
+async function toggleSB(id, newActive, btn) {
+  btn.disabled = true;
+  try {
+    const item = btn.closest('div[style*="background"]');
+    const title = item.querySelector('[style*="font-weight:bold"]').textContent;
+    const meta = item.querySelector('[style*="font-size:0.75rem"]').textContent;
+    const parts = meta.match(/(\S+) 〜 (\S+) ／ 上限(\d+)回 ／ (\d+)pt/);
+    await apiFetch(`/admin/special-bonuses/${id}`, { method: 'PUT', body: JSON.stringify({
+      title, start_date: parts[1], end_date: parts[2],
+      max_claims: parseInt(parts[3]), points_per_claim: parseInt(parts[4]), is_active: newActive
+    })});
+    loadSpecialBonuses();
+  } catch (err) { showAlert('#sb-alert', err.message); btn.disabled = false; }
+}
+
+async function deleteSB(id, btn) {
+  if (!confirm('削除しますか？')) return;
+  btn.disabled = true;
+  try {
+    await apiFetch(`/admin/special-bonuses/${id}`, { method: 'DELETE' });
+    loadSpecialBonuses();
+  } catch (err) { showAlert('#sb-alert', err.message); btn.disabled = false; }
+}
+
+// ===== 称号スコープ =====
+async function loadTitles() {
+  try {
+    const titles = await apiFetch('/admin/titles');
+    renderTitles(titles);
+  } catch (err) {
+    document.getElementById('titles-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderTitles(titles) {
+  if (titles.length === 0) {
+    document.getElementById('titles-list').innerHTML = '<p style="color:var(--text-muted)">称号がありません</p>';
+    return;
+  }
+  document.getElementById('titles-list').innerHTML = `
+    <table class="ranking-table" style="table-layout:fixed;width:100%">
+      <thead><tr>
+        <th style="width:35%">称号名</th>
+        <th style="width:35%">説明</th>
+        <th style="width:10%">現在</th>
+        <th style="width:20%">変更</th>
+      </tr></thead>
+      <tbody>
+        ${titles.map(t => `
+          <tr>
+            <td style="font-weight:bold;word-break:break-all">${escHtml(t.name)}</td>
+            <td style="font-size:0.8rem;color:var(--text-muted);word-break:break-all">${escHtml(t.description || '')}</td>
+            <td><span class="scope-badge scope-${t.scope || 'common'}">${t.scope || 'common'}</span></td>
+            <td>
+              <select class="form-input" style="padding:4px 8px;font-size:0.8rem;width:100%" onchange="setTitleScope(${t.id}, this.value)">
+                <option value="common" ${(t.scope||'common')==='common'?'selected':''}>common</option>
+                <option value="internal" ${t.scope==='internal'?'selected':''}>internal</option>
+                <option value="external" ${t.scope==='external'?'selected':''}>external</option>
+              </select>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function setTitleScope(titleId, scope) {
+  try {
+    await apiFetch(`/admin/titles/${titleId}/scope`, {
+      method: 'PATCH',
+      body: JSON.stringify({ scope })
+    });
+    const el = document.getElementById('titles-alert');
+    el.innerHTML = '<div class="alert alert-success">更新しました</div>';
+    setTimeout(() => { el.innerHTML = ''; }, 2000);
+  } catch (err) {
+    document.getElementById('titles-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// ===== お便り箱 =====
+const CATEGORY_COLORS = { '機能要望': '#4fc3f7', 'バグ報告': '#ef5350', 'その他': '#9e9e9e' };
+
+async function loadFeedback() {
+  const el = document.getElementById('feedback-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const list = await apiFetch('/feedback');
+    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem">まだお便りはありません</div>'; return; }
+    el.innerHTML = list.map(f => `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${f.is_read ? '0.6' : '1'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.72rem;font-weight:bold;padding:2px 8px;border-radius:4px;background:${CATEGORY_COLORS[f.category] || '#9e9e9e'}22;color:${CATEGORY_COLORS[f.category] || '#9e9e9e'}">${escHtml(f.category)}</span>
+            <span style="font-size:0.78rem;color:var(--text-muted)">${escHtml(f.username || '削除済みユーザー')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(f.created_at).toLocaleString('ja-JP')}</span>
+            ${!f.is_read ? `<button onclick="markFeedbackRead(${f.id},this)" style="font-size:0.72rem;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">既読</button>` : '<span style="font-size:0.72rem;color:var(--text-muted)">既読</span>'}
+          </div>
+        </div>
+        <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.body)}</div>
+        ${(f.messages || []).length > 0 ? `
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+          ${f.messages.map(m => `
+          <div style="padding:8px 12px;border-left:3px solid ${m.is_admin ? 'var(--accent)' : 'var(--border)'};background:var(--bg-primary);border-radius:0 6px 6px 0">
+            <div style="font-size:0.7rem;color:${m.is_admin ? 'var(--accent)' : 'var(--text-muted)'};margin-bottom:3px">${m.is_admin ? '管理者' : escHtml(f.username || 'ユーザー')} · ${new Date(m.created_at).toLocaleString('ja-JP')}</div>
+            <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(m.body)}</div>
+          </div>`).join('')}
+        </div>` : ''}
+        <div id="reply-form-${f.id}" style="display:none;margin-top:8px">
+          <textarea id="reply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000"></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px">
+            <button onclick="submitReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">送信</button>
+            <button onclick="closeReplyForm(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">キャンセル</button>
+          </div>
+        </div>
+        <button onclick="openReplyForm(${f.id})" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div style="color:var(--error)">${escHtml(err.message)}</div>`; }
+}
+
+async function markFeedbackRead(id, btn) {
+  try {
+    await apiFetch(`/feedback/${id}/read`, { method: 'PATCH' });
+    btn.closest('div[style]').style.opacity = '0.6';
+    btn.replaceWith(Object.assign(document.createElement('span'), { style: 'font-size:0.72rem;color:var(--text-muted)', textContent: '既読' }));
+  } catch {}
+}
+
+function openReplyForm(id) {
+  document.getElementById(`reply-form-${id}`).style.display = 'block';
+}
+
+function closeReplyForm(id) {
+  document.getElementById(`reply-form-${id}`).style.display = 'none';
+}
+
+async function submitReply(id) {
+  const reply = document.getElementById(`reply-text-${id}`).value.trim();
+  if (!reply) return;
+  try {
+    await apiFetch(`/feedback/${id}/reply`, { method: 'PATCH', body: JSON.stringify({ reply }) });
+    loadFeedback();
+  } catch (err) { alert(err.message); }
+}
+
+// 初期ロード
+loadSettings();
+</script>
+</body>
+</html>

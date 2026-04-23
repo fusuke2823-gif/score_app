@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スコア管理 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
+.pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
+@media(max-width:600px){ .hide-mobile{display:none;} }
+.user-name-cell{ white-space:nowrap; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+
+<!-- 重複リザルト比較モーダル -->
+<div id="dup-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeDupModal()">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:900px;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <span style="font-weight:bold;font-size:1rem;color:var(--warning)">⚠ リザルト比較</span>
+      <button onclick="closeDupModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div id="dup-label-new" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;text-align:center"></div>
+        <a id="dup-link-new" href="#" target="_blank">
+          <img id="dup-img-new" src="" alt="投稿リザルト" style="width:100%;border-radius:6px;border:2px solid var(--accent);cursor:pointer">
+        </a>
+      </div>
+      <div>
+        <div id="dup-label-existing" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;text-align:center"></div>
+        <a id="dup-link-existing" href="#" target="_blank">
+          <img id="dup-img-existing" src="" alt="既存リザルト" style="width:100%;border-radius:6px;border:2px solid var(--border-light);cursor:pointer">
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <h1 class="page-title" style="margin:0">スコア管理</h1>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <span class="btn btn-sm btn-primary" style="cursor:default">スコア</span>
+      <a href="/admin_events.html" class="btn btn-sm btn-secondary">イベント</a>
+      <a href="/admin_users.html" class="btn btn-sm btn-secondary">ユーザー</a>
+      <a href="/admin_shop.html" class="btn btn-sm btn-secondary">ショップ</a>
+      <a href="/admin_distribute.html" class="btn btn-sm btn-secondary">配布</a>
+      <a href="/admin_settings.html" class="btn btn-sm btn-secondary">設定</a>
+    </div>
+  </div>
+  <div id="alert"></div>
+
+  <div class="tabs" style="margin-bottom:0">
+    <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
+    <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
+  </div>
+
+  <!-- 承認待ち -->
+  <div class="tab-content active" id="tab-pending">
+    <div id="pending-list">
+      <div class="loading"><div class="spinner"></div>読み込み中...</div>
+    </div>
+  </div>
+
+  <!-- 全スコア一覧 -->
+  <div class="tab-content" id="tab-all-scores">
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select class="form-select" id="filter-event" style="max-width:260px">
+        <option value="">全イベント</option>
+      </select>
+      <select class="form-select" id="filter-status" style="max-width:160px">
+        <option value="">全ステータス</option>
+        <option value="pending">承認待ち</option>
+        <option value="approved">承認済み</option>
+        <option value="rejected">却下</option>
+      </select>
+      <button class="btn btn-secondary" onclick="loadAllScores()">絞り込み</button>
+    </div>
+    <div class="card">
+      <div id="all-scores-list">
+        <div class="loading"><div class="spinner"></div>読み込み中...</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['pending','all-scores'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'pending') loadPending();
+  if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
+}
+
+// ===== 承認待ち =====
+function openDupModal(newImg, newUser, existingImg, existingUser) {
+  document.getElementById('dup-img-new').src = newImg;
+  document.getElementById('dup-link-new').href = newImg;
+  document.getElementById('dup-label-new').textContent = `投稿: ${newUser}`;
+  document.getElementById('dup-img-existing').src = existingImg;
+  document.getElementById('dup-link-existing').href = existingImg;
+  document.getElementById('dup-label-existing').textContent = `既存: ${existingUser}`;
+  document.getElementById('dup-modal').style.display = 'flex';
+}
+
+function closeDupModal() {
+  document.getElementById('dup-modal').style.display = 'none';
+}
+
+async function loadPending() {
+  const el = document.getElementById('pending-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
+  try {
+    const items = await apiFetch('/admin/pending');
+    document.getElementById('pending-count').textContent = items.length > 0 ? `(${items.length})` : '';
+
+    if (items.length === 0) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">✅</div><p>承認待ちのスコアはありません</p></div>';
+      return;
+    }
+
+    el.innerHTML = items.map(item => `
+      <div class="pending-item" id="pending-${item.id}">
+        <div class="pending-info">
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">
+            第${item.event_number}回 ${escHtml(item.event_name)}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            ${attrBadge(item.attribute)}
+            <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
+            ${item.dup_image_url ? `<button onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')" style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em;border:none;cursor:pointer">⚠ 既存スコアと一致</button>` : ''}
+          </div>
+          <div class="pending-score">${formatScore(item.pending_score)}</div>
+          ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}
+          ${item.youtube_url ? `<div style="margin-top:4px"><a href="${escHtml(item.youtube_url)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#ff4444;display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>YouTube動画を見る</a></div>` : ''}
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${formatDate(item.updated_at)}</div>
+          <div style="margin-top:8px">
+            <input class="form-input" type="text" placeholder="却下理由（任意）" id="note-${item.id}" style="font-size:0.85rem">
+          </div>
+        </div>
+        ${item.pending_image_url
+          ? `<div class="pending-img-wrap">
+               <img src="${escHtml(item.pending_image_url)}" alt="リザルト" style="cursor:pointer" onclick="window.open('${escHtml(item.pending_image_url)}','_blank')">
+             </div>` : ''}
+        <div class="pending-actions">
+          <button class="btn btn-success btn-sm" onclick="approveScore(${item.id})">承認</button>
+          ${item.youtube_url ? `<button class="btn btn-sm" style="background:#e67e22;color:#fff;border:none" onclick="approveScore(${item.id}, true)">動画なし承認</button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="rejectScore(${item.id})">却下</button>
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function approveScore(id, clearYoutube = false) {
+  try {
+    const res = await apiFetch(`/admin/scores/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ clear_youtube: clearYoutube })
+    });
+    document.getElementById(`pending-${id}`)?.remove();
+    showAlert('#alert', res.message, 'success');
+    const cnt = document.querySelectorAll('[id^="pending-"]').length;
+    document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+async function rejectScore(id) {
+  const note = document.getElementById(`note-${id}`)?.value || '';
+  try {
+    await apiFetch(`/admin/scores/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note })
+    });
+    document.getElementById(`pending-${id}`)?.remove();
+    showAlert('#alert', '却下しました', 'info');
+    const cnt = document.querySelectorAll('[id^="pending-"]').length;
+    document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
+  } catch (err) { showAlert('#alert', err.message); }
+}
+
+// ===== 全スコア一覧 =====
+async function populateEventFilter() {
+  const sel = document.getElementById('filter-event');
+  if (sel.options.length > 1) return;
+  try {
+    const events = await apiFetch('/events');
+    events.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.textContent = `第${e.event_number}回 ${e.name}`;
+      sel.appendChild(opt);
+    });
+  } catch {}
+}
+
+async function loadAllScores() {
+  const el = document.getElementById('all-scores-list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const eventId = document.getElementById('filter-event').value;
+  const status = document.getElementById('filter-status').value;
+  let url = '/admin/scores';
+  const params = [];
+  if (eventId) params.push(`event_id=${eventId}`);
+  if (status) params.push(`status=${status}`);
+  if (params.length) url += '?' + params.join('&');
+
+  try {
+    const scores = await apiFetch(url);
+    if (scores.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>スコアがありません</p></div>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="ranking-table">
+        <thead><tr><th>ユーザー</th><th>イベント</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th>状態</th><th></th></tr></thead>
+        <tbody>
+          ${scores.map(s => `
+            <tr>
+              <td class="user-name-cell"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
+              <td style="font-size:0.85rem;white-space:nowrap">第${s.event_number}回<span class="hide-mobile"> ${escHtml(s.event_name)}</span></td>
+              <td>${attrBadge(s.attribute, true)}</td>
+              <td>${formatScore(s.approved_score)}</td>
+              <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
+              <td>${statusBadge(s.status)}</td>
+              <td>${s.youtube_url ? `<a href="${escHtml(s.youtube_url)}" target="_blank" rel="noopener" title="YouTube動画"><svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>` : ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// 初期ロード
+loadPending();
+populateEventFilter();
+</script>
+</body>
+</html>
