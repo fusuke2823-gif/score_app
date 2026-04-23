@@ -53,7 +53,7 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     if (req.file) {
       const uploadResult = await new Promise((resolve, reject) => {
         cloudinary.uploader
-          .upload_stream({ folder: 'hbr-ranking/results', resource_type: 'image' }, (err, result) => {
+          .upload_stream({ folder: 'hbr-ranking/results', resource_type: 'image', quality: 'auto:good', fetch_format: 'auto', width: 1920, crop: 'limit' }, (err, result) => {
             if (err) reject(err);
             else resolve(result);
           })

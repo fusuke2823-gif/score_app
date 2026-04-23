@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { optimizeUrl } = require('../utils/cloudinary');
 
 // 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', optionalAuth, async (req, res) => {
@@ -268,7 +269,7 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
       ORDER BY bs.approved_score DESC`,
       [req.params.id, selectedAttrs, scope || 'public', showIcons]
     );
-    res.json(result.rows);
+    res.json(result.rows.map(r => ({ ...r, approved_image_url: optimizeUrl(r.approved_image_url) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
+const { optimizeUrl } = require('../utils/cloudinary');
 
 // レートランキング（X/Ex ユーザー）
 router.get('/rate-ranking', optionalAuth, async (req, res) => {
@@ -145,7 +146,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       ...user,
       equipped_title: equippedTitle?.name || null,
       equipped_title_desc: equippedTitle?.description || null,
-      scores: scoresResult.rows,
+      scores: scoresResult.rows.map(r => ({ ...r, approved_image_url: optimizeUrl(r.approved_image_url) })),
       ranks: extRankMap,
       attr_ranks: extAttrRankMap,
       ranks_internal: intRankMap,
