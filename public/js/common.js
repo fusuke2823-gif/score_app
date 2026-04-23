@@ -434,7 +434,7 @@ function renderNav() {
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
         <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">${t('nav.feedback')}</a>` : ''}
-        ${user && user.role === 'admin' ? `<a href="/admin.html" class="${currentPath === '/admin.html' ? 'active' : ''}">${t('nav.admin')}</a>` : ''}
+        ${user && user.role === 'admin' ? `<a href="/admin_index.html" class="${currentPath.startsWith('/admin') ? 'active' : ''}">${t('nav.admin')}</a>` : ''}
       </div>
       <div class="nav-user">
         ${langBtn}
@@ -457,7 +457,7 @@ function renderNav() {
       ${user ? `<a href="/shop.html?tab=equip">${t('nav.equip')}</a>` : ''}
       <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user ? `<a href="/feedback.html">${t('nav.feedback')}</a>` : ''}
-      ${user && user.role === 'admin' ? `<a href="/admin.html">${t('nav.admin')}</a>` : ''}
+      ${user && user.role === 'admin' ? `<a href="/admin_index.html">${t('nav.admin')}</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${t('nav.account')}</a>
            <a href="#" onclick="logout();return false;">${t('nav.logout')}</a>`
