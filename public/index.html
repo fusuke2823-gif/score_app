@@ -139,7 +139,11 @@
       </div>
       <div style="display:flex;flex-direction:column;gap:0">
         <div style="padding:12px 0;border-bottom:1px solid var(--border)">
-          <div style="font-weight:bold;font-size:0.95rem;color:var(--accent);margin-bottom:4px">ver 4.03.08</div>
+          <div style="font-weight:bold;font-size:0.95rem;color:var(--accent);margin-bottom:4px">ver 4.03.09</div>
+          <div style="font-size:0.85rem;color:var(--text)">ランク昇格時のバーアニメーションを多段対応（C→A等の中間ランクも順番に表示）</div>
+        </div>
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-weight:bold;font-size:0.95rem;margin-bottom:4px">ver 4.03.08</div>
           <div style="font-size:0.85rem;color:var(--text)">管理画面を機能別に分割（スコア・イベント・ユーザー・ショップ・配布・設定）</div>
         </div>
         <div style="padding:12px 0;border-bottom:1px solid var(--border)">
@@ -279,6 +283,48 @@ function rankBarHtml(rank, val, animate, fromPct) {
     </div>`;
 }
 
+function animateCounter(from, to, duration) {
+  const el = document.getElementById('rate-counter');
+  if (!el) return;
+  const start = performance.now();
+  const diff = to - from;
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = Math.floor(from + diff * eased);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+async function animateRankBars(fromRank, cur) {
+  const fromIdx = RANK_ORDER.indexOf(fromRank);
+  const toIdx = RANK_ORDER.indexOf(cur.rank);
+  const steps = [];
+  for (let i = fromIdx; i <= toIdx; i++) {
+    const rank = RANK_ORDER[i];
+    if (!RANK_BAR_CFG[rank]) continue;
+    const isFinal = (i === toIdx);
+    const val = isFinal
+      ? (rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0))
+      : RANK_BAR_CFG[rank].max;
+    steps.push({ rank, val, isFinal });
+  }
+  for (const step of steps) {
+    const cfg = RANK_BAR_CFG[step.rank];
+    const targetPct = step.isFinal
+      ? Math.min(100, Math.max(0, ((step.val - cfg.min) / (cfg.max - cfg.min)) * 100))
+      : 100;
+    const wrap = document.getElementById('rank-bar-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = rankBarHtml(step.rank, step.val, true, 0);
+    await new Promise(r => setTimeout(r, 80));
+    const fill = document.getElementById('rank-bar-fill');
+    if (fill) fill.style.width = targetPct + '%';
+    if (!step.isFinal) await new Promise(r => setTimeout(r, 1300));
+  }
+}
+
 async function checkRankUpdate() {
   const user = getUser();
   if (!user) return;
@@ -297,6 +343,8 @@ async function checkRankUpdate() {
 
       if (rankChanged || sChanged || xChanged || ptChanged) {
         const isUp = RANK_ORDER.indexOf(cur.rank) >= RANK_ORDER.indexOf(stored.rank);
+        let doMultiStep = false;
+        let doRateCounter = false, rateFrom = 0, rateTo = 0;
 
         let html = '';
         if (rankChanged) {
@@ -307,8 +355,10 @@ async function checkRankUpdate() {
               ${rankBadgeLg(cur.rank, isUp)}
             </div>
             <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? 'ランクアップ！' : 'ランク降格'}</div>`;
-          // バーあり（C〜S）
-          if (RANK_BAR_CFG[cur.rank]) {
+          if (isUp && RANK_BAR_CFG[stored.rank]) {
+            html += '<div id="rank-bar-wrap"></div>';
+            doMultiStep = true;
+          } else if (RANK_BAR_CFG[cur.rank]) {
             const barVal = cur.rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0);
             html += rankBarHtml(cur.rank, barVal, true, 0);
           }
@@ -320,6 +370,18 @@ async function checkRankUpdate() {
           html = `
             <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>` +
             rankBarHtml(cur.rank, barVal, true, fromPct);
+        } else if ((cur.rank === 'X' || cur.rank === 'Ex') && cur.xRate != null && stored.xRate != null) {
+          rateFrom = Math.floor(stored.xRate);
+          rateTo = Math.floor(cur.xRate);
+          const delta = rateTo - rateFrom;
+          const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
+          const deltaColor = delta >= 0 ? 'var(--accent)' : '#e05555';
+          doRateCounter = true;
+          html = `
+            <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>
+            <div style="font-size:1.1rem;font-weight:bold;margin-top:8px">
+              レート <span id="rate-counter">${rateFrom}</span><span style="font-size:0.9rem;color:${deltaColor};margin-left:6px">(${deltaStr})</span>
+            </div>`;
         } else {
           const prev = rateLabel(stored.rank, stored.sRate, stored.xRate) || '-';
           const next = rateLabel(cur.rank, cur.sRate, cur.xRate) || '-';
@@ -334,8 +396,11 @@ async function checkRankUpdate() {
 
         document.getElementById('rank-update-body').innerHTML = html;
         document.getElementById('rank-update-modal').style.display = 'flex';
-        // バーアニメーション：少し遅らせてから伸ばす
-        if (RANK_BAR_CFG[cur.rank]) {
+        if (doMultiStep) {
+          animateRankBars(stored.rank, cur);
+        } else if (doRateCounter) {
+          setTimeout(() => animateCounter(rateFrom, rateTo, 1000), 100);
+        } else if (RANK_BAR_CFG[cur.rank]) {
           setTimeout(() => {
             const fill = document.getElementById('rank-bar-fill');
             if (fill) {
