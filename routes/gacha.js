@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
+const { optimizeUrl } = require('../utils/cloudinary');
 
 // ガチャ設定（公開）
 router.get('/settings', async (req, res) => {
@@ -47,7 +48,11 @@ router.get('/pools', async (req, res) => {
        GROUP BY gp.id
        ORDER BY gp.order_index ASC, gp.id ASC`
     );
-    res.json(result.rows);
+    res.json(result.rows.map(r => ({
+      ...r,
+      image_url: optimizeUrl(r.image_url),
+      pickup_icons: (r.pickup_icons || []).map(p => ({ ...p, image_url: optimizeUrl(p.image_url) }))
+    })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -67,7 +72,7 @@ router.get('/pools/:id/icons', async (req, res) => {
        ORDER BY gi.rarity ASC, gi.id ASC`,
       [req.params.id]
     );
-    res.json(result.rows);
+    res.json(result.rows.map(r => ({ ...r, image_url: optimizeUrl(r.image_url) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -80,7 +85,7 @@ router.get('/icons', async (req, res) => {
     const result = await pool.query(
       'SELECT id, name, rarity, image_url FROM gacha_icons WHERE is_active=TRUE ORDER BY rarity ASC, id ASC'
     );
-    res.json(result.rows);
+    res.json(result.rows.map(r => ({ ...r, image_url: optimizeUrl(r.image_url) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -104,7 +109,7 @@ router.get('/my', authenticateToken, async (req, res) => {
       pool.query('SELECT points, gp, equipped_icon_id FROM users WHERE id=$1', [req.user.id])
     ]);
     res.json({
-      icons: iconsResult.rows,
+      icons: iconsResult.rows.map(r => ({ ...r, image_url: optimizeUrl(r.image_url) })),
       points: userResult.rows[0]?.points || 0,
       gp: userResult.rows[0]?.gp || 0,
       equipped_icon_id: userResult.rows[0]?.equipped_icon_id ?? null
@@ -213,7 +218,7 @@ async function acquireIcon(client, userId, icon, dupMap) {
       [userId, dupPts, `ガチャ重複補償（${icon.rarity}）`]
     );
   }
-  return { ...icon, is_dup: isDup, dup_pts: dupPts };
+  return { ...icon, image_url: optimizeUrl(icon.image_url), is_dup: isDup, dup_pts: dupPts };
 }
 
 // 単発ガチャ
