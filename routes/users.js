@@ -144,6 +144,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     res.json({
       ...user,
+      equipped_icon_url: optimizeUrl(user.equipped_icon_url),
       equipped_title: equippedTitle?.name || null,
       equipped_title_desc: equippedTitle?.description || null,
       scores: scoresResult.rows.map(r => ({ ...r, approved_image_url: optimizeUrl(r.approved_image_url) })),

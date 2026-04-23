@@ -269,7 +269,7 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
       ORDER BY bs.approved_score DESC`,
       [req.params.id, selectedAttrs, scope || 'public', showIcons]
     );
-    res.json(result.rows.map(r => ({ ...r, approved_image_url: optimizeUrl(r.approved_image_url) })));
+    res.json(result.rows.map(r => ({ ...r, approved_image_url: optimizeUrl(r.approved_image_url), equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
