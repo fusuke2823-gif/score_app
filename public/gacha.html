@@ -515,7 +515,7 @@ function renderMyIcons(icons) {
   el.innerHTML = `<div class="icon-grid">${icons.map(icon => `
     <div class="icon-item">
       <span class="irarity irarity-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
-      <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"
+      <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" loading="lazy"
            class="${icon.is_equipped ? 'equipped' : ''}"
            onclick="equipIcon(${icon.id}, this)"
            title="${escHtml(icon.name)}">
@@ -728,7 +728,7 @@ async function openPoolModal() {
             ${grouped[r].map(ic => `
               <div style="text-align:center;position:relative">
                 ${ic.is_pickup ? `<span style="position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:0.6rem;font-weight:bold;color:#ffd700;background:rgba(0,0,0,0.6);border-radius:3px;padding:0 3px;white-space:nowrap;z-index:1">★PU</span>` : ''}
-                <img src="${escHtml(ic.image_url)}" alt="${escHtml(ic.name)}"
+                <img src="${escHtml(ic.image_url)}" alt="${escHtml(ic.name)}" loading="lazy"
                      style="width:54px;height:54px;border-radius:20%;object-fit:cover;border:2px solid ${ic.is_pickup ? '#ffd700' : rarityColors[r]};display:block;margin:0 auto 4px;${ic.is_pickup ? 'box-shadow:0 0 6px #ffd700aa' : ''}">
                 <div style="font-size:0.62rem;color:var(--text-secondary);word-break:break-all;line-height:1.2">${escHtml(ic.name)}</div>
               </div>`).join('')}

@@ -124,7 +124,7 @@ function renderTable(rows) {
       ${r.comp_rank === 'Ex' && r.ex_rank != null ? `<span style="font-weight:700;font-size:0.9rem;color:#a855f7">${r.ex_rank}位</span>` : ''}
     </span>`;
     const avatarInner = r.equipped_icon_url
-      ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}">`
+      ? `<img src="${escHtml(r.equipped_icon_url)}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" loading="lazy">`
       : escHtml(r.username.charAt(0));
     return `
       <tr class="${fr}${isSelf ? ' is-me' : ''}">

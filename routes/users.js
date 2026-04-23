@@ -27,7 +27,7 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
        WHERE u.comp_rank IN ('X','Ex') ${scopeFilter}
        ORDER BY u.x_rate DESC NULLS LAST`
     );
-    res.json(result.rows);
+    res.json(result.rows.map(r => ({ ...r, equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
