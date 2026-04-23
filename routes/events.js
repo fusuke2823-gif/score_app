@@ -15,7 +15,7 @@ router.get('/', optionalAuth, async (req, res) => {
         (SELECT en.destruction_rate FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_destruction_rate
        FROM events e WHERE e.is_active = TRUE ORDER BY e.event_number DESC`
     );
-    res.json(result.rows);
+    res.json(result.rows.map(r => ({ ...r, first_enemy_image: optimizeUrl(r.first_enemy_image) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -186,7 +186,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       'SELECT * FROM event_rules WHERE event_id = $1 ORDER BY order_index',
       [req.params.id]
     );
-    res.json({ ...event, enemies: enemiesResult.rows, rules: rulesResult.rows });
+    res.json({ ...event, enemies: enemiesResult.rows.map(e => ({ ...e, image_url: optimizeUrl(e.image_url) })), rules: rulesResult.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
