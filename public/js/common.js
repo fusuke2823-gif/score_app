@@ -850,6 +850,7 @@ function renderSubmissionPeriod(event) {
 async function checkGoogleLink() {
   if (!getToken()) return;
   if (localStorage.getItem('google_link_dismissed')) return;
+  if (/Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\b/i.test(navigator.userAgent)) return;
   try {
     const me = await apiFetch('/auth/me').catch(() => null);
     if (!me || me.has_google) return;
