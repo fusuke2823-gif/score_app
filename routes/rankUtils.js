@@ -8,6 +8,17 @@ function convertScoreToPoints(score) {
   return Math.floor(4500 + (score - 4000000) * 3 / 500);
 }
 
+function convertEncounterScoreToPoints(score) {
+  score = Math.floor(score);
+  if (score <= 0) return 0;
+  if (score <= 100000) return Math.floor(score / 1000);
+  if (score <= 140000) return Math.floor(100 + (score - 100000) / 100);
+  if (score <= 147000) return Math.floor(500 + (score - 140000) / 7);
+  if (score <= 150000) return Math.floor(1500 + (score - 147000) * 3 / 5);
+  if (score <= 156000) return Math.floor(3300 + (score - 150000) / 5);
+  return Math.floor(4500 + (score - 156000) / 5);
+}
+
 // Xレート用pt→rate変換（350万=0, 380万=1500, 以降は緩やかな係数）
 function rateForXPt(pt) {
   if (pt < 3300) return (pt - 1500) * 0.833;
@@ -122,4 +133,4 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
   }
 }
 
-module.exports = { convertScoreToPoints, updateUserRanks };
+module.exports = { convertScoreToPoints, convertEncounterScoreToPoints, updateUserRanks };
