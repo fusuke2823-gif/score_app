@@ -96,8 +96,8 @@ async function updateUserRanks(client, userIds) {
       if (newRank === 'S') {
         newSRate = sRate;
         if (sRate >= 1000) {
-          newRank = 'X';
           newXRate = rateForXPt(bestPt) * 0.5 + rateForXPt(recentPt) * 0.5;
+          newRank = newXRate >= 1500 ? 'Ex' : 'X';
         }
       } else {
         // X or Ex
