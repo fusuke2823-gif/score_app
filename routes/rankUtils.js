@@ -2,15 +2,15 @@ function convertScoreToPoints(score) {
   score = Math.floor(score);
   if (score <= 0) return 0;
   if (score <= 2000000) return Math.floor(score / 20000);
-  if (score <= 3000000) return Math.floor(100 + (score - 2000000) / 25000);
+  if (score <= 3000000) return Math.floor(100 + (score - 2000000) / 2500);
   if (score <= 3500000) return Math.floor(500 + (score - 3000000) / 500);
-  if (score <= 4000000) return Math.floor(1500 + (score - 3500000) / 167);
-  return Math.floor(4500 + (score - 4000000) / 167);
+  if (score <= 4000000) return Math.floor(1500 + (score - 3500000) * 3 / 500);
+  return Math.floor(4500 + (score - 4000000) * 3 / 500);
 }
 
 // Xレート用pt→rate変換（350万=0, 380万=1500, 以降は緩やかな係数）
 function rateForXPt(pt) {
-  if (pt <= 3300) return (pt - 1500) * 0.833;
+  if (pt < 3300) return (pt - 1500) * 0.833;
   return 1500 + (pt - 3300) * 0.209;
 }
 
@@ -35,7 +35,7 @@ async function updateUserRanks(client, userIds) {
        JOIN events e ON e.id = s.event_id
        WHERE s.user_id = $1
          AND s.approved_score IS NOT NULL
-         AND s.ranking_scope = 'public'
+         AND s.ranking_scope IN ('public', 'internal')
          AND e.event_type = 'score_attack'
        ORDER BY corrected_score DESC
        LIMIT 1`,
@@ -55,7 +55,7 @@ async function updateUserRanks(client, userIds) {
        JOIN events e ON e.id = s.event_id
        WHERE s.user_id = $1
          AND s.approved_score IS NOT NULL
-         AND s.ranking_scope = 'public'
+         AND s.ranking_scope IN ('public', 'internal')
          AND e.event_type = 'score_attack'
        GROUP BY e.id, e.event_number
        ORDER BY e.event_number DESC
@@ -86,8 +86,8 @@ async function updateUserRanks(client, userIds) {
 
     // C→B→A→S（降格なし）
     if (newRank === 'C' && rank_points >= 400) newRank = 'B';
-    if (newRank === 'B' && rank_points >= 1300) newRank = 'A';
-    if (newRank === 'A' && rank_points >= 3000 && bestPt >= 500) newRank = 'S';
+    if (newRank === 'B' && rank_points >= 1000) newRank = 'A';
+    if (newRank === 'A' && rank_points >= 2000 && bestPt >= 500) newRank = 'S';
 
     // S/X/Exレート計算
     if (['S', 'X', 'Ex'].includes(newRank)) {
