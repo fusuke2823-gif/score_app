@@ -1741,7 +1741,7 @@ router.get('/enemies', async (req, res) => {
 // Cloudinary使用量
 router.get('/cloudinary/usage', async (req, res) => {
   try {
-    const usage = await fetchUsage();
+    const usage = await fetchUsage(req.query.force === '1');
     res.json(usage);
   } catch (e) {
     res.status(500).json({ error: e.message });

@@ -484,7 +484,7 @@ async function loadCloudinaryUsage(force) {
   const el = document.getElementById('cld-usage-body');
   if (!el) return;
   try {
-    const d = await apiFetch('/admin/cloudinary/usage');
+    const d = await apiFetch(`/admin/cloudinary/usage${force ? '?force=1' : ''}`);
     const rows = [
       { label: '帯域幅', u: d.bandwidth },
       { label: 'ストレージ', u: d.storage },
