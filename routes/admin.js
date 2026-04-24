@@ -5,6 +5,7 @@ const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { updateUserRanks, convertScoreToPoints } = require('./rankUtils');
+const { fetchUsage } = require('../utils/cloudinary');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
@@ -1734,6 +1735,41 @@ router.get('/enemies', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// Cloudinary使用量
+router.get('/cloudinary/usage', async (req, res) => {
+  try {
+    const usage = await fetchUsage();
+    res.json(usage);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 帯域制限設定 取得
+router.get('/cloudinary/limit', async (req, res) => {
+  try {
+    const r = await pool.query("SELECT value FROM settings WHERE key='cloudinary_bw_limit'");
+    res.json({ limit: r.rows[0]?.value ?? null });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// 帯域制限設定 保存
+router.put('/cloudinary/limit', async (req, res) => {
+  try {
+    const { limit } = req.body;
+    const val = (limit === null || limit === '' || limit === undefined) ? null : String(Number(limit));
+    await pool.query(
+      "INSERT INTO settings (key,value) VALUES ('cloudinary_bw_limit',$1) ON CONFLICT (key) DO UPDATE SET value=$1",
+      [val]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 

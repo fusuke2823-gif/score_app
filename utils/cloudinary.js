@@ -5,4 +5,17 @@ function optimizeUrl(url) {
   return url.replace('/upload/', `/upload/${TRANSFORM}/`);
 }
 
-module.exports = { optimizeUrl };
+let _usageCache = null;
+let _usageCacheAt = 0;
+const USAGE_TTL = 30 * 60 * 1000;
+
+async function fetchUsage() {
+  const now = Date.now();
+  if (_usageCache && now - _usageCacheAt < USAGE_TTL) return _usageCache;
+  const cloudinary = require('cloudinary').v2;
+  _usageCache = await cloudinary.api.usage();
+  _usageCacheAt = now;
+  return _usageCache;
+}
+
+module.exports = { optimizeUrl, fetchUsage };

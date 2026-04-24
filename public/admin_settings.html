@@ -36,6 +36,7 @@
     <button class="tab-btn" onclick="switchTab('loginbonus')">ログインボーナス</button>
     <button class="tab-btn" onclick="switchTab('titles')">称号スコープ</button>
     <button class="tab-btn" onclick="switchTab('feedback')">お便り箱</button>
+    <button class="tab-btn" onclick="switchTab('cloudinary')">Cloudinary</button>
   </div>
 
   <!-- 一般設定タブ -->
@@ -144,6 +145,30 @@
       <div id="feedback-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
+
+  <!-- Cloudinaryタブ -->
+  <div class="tab-content" id="tab-cloudinary">
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">使用量（月次）</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadCloudinaryUsage(true)">更新</button>
+      </div>
+      <div id="cld-usage-body"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="section-title">帯域制限（ユーザー画像アップロード）</div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">
+        帯域幅の使用率がこの値を超えると、ユーザーの画像アップロードを自動停止します。空欄で無効。
+      </div>
+      <div id="cld-limit-alert" style="margin-bottom:10px"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input id="cld-limit-input" type="number" min="1" max="200" step="1" class="form-control" style="width:100px" placeholder="例: 95">
+        <span style="color:var(--text-muted)">%</span>
+        <button class="btn btn-primary btn-sm" onclick="saveCloudinaryLimit()">保存</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearCloudinaryLimit()">制限を解除</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -153,7 +178,7 @@ if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['general','loginbonus','titles','feedback'][i] === name);
+    b.classList.toggle('active', ['general','loginbonus','titles','feedback','cloudinary'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
@@ -161,6 +186,7 @@ function switchTab(name) {
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
   if (name === 'titles') loadTitles();
   if (name === 'feedback') loadFeedback();
+  if (name === 'cloudinary') { loadCloudinaryUsage(); loadCloudinaryLimit(); }
 }
 
 // ===== 一般設定 =====
@@ -436,6 +462,93 @@ async function submitReply(id) {
     await apiFetch(`/feedback/${id}/reply`, { method: 'PATCH', body: JSON.stringify({ reply }) });
     loadFeedback();
   } catch (err) { alert(err.message); }
+}
+
+// ===== Cloudinary =====
+function fmtBytes(b) {
+  if (!b) return '0 B';
+  const u = ['B','KB','MB','GB','TB'];
+  const i = Math.min(Math.floor(Math.log(b) / Math.log(1024)), u.length - 1);
+  return (b / Math.pow(1024, i)).toFixed(2) + ' ' + u[i];
+}
+
+function usageBar(pct, col) {
+  const p = Math.min(pct || 0, 100);
+  const color = pct >= 100 ? '#e05555' : pct >= 80 ? '#e6a028' : col || 'var(--accent)';
+  return `<div style="height:8px;border-radius:4px;background:rgba(255,255,255,0.1);overflow:hidden;margin-top:4px">
+    <div style="height:100%;width:${p}%;background:${color};border-radius:4px;transition:width 0.5s"></div>
+  </div>`;
+}
+
+async function loadCloudinaryUsage(force) {
+  const el = document.getElementById('cld-usage-body');
+  if (!el) return;
+  try {
+    const d = await apiFetch('/admin/cloudinary/usage');
+    const rows = [
+      { label: '帯域幅', u: d.bandwidth },
+      { label: 'ストレージ', u: d.storage },
+      { label: '変換処理', u: d.transformations },
+    ];
+    el.innerHTML = rows.map(r => {
+      if (!r.u) return '';
+      const pct = r.u.used_percent ?? (r.u.limit ? r.u.usage / r.u.limit * 100 : 0);
+      const usageStr = r.u.limit
+        ? `${fmtBytes(r.u.usage)} / ${fmtBytes(r.u.limit)}`
+        : `${r.u.usage?.toLocaleString()}`;
+      const pctStr = pct.toFixed(1);
+      const col = pct >= 100 ? '#e05555' : pct >= 80 ? '#e6a028' : 'var(--accent)';
+      return `<div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px">
+          <span style="color:var(--text-muted)">${r.label}</span>
+          <span>${usageStr} <span style="color:${col};font-weight:bold">${pctStr}%</span></span>
+        </div>
+        ${usageBar(pct)}
+      </div>`;
+    }).join('') +
+    `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
+      ファイル数: ${d.resources ?? '-'} &nbsp;|&nbsp;
+      リクエスト数（月次）: ${d.requests?.toLocaleString() ?? '-'} &nbsp;|&nbsp;
+      プラン: ${d.plan ?? '-'} &nbsp;|&nbsp;
+      最終更新: ${d.last_updated ? new Date(d.last_updated).toLocaleString('ja-JP') : '-'}
+      <span style="margin-left:8px;color:var(--text-muted)">(${force ? '最新取得' : 'キャッシュ30分'})</span>
+    </div>`;
+  } catch (e) {
+    el.innerHTML = `<div style="color:#e05555">取得失敗: ${e.message}</div>`;
+  }
+}
+
+async function loadCloudinaryLimit() {
+  try {
+    const d = await apiFetch('/admin/cloudinary/limit');
+    document.getElementById('cld-limit-input').value = d.limit ?? '';
+  } catch {}
+}
+
+async function saveCloudinaryLimit() {
+  const val = document.getElementById('cld-limit-input').value.trim();
+  const num = Number(val);
+  if (val !== '' && (isNaN(num) || num < 1 || num > 200)) {
+    showCldAlert('1〜200の数値を入力してください', true); return;
+  }
+  try {
+    await apiFetch('/admin/cloudinary/limit', { method: 'PUT', body: JSON.stringify({ limit: val === '' ? null : num }) });
+    showCldAlert('保存しました');
+  } catch (e) { showCldAlert(e.message, true); }
+}
+
+async function clearCloudinaryLimit() {
+  document.getElementById('cld-limit-input').value = '';
+  try {
+    await apiFetch('/admin/cloudinary/limit', { method: 'PUT', body: JSON.stringify({ limit: null }) });
+    showCldAlert('制限を解除しました');
+  } catch (e) { showCldAlert(e.message, true); }
+}
+
+function showCldAlert(msg, isErr) {
+  const el = document.getElementById('cld-limit-alert');
+  el.innerHTML = `<div class="alert ${isErr ? 'alert-error' : 'alert-success'}" style="padding:6px 12px;font-size:0.85rem">${msg}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 3000);
 }
 
 // 初期ロード
