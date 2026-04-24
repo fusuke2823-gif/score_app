@@ -43,6 +43,20 @@ app.get('/api/auth/google/client-id', (req, res) => {
 
 // 公開設定（バージョン等）
 const pool = require('./db/index');
+const { fetchUsage } = require('./utils/cloudinary');
+app.get('/api/image-mode', async (req, res) => {
+  try {
+    const r = await pool.query("SELECT value FROM settings WHERE key='cloudinary_bw_limit'");
+    const limitPct = r.rows[0]?.value != null ? Number(r.rows[0].value) : null;
+    if (limitPct === null) return res.json({ showImages: true });
+    const usage = await fetchUsage();
+    const bwPct = usage.bandwidth?.used_percent || 0;
+    res.json({ showImages: bwPct < limitPct, bwPct, limitPct });
+  } catch {
+    res.json({ showImages: true });
+  }
+});
+
 app.get('/api/version', async (req, res) => {
   try {
     const result = await pool.query("SELECT value FROM settings WHERE key = 'app_version'");
