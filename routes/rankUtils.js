@@ -40,10 +40,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
     // ベストスコア（全イベントタイプ・複数敵は/1.05補正）
     const bestResult = await client.query(
       `SELECT
-         CASE WHEN (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) > 1
-           THEN s.approved_score::float / 1.05
-           ELSE s.approved_score::float
-         END AS corrected_score,
+         s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
          e.event_type
        FROM scores s
        JOIN events e ON e.id = s.event_id
@@ -65,10 +62,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
     // 直近3イベントのスコア（全イベントタイプ）
     const recentResult = await client.query(
       `SELECT
-         CASE WHEN (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) > 1
-           THEN MAX(s.approved_score)::float / 1.05
-           ELSE MAX(s.approved_score)::float
-         END AS corrected_score,
+         MAX(s.approved_score)::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
          e.event_type
        FROM scores s
        JOIN events e ON e.id = s.event_id

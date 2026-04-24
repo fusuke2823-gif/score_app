@@ -30,12 +30,9 @@ async function run() {
     const ev = evRes.rows[0];
     console.log(`対象イベント: ${ev.name} (id=${ev.id})`);
 
-    // 3. 複数敵補正係数
-    const ecRes = await client.query(
-      'SELECT COUNT(*) AS cnt FROM enemies WHERE event_id=$1', [ev.id]
-    );
-    const enemyCount = parseInt(ecRes.rows[0].cnt);
-    console.log(`敵数: ${enemyCount}${enemyCount > 1 ? ' → /1.05補正あり' : ''}`);
+    // 3. スコア補正係数
+    const multiplier = parseFloat(ev.score_multiplier) || 1.0;
+    console.log(`スコア補正係数: ${multiplier}`);
 
     // 4. 全スコープの承認済みスコア（ユーザーごとベスト1件）
     const scoreRes = await client.query(
@@ -49,7 +46,7 @@ async function run() {
 
     // 5. ランクポイントをセット
     for (const row of scoreRes.rows) {
-      const corrected = enemyCount > 1 ? row.approved_score / 1.05 : row.approved_score;
+      const corrected = row.approved_score * multiplier;
       const rp = convertScoreToPoints(corrected);
       await client.query('UPDATE users SET rank_points=$1 WHERE id=$2', [rp, row.user_id]);
     }

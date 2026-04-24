@@ -116,6 +116,10 @@
           </select>
         </div>
         <div class="form-group">
+          <label class="form-label">スコア補正係数（例: 複数体は0.95など、通常は1.0）</label>
+          <input class="form-input" type="number" id="event-multiplier" min="0.01" max="2" step="0.01" value="1.0">
+        </div>
+        <div class="form-group">
           <label class="form-label">説明（任意）</label>
           <textarea class="form-textarea" id="event-desc" rows="2"></textarea>
         </div>
@@ -393,6 +397,10 @@
           </select>
         </div>
         <div class="form-group">
+          <label class="form-label">スコア補正係数（通常は1.0）</label>
+          <input class="form-input" type="number" id="edit-event-multiplier" min="0.01" max="2" step="0.01" value="1.0">
+        </div>
+        <div class="form-group">
           <label class="form-label">説明（任意）</label>
           <textarea class="form-textarea" id="edit-event-desc" rows="2"></textarea>
         </div>
@@ -638,6 +646,7 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
         event_number: parseInt(document.getElementById('event-number').value),
         name: document.getElementById('event-name').value,
         event_type: document.getElementById('event-type').value,
+        score_multiplier: parseFloat(document.getElementById('event-multiplier').value) || 1.0,
         description: document.getElementById('event-desc').value,
         submission_start: toISO(document.getElementById('event-start').value),
         submission_end: toISO(document.getElementById('event-end').value)
@@ -678,6 +687,7 @@ async function openEditEvent(id) {
   document.getElementById('edit-event-id').value = e.id;
   document.getElementById('edit-event-name').value = e.name;
   document.getElementById('edit-event-type').value = e.event_type || 'score_attack';
+  document.getElementById('edit-event-multiplier').value = e.score_multiplier != null ? e.score_multiplier : 1.0;
   document.getElementById('edit-event-desc').value = e.description || '';
   document.getElementById('edit-event-start').value = toLocalDatetime(e.submission_start);
   document.getElementById('edit-event-end').value = toLocalDatetime(e.submission_end);
@@ -714,6 +724,7 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
       body: JSON.stringify({
         name: document.getElementById('edit-event-name').value,
         event_type: document.getElementById('edit-event-type').value,
+        score_multiplier: parseFloat(document.getElementById('edit-event-multiplier').value) || 1.0,
         description: document.getElementById('edit-event-desc').value,
         submission_start: toISO(document.getElementById('edit-event-start').value),
         submission_end: toISO(document.getElementById('edit-event-end').value),

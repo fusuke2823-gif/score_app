@@ -111,11 +111,11 @@ router.get('/events', async (req, res) => {
 
 // イベント作成
 router.post('/events', async (req, res) => {
-  const { event_number, name, description, submission_start, submission_end, event_type } = req.body;
+  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack']
+      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -128,11 +128,11 @@ router.post('/events', async (req, res) => {
 
 // イベント更新
 router.put('/events/:id', async (req, res) => {
-  const { name, description, is_active, submission_start, submission_end, event_type } = req.body;
+  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6 WHERE id=$7 RETURNING *',
-      [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', req.params.id]
+      'UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6, score_multiplier=$7 WHERE id=$8 RETURNING *',
+      [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -828,17 +828,13 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       return rp.ext_rank_pts_101plus ?? 5;
     };
 
-    // 敵数取得（複数敵補正用）
-    const enemyCountResult = await client.query(
-      'SELECT COUNT(*) AS cnt FROM enemies WHERE event_id=$1', [req.params.id]
-    );
-    const enemyCount = parseInt(enemyCountResult.rows[0].cnt);
+    const multiplier = parseFloat(event.score_multiplier) || 1.0;
 
     let distributed = 0;
     const rankUpdateUserIdsExt = [];
     for (const row of rankResult.rows) {
       const pts = rankPts(Number(row.rank));
-      const correctedScore = enemyCount > 1 ? row.approved_score / 1.05 : row.approved_score;
+      const correctedScore = row.approved_score * multiplier;
       const rankPtsFromScore = event.event_type === 'seraph'
         ? convertEncounterScoreToPoints(correctedScore)
         : convertScoreToPoints(correctedScore);
