@@ -35,62 +35,71 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
 
     const { rank_points } = userRow;
 
-    // ベストスコア（スコアアタックのみ・複数敵は/1.05補正）
+    // ベストスコア（全イベントタイプ・複数敵は/1.05補正）
     const bestResult = await client.query(
       `SELECT
          CASE WHEN (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) > 1
            THEN s.approved_score::float / 1.05
            ELSE s.approved_score::float
-         END AS corrected_score
+         END AS corrected_score,
+         e.event_type
        FROM scores s
        JOIN events e ON e.id = s.event_id
        WHERE s.user_id = $1
          AND s.approved_score IS NOT NULL
          AND s.ranking_scope IN ('public', 'internal')
-         AND e.event_type = 'score_attack'
+         AND e.event_type IN ('score_attack', 'seraph')
          ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
-       ORDER BY corrected_score DESC
-       LIMIT 1`,
+       ORDER BY corrected_score DESC`,
       [userId]
     );
-    const bestScore = bestResult.rows.length > 0 ? parseFloat(bestResult.rows[0].corrected_score) : 0;
-    const bestPt = convertScoreToPoints(bestScore);
+    const bestPt = bestResult.rows.reduce((max, r) => {
+      const pt = r.event_type === 'seraph'
+        ? convertEncounterScoreToPoints(parseFloat(r.corrected_score))
+        : convertScoreToPoints(parseFloat(r.corrected_score));
+      return Math.max(max, pt);
+    }, 0);
 
-    // 直近3イベントのスコア（スコアアタックのみ）
+    // 直近3イベントのスコア（全イベントタイプ）
     const recentResult = await client.query(
       `SELECT
          CASE WHEN (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) > 1
            THEN MAX(s.approved_score)::float / 1.05
            ELSE MAX(s.approved_score)::float
-         END AS corrected_score
+         END AS corrected_score,
+         e.event_type
        FROM scores s
        JOIN events e ON e.id = s.event_id
        WHERE s.user_id = $1
          AND s.approved_score IS NOT NULL
          AND s.ranking_scope IN ('public', 'internal')
-         AND e.event_type = 'score_attack'
+         AND e.event_type IN ('score_attack', 'seraph')
          ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
-       GROUP BY e.id, e.event_number
+       GROUP BY e.id, e.event_number, e.event_type
        ORDER BY e.event_number DESC
        LIMIT 3`,
       [userId]
     );
-    const rs = recentResult.rows.map(r => parseFloat(r.corrected_score));
+    const rsPt = recentResult.rows.map(r => {
+      const score = parseFloat(r.corrected_score);
+      return r.event_type === 'seraph'
+        ? convertEncounterScoreToPoints(score)
+        : convertScoreToPoints(score);
+    });
 
     // recent_avg計算（不足分を補完）
-    let recentAvgScore;
-    if (rs.length === 0) {
-      recentAvgScore = 0;
-    } else if (rs.length === 1) {
-      const fill = rs[0] * 0.9;
-      recentAvgScore = (rs[0] + fill + fill) / 3;
-    } else if (rs.length === 2) {
-      const fill = ((rs[0] + rs[1]) / 2) * 0.9;
-      recentAvgScore = (rs[0] + rs[1] + fill) / 3;
+    let recentPt;
+    if (rsPt.length === 0) {
+      recentPt = 0;
+    } else if (rsPt.length === 1) {
+      const fill = rsPt[0] * 0.9;
+      recentPt = (rsPt[0] + fill + fill) / 3;
+    } else if (rsPt.length === 2) {
+      const fill = ((rsPt[0] + rsPt[1]) / 2) * 0.9;
+      recentPt = (rsPt[0] + rsPt[1] + fill) / 3;
     } else {
-      recentAvgScore = (rs[0] + rs[1] + rs[2]) / 3;
+      recentPt = (rsPt[0] + rsPt[1] + rsPt[2]) / 3;
     }
-    const recentPt = convertScoreToPoints(recentAvgScore);
 
     // ランク進行
     let newRank = userRow.comp_rank || 'C';
