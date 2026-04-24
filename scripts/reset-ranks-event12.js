@@ -57,7 +57,7 @@ async function run() {
     // 6. 全ユーザーのランク再計算
     const { rows: allUsers } = await client.query('SELECT id FROM users');
     console.log(`ランク再計算: ${allUsers.length} 人...`);
-    await updateUserRanks(client, allUsers.map(r => r.id));
+    await updateUserRanks(client, allUsers.map(r => r.id), { maxEventNumber: EVENT_NUMBER });
 
     await client.query('COMMIT');
     console.log('完了');

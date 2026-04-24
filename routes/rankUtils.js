@@ -14,7 +14,7 @@ function rateForXPt(pt) {
   return 1500 + (pt - 3300) * 0.209;
 }
 
-async function updateUserRanks(client, userIds) {
+async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
   for (const userId of userIds) {
     const userRow = (await client.query(
       'SELECT comp_rank, rank_points, s_rate, x_rate FROM users WHERE id=$1',
@@ -37,6 +37,7 @@ async function updateUserRanks(client, userIds) {
          AND s.approved_score IS NOT NULL
          AND s.ranking_scope IN ('public', 'internal')
          AND e.event_type = 'score_attack'
+         ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
        ORDER BY corrected_score DESC
        LIMIT 1`,
       [userId]
@@ -57,6 +58,7 @@ async function updateUserRanks(client, userIds) {
          AND s.approved_score IS NOT NULL
          AND s.ranking_scope IN ('public', 'internal')
          AND e.event_type = 'score_attack'
+         ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
        GROUP BY e.id, e.event_number
        ORDER BY e.event_number DESC
        LIMIT 3`,
