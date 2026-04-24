@@ -480,39 +480,72 @@ function usageBar(pct, col) {
   </div>`;
 }
 
+function cldRow(label, valStr, pct) {
+  const hasPct = pct != null && isFinite(pct);
+  const col = hasPct ? (pct >= 100 ? '#e05555' : pct >= 80 ? '#e6a028' : 'var(--accent)') : 'var(--text-muted)';
+  return `<div style="margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px">
+      <span style="color:var(--text-muted)">${label}</span>
+      <span>${valStr}${hasPct ? ` <span style="color:${col};font-weight:bold">${pct.toFixed(1)}%</span>` : ''}</span>
+    </div>
+    ${hasPct ? usageBar(pct) : ''}
+  </div>`;
+}
+
 async function loadCloudinaryUsage(force) {
   const el = document.getElementById('cld-usage-body');
   if (!el) return;
   try {
     const d = await apiFetch(`/admin/cloudinary/usage${force ? '?force=1' : ''}`);
-    const rows = [
-      { label: '帯域幅', u: d.bandwidth },
-      { label: 'ストレージ', u: d.storage },
-      { label: '変換処理', u: d.transformations },
-    ];
-    el.innerHTML = rows.map(r => {
-      if (!r.u) return '';
-      const pct = r.u.used_percent ?? (r.u.limit ? r.u.usage / r.u.limit * 100 : 0);
-      const usageStr = r.u.limit
-        ? `${fmtBytes(r.u.usage)} / ${fmtBytes(r.u.limit)}`
-        : `${r.u.usage?.toLocaleString()}`;
-      const pctStr = pct.toFixed(1);
-      const col = pct >= 100 ? '#e05555' : pct >= 80 ? '#e6a028' : 'var(--accent)';
-      return `<div style="margin-bottom:16px">
-        <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px">
-          <span style="color:var(--text-muted)">${r.label}</span>
-          <span>${usageStr} <span style="color:${col};font-weight:bold">${pctStr}%</span></span>
-        </div>
-        ${usageBar(pct)}
-      </div>`;
-    }).join('') +
-    `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
+    let html = '';
+
+    // クレジット合計（無料プランはクレジット制）
+    if (d.credits) {
+      const pct = d.credits.used_percent ?? (d.credits.limit ? d.credits.usage / d.credits.limit * 100 : null);
+      const valStr = d.credits.limit
+        ? `${(d.credits.usage ?? 0).toFixed(2)} / ${d.credits.limit} クレジット`
+        : `${(d.credits.usage ?? 0).toFixed(2)} クレジット`;
+      html += cldRow('クレジット（合計）', valStr, pct);
+    }
+
+    // 帯域幅
+    if (d.bandwidth) {
+      const pct = d.bandwidth.used_percent > 0 ? d.bandwidth.used_percent
+        : (d.bandwidth.limit ? d.bandwidth.usage / d.bandwidth.limit * 100 : null);
+      const valStr = d.bandwidth.limit
+        ? `${fmtBytes(d.bandwidth.usage)} / ${fmtBytes(d.bandwidth.limit)}`
+        : fmtBytes(d.bandwidth.usage);
+      html += cldRow('帯域幅', valStr, pct);
+    }
+
+    // ストレージ
+    if (d.storage) {
+      const pct = d.storage.used_percent > 0 ? d.storage.used_percent
+        : (d.storage.limit ? d.storage.usage / d.storage.limit * 100 : null);
+      const valStr = d.storage.limit
+        ? `${fmtBytes(d.storage.usage)} / ${fmtBytes(d.storage.limit)}`
+        : fmtBytes(d.storage.usage);
+      html += cldRow('ストレージ', valStr, pct);
+    }
+
+    // 変換処理
+    if (d.transformations) {
+      const pct = d.transformations.used_percent > 0 ? d.transformations.used_percent
+        : (d.transformations.limit ? d.transformations.usage / d.transformations.limit * 100 : null);
+      const valStr = d.transformations.limit
+        ? `${(d.transformations.usage ?? 0).toLocaleString()} / ${d.transformations.limit.toLocaleString()}`
+        : (d.transformations.usage ?? 0).toLocaleString();
+      html += cldRow('変換処理', valStr, pct);
+    }
+
+    html += `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
       ファイル数: ${d.resources ?? '-'} &nbsp;|&nbsp;
       リクエスト数（月次）: ${d.requests?.toLocaleString() ?? '-'} &nbsp;|&nbsp;
       プラン: ${d.plan ?? '-'} &nbsp;|&nbsp;
       最終更新: ${d.last_updated ? new Date(d.last_updated).toLocaleString('ja-JP') : '-'}
-      <span style="margin-left:8px;color:var(--text-muted)">(${force ? '最新取得' : 'キャッシュ30分'})</span>
+      <span style="margin-left:8px">(${force ? '最新取得' : 'キャッシュ30分'})</span>
     </div>`;
+    el.innerHTML = html;
   } catch (e) {
     el.innerHTML = `<div style="color:#e05555">取得失敗: ${e.message}</div>`;
   }
