@@ -9,7 +9,7 @@ require('dotenv').config();
 const pool = require('../db/index');
 const { convertScoreToPoints, updateUserRanks } = require('../routes/rankUtils');
 
-const EVENT_NUMBER = 12;
+const EVENT_NUMBER = 6;
 
 async function run() {
   const client = await pool.connect();
