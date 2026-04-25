@@ -147,6 +147,14 @@ const _i18n = {
     'user.x_err':'XのIDは英数字・アンダースコア1〜15文字で入力してください',
     'user.yt_channel_optional':'YouTubeチャンネル',
     'user.yt_channel_hint':'ハンドルのみ',
+    'acct.title':'アカウント連携',
+    'acct.desc':'IDを登録するとスコアページからあなたのアカウントにアクセスできます。',
+    'acct.profile_hint':'プロフィールページからいつでも変更できます。',
+    'acct.yt_label':'YouTube チャンネルID',
+    'acct.register':'登録',
+    'acct.later':'今はしない',
+    'acct.yt_err':'YouTube IDは英数字・ピリオド・ハイフン・アンダースコア3〜30文字で入力してください',
+    'acct.save_err':'保存に失敗しました',
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
@@ -291,6 +299,14 @@ const _i18n = {
     'user.x_err':'X的ID請輸入英數字・底線1〜15個字元',
     'user.yt_channel_optional':'YouTube頻道',
     'user.yt_channel_hint':'僅限handle',
+    'acct.title':'帳戶連結',
+    'acct.desc':'設定ID後，可從分數頁面前往您的帳戶。',
+    'acct.profile_hint':'可隨時在個人資料頁面變更。',
+    'acct.yt_label':'YouTube 頻道ID',
+    'acct.register':'登錄',
+    'acct.later':'下次再說',
+    'acct.yt_err':'YouTube ID請輸入英數字・句點・連字號・底線3〜30個字元',
+    'acct.save_err':'儲存失敗',
   }
 };
 
@@ -716,10 +732,10 @@ async function initAccountSettingsPrompt() {
     modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2050;align-items:center;justify-content:center;padding:16px';
     modal.innerHTML = `
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:340px;width:90%;text-align:center">
-        <div style="font-size:1.05rem;font-weight:bold;margin-bottom:8px">アカウント連携</div>
+        <div style="font-size:1.05rem;font-weight:bold;margin-bottom:8px">${t('acct.title')}</div>
         <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
-          IDを登録するとスコアページからあなたのアカウントにアクセスできます。<br>
-          <span style="font-size:0.78rem">プロフィールページからいつでも変更できます。</span>
+          ${t('acct.desc')}<br>
+          <span style="font-size:0.78rem">${t('acct.profile_hint')}</span>
         </div>
         ${needX ? `<div style="text-align:left;margin-bottom:12px">
           <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">X (Twitter) ID</div>
@@ -729,7 +745,7 @@ async function initAccountSettingsPrompt() {
           </div>
         </div>` : ''}
         ${needYt ? `<div style="text-align:left;margin-bottom:16px">
-          <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">YouTube チャンネルID</div>
+          <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">${t('acct.yt_label')}</div>
           <div style="display:flex;align-items:center;gap:6px">
             <span style="color:var(--text-muted);font-size:0.9rem">@</span>
             <input id="prompt-youtube" class="form-input" type="text" maxlength="30" placeholder="handle" autocomplete="off" style="flex:1">
@@ -737,8 +753,8 @@ async function initAccountSettingsPrompt() {
         </div>` : ''}
         <div id="prompt-error" style="font-size:0.8rem;color:#e05;margin-bottom:8px;display:none"></div>
         <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-primary" onclick="submitAccountPrompt()">登録</button>
-          <button class="btn btn-secondary" onclick="closeAccountPrompt()">今はしない</button>
+          <button class="btn btn-primary" onclick="submitAccountPrompt()">${t('acct.register')}</button>
+          <button class="btn btn-secondary" onclick="closeAccountPrompt()">${t('acct.later')}</button>
         </div>
       </div>`;
     document.body.appendChild(modal);
@@ -754,12 +770,12 @@ async function initAccountSettingsPrompt() {
       const errEl = document.getElementById('prompt-error');
       errEl.style.display = 'none';
       if (needX && twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
-        errEl.textContent = 'X IDは英数字・アンダースコア1〜15文字で入力してください';
+        errEl.textContent = t('user.x_err');
         errEl.style.display = '';
         return;
       }
       if (needYt && ytRaw && !/^[A-Za-z0-9._-]{3,30}$/.test(ytRaw)) {
-        errEl.textContent = 'YouTube IDは英数字・ピリオド・ハイフン・アンダースコア3〜30文字で入力してください';
+        errEl.textContent = t('acct.yt_err');
         errEl.style.display = '';
         return;
       }
@@ -773,7 +789,7 @@ async function initAccountSettingsPrompt() {
         });
         closeAccountPrompt();
       } catch (e) {
-        errEl.textContent = e.message || '保存に失敗しました';
+        errEl.textContent = e.message || t('acct.save_err');
         errEl.style.display = '';
       }
     };
