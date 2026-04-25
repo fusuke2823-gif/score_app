@@ -706,7 +706,7 @@ async function initAccountSettingsPrompt() {
     if (!user) return;
     const data = await apiFetch(`/users/${user.id}`).catch(() => null);
     if (!data) return;
-    if (data.twitter_username && data.youtube_channel) return;
+    if (data.twitter_username || data.youtube_channel) return;
 
     const needX = !data.twitter_username;
     const needYt = !data.youtube_channel;
