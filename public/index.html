@@ -221,6 +221,7 @@
 </main>
 <script src="/js/common.js"></script>
 <script>
+window._rankUpdatePromise = new Promise(resolve => { window._resolveRankUpdate = resolve; });
 renderNav();
 applyI18n();
 
@@ -466,7 +467,7 @@ async function checkRankUpdate() {
   } catch {}
 }
 
-checkRankUpdate();
+checkRankUpdate().finally(() => { if (window._resolveRankUpdate) window._resolveRankUpdate(); });
 
 function openVersionModal() {
   const m = document.getElementById('version-modal');

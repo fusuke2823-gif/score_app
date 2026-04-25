@@ -563,6 +563,9 @@ function togglePw(id) {
 async function initInterimDistributionNotice() {
   if (!getToken()) return;
   if (window._distNoticeStarted) return;
+  if (window._rankUpdatePromise) {
+    await Promise.race([window._rankUpdatePromise, new Promise(r => setTimeout(r, 3000))]);
+  }
   const rankModal = document.getElementById('rank-update-modal');
   if (rankModal && rankModal.style.display === 'flex') {
     window._pendingDistNotice = true;
