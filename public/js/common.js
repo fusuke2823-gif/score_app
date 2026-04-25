@@ -481,6 +481,7 @@ renderNav = function() {
   updateGachaNav();
   updateFeedbackBadge();
   checkGoogleLink();
+  initAccountSettingsPrompt();
 };
 
 async function updateFeedbackBadge() {
@@ -682,6 +683,101 @@ function closeInterimDistModal() {
   if (lbModal && lbModal.classList.contains('open')) {
     lbModal.style.zIndex = '2100';
   }
+}
+
+// ===== アカウント設定促進モーダル =====
+async function initAccountSettingsPrompt() {
+  if (!getToken()) return;
+  const seenAt = localStorage.getItem('account_prompt_seen');
+  if (seenAt && Date.now() - new Date(seenAt).getTime() < 7 * 24 * 60 * 60 * 1000) return;
+
+  if (window._rankUpdatePromise) {
+    await Promise.race([window._rankUpdatePromise, new Promise(r => setTimeout(r, 3000))]);
+  }
+  await new Promise(r => setTimeout(r, 600));
+
+  const rankModal = document.getElementById('rank-update-modal');
+  const distModal = document.getElementById('interim-dist-modal');
+  if ((rankModal && rankModal.style.display === 'flex') ||
+      (distModal && distModal.classList.contains('open'))) return;
+
+  try {
+    const user = getUser();
+    if (!user) return;
+    const data = await apiFetch(`/users/${user.id}`).catch(() => null);
+    if (!data) return;
+    if (data.twitter_username && data.youtube_channel) return;
+
+    const needX = !data.twitter_username;
+    const needYt = !data.youtube_channel;
+
+    const modal = document.createElement('div');
+    modal.id = 'account-settings-prompt';
+    modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2050;align-items:center;justify-content:center;padding:16px';
+    modal.innerHTML = `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:340px;width:90%;text-align:center">
+        <div style="font-size:1.05rem;font-weight:bold;margin-bottom:8px">アカウント連携</div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
+          IDを登録するとスコアページからあなたのアカウントにアクセスできます。<br>
+          <span style="font-size:0.78rem">プロフィールページからいつでも変更できます。</span>
+        </div>
+        ${needX ? `<div style="text-align:left;margin-bottom:12px">
+          <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">X (Twitter) ID</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--text-muted);font-size:0.9rem">@</span>
+            <input id="prompt-twitter" class="form-input" type="text" maxlength="15" placeholder="username" autocomplete="off" style="flex:1">
+          </div>
+        </div>` : ''}
+        ${needYt ? `<div style="text-align:left;margin-bottom:16px">
+          <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:4px">YouTube チャンネルID</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span style="color:var(--text-muted);font-size:0.9rem">@</span>
+            <input id="prompt-youtube" class="form-input" type="text" maxlength="30" placeholder="handle" autocomplete="off" style="flex:1">
+          </div>
+        </div>` : ''}
+        <div id="prompt-error" style="font-size:0.8rem;color:#e05;margin-bottom:8px;display:none"></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-primary" onclick="submitAccountPrompt()">登録</button>
+          <button class="btn btn-secondary" onclick="closeAccountPrompt()">今はしない</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    window.closeAccountPrompt = function() {
+      localStorage.setItem('account_prompt_seen', new Date().toISOString());
+      document.getElementById('account-settings-prompt')?.remove();
+    };
+
+    window.submitAccountPrompt = async function() {
+      const twitterRaw = (document.getElementById('prompt-twitter')?.value || '').trim().replace(/^@/, '');
+      const ytRaw = (document.getElementById('prompt-youtube')?.value || '').trim().replace(/^@/, '');
+      const errEl = document.getElementById('prompt-error');
+      errEl.style.display = 'none';
+      if (needX && twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
+        errEl.textContent = 'X IDは英数字・アンダースコア1〜15文字で入力してください';
+        errEl.style.display = '';
+        return;
+      }
+      if (needYt && ytRaw && !/^[A-Za-z0-9._-]{3,30}$/.test(ytRaw)) {
+        errEl.textContent = 'YouTube IDは英数字・ピリオド・ハイフン・アンダースコア3〜30文字で入力してください';
+        errEl.style.display = '';
+        return;
+      }
+      try {
+        await apiFetch('/auth/me', {
+          method: 'PUT',
+          body: JSON.stringify({
+            twitter_username: needX ? (twitterRaw || null) : undefined,
+            youtube_channel:  needYt ? (ytRaw || null) : undefined,
+          })
+        });
+        closeAccountPrompt();
+      } catch (e) {
+        errEl.textContent = e.message || '保存に失敗しました';
+        errEl.style.display = '';
+      }
+    };
+  } catch {}
 }
 
 // ===== ログインボーナス =====
