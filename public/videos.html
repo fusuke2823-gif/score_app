@@ -6,6 +6,30 @@
 <title data-i18n="videos.title">動画掲示板 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+.filter-pill {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: #c0c0d8;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+  white-space: nowrap;
+}
+.filter-pill:hover { border-color: #5a5a80; color: var(--text-primary); }
+.filter-pill.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+.filter-section-label {
+  font-size: 0.75rem;
+  color: #9090b0;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
 .videos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -59,11 +83,7 @@
   color: var(--text-primary);
   flex-shrink: 0;
 }
-.video-user {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
+.video-user { display: flex; align-items: center; gap: 7px; }
 .video-username {
   font-size: 0.85rem;
   font-weight: bold;
@@ -71,61 +91,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* フィルター */
-.video-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-  padding: 12px 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.filter-attr-btn {
-  padding: 3px 10px;
-  font-size: 0.8rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-}
-.filter-attr-btn.active {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-.filter-input {
-  padding: 5px 9px;
-  font-size: 0.82rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  min-width: 0;
-}
-.filter-input:focus { outline: none; border-color: var(--accent); }
-.filter-select {
-  padding: 5px 9px;
-  font-size: 0.82rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  cursor: pointer;
-  max-width: 180px;
-}
-.filter-select:focus { outline: none; border-color: var(--accent); }
-.filter-score-sep { font-size: 0.82rem; color: var(--text-muted); }
-.name-wrap { position: relative; flex: 1; min-width: 160px; }
 .name-suggestions {
   position: absolute;
   top: calc(100% + 3px);
@@ -134,8 +99,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
-  z-index: 100;
-  max-height: 200px;
+  z-index: 310;
+  max-height: 180px;
   overflow-y: auto;
   display: none;
 }
@@ -154,22 +119,25 @@
   <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:4px" data-i18n="videos.title">動画掲示板</h2>
   <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px" data-i18n="videos.desc">公開スコアに登録された動画一覧</p>
 
-  <div class="video-filters" id="filter-area" style="display:none">
-    <!-- 名前検索 -->
-    <div class="filter-row">
-      <div class="name-wrap">
-        <input id="filter-name" class="filter-input" type="text" placeholder="名前で検索..." style="width:100%">
-        <div id="name-suggestions" class="name-suggestions"></div>
+  <div id="filter-bar" style="display:none;align-items:center;gap:8px;margin-bottom:14px">
+    <button id="filter-open-btn" onclick="openFilterModal()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:0.88rem;cursor:pointer">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      <span data-i18n="filter.title">フィルター</span>
+    </button>
+    <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.88rem;cursor:pointer" data-i18n="filter.default">デフォルト</button>
+  </div>
+
+  <div id="filter-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeFilterModal()">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:460px;padding:20px 20px 24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <span style="font-weight:bold;font-size:1rem" data-i18n="filter.title">フィルター</span>
+        <button onclick="closeFilterModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
       </div>
-    </div>
-    <!-- 属性 -->
-    <div class="filter-row" id="filter-attrs"></div>
-    <!-- イベント＋スコア範囲 -->
-    <div class="filter-row">
-      <select id="filter-event" class="filter-select"></select>
-      <input id="filter-score-min" class="filter-input" type="number" placeholder="スコア下限" style="width:110px">
-      <span class="filter-score-sep">〜</span>
-      <input id="filter-score-max" class="filter-input" type="number" placeholder="スコア上限" style="width:110px">
+      <div id="modal-body"></div>
+      <div style="display:flex;gap:8px;margin-top:22px">
+        <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.9rem;cursor:pointer" data-i18n="filter.reset">リセット</button>
+        <button onclick="closeFilterModal()" style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;cursor:pointer;font-weight:bold" data-i18n="filter.apply_close">適用して閉じる</button>
+      </div>
     </div>
   </div>
 
@@ -184,8 +152,139 @@ applyI18n();
 
 const ATTRS = ['火','氷','雷','光','闇','無'];
 let allVideos = [];
+let allUsernames = [];
 let lazyObserver = null;
 const filter = { attr: '', eventId: '', scoreMin: '', scoreMax: '', name: '' };
+
+function isFiltered() {
+  return filter.attr || filter.eventId || filter.scoreMin !== '' || filter.scoreMax !== '' || filter.name.trim();
+}
+
+function updateFilterBar() {
+  document.getElementById('filter-reset-btn').style.display = isFiltered() ? '' : 'none';
+}
+
+function openFilterModal() {
+  renderModal();
+  document.getElementById('filter-modal').style.display = 'flex';
+}
+
+function closeFilterModal() {
+  document.getElementById('filter-modal').style.display = 'none';
+}
+
+function resetFilters() {
+  filter.attr = '';
+  filter.eventId = '';
+  filter.scoreMin = '';
+  filter.scoreMax = '';
+  filter.name = '';
+  updateFilterBar();
+  renderModal();
+  applyFilter();
+}
+
+function renderModal() {
+  const attrPills = ['', ...ATTRS].map(a => {
+    const label = a === '' ? t('filter.all') || '全て' : (t('attr.' + a) || a);
+    const active = filter.attr === a;
+    return `<button class="filter-pill${active ? ' active' : ''}" onclick="setAttr('${a}')">${label}</button>`;
+  }).join('');
+
+  const events = [...new Map(allVideos.map(v => [v.event_id, v.event_name])).entries()];
+  const eventPills = events.map(([id, name]) => {
+    const active = filter.eventId === String(id);
+    return `<button class="filter-pill${active ? ' active' : ''}" onclick="setEvent('${id}')">${escHtml(name)}</button>`;
+  }).join('');
+
+  document.getElementById('modal-body').innerHTML = `
+    <div style="margin-bottom:18px">
+      <div class="filter-section-label">名前検索</div>
+      <div style="position:relative">
+        <input id="modal-name-input" class="form-input" type="text" value="${escHtml(filter.name)}"
+          placeholder="名前で検索..." style="width:100%;font-size:0.85rem;padding:6px 10px"
+          oninput="onNameInput(this.value)" autocomplete="off">
+        <div id="modal-name-suggestions" class="name-suggestions"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="filter-section-label" data-i18n="filter.weak_attr">属性</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${attrPills}</div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="filter-section-label">イベント</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${eventPills}</div>
+    </div>
+    <div>
+      <div class="filter-section-label">スコア範囲</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <input id="modal-score-min" type="number" value="${escHtml(String(filter.scoreMin))}" placeholder="下限"
+          style="width:100px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2,var(--bg-secondary));color:var(--text-primary);font-size:0.85rem;text-align:center"
+          oninput="filter.scoreMin=this.value;updateFilterBar();applyFilter()">
+        <span style="color:#9090b0">〜</span>
+        <input id="modal-score-max" type="number" value="${escHtml(String(filter.scoreMax))}" placeholder="上限"
+          style="width:100px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2,var(--bg-secondary));color:var(--text-primary);font-size:0.85rem;text-align:center"
+          oninput="filter.scoreMax=this.value;updateFilterBar();applyFilter()">
+      </div>
+    </div>
+  `;
+
+  // オートコンプリート
+  const nameInput = document.getElementById('modal-name-input');
+  if (nameInput) {
+    nameInput.addEventListener('focus', () => showSuggestions(nameInput.value));
+    document.addEventListener('click', hideSuggestionsOutside, { once: false });
+  }
+}
+
+function hideSuggestionsOutside(e) {
+  const box = document.getElementById('modal-name-suggestions');
+  const inp = document.getElementById('modal-name-input');
+  if (box && inp && !inp.contains(e.target) && !box.contains(e.target)) {
+    box.style.display = 'none';
+  }
+}
+
+function onNameInput(val) {
+  filter.name = val;
+  updateFilterBar();
+  applyFilter();
+  showSuggestions(val);
+}
+
+function showSuggestions(q) {
+  const box = document.getElementById('modal-name-suggestions');
+  if (!box) return;
+  if (!q.trim()) { box.style.display = 'none'; return; }
+  const matches = allUsernames.filter(u => u.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
+  if (!matches.length) { box.style.display = 'none'; return; }
+  box.innerHTML = matches.map(u => `<div class="name-suggestion-item" onmousedown="pickName('${escHtml(u)}')">${escHtml(u)}</div>`).join('');
+  box.style.display = 'block';
+}
+
+function pickName(name) {
+  filter.name = name;
+  const inp = document.getElementById('modal-name-input');
+  if (inp) inp.value = name;
+  const box = document.getElementById('modal-name-suggestions');
+  if (box) box.style.display = 'none';
+  updateFilterBar();
+  applyFilter();
+}
+
+function setAttr(a) {
+  filter.attr = a;
+  updateFilterBar();
+  applyFilter();
+  renderModal();
+}
+
+function setEvent(id) {
+  filter.eventId = filter.eventId === id ? '' : id;
+  updateFilterBar();
+  applyFilter();
+  renderModal();
+}
 
 function renderCard(v) {
   const thumb = v.approved_image_url
@@ -279,74 +378,6 @@ function applyFilter() {
   renderGroups(filtered);
 }
 
-function initFilters() {
-  // 属性ボタン
-  const attrWrap = document.getElementById('filter-attrs');
-  const allAttrs = ['', ...ATTRS];
-  attrWrap.innerHTML = allAttrs.map(a =>
-    `<button class="filter-attr-btn${a === '' ? ' active' : ''}" data-attr="${a}">${a === '' ? '全' : (t('attr.' + a) || a)}</button>`
-  ).join('');
-  attrWrap.addEventListener('click', e => {
-    const btn = e.target.closest('.filter-attr-btn');
-    if (!btn) return;
-    attrWrap.querySelectorAll('.filter-attr-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    filter.attr = btn.dataset.attr;
-    applyFilter();
-  });
-
-  // イベント
-  const eventSel = document.getElementById('filter-event');
-  const events = [...new Map(allVideos.map(v => [v.event_id, v.event_name])).entries()];
-  eventSel.innerHTML = `<option value="">イベント：全て</option>` +
-    events.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
-  eventSel.addEventListener('change', () => { filter.eventId = eventSel.value; applyFilter(); });
-
-  // スコア範囲
-  document.getElementById('filter-score-min').addEventListener('input', e => {
-    filter.scoreMin = e.target.value;
-    applyFilter();
-  });
-  document.getElementById('filter-score-max').addEventListener('input', e => {
-    filter.scoreMax = e.target.value;
-    applyFilter();
-  });
-
-  // 名前検索＋オートコンプリート
-  const nameInput = document.getElementById('filter-name');
-  const suggBox = document.getElementById('name-suggestions');
-  const usernames = [...new Set(allVideos.filter(v => !v.is_anonymous && v.username).map(v => v.username))].sort();
-
-  function showSuggestions(q) {
-    if (!q) { suggBox.style.display = 'none'; return; }
-    const matches = usernames.filter(u => u.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
-    if (!matches.length) { suggBox.style.display = 'none'; return; }
-    suggBox.innerHTML = matches.map(u => `<div class="name-suggestion-item">${escHtml(u)}</div>`).join('');
-    suggBox.style.display = 'block';
-  }
-
-  nameInput.addEventListener('input', e => {
-    filter.name = e.target.value;
-    showSuggestions(e.target.value);
-    applyFilter();
-  });
-  suggBox.addEventListener('mousedown', e => {
-    const item = e.target.closest('.name-suggestion-item');
-    if (!item) return;
-    nameInput.value = item.textContent;
-    filter.name = item.textContent;
-    suggBox.style.display = 'none';
-    applyFilter();
-  });
-  document.addEventListener('click', e => {
-    if (!nameInput.contains(e.target) && !suggBox.contains(e.target)) {
-      suggBox.style.display = 'none';
-    }
-  });
-
-  document.getElementById('filter-area').style.display = '';
-}
-
 async function load() {
   const el = document.getElementById('videos-list');
   try {
@@ -355,7 +386,8 @@ async function load() {
       el.innerHTML = `<div class="empty-state"><p>${t('videos.empty')}</p></div>`;
       return;
     }
-    initFilters();
+    allUsernames = [...new Set(allVideos.filter(v => !v.is_anonymous && v.username).map(v => v.username))].sort();
+    document.getElementById('filter-bar').style.display = 'flex';
     renderGroups(allVideos);
   } catch (e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
