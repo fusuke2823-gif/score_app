@@ -64,28 +64,6 @@
   align-items: center;
   gap: 7px;
 }
-.video-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.video-icon-placeholder {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
 .video-username {
   font-size: 0.85rem;
   font-weight: bold;
@@ -125,12 +103,17 @@ async function load() {
              <img class="video-thumb" src="${escHtml(v.approved_image_url)}" alt="" loading="lazy">
            </a>`
         : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
-      const icon = v.equipped_icon_url
-        ? `<img class="video-icon" src="${escHtml(v.equipped_icon_url)}" alt="">`
-        : `<div class="video-icon-placeholder">👤</div>`;
+      const showAnon = v.is_anonymous;
+      const iconLabel = showAnon ? t('ranking.anonymous').charAt(0) : escHtml(v.username.charAt(0));
+      const rarityClass = v.equipped_icon_rarity ? ` icon-rarity-${escHtml(v.equipped_icon_rarity)}` : '';
+      const iconInner = (!showAnon && v.equipped_icon_url)
+        ? `<img src="${escHtml(v.equipped_icon_url)}" alt="" class="${rarityClass.trim()}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" loading="lazy">`
+        : iconLabel;
+      const iconEl = showAnon
+        ? `<span class="rank-avatar" style="display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">${iconLabel}</span>`
+        : `<a class="rank-avatar${rarityClass}" href="/user.html?id=${escHtml(String(v.user_id))}">${iconInner}</a>`;
       const score = v.youtube_score ?? v.approved_score;
-      const username = v.is_anonymous ? escHtml(t('ranking.anonymous')) : escHtml(v.username);
-      const attrColor = ATTR_COLOR[v.attribute] || 'var(--text-muted)';
+      const username = showAnon ? escHtml(t('ranking.anonymous')) : escHtml(v.username);
       return `
         <div class="video-card">
           ${thumb}
@@ -141,7 +124,7 @@ async function load() {
               <span class="video-score">${formatScore(score)}</span>
             </div>
             <div class="video-user">
-              ${icon}
+              ${iconEl}
               <span class="video-username">${username}</span>
             </div>
           </div>
