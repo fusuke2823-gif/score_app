@@ -62,6 +62,7 @@ router.post('/scores/:id/approve', async (req, res) => {
          admin_note = NULL,
          youtube_url = CASE WHEN $2 THEN NULL ELSE youtube_url END,
          youtube_score = CASE WHEN $2 THEN NULL ELSE youtube_score END,
+         video_url = CASE WHEN $2 THEN video_url ELSE COALESCE(youtube_url, video_url) END,
          updated_at = NOW()
        WHERE id = $1
        RETURNING *`,

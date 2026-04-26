@@ -7,7 +7,7 @@ router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT
-         s.id, s.youtube_url, s.youtube_score, s.approved_score, s.approved_image_url,
+         s.id, s.video_url AS youtube_url, s.approved_score, s.approved_image_url,
          s.attribute, s.updated_at, s.is_anonymous,
          e.id AS event_id, e.name AS event_name, e.event_number,
          u.id AS user_id, u.username,
@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
        JOIN events e ON e.id = s.event_id
        JOIN users u ON u.id = s.user_id
        LEFT JOIN gacha_icons gi ON gi.id = u.equipped_icon_id
-       WHERE s.youtube_url IS NOT NULL
+       WHERE s.video_url IS NOT NULL
          AND s.approved_score IS NOT NULL
          AND s.ranking_scope = 'public'
        ORDER BY s.updated_at DESC
