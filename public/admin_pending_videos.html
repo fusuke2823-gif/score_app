@@ -48,6 +48,8 @@ async function load() {
           投稿者: <a href="/user.html?id=${item.user_id}" target="_blank" style="color:var(--accent)">${escHtml(item.username)}</a>
           &nbsp;·&nbsp; ${new Date(item.created_at).toLocaleString('ja-JP')}
         </div>
+        ${item.pending_score ? `<div class="pv-meta">スコア: <strong>${formatScore(item.pending_score)}</strong></div>` : ''}
+        ${item.pending_image_url ? `<div style="margin-bottom:8px"><img src="${escHtml(item.pending_image_url)}" style="max-width:240px;border-radius:6px;cursor:pointer" onclick="window.open('${escHtml(item.pending_image_url)}','_blank')"></div>` : ''}
         <div class="pv-url">
           <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer">${escHtml(item.video_url)}</a>
         </div>

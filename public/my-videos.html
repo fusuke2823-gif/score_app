@@ -114,6 +114,14 @@
       <div id="submit-attr-wrap" style="display:flex;gap:8px;flex-wrap:wrap"></div>
     </div>
     <div class="form-group">
+      <label class="form-label" data-i18n="submit.score">スコア</label>
+      <input class="form-input" type="number" id="submit-score" placeholder="例: 4106990" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="submit.image">リザルト画像（任意）</label>
+      <input class="form-input" type="file" id="submit-image" accept="image/*">
+    </div>
+    <div class="form-group">
       <label class="form-label" data-i18n="submit.yt_url">YouTube動画URL</label>
       <input class="form-input" type="url" id="submit-yt" placeholder="例: https://www.youtube.com/watch?v=...">
     </div>
@@ -188,20 +196,29 @@ function selectAttr(a) {
 async function submitVideo() {
   const eventId = document.getElementById('submit-event').value;
   const ytUrl = document.getElementById('submit-yt').value.trim();
+  const score = document.getElementById('submit-score').value;
+  const imageFile = document.getElementById('submit-image').files[0];
   const btn = document.getElementById('submit-btn');
 
   if (!eventId) return showAlert('#submit-alert', t('submit.err_event') || 'イベントを選択してください');
   if (!selectedAttr) return showAlert('#submit-alert', t('submit.err_attr') || '属性を選択してください');
+  if (!score) return showAlert('#submit-alert', t('submit.err_score') || 'スコアを入力してください');
   if (!ytUrl) return showAlert('#submit-alert', 'YouTubeのURLを入力してください');
+
+  const formData = new FormData();
+  formData.append('event_id', eventId);
+  formData.append('attribute', selectedAttr);
+  formData.append('video_url', ytUrl);
+  formData.append('score', score);
+  if (imageFile) formData.append('image', imageFile);
 
   btn.disabled = true;
   try {
-    const res = await apiFetch('/my-videos/pending', {
-      method: 'POST',
-      body: JSON.stringify({ event_id: eventId, attribute: selectedAttr, video_url: ytUrl })
-    });
+    const res = await apiFormFetch('/my-videos/pending', formData);
     showAlert('#submit-alert', res.message, 'success');
     document.getElementById('submit-yt').value = '';
+    document.getElementById('submit-score').value = '';
+    document.getElementById('submit-image').value = '';
     document.getElementById('submit-event').value = '';
     document.getElementById('submit-attr-wrap').innerHTML = '';
     selectedAttr = '';

@@ -1790,6 +1790,7 @@ router.get('/pending-videos', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT pv.id, pv.event_id, pv.attribute, pv.video_url, pv.status, pv.created_at,
+              pv.pending_score, pv.pending_image_url,
               e.name AS event_name, e.event_number,
               u.id AS user_id, u.username
        FROM pending_videos pv
@@ -1824,18 +1825,22 @@ router.post('/pending-videos/:id/approve', async (req, res) => {
       [video.id]
     );
 
-    if (score.rows.length && score.rows[0].approved_score) {
+    if (score.rows.length) {
       const s = score.rows[0];
-      await pool.query(
-        `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
-           approved_image_url = EXCLUDED.approved_image_url,
-           approved_score = EXCLUDED.approved_score,
-           is_anonymous = EXCLUDED.is_anonymous`,
-        [video.user_id, video.event_id, video.attribute, video.video_url,
-         s.approved_image_url, s.approved_score, s.is_anonymous, s.ranking_scope]
-      );
+      const finalScore = video.pending_score || s.approved_score;
+      const finalImage = video.pending_image_url || s.approved_image_url;
+      if (finalScore) {
+        await pool.query(
+          `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
+             approved_image_url = EXCLUDED.approved_image_url,
+             approved_score = EXCLUDED.approved_score,
+             is_anonymous = EXCLUDED.is_anonymous`,
+          [video.user_id, video.event_id, video.attribute, video.video_url,
+           finalImage, finalScore, s.is_anonymous, s.ranking_scope]
+        );
+      }
     }
 
     res.json({ message: '承認しました' });

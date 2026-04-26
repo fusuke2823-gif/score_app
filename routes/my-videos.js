@@ -3,6 +3,14 @@ const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 router.use(authenticateToken);
 
@@ -66,10 +74,14 @@ router.delete('/pending/:id', async (req, res) => {
 });
 
 // 動画のみ投稿
-router.post('/pending', async (req, res) => {
-  const { event_id, attribute, video_url } = req.body;
-  if (!event_id || !attribute || !video_url)
+router.post('/pending', upload.single('image'), async (req, res) => {
+  const { event_id, attribute, video_url, score } = req.body;
+  if (!event_id || !attribute || !video_url || !score)
     return res.status(400).json({ error: '必須項目が不足しています' });
+
+  const scoreNum = parseInt(score);
+  if (isNaN(scoreNum) || scoreNum < 0)
+    return res.status(400).json({ error: '無効なスコアです' });
 
   const ytUrl = video_url.trim();
   if (!/^https?:\/\/(www\.)?(youtube\.com\/(watch|shorts|live)|youtu\.be\/)/.test(ytUrl))
@@ -90,9 +102,21 @@ router.post('/pending', async (req, res) => {
     if (dup.rows.length)
       return res.status(400).json({ error: '同じ動画が既に承認待ちです' });
 
+    let imageUrl = null;
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: 'hbr-ranking/results', resource_type: 'image', quality: 'auto:good', fetch_format: 'auto', width: 1080, crop: 'limit' }, (err, result) => {
+            if (err) reject(err); else resolve(result);
+          })
+          .end(req.file.buffer);
+      });
+      imageUrl = uploadResult.secure_url;
+    }
+
     await pool.query(
-      `INSERT INTO pending_videos (user_id, event_id, attribute, video_url) VALUES ($1, $2, $3, $4)`,
-      [req.user.id, event_id, attribute, ytUrl]
+      `INSERT INTO pending_videos (user_id, event_id, attribute, video_url, pending_score, pending_image_url) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [req.user.id, event_id, attribute, ytUrl, scoreNum, imageUrl]
     );
     res.json({ message: '動画を投稿しました。管理者の承認をお待ちください。' });
   } catch (err) {
