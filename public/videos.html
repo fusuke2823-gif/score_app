@@ -308,6 +308,9 @@ function renderCard(v) {
     : `<a class="rank-avatar${rarityClass}" href="/user.html?id=${escHtml(String(v.user_id))}">${iconInner}</a>`;
   const score = v.youtube_score ?? v.approved_score;
   const username = showAnon ? escHtml(t('ranking.anonymous')) : escHtml(v.username);
+  const usernameEl = showAnon
+    ? `<span class="video-username">${username}</span>`
+    : `<a class="video-username" href="/user.html?id=${escHtml(String(v.user_id))}" style="text-decoration:none;color:inherit">${username}</a>`;
   return `
     <div class="video-card">
       ${thumb}
@@ -318,7 +321,7 @@ function renderCard(v) {
         </div>
         <div class="video-user">
           ${iconEl}
-          <span class="video-username">${username}</span>
+          ${usernameEl}
         </div>
       </div>
     </div>`;
