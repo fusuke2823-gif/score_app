@@ -154,10 +154,10 @@ const ATTRS = ['火','氷','雷','光','闇','無'];
 let allVideos = [];
 let allUsernames = [];
 let lazyObserver = null;
-const filter = { attr: '', eventId: '', scoreMin: '', scoreMax: '', name: '' };
+const filter = { attrs: new Set(), eventId: '', scoreMin: '', scoreMax: '', name: '' };
 
 function isFiltered() {
-  return filter.attr || filter.eventId || filter.scoreMin !== '' || filter.scoreMax !== '' || filter.name.trim();
+  return filter.attrs.size > 0 || filter.eventId || filter.scoreMin !== '' || filter.scoreMax !== '' || filter.name.trim();
 }
 
 function updateFilterBar() {
@@ -174,7 +174,7 @@ function closeFilterModal() {
 }
 
 function resetFilters() {
-  filter.attr = '';
+  filter.attrs.clear();
   filter.eventId = '';
   filter.scoreMin = '';
   filter.scoreMax = '';
@@ -185,17 +185,15 @@ function resetFilters() {
 }
 
 function renderModal() {
-  const attrPills = ['', ...ATTRS].map(a => {
-    const label = a === '' ? t('filter.all') || '全て' : (t('attr.' + a) || a);
-    const active = filter.attr === a;
-    return `<button class="filter-pill${active ? ' active' : ''}" onclick="setAttr('${a}')">${label}</button>`;
+  const attrBtns = ATTRS.map(a => {
+    const active = filter.attrs.has(a);
+    return `<button class="attr-btn attr-${a}${active ? ' active' : ''}" onclick="toggleAttr('${a}')">${t('attr.' + a) || a}</button>`;
   }).join('');
 
   const events = [...new Map(allVideos.map(v => [v.event_id, v.event_name])).entries()];
-  const eventPills = events.map(([id, name]) => {
-    const active = filter.eventId === String(id);
-    return `<button class="filter-pill${active ? ' active' : ''}" onclick="setEvent('${id}')">${escHtml(name)}</button>`;
-  }).join('');
+  const eventOptions = events.map(([id, name]) =>
+    `<option value="${id}"${filter.eventId === String(id) ? ' selected' : ''}>${escHtml(name)}</option>`
+  ).join('');
 
   document.getElementById('modal-body').innerHTML = `
     <div style="margin-bottom:18px">
@@ -209,11 +207,14 @@ function renderModal() {
     </div>
     <div style="margin-bottom:18px">
       <div class="filter-section-label" data-i18n="filter.weak_attr">属性</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${attrPills}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${attrBtns}</div>
     </div>
     <div style="margin-bottom:18px">
       <div class="filter-section-label">イベント</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${eventPills}</div>
+      <select onchange="setEvent(this.value)" style="width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-secondary);color:var(--text-primary);font-size:0.85rem;cursor:pointer">
+        <option value="">全て</option>
+        ${eventOptions}
+      </select>
     </div>
     <div>
       <div class="filter-section-label">スコア範囲</div>
@@ -272,18 +273,18 @@ function pickName(name) {
   applyFilter();
 }
 
-function setAttr(a) {
-  filter.attr = a;
+function toggleAttr(a) {
+  if (filter.attrs.has(a)) filter.attrs.delete(a);
+  else filter.attrs.add(a);
   updateFilterBar();
   applyFilter();
   renderModal();
 }
 
 function setEvent(id) {
-  filter.eventId = filter.eventId === id ? '' : id;
+  filter.eventId = id;
   updateFilterBar();
   applyFilter();
-  renderModal();
 }
 
 function renderCard(v) {
@@ -363,7 +364,7 @@ function applyFilter() {
   const scoreMax = filter.scoreMax !== '' ? parseInt(filter.scoreMax) : null;
 
   const filtered = allVideos.filter(v => {
-    if (filter.attr && v.attribute !== filter.attr) return false;
+    if (filter.attrs.size > 0 && !filter.attrs.has(v.attribute)) return false;
     if (filter.eventId && String(v.event_id) !== filter.eventId) return false;
     if (nameQ) {
       if (v.is_anonymous) return false;
