@@ -144,7 +144,7 @@ async function load() {
 
     el.innerHTML = groups.map(g => `
       <div class="video-group">
-        <div class="video-group-header">第${g.event_number}回 ${escHtml(g.event_name)}</div>
+        <div class="video-group-header">${escHtml(g.event_name)}</div>
         <div class="videos-grid">${g.items.map(renderCard).join('')}</div>
       </div>`).join('');
   } catch (e) {
