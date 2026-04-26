@@ -241,23 +241,18 @@ async function loadPending() {
       el.innerHTML = `<p style="font-size:0.85rem;color:var(--text-muted);padding:8px 0">${t('myvid.no_pending') || 'なし'}</p>`;
       return;
     }
-    el.innerHTML = items.map(item => {
-      const statusClass = item.status === 'approved' ? 'status-approved' : item.status === 'rejected' ? 'status-rejected' : 'status-pending';
-      const statusLabel = item.status === 'approved' ? (t('myvid.approved') || '承認済み') : item.status === 'rejected' ? (t('myvid.rejected') || '却下') : (t('myvid.pending_status') || '承認待ち');
-      return `
+    el.innerHTML = items.map(item => `
         <div class="pending-row" id="pend-${item.id}">
           <div class="pending-row-info">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
               <span class="attr-badge attr-${escHtml(item.attribute)} small">${t('attr.' + item.attribute) || item.attribute}</span>
               <span style="font-size:0.82rem;color:var(--text-muted)">${escHtml(item.event_name)}</span>
-              <span class="status-badge ${statusClass}">${statusLabel}</span>
             </div>
             <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer" class="video-row-link">${escHtml(item.video_url)}</a>
-            ${item.admin_note ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">${escHtml(item.admin_note)}</div>` : ''}
           </div>
-          ${item.status === 'pending' ? `<button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366;flex-shrink:0" onclick="cancelPending(${item.id})">${t('myvid.cancel') || 'キャンセル'}</button>` : ''}
-        </div>`;
-    }).join('');
+          <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366;flex-shrink:0" onclick="cancelPending(${item.id})">${t('myvid.cancel') || 'キャンセル'}</button>
+        </div>`
+    ).join('');
   } catch (e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }

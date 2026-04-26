@@ -46,7 +46,7 @@ router.get('/pending', async (req, res) => {
               e.name AS event_name, e.event_number
        FROM pending_videos pv
        JOIN events e ON e.id = pv.event_id
-       WHERE pv.user_id = $1
+       WHERE pv.user_id = $1 AND pv.status = 'pending'
        ORDER BY pv.created_at DESC
        LIMIT 50`,
       [req.user.id]
