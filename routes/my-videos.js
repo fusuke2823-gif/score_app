@@ -88,13 +88,6 @@ router.post('/pending', upload.single('image'), async (req, res) => {
     return res.status(400).json({ error: 'YouTubeのURLのみ入力できます' });
 
   try {
-    const scoreCheck = await pool.query(
-      `SELECT id FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3 AND approved_score IS NOT NULL`,
-      [req.user.id, event_id, attribute]
-    );
-    if (!scoreCheck.rows.length)
-      return res.status(400).json({ error: 'このイベント・属性の承認済みスコアがありません' });
-
     const dup = await pool.query(
       `SELECT id FROM pending_videos WHERE user_id = $1 AND event_id = $2 AND attribute = $3 AND video_url = $4 AND status = 'pending'`,
       [req.user.id, event_id, attribute, ytUrl]

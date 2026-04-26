@@ -164,26 +164,12 @@ async function loadEvents() {
   } catch (e) { /* ignore */ }
 }
 
-async function onEventChange() {
-  const eventId = document.getElementById('submit-event').value;
+function onEventChange() {
   selectedAttr = '';
   const wrap = document.getElementById('submit-attr-wrap');
-  wrap.innerHTML = '';
-  if (!eventId) return;
-
-  try {
-    const scores = await apiFetch(`/scores/my/${eventId}`);
-    const approvedAttrs = scores.filter(s => s.approved_score).map(s => s.attribute);
-    if (!approvedAttrs.length) {
-      wrap.innerHTML = `<span style="font-size:0.82rem;color:var(--text-muted)">${t('myvid.no_score') || 'このイベントに承認済みスコアがありません'}</span>`;
-      return;
-    }
-    wrap.innerHTML = approvedAttrs.map(a =>
-      `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.' + a) || a}</button>`
-    ).join('');
-  } catch (e) {
-    wrap.innerHTML = `<span style="font-size:0.82rem;color:var(--text-muted)">読み込みエラー</span>`;
-  }
+  wrap.innerHTML = ATTRS.map(a =>
+    `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.' + a) || a}</button>`
+  ).join('');
 }
 
 function selectAttr(a) {

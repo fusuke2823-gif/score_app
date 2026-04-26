@@ -1814,34 +1814,28 @@ router.post('/pending-videos/:id/approve', async (req, res) => {
     const video = pv.rows[0];
     if (video.status !== 'pending') return res.status(400).json({ error: '既に処理済みです' });
 
-    const score = await pool.query(
-      `SELECT approved_score, approved_image_url, is_anonymous, ranking_scope
-       FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3`,
+    const scoreRow = await pool.query(
+      `SELECT is_anonymous, ranking_scope FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3`,
       [video.user_id, video.event_id, video.attribute]
     );
+    const s = scoreRow.rows[0] || {};
 
     await pool.query(
       `UPDATE pending_videos SET status = 'approved', updated_at = NOW() WHERE id = $1`,
       [video.id]
     );
 
-    if (score.rows.length) {
-      const s = score.rows[0];
-      const finalScore = video.pending_score || s.approved_score;
-      const finalImage = video.pending_image_url || s.approved_image_url;
-      if (finalScore) {
-        await pool.query(
-          `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
-             approved_image_url = EXCLUDED.approved_image_url,
-             approved_score = EXCLUDED.approved_score,
-             is_anonymous = EXCLUDED.is_anonymous`,
-          [video.user_id, video.event_id, video.attribute, video.video_url,
-           finalImage, finalScore, s.is_anonymous, s.ranking_scope]
-        );
-      }
-    }
+    await pool.query(
+      `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
+         approved_image_url = EXCLUDED.approved_image_url,
+         approved_score = EXCLUDED.approved_score,
+         is_anonymous = EXCLUDED.is_anonymous`,
+      [video.user_id, video.event_id, video.attribute, video.video_url,
+       video.pending_image_url, video.pending_score,
+       s.is_anonymous ?? false, s.ranking_scope ?? 'public']
+    );
 
     res.json({ message: '承認しました' });
   } catch (err) {
