@@ -40,19 +40,20 @@
 .video-info {
   padding: 10px 12px;
 }
+.video-group { margin-bottom: 28px; }
+.video-group-header {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
 .video-event {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
-  color: var(--text-muted);
   margin-bottom: 8px;
-}
-.video-event-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
 }
 .video-score {
   font-size: 0.85rem;
@@ -98,7 +99,7 @@ async function load() {
       el.innerHTML = `<div class="empty-state"><p data-i18n="videos.empty">${t('videos.empty')}</p></div>`;
       return;
     }
-    el.innerHTML = `<div class="videos-grid">${videos.map(v => {
+    function renderCard(v) {
       const thumb = v.approved_image_url
         ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
              <img class="video-thumb" src="${escHtml(v.approved_image_url)}" alt="" loading="lazy">
@@ -120,7 +121,6 @@ async function load() {
           ${thumb}
           <div class="video-info">
             <div class="video-event">
-              <span class="video-event-name">${escHtml(v.event_name)}</span>
               <span class="attr-badge attr-${escHtml(v.attribute)} small" style="flex-shrink:0">${escHtml(t('attr.' + v.attribute) || v.attribute)}</span>
               <span class="video-score">${formatScore(score)}</span>
             </div>
@@ -130,7 +130,23 @@ async function load() {
             </div>
           </div>
         </div>`;
-    }).join('')}</div>`;
+    }
+
+    const groups = [];
+    let current = null;
+    for (const v of videos) {
+      if (!current || current.event_id !== v.event_id) {
+        current = { event_id: v.event_id, event_number: v.event_number, event_name: v.event_name, items: [] };
+        groups.push(current);
+      }
+      current.items.push(v);
+    }
+
+    el.innerHTML = groups.map(g => `
+      <div class="video-group">
+        <div class="video-group-header">第${g.event_number}回 ${escHtml(g.event_name)}</div>
+        <div class="videos-grid">${g.items.map(renderCard).join('')}</div>
+      </div>`).join('');
   } catch (e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }

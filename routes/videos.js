@@ -17,8 +17,8 @@ router.get('/', async (req, res) => {
        JOIN users u ON u.id = vb.user_id
        LEFT JOIN gacha_icons gi ON gi.id = u.equipped_icon_id
        WHERE vb.ranking_scope = 'public'
-       ORDER BY vb.created_at DESC
-       LIMIT 100`
+       ORDER BY e.event_number DESC, vb.created_at DESC
+       LIMIT 200`
     );
     res.json(result.rows.map(r => ({
       ...r,
