@@ -10,7 +10,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 14px;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 .video-card {
   background: var(--bg-card);
@@ -37,15 +37,13 @@
   color: var(--text-muted);
   font-size: 2rem;
 }
-.video-info {
-  padding: 10px 12px;
-}
+.video-info { padding: 10px 12px; }
 .video-group { margin-bottom: 28px; }
 .video-group-header {
   font-size: 0.9rem;
   font-weight: bold;
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--border);
 }
@@ -73,13 +71,108 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* フィルター */
+.video-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-attr-btn {
+  padding: 3px 10px;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.filter-attr-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.filter-input {
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  min-width: 0;
+}
+.filter-input:focus { outline: none; border-color: var(--accent); }
+.filter-select {
+  padding: 5px 9px;
+  font-size: 0.82rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  max-width: 180px;
+}
+.filter-select:focus { outline: none; border-color: var(--accent); }
+.filter-score-sep { font-size: 0.82rem; color: var(--text-muted); }
+.name-wrap { position: relative; flex: 1; min-width: 160px; }
+.name-suggestions {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  z-index: 100;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+}
+.name-suggestion-item {
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.name-suggestion-item:hover { background: var(--bg-secondary); }
 </style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main class="container" style="padding-top:20px;padding-bottom:40px">
   <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:4px" data-i18n="videos.title">動画掲示板</h2>
-  <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px" data-i18n="videos.desc">公開スコアに登録された動画一覧</p>
+  <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px" data-i18n="videos.desc">公開スコアに登録された動画一覧</p>
+
+  <div class="video-filters" id="filter-area" style="display:none">
+    <!-- 名前検索 -->
+    <div class="filter-row">
+      <div class="name-wrap">
+        <input id="filter-name" class="filter-input" type="text" placeholder="名前で検索..." style="width:100%">
+        <div id="name-suggestions" class="name-suggestions"></div>
+      </div>
+    </div>
+    <!-- 属性 -->
+    <div class="filter-row" id="filter-attrs"></div>
+    <!-- イベント＋スコア範囲 -->
+    <div class="filter-row">
+      <select id="filter-event" class="filter-select"></select>
+      <input id="filter-score-min" class="filter-input" type="number" placeholder="スコア下限" style="width:110px">
+      <span class="filter-score-sep">〜</span>
+      <input id="filter-score-max" class="filter-input" type="number" placeholder="スコア上限" style="width:110px">
+    </div>
+  </div>
+
   <div id="videos-list">
     <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
   </div>
@@ -89,76 +182,181 @@
 renderNav();
 applyI18n();
 
-const ATTR_COLOR = { '火':'var(--fire)','氷':'var(--ice)','雷':'var(--thunder)','光':'var(--light)','闇':'var(--dark)','無':'var(--neutral)' };
+const ATTRS = ['火','氷','雷','光','闇','無'];
+let allVideos = [];
+let lazyObserver = null;
+const filter = { attr: '', eventId: '', scoreMin: '', scoreMax: '', name: '' };
+
+function renderCard(v) {
+  const thumb = v.approved_image_url
+    ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
+         <img class="video-thumb lazy-img" data-src="${escHtml(v.approved_image_url)}" alt="">
+       </a>`
+    : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
+  const showAnon = v.is_anonymous;
+  const iconLabel = showAnon ? t('ranking.anonymous').charAt(0) : escHtml(v.username.charAt(0));
+  const rarityClass = v.equipped_icon_rarity ? ` icon-rarity-${escHtml(v.equipped_icon_rarity)}` : '';
+  const iconInner = (!showAnon && v.equipped_icon_url)
+    ? `<img src="${escHtml(v.equipped_icon_url)}" alt="" class="${rarityClass.trim()}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" loading="lazy">`
+    : iconLabel;
+  const iconEl = showAnon
+    ? `<span class="rank-avatar" style="display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">${iconLabel}</span>`
+    : `<a class="rank-avatar${rarityClass}" href="/user.html?id=${escHtml(String(v.user_id))}">${iconInner}</a>`;
+  const score = v.youtube_score ?? v.approved_score;
+  const username = showAnon ? escHtml(t('ranking.anonymous')) : escHtml(v.username);
+  return `
+    <div class="video-card">
+      ${thumb}
+      <div class="video-info">
+        <div class="video-event">
+          <span class="video-score">${formatScore(score)}</span>
+          <span class="attr-badge attr-${escHtml(v.attribute)} small" style="flex-shrink:0">${escHtml(t('attr.' + v.attribute) || v.attribute)}</span>
+        </div>
+        <div class="video-user">
+          ${iconEl}
+          <span class="video-username">${username}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderGroups(videos) {
+  const el = document.getElementById('videos-list');
+  if (lazyObserver) { lazyObserver.disconnect(); lazyObserver = null; }
+
+  if (!videos.length) {
+    el.innerHTML = `<div class="empty-state"><p>${t('videos.empty')}</p></div>`;
+    return;
+  }
+
+  const groups = [];
+  let current = null;
+  for (const v of videos) {
+    if (!current || current.event_id !== v.event_id) {
+      current = { event_id: v.event_id, event_name: v.event_name, items: [] };
+      groups.push(current);
+    }
+    current.items.push(v);
+  }
+
+  el.innerHTML = groups.map(g => `
+    <div class="video-group">
+      <div class="video-group-header">${escHtml(g.event_name)}</div>
+      <div class="videos-grid">${g.items.map(renderCard).join('')}</div>
+    </div>`).join('');
+
+  lazyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target;
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+        lazyObserver.unobserve(img);
+      }
+    });
+  }, { rootMargin: '200px' });
+  el.querySelectorAll('img.lazy-img').forEach(img => lazyObserver.observe(img));
+}
+
+function applyFilter() {
+  const nameQ = filter.name.trim().toLowerCase();
+  const scoreMin = filter.scoreMin !== '' ? parseInt(filter.scoreMin) : null;
+  const scoreMax = filter.scoreMax !== '' ? parseInt(filter.scoreMax) : null;
+
+  const filtered = allVideos.filter(v => {
+    if (filter.attr && v.attribute !== filter.attr) return false;
+    if (filter.eventId && String(v.event_id) !== filter.eventId) return false;
+    if (nameQ) {
+      if (v.is_anonymous) return false;
+      if (!(v.username || '').toLowerCase().includes(nameQ)) return false;
+    }
+    const score = v.youtube_score ?? v.approved_score;
+    if (scoreMin !== null && score < scoreMin) return false;
+    if (scoreMax !== null && score > scoreMax) return false;
+    return true;
+  });
+
+  renderGroups(filtered);
+}
+
+function initFilters() {
+  // 属性ボタン
+  const attrWrap = document.getElementById('filter-attrs');
+  const allAttrs = ['', ...ATTRS];
+  attrWrap.innerHTML = allAttrs.map(a =>
+    `<button class="filter-attr-btn${a === '' ? ' active' : ''}" data-attr="${a}">${a === '' ? '全' : (t('attr.' + a) || a)}</button>`
+  ).join('');
+  attrWrap.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-attr-btn');
+    if (!btn) return;
+    attrWrap.querySelectorAll('.filter-attr-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filter.attr = btn.dataset.attr;
+    applyFilter();
+  });
+
+  // イベント
+  const eventSel = document.getElementById('filter-event');
+  const events = [...new Map(allVideos.map(v => [v.event_id, v.event_name])).entries()];
+  eventSel.innerHTML = `<option value="">イベント：全て</option>` +
+    events.map(([id, name]) => `<option value="${id}">${escHtml(name)}</option>`).join('');
+  eventSel.addEventListener('change', () => { filter.eventId = eventSel.value; applyFilter(); });
+
+  // スコア範囲
+  document.getElementById('filter-score-min').addEventListener('input', e => {
+    filter.scoreMin = e.target.value;
+    applyFilter();
+  });
+  document.getElementById('filter-score-max').addEventListener('input', e => {
+    filter.scoreMax = e.target.value;
+    applyFilter();
+  });
+
+  // 名前検索＋オートコンプリート
+  const nameInput = document.getElementById('filter-name');
+  const suggBox = document.getElementById('name-suggestions');
+  const usernames = [...new Set(allVideos.filter(v => !v.is_anonymous && v.username).map(v => v.username))].sort();
+
+  function showSuggestions(q) {
+    if (!q) { suggBox.style.display = 'none'; return; }
+    const matches = usernames.filter(u => u.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
+    if (!matches.length) { suggBox.style.display = 'none'; return; }
+    suggBox.innerHTML = matches.map(u => `<div class="name-suggestion-item">${escHtml(u)}</div>`).join('');
+    suggBox.style.display = 'block';
+  }
+
+  nameInput.addEventListener('input', e => {
+    filter.name = e.target.value;
+    showSuggestions(e.target.value);
+    applyFilter();
+  });
+  suggBox.addEventListener('mousedown', e => {
+    const item = e.target.closest('.name-suggestion-item');
+    if (!item) return;
+    nameInput.value = item.textContent;
+    filter.name = item.textContent;
+    suggBox.style.display = 'none';
+    applyFilter();
+  });
+  document.addEventListener('click', e => {
+    if (!nameInput.contains(e.target) && !suggBox.contains(e.target)) {
+      suggBox.style.display = 'none';
+    }
+  });
+
+  document.getElementById('filter-area').style.display = '';
+}
 
 async function load() {
   const el = document.getElementById('videos-list');
   try {
-    const videos = await apiFetch('/videos');
-    if (!videos.length) {
-      el.innerHTML = `<div class="empty-state"><p data-i18n="videos.empty">${t('videos.empty')}</p></div>`;
+    allVideos = await apiFetch('/videos');
+    if (!allVideos.length) {
+      el.innerHTML = `<div class="empty-state"><p>${t('videos.empty')}</p></div>`;
       return;
     }
-    function renderCard(v) {
-      const thumb = v.approved_image_url
-        ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
-             <img class="video-thumb lazy-img" data-src="${escHtml(v.approved_image_url)}" alt="">
-           </a>`
-        : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
-      const showAnon = v.is_anonymous;
-      const iconLabel = showAnon ? t('ranking.anonymous').charAt(0) : escHtml(v.username.charAt(0));
-      const rarityClass = v.equipped_icon_rarity ? ` icon-rarity-${escHtml(v.equipped_icon_rarity)}` : '';
-      const iconInner = (!showAnon && v.equipped_icon_url)
-        ? `<img src="${escHtml(v.equipped_icon_url)}" alt="" class="${rarityClass.trim()}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" loading="lazy">`
-        : iconLabel;
-      const iconEl = showAnon
-        ? `<span class="rank-avatar" style="display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">${iconLabel}</span>`
-        : `<a class="rank-avatar${rarityClass}" href="/user.html?id=${escHtml(String(v.user_id))}">${iconInner}</a>`;
-      const score = v.youtube_score ?? v.approved_score;
-      const username = showAnon ? escHtml(t('ranking.anonymous')) : escHtml(v.username);
-      return `
-        <div class="video-card">
-          ${thumb}
-          <div class="video-info">
-            <div class="video-event">
-              <span class="video-score">${formatScore(score)}</span>
-              <span class="attr-badge attr-${escHtml(v.attribute)} small" style="flex-shrink:0">${escHtml(t('attr.' + v.attribute) || v.attribute)}</span>
-            </div>
-            <div class="video-user">
-              ${iconEl}
-              <span class="video-username">${username}</span>
-            </div>
-          </div>
-        </div>`;
-    }
-
-    const groups = [];
-    let current = null;
-    for (const v of videos) {
-      if (!current || current.event_id !== v.event_id) {
-        current = { event_id: v.event_id, event_number: v.event_number, event_name: v.event_name, items: [] };
-        groups.push(current);
-      }
-      current.items.push(v);
-    }
-
-    el.innerHTML = groups.map(g => `
-      <div class="video-group">
-        <div class="video-group-header">${escHtml(g.event_name)}</div>
-        <div class="videos-grid">${g.items.map(renderCard).join('')}</div>
-      </div>`).join('');
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const img = entry.target;
-          img.src = img.dataset.src;
-          img.removeAttribute('data-src');
-          observer.unobserve(img);
-        }
-      });
-    }, { rootMargin: '200px' });
-    el.querySelectorAll('img.lazy-img').forEach(img => observer.observe(img));
+    initFilters();
+    renderGroups(allVideos);
   } catch (e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }
