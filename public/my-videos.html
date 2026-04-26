@@ -115,7 +115,7 @@
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="submit.score">スコア</label>
-      <input class="form-input" type="number" id="submit-score" placeholder="例: 4106990" min="0">
+      <input class="form-input" type="number" id="submit-score" placeholder="例: 1234567" min="0">
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="submit.image">リザルト画像（任意）</label>
@@ -148,7 +148,14 @@ let myScores = {}; // { event_id: Set of attributes }
 let selectedAttr = '';
 
 async function init() {
+  renderAttrBtns();
   await Promise.all([loadEvents(), loadMyVideos(), loadPending()]);
+}
+
+function renderAttrBtns() {
+  document.getElementById('submit-attr-wrap').innerHTML = ATTRS.map(a =>
+    `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.' + a) || a}</button>`
+  ).join('');
 }
 
 async function loadEvents() {
@@ -166,10 +173,7 @@ async function loadEvents() {
 
 function onEventChange() {
   selectedAttr = '';
-  const wrap = document.getElementById('submit-attr-wrap');
-  wrap.innerHTML = ATTRS.map(a =>
-    `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.' + a) || a}</button>`
-  ).join('');
+  renderAttrBtns();
 }
 
 function selectAttr(a) {
@@ -206,8 +210,8 @@ async function submitVideo() {
     document.getElementById('submit-score').value = '';
     document.getElementById('submit-image').value = '';
     document.getElementById('submit-event').value = '';
-    document.getElementById('submit-attr-wrap').innerHTML = '';
     selectedAttr = '';
+    renderAttrBtns();
     loadPending();
   } catch (e) {
     showAlert('#submit-alert', e.message);
