@@ -45,7 +45,7 @@
         <div class="form-group">
           <label class="form-label" data-i18n="submit.yt_url">YouTube動画URL（任意）</label>
           <input class="form-input" type="url" id="youtube-input" placeholder="例: https://www.youtube.com/watch?v=...">
-          <div class="form-hint" data-i18n="submit.yt_hint">YouTubeのURLのみ入力できます。同属性のスコアを更新する場合、新しい動画を入力しなければ以前の動画リンクをそのまま残せます</div>
+          <div class="form-hint" data-i18n="submit.yt_hint">YouTubeのURLのみ入力できます</div>
         </div>
 
         <!-- 内部ユーザーのみ表示：投稿先選択 -->
@@ -85,19 +85,6 @@
   </div>
 </div>
 
-<!-- 既存動画保持確認モーダル -->
-<div id="yt-keep-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2000;align-items:center;justify-content:center">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:380px;width:90%;text-align:center">
-    <div style="font-weight:bold;font-size:1rem;margin-bottom:8px" data-i18n="submit.yt_keep_title">既存の動画リンクを残しますか？</div>
-    <div id="yt-keep-score-info" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px"></div>
-    <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px" data-i18n="submit.yt_keep_desc">今回の投稿には動画リンクが含まれていません。</div>
-    <div style="display:flex;gap:10px;justify-content:center">
-      <button onclick="submitWithYtKeep(true)" class="btn btn-primary" style="flex:1" data-i18n="submit.yt_keep_yes">残す</button>
-      <button onclick="submitWithYtKeep(false)" class="btn" style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text)" data-i18n="submit.yt_keep_no">削除する</button>
-    </div>
-    <button onclick="closeYtKeepModal()" style="margin-top:14px;background:none;border:none;color:var(--text-muted);font-size:0.82rem;cursor:pointer" data-i18n="cancel">キャンセル</button>
-  </div>
-</div>
 
 <script src="/js/common.js"></script>
 <script>
@@ -228,7 +215,7 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
     document.getElementById('anon-modal').style.display = 'flex';
   } else {
     _pendingIsAnon = false;
-    await checkYtKeepThenSubmit();
+    await doSubmit(_pendingIsAnon);
   }
 });
 
@@ -242,31 +229,7 @@ async function submitWithAnon(isAnon) {
   await checkYtKeepThenSubmit();
 }
 
-function closeYtKeepModal() {
-  document.getElementById('yt-keep-modal').style.display = 'none';
-}
-
-async function submitWithYtKeep(keep) {
-  closeYtKeepModal();
-  await doSubmit(_pendingIsAnon, keep);
-}
-
-async function checkYtKeepThenSubmit() {
-  const attrInput = document.querySelector('input[name="attribute"]:checked');
-  const ytUrl = document.getElementById('youtube-input')?.value.trim();
-  if (!ytUrl && attrInput) {
-    const existing = myScores.find(s => s.attribute === attrInput.value);
-    if (existing?.youtube_url) {
-      const scoreInfo = existing.youtube_score ? `動画投稿時のスコア: ${formatScore(existing.youtube_score)}` : '';
-      document.getElementById('yt-keep-score-info').textContent = scoreInfo;
-      document.getElementById('yt-keep-modal').style.display = 'flex';
-      return;
-    }
-  }
-  await doSubmit(_pendingIsAnon, false);
-}
-
-async function doSubmit(isAnon, keepYt) {
+async function doSubmit(isAnon) {
   const eventId = document.getElementById('event-select').value;
   const attrInput = document.querySelector('input[name="attribute"]:checked');
   const score = document.getElementById('score-input').value;
@@ -285,7 +248,6 @@ async function doSubmit(isAnon, keepYt) {
   if (imageFile) formData.append('image', imageFile);
   const ytUrl = document.getElementById('youtube-input')?.value.trim();
   if (ytUrl) formData.append('youtube_url', ytUrl);
-  formData.append('keep_youtube', keepYt ? 'true' : 'false');
 
   btn.disabled = true;
   btn.textContent = t('submit.btn_loading');
