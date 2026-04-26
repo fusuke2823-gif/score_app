@@ -397,7 +397,8 @@ async function load() {
     }
     allUsernames = [...new Set(allVideos.filter(v => !v.is_anonymous && v.username).map(v => v.username))].sort();
     document.getElementById('filter-bar').style.display = 'flex';
-    renderGroups(allVideos);
+    updateFilterBar();
+    isFiltered() ? applyFilter() : renderGroups(allVideos);
   } catch (e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }
