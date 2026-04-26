@@ -101,6 +101,7 @@
   <!-- 動画投稿フォーム -->
   <div class="section-title" data-i18n="myvid.submit">動画を投稿</div>
   <div class="card" style="padding:16px 18px;margin-bottom:8px" id="submit-card">
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px" data-i18n="myvid.submit_feature_desc">ランキングのスコアを更新せずに動画を投稿する機能です。</p>
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px" data-i18n="myvid.submit_desc">管理者の承認後に掲示板に掲載されます。</p>
     <div id="submit-alert"></div>
     <div class="form-group">
@@ -286,10 +287,10 @@ async function loadMyVideos() {
           <div class="video-row-info">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
               <span class="attr-badge attr-${escHtml(item.attribute)} small">${t('attr.' + item.attribute) || item.attribute}</span>
-              <span class="video-row-meta">${escHtml(item.event_name)}</span>
+              <span style="font-size:0.78rem">${escHtml(item.event_name)}</span>
               ${item.hidden ? `<span class="badge-hidden">${t('myvid.hidden') || '非表示'}</span>` : ''}
             </div>
-            <div class="video-row-meta" style="margin-bottom:2px">${formatScore(item.approved_score)}</div>
+            <div style="font-size:0.78rem;margin-bottom:2px">${formatScore(item.approved_score)}</div>
             <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer" class="video-row-link">${escHtml(item.video_url)}</a>
           </div>
           <div class="video-row-actions">
