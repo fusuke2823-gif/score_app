@@ -160,7 +160,7 @@ function renderAttrBtns() {
 
 async function loadEvents() {
   try {
-    const events = await apiFetch('/events');
+    const events = await apiFetch('/events?open=true');
     const sel = document.getElementById('submit-event');
     events.forEach(e => {
       const opt = document.createElement('option');

@@ -7,13 +7,17 @@ const { optimizeUrl } = require('../utils/cloudinary');
 // 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', optionalAuth, async (req, res) => {
   try {
+    const openOnly = req.query.open === 'true';
+    const where = openOnly
+      ? `WHERE e.is_active = TRUE AND (e.submission_start IS NULL OR e.submission_start <= NOW()) AND (e.submission_end IS NULL OR e.submission_end >= NOW())`
+      : `WHERE e.is_active = TRUE`;
     const result = await pool.query(
       `SELECT e.*,
         (SELECT en.image_url FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_image,
         (SELECT en.weak_attributes FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_weak,
         (SELECT COUNT(*) FROM enemies en WHERE en.event_id = e.id) AS enemy_count,
         (SELECT en.destruction_rate FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_destruction_rate
-       FROM events e WHERE e.is_active = TRUE ORDER BY e.event_number DESC`
+       FROM events e ${where} ORDER BY e.event_number DESC`
     );
     res.json(result.rows.map(r => ({ ...r, first_enemy_image: optimizeUrl(r.first_enemy_image) })));
   } catch (err) {
