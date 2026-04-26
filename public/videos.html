@@ -41,23 +41,24 @@
   padding: 10px 12px;
 }
 .video-event {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.video-score-row {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
+.video-event-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
 .video-score {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: bold;
   color: var(--text-primary);
+  flex-shrink: 0;
 }
 .video-user {
   display: flex;
@@ -118,9 +119,9 @@ async function load() {
         <div class="video-card">
           ${thumb}
           <div class="video-info">
-            <div class="video-event">第${v.event_number}回 ${escHtml(v.event_name)}</div>
-            <div class="video-score-row">
-              <span class="attr-badge attr-${escHtml(v.attribute)} small">${escHtml(t('attr.' + v.attribute) || v.attribute)}</span>
+            <div class="video-event">
+              <span class="video-event-name">${escHtml(v.event_name)}</span>
+              <span class="attr-badge attr-${escHtml(v.attribute)} small" style="flex-shrink:0">${escHtml(t('attr.' + v.attribute) || v.attribute)}</span>
               <span class="video-score">${formatScore(score)}</span>
             </div>
             <div class="video-user">
