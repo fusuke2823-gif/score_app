@@ -6,7 +6,7 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 const _i18n = {
   ja: {
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
-    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱',
+    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画管理',
     'nav.admin':'管理','nav.account':'アカウント','nav.logout':'ログアウト',
     'nav.login':'ログイン','nav.register':'登録','nav.register_full':'新規登録',
     'nav.admin_badge':'管理者','nav.menu':'メニュー',
@@ -41,6 +41,14 @@ const _i18n = {
     'submit.th_pending':'承認待ちスコア','submit.th_status':'状態',
     'videos.title':'動画掲示板','videos.desc':'公開スコアに登録された動画一覧',
     'videos.empty':'動画が登録されていません','videos.btn':'動画掲示板',
+    'myvid.title':'動画管理','myvid.submit':'動画を投稿','myvid.submit_desc':'承認済みスコアがあるイベント・属性に動画のみを投稿できます。管理者の承認後に掲示板に掲載されます。',
+    'myvid.event':'イベント','myvid.submit_btn':'投稿する','myvid.no_score':'このイベントに承認済みスコアがありません',
+    'myvid.pending':'承認待ちの投稿','myvid.my_videos':'掲載中・非表示の動画',
+    'myvid.no_pending':'なし','myvid.no_videos':'なし',
+    'myvid.approved':'承認済み','myvid.rejected':'却下','myvid.pending_status':'承認待ち',
+    'myvid.cancel':'キャンセル','myvid.cancel_confirm':'この投稿をキャンセルしますか？',
+    'myvid.hidden':'非表示','myvid.show':'表示する','myvid.hide':'非表示にする',
+    'myvid.delete':'削除','myvid.delete_confirm':'この動画を掲示板から削除しますか？',
     'login.title':'ログイン','login.username':'ユーザー名','login.password':'パスワード',
     'login.btn':'ログイン','login.btn_loading':'ログイン中...',
     'login.no_account':'アカウントがない方は','login.register_link':'新規登録',
@@ -160,7 +168,7 @@ const _i18n = {
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
-    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱',
+    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片管理',
     'nav.admin':'管理','nav.account':'帳戶','nav.logout':'登出',
     'nav.login':'登入','nav.register':'註冊','nav.register_full':'新增帳戶',
     'nav.admin_badge':'管理員','nav.menu':'選單',
@@ -195,6 +203,14 @@ const _i18n = {
     'submit.th_pending':'待審核分數','submit.th_status':'狀態',
     'videos.title':'影片看板','videos.desc':'公開分數中登錄的影片列表',
     'videos.empty':'尚無影片','videos.btn':'影片看板',
+    'myvid.title':'影片管理','myvid.submit':'投稿影片','myvid.submit_desc':'可針對有已核准分數的賽事・屬性投稿影片。管理員審核後將刊登於影片看板。',
+    'myvid.event':'賽事','myvid.submit_btn':'投稿','myvid.no_score':'此賽事無已核准分數',
+    'myvid.pending':'待審核投稿','myvid.my_videos':'刊登中・隱藏的影片',
+    'myvid.no_pending':'無','myvid.no_videos':'無',
+    'myvid.approved':'已核准','myvid.rejected':'已拒絕','myvid.pending_status':'待審核',
+    'myvid.cancel':'取消','myvid.cancel_confirm':'確定取消此投稿？',
+    'myvid.hidden':'隱藏中','myvid.show':'顯示','myvid.hide':'隱藏',
+    'myvid.delete':'刪除','myvid.delete_confirm':'確定從影片看板刪除此影片？',
     'login.title':'登入','login.username':'使用者名稱','login.password':'密碼',
     'login.btn':'登入','login.btn_loading':'登入中...',
     'login.no_account':'沒有帳戶嗎？','login.register_link':'新增帳戶',
@@ -454,6 +470,7 @@ function renderNav() {
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
         <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">${t('nav.feedback')}</a>` : ''}
+        ${user ? `<a href="/my-videos.html" class="${currentPath === '/my-videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
         ${user && user.role === 'admin' ? `<a href="/admin_index.html" class="${currentPath.startsWith('/admin') ? 'active' : ''}">${t('nav.admin')}</a>` : ''}
       </div>
       <div class="nav-user">
@@ -477,6 +494,7 @@ function renderNav() {
       ${user ? `<a href="/shop.html?tab=equip">${t('nav.equip')}</a>` : ''}
       <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user ? `<a href="/feedback.html">${t('nav.feedback')}</a>` : ''}
+      ${user ? `<a href="/my-videos.html">${t('nav.my_videos')}</a>` : ''}
       ${user && user.role === 'admin' ? `<a href="/admin_index.html">${t('nav.admin')}</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${t('nav.account')}</a>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="myvid.title">動画管理 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.section-title {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 24px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.video-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.video-row-thumb {
+  width: 80px;
+  height: 45px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
+.video-row-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.video-row-info {
+  flex: 1;
+  min-width: 0;
+}
+.video-row-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.video-row-link {
+  font-size: 0.82rem;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+.video-row-link:hover { text-decoration: underline; }
+.video-row-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.badge-hidden {
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.pending-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pending-row-info { flex: 1; min-width: 0; }
+.status-badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: bold;
+}
+.status-pending { background: rgba(255,200,0,0.15); color: #ffc800; border: 1px solid #ffc80066; }
+.status-approved { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid #00c86466; }
+.status-rejected { background: rgba(200,50,50,0.15); color: #e57373; border: 1px solid #e5737366; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:4px" data-i18n="myvid.title">動画管理</h2>
+  <div id="main-alert"></div>
+
+  <!-- 動画投稿フォーム -->
+  <div class="section-title" data-i18n="myvid.submit">動画を投稿</div>
+  <div class="card" style="padding:16px 18px;margin-bottom:8px" id="submit-card">
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px" data-i18n="myvid.submit_desc">承認済みスコアがあるイベント・属性に動画のみを投稿できます。管理者の承認後に掲示板に掲載されます。</p>
+    <div id="submit-alert"></div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="myvid.event">イベント</label>
+      <select class="form-input" id="submit-event" onchange="onEventChange()">
+        <option value="">選択してください</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="submit.attr">属性</label>
+      <div id="submit-attr-wrap" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="submit.yt_url">YouTube動画URL</label>
+      <input class="form-input" type="url" id="submit-yt" placeholder="例: https://www.youtube.com/watch?v=...">
+    </div>
+    <button class="btn btn-primary" id="submit-btn" onclick="submitVideo()" data-i18n="myvid.submit_btn">投稿する</button>
+  </div>
+
+  <!-- 承認待ち -->
+  <div class="section-title" data-i18n="myvid.pending">承認待ちの投稿</div>
+  <div id="pending-list"><div class="loading"><div class="spinner"></div></div></div>
+
+  <!-- 掲載中の動画 -->
+  <div class="section-title" data-i18n="myvid.my_videos">掲載中・非表示の動画</div>
+  <div id="my-videos-list"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+
+if (!getUser()) { location.href = '/login.html'; throw new Error('redirect'); }
+
+const ATTRS = ['火','氷','雷','光','闇','無'];
+let myScores = {}; // { event_id: Set of attributes }
+let selectedAttr = '';
+
+async function init() {
+  await Promise.all([loadEvents(), loadMyVideos(), loadPending()]);
+}
+
+async function loadEvents() {
+  try {
+    const events = await apiFetch('/events');
+    const sel = document.getElementById('submit-event');
+    events.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.textContent = e.name;
+      sel.appendChild(opt);
+    });
+  } catch (e) { /* ignore */ }
+}
+
+async function onEventChange() {
+  const eventId = document.getElementById('submit-event').value;
+  selectedAttr = '';
+  const wrap = document.getElementById('submit-attr-wrap');
+  wrap.innerHTML = '';
+  if (!eventId) return;
+
+  try {
+    const scores = await apiFetch(`/scores/my/${eventId}`);
+    const approvedAttrs = scores.filter(s => s.approved_score).map(s => s.attribute);
+    if (!approvedAttrs.length) {
+      wrap.innerHTML = `<span style="font-size:0.82rem;color:var(--text-muted)">${t('myvid.no_score') || 'このイベントに承認済みスコアがありません'}</span>`;
+      return;
+    }
+    wrap.innerHTML = approvedAttrs.map(a =>
+      `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.' + a) || a}</button>`
+    ).join('');
+  } catch (e) {
+    wrap.innerHTML = `<span style="font-size:0.82rem;color:var(--text-muted)">読み込みエラー</span>`;
+  }
+}
+
+function selectAttr(a) {
+  selectedAttr = a;
+  document.querySelectorAll('#submit-attr-wrap .attr-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.attr === a);
+  });
+}
+
+async function submitVideo() {
+  const eventId = document.getElementById('submit-event').value;
+  const ytUrl = document.getElementById('submit-yt').value.trim();
+  const btn = document.getElementById('submit-btn');
+
+  if (!eventId) return showAlert('#submit-alert', t('submit.err_event') || 'イベントを選択してください');
+  if (!selectedAttr) return showAlert('#submit-alert', t('submit.err_attr') || '属性を選択してください');
+  if (!ytUrl) return showAlert('#submit-alert', 'YouTubeのURLを入力してください');
+
+  btn.disabled = true;
+  try {
+    const res = await apiFetch('/my-videos/pending', {
+      method: 'POST',
+      body: JSON.stringify({ event_id: eventId, attribute: selectedAttr, video_url: ytUrl })
+    });
+    showAlert('#submit-alert', res.message, 'success');
+    document.getElementById('submit-yt').value = '';
+    document.getElementById('submit-event').value = '';
+    document.getElementById('submit-attr-wrap').innerHTML = '';
+    selectedAttr = '';
+    loadPending();
+  } catch (e) {
+    showAlert('#submit-alert', e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadPending() {
+  const el = document.getElementById('pending-list');
+  try {
+    const items = await apiFetch('/my-videos/pending');
+    if (!items.length) {
+      el.innerHTML = `<p style="font-size:0.85rem;color:var(--text-muted);padding:8px 0">${t('myvid.no_pending') || 'なし'}</p>`;
+      return;
+    }
+    el.innerHTML = items.map(item => {
+      const statusClass = item.status === 'approved' ? 'status-approved' : item.status === 'rejected' ? 'status-rejected' : 'status-pending';
+      const statusLabel = item.status === 'approved' ? (t('myvid.approved') || '承認済み') : item.status === 'rejected' ? (t('myvid.rejected') || '却下') : (t('myvid.pending_status') || '承認待ち');
+      return `
+        <div class="pending-row" id="pend-${item.id}">
+          <div class="pending-row-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span class="attr-badge attr-${escHtml(item.attribute)} small">${t('attr.' + item.attribute) || item.attribute}</span>
+              <span style="font-size:0.82rem;color:var(--text-muted)">${escHtml(item.event_name)}</span>
+              <span class="status-badge ${statusClass}">${statusLabel}</span>
+            </div>
+            <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer" class="video-row-link">${escHtml(item.video_url)}</a>
+            ${item.admin_note ? `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">${escHtml(item.admin_note)}</div>` : ''}
+          </div>
+          ${item.status === 'pending' ? `<button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366;flex-shrink:0" onclick="cancelPending(${item.id})">${t('myvid.cancel') || 'キャンセル'}</button>` : ''}
+        </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function cancelPending(id) {
+  if (!confirm(t('myvid.cancel_confirm') || 'キャンセルしますか？')) return;
+  try {
+    await apiFetch(`/my-videos/pending/${id}`, { method: 'DELETE' });
+    document.getElementById(`pend-${id}`)?.remove();
+  } catch (e) {
+    showAlert('#main-alert', e.message);
+  }
+}
+
+async function loadMyVideos() {
+  const el = document.getElementById('my-videos-list');
+  try {
+    const items = await apiFetch('/my-videos');
+    if (!items.length) {
+      el.innerHTML = `<p style="font-size:0.85rem;color:var(--text-muted);padding:8px 0">${t('myvid.no_videos') || 'なし'}</p>`;
+      return;
+    }
+    el.innerHTML = items.map(item => {
+      const thumb = item.approved_image_url
+        ? `<div class="video-row-thumb"><img src="${escHtml(item.approved_image_url)}" alt="" loading="lazy"></div>`
+        : `<div class="video-row-thumb">▶</div>`;
+      return `
+        <div class="video-row" id="vid-${item.id}">
+          ${thumb}
+          <div class="video-row-info">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+              <span class="attr-badge attr-${escHtml(item.attribute)} small">${t('attr.' + item.attribute) || item.attribute}</span>
+              <span class="video-row-meta">${escHtml(item.event_name)}</span>
+              ${item.hidden ? `<span class="badge-hidden">${t('myvid.hidden') || '非表示'}</span>` : ''}
+            </div>
+            <div class="video-row-meta" style="margin-bottom:2px">${formatScore(item.approved_score)}</div>
+            <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer" class="video-row-link">${escHtml(item.video_url)}</a>
+          </div>
+          <div class="video-row-actions">
+            <button class="btn btn-sm btn-secondary" onclick="toggleHidden(${item.id}, this)">
+              ${item.hidden ? (t('myvid.show') || '表示') : (t('myvid.hide') || '非表示')}
+            </button>
+            <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteVideo(${item.id})">${t('myvid.delete') || '削除'}</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function toggleHidden(id, btn) {
+  try {
+    const res = await apiFetch(`/my-videos/${id}/toggle-hidden`, { method: 'PUT' });
+    const row = document.getElementById(`vid-${id}`);
+    if (!row) return;
+    const badge = row.querySelector('.badge-hidden');
+    if (res.hidden) {
+      if (!badge) {
+        const metaDiv = row.querySelector('.video-row-info > div');
+        metaDiv.insertAdjacentHTML('beforeend', `<span class="badge-hidden">${t('myvid.hidden') || '非表示'}</span>`);
+      }
+      btn.textContent = t('myvid.show') || '表示';
+    } else {
+      badge?.remove();
+      btn.textContent = t('myvid.hide') || '非表示';
+    }
+  } catch (e) {
+    showAlert('#main-alert', e.message);
+  }
+}
+
+async function deleteVideo(id) {
+  if (!confirm(t('myvid.delete_confirm') || 'この動画を掲示板から削除しますか？')) return;
+  try {
+    await apiFetch(`/my-videos/${id}`, { method: 'DELETE' });
+    document.getElementById(`vid-${id}`)?.remove();
+  } catch (e) {
+    showAlert('#main-alert', e.message);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

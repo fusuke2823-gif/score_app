@@ -1785,4 +1785,80 @@ router.put('/cloudinary/limit', async (req, res) => {
   }
 });
 
+// 動画承認待ち一覧
+router.get('/pending-videos', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT pv.id, pv.event_id, pv.attribute, pv.video_url, pv.status, pv.created_at,
+              e.name AS event_name, e.event_number,
+              u.id AS user_id, u.username
+       FROM pending_videos pv
+       JOIN events e ON e.id = pv.event_id
+       JOIN users u ON u.id = pv.user_id
+       WHERE pv.status = 'pending'
+       ORDER BY pv.created_at ASC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 動画承認
+router.post('/pending-videos/:id/approve', async (req, res) => {
+  try {
+    const pv = await pool.query('SELECT * FROM pending_videos WHERE id = $1', [req.params.id]);
+    if (!pv.rows.length) return res.status(404).json({ error: '見つかりません' });
+    const video = pv.rows[0];
+    if (video.status !== 'pending') return res.status(400).json({ error: '既に処理済みです' });
+
+    const score = await pool.query(
+      `SELECT approved_score, approved_image_url, is_anonymous, ranking_scope
+       FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3`,
+      [video.user_id, video.event_id, video.attribute]
+    );
+
+    await pool.query(
+      `UPDATE pending_videos SET status = 'approved', updated_at = NOW() WHERE id = $1`,
+      [video.id]
+    );
+
+    if (score.rows.length && score.rows[0].approved_score) {
+      const s = score.rows[0];
+      await pool.query(
+        `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
+           approved_image_url = EXCLUDED.approved_image_url,
+           approved_score = EXCLUDED.approved_score,
+           is_anonymous = EXCLUDED.is_anonymous`,
+        [video.user_id, video.event_id, video.attribute, video.video_url,
+         s.approved_image_url, s.approved_score, s.is_anonymous, s.ranking_scope]
+      );
+    }
+
+    res.json({ message: '承認しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 動画却下
+router.post('/pending-videos/:id/reject', async (req, res) => {
+  const { note } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE pending_videos SET status = 'rejected', admin_note = $2, updated_at = NOW() WHERE id = $1 RETURNING id`,
+      [req.params.id, note || null]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: '見つかりません' });
+    res.json({ message: '却下しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;

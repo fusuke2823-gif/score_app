@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
        JOIN events e ON e.id = vb.event_id
        JOIN users u ON u.id = vb.user_id
        LEFT JOIN gacha_icons gi ON gi.id = u.equipped_icon_id
-       WHERE vb.ranking_scope = 'public'
+       WHERE vb.ranking_scope = 'public' AND NOT vb.hidden
        ORDER BY e.event_number DESC, vb.created_at DESC
        LIMIT 200`
     );

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>動画承認 - HBR管理</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.pv-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.pv-meta { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; }
+.pv-url { font-size: 0.85rem; color: var(--accent); word-break: break-all; margin-bottom: 10px; }
+.pv-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:16px">動画承認待ち</h2>
+  <div id="alert"></div>
+  <div id="list"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+async function load() {
+  const el = document.getElementById('list');
+  try {
+    const items = await apiFetch('/admin/pending-videos');
+    if (!items.length) {
+      el.innerHTML = '<p style="color:var(--text-muted)">承認待ちの動画はありません</p>';
+      return;
+    }
+    el.innerHTML = items.map(item => `
+      <div class="pv-card" id="pv-${item.id}">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="attr-badge attr-${escHtml(item.attribute)} small">${item.attribute}</span>
+          <span style="font-weight:bold;font-size:0.9rem">${escHtml(item.event_name)}</span>
+        </div>
+        <div class="pv-meta">
+          投稿者: <a href="/user.html?id=${item.user_id}" target="_blank" style="color:var(--accent)">${escHtml(item.username)}</a>
+          &nbsp;·&nbsp; ${new Date(item.created_at).toLocaleString('ja-JP')}
+        </div>
+        <div class="pv-url">
+          <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer">${escHtml(item.video_url)}</a>
+        </div>
+        <div class="pv-actions">
+          <button class="btn btn-success btn-sm" onclick="approve(${item.id})">承認</button>
+          <input id="note-${item.id}" class="form-input" type="text" placeholder="却下理由（任意）" style="flex:1;min-width:160px;font-size:0.82rem;padding:5px 8px">
+          <button class="btn btn-danger btn-sm" onclick="reject(${item.id})">却下</button>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function approve(id) {
+  try {
+    const res = await apiFetch(`/admin/pending-videos/${id}/approve`, { method: 'POST' });
+    document.getElementById(`pv-${id}`)?.remove();
+    showAlert('#alert', res.message, 'success');
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+async function reject(id) {
+  const note = document.getElementById(`note-${id}`)?.value || '';
+  try {
+    const res = await apiFetch(`/admin/pending-videos/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ note })
+    });
+    document.getElementById(`pv-${id}`)?.remove();
+    showAlert('#alert', res.message, 'success');
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+load();
+</script>
+</body>
+</html>
