@@ -223,11 +223,11 @@ function renderModal() {
     <div>
       <div class="filter-section-label">スコア範囲</div>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <input id="modal-score-min" type="number" value="${escHtml(String(filter.scoreMin))}" placeholder="下限"
+        <input id="modal-score-min" type="number" step="10000" value="${escHtml(String(filter.scoreMin))}" placeholder="下限"
           style="width:100px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2,var(--bg-secondary));color:var(--text-primary);font-size:0.85rem;text-align:center"
           oninput="filter.scoreMin=this.value;updateFilterBar();applyFilter()">
         <span style="color:#9090b0">〜</span>
-        <input id="modal-score-max" type="number" value="${escHtml(String(filter.scoreMax))}" placeholder="上限"
+        <input id="modal-score-max" type="number" step="10000" value="${escHtml(String(filter.scoreMax))}" placeholder="上限"
           style="width:100px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2,var(--bg-secondary));color:var(--text-primary);font-size:0.85rem;text-align:center"
           oninput="filter.scoreMax=this.value;updateFilterBar();applyFilter()">
       </div>
