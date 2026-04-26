@@ -115,7 +115,8 @@
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="submit.image">リザルト画像</label>
-      <input class="form-input" type="file" id="submit-image" accept="image/*">
+      <input class="form-input" type="file" id="submit-image" accept="image/*" style="padding:8px">
+      <img id="submit-image-preview" class="img-preview" style="display:none">
     </div>
     <div class="form-group">
       <label class="form-label" data-i18n="submit.score">スコア</label>
@@ -146,6 +147,17 @@ if (!getUser()) { location.href = '/login.html'; throw new Error('redirect'); }
 const ATTRS = ['火','氷','雷','光','闇','無'];
 let myScores = {}; // { event_id: Set of attributes }
 let selectedAttr = '';
+
+document.getElementById('submit-image').addEventListener('change', e => {
+  const file = e.target.files[0];
+  const preview = document.getElementById('submit-image-preview');
+  if (file) {
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+});
 
 async function init() {
   renderAttrBtns();
@@ -209,6 +221,7 @@ async function submitVideo() {
     document.getElementById('submit-yt').value = '';
     document.getElementById('submit-score').value = '';
     document.getElementById('submit-image').value = '';
+    document.getElementById('submit-image-preview').style.display = 'none';
     document.getElementById('submit-event').value = '';
     selectedAttr = '';
     renderAttrBtns();
