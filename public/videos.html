@@ -158,7 +158,8 @@ const ATTRS = ['火','氷','雷','光','闇','無'];
 let allVideos = [];
 let allUsernames = [];
 let lazyObserver = null;
-const filter = { attrs: new Set(), eventId: '', scoreMin: '', scoreMax: '', name: '' };
+const _params = new URLSearchParams(location.search);
+const filter = { attrs: new Set(), eventId: '', scoreMin: '', scoreMax: '', name: _params.get('name') || '' };
 
 function isFiltered() {
   return filter.attrs.size > 0 || filter.eventId || filter.scoreMin !== '' || filter.scoreMax !== '' || filter.name.trim();

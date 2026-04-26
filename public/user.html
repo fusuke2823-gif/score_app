@@ -207,7 +207,10 @@ async function load() {
             ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">${t('user.title_label')}</span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
             : ''}
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${t('user.joined')}${formatDate(data.created_at)}</div>
-          ${isMe ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+            ${isMe ? `<button class="btn btn-secondary btn-sm" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
+            <a class="btn btn-secondary btn-sm" href="/videos.html?name=${encodeURIComponent(data.username)}" style="text-decoration:none">▶ ${escHtml(data.username)}${t('user.video_board') || 'の動画掲示板'}</a>
+          </div>
         </div>
       </div>
 
