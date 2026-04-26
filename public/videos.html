@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="videos.title">動画掲示板 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+.video-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.video-card:hover { border-color: var(--accent); }
+.video-thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  background: var(--bg-secondary);
+}
+.video-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 2rem;
+}
+.video-info {
+  padding: 10px 12px;
+}
+.video-event {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.video-score-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.video-score {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+.video-user {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.video-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.video-icon-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.video-username {
+  font-size: 0.85rem;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+<nav id="nav-area"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:4px" data-i18n="videos.title">動画掲示板</h2>
+  <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px" data-i18n="videos.desc">公開スコアに登録された動画一覧</p>
+  <div id="videos-list">
+    <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+
+const ATTR_COLOR = { '火':'var(--fire)','氷':'var(--ice)','雷':'var(--thunder)','光':'var(--light)','闇':'var(--dark)','無':'var(--neutral)' };
+
+async function load() {
+  const el = document.getElementById('videos-list');
+  try {
+    const videos = await apiFetch('/videos');
+    if (!videos.length) {
+      el.innerHTML = `<div class="empty-state"><p data-i18n="videos.empty">${t('videos.empty')}</p></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="videos-grid">${videos.map(v => {
+      const thumb = v.approved_image_url
+        ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
+             <img class="video-thumb" src="${escHtml(v.approved_image_url)}" alt="" loading="lazy">
+           </a>`
+        : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
+      const icon = v.equipped_icon_url
+        ? `<img class="video-icon" src="${escHtml(v.equipped_icon_url)}" alt="">`
+        : `<div class="video-icon-placeholder">👤</div>`;
+      const score = v.youtube_score ?? v.approved_score;
+      const username = v.is_anonymous ? escHtml(t('ranking.anonymous')) : escHtml(v.username);
+      const attrColor = ATTR_COLOR[v.attribute] || 'var(--text-muted)';
+      return `
+        <div class="video-card">
+          ${thumb}
+          <div class="video-info">
+            <div class="video-event">第${v.event_number}回 ${escHtml(v.event_name)}</div>
+            <div class="video-score-row">
+              <span class="attr-badge attr-${escHtml(v.attribute)} small">${escHtml(t('attr.' + v.attribute) || v.attribute)}</span>
+              <span class="video-score">${formatScore(score)}</span>
+            </div>
+            <div class="video-user">
+              ${icon}
+              <span class="video-username">${username}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+load();
+</script>
+</body>
+</html>
