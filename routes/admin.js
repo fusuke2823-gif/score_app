@@ -70,7 +70,20 @@ router.post('/scores/:id/approve', async (req, res) => {
     );
     if (result.rows.length === 0)
       return res.status(404).json({ error: 'スコアが見つかりません' });
-    res.json({ message: clearYoutube ? 'スコアのみ承認しました' : '承認しました', score: result.rows[0] });
+    const score = result.rows[0];
+    if (!clearYoutube && score.video_url && score.ranking_scope === 'public') {
+      await pool.query(
+        `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
+           approved_image_url = EXCLUDED.approved_image_url,
+           approved_score = EXCLUDED.approved_score,
+           is_anonymous = EXCLUDED.is_anonymous`,
+        [score.user_id, score.event_id, score.attribute, score.video_url,
+         score.approved_image_url, score.approved_score, score.is_anonymous, score.ranking_scope]
+      );
+    }
+    res.json({ message: clearYoutube ? 'スコアのみ承認しました' : '承認しました', score });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
