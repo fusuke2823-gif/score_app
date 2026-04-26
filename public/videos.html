@@ -102,7 +102,7 @@ async function load() {
     function renderCard(v) {
       const thumb = v.approved_image_url
         ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
-             <img class="video-thumb" src="${escHtml(v.approved_image_url)}" alt="" loading="lazy">
+             <img class="video-thumb lazy-img" data-src="${escHtml(v.approved_image_url)}" alt="">
            </a>`
         : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
       const showAnon = v.is_anonymous;
@@ -147,6 +147,18 @@ async function load() {
         <div class="video-group-header">${escHtml(g.event_name)}</div>
         <div class="videos-grid">${g.items.map(renderCard).join('')}</div>
       </div>`).join('');
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const img = entry.target;
+          img.src = img.dataset.src;
+          img.removeAttribute('data-src');
+          observer.unobserve(img);
+        }
+      });
+    }, { rootMargin: '200px' });
+    el.querySelectorAll('img.lazy-img').forEach(img => observer.observe(img));
   } catch (e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }
