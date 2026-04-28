@@ -35,7 +35,7 @@
 .note-input { width:100%; background:transparent; border:none; outline:none; color:var(--text-primary); font-size:0.78rem; resize:none; padding:2px; }
 .action-cell {
   cursor:pointer; height:38px; padding:4px 6px; text-align:center;
-  position:relative; transition:background 0.1s; overflow:hidden; width:90px;
+  position:relative; transition:background 0.1s; overflow:hidden;
 }
 .action-cell:hover { background:rgba(255,255,255,0.05); }
 .action-cell.filled { background:rgba(var(--accent-rgb,100,100,220),0.08); }
@@ -337,7 +337,7 @@ function renderGrid() {
   // ヘッダー
   const memberHeaders = state.members.map((m, i) => {
     const cname = m.character_id && charMap[m.character_id] ? escHtml(charMap[m.character_id].name) : `スロット${i+1}`;
-    return `<th style="width:90px">${cname}</th>`;
+    return `<th>${cname}</th>`;
   }).join('');
   document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th>${memberHeaders}</tr>`;
 
