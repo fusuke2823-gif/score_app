@@ -289,7 +289,7 @@ function renderMembers() {
         <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onCharChange(${i}, this.value)">
           ${charOpts}
         </select>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px;max-width:130px" onchange="onStyleChange(${i}, this.value)">
+        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onStyleChange(${i}, this.value)">
           ${styleOpts}
         </select>
         <select class="form-input" style="font-size:0.78rem;padding:5px 6px;width:60px" onchange="state.members[${i}].refine_count=parseInt(this.value)">
