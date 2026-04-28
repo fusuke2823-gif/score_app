@@ -7,20 +7,21 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
 .chart-table-wrap { overflow-x:auto; margin-top:12px; }
-.chart-table { border-collapse:collapse; width:100%; min-width:500px; font-size:0.82rem; }
+.chart-table { border-collapse:collapse; width:100%; min-width:500px; font-size:0.82rem; table-layout:fixed; }
 .chart-table th {
   background:var(--bg-secondary); padding:7px 8px; text-align:center;
   border:1px solid var(--border); white-space:nowrap; font-size:0.78rem; font-weight:bold;
 }
+.chart-table th.note-col { display:none; }
 .chart-table td { border:1px solid var(--border); padding:5px 7px; vertical-align:middle; }
+.chart-table td.note-td { display:none; }
 .turn-label { font-size:0.78rem; font-weight:bold; white-space:nowrap; text-align:center; color:var(--text-muted); }
 .turn-label.normal { color:var(--text-primary); }
 .turn-label.od_pre { color:#7ecfff; }
 .turn-label.od_post { color:#a8e6a3; }
 .turn-label.extra { color:#ffd580; }
 .turn-label.special { color:#e0aaff; }
-.note-cell { font-size:0.75rem; color:var(--text-muted); min-width:80px; }
-.action-cell { text-align:center; font-size:0.78rem; min-width:80px; }
+.action-cell { text-align:center; font-size:0.78rem; height:48px; overflow:hidden; width:90px; }
 .action-order { color:var(--accent); font-size:0.7rem; margin-right:2px; }
 .action-target { font-size:0.68rem; color:var(--text-muted); display:block; }
 .member-tag {
@@ -84,7 +85,7 @@ async function load() {
 
     // グリッドヘッダー
     const memberCols = data.members.sort((a,b)=>a.slot-b.slot).map(m =>
-      `<th>${escHtml(m.character_name)}<br><span style="font-size:0.68rem;font-weight:normal;color:var(--text-muted)">${escHtml(m.style_name)}</span></th>`
+      `<th style="width:90px">${escHtml(m.character_name)}</th>`
     ).join('');
 
     // グリッドボディ
@@ -103,12 +104,13 @@ async function load() {
         const target = a.target_slot
           ? `<span class="action-target">→${escHtml(data.members.find(m=>m.slot===a.target_slot)?.character_name||String(a.target_slot))}</span>`
           : '';
-        return `<td class="action-cell">${order}${escHtml(a.skill_name)}${target}</td>`;
+        const displayName = a.abbreviation || a.skill_name;
+        return `<td class="action-cell">${order}${escHtml(displayName)}${target}</td>`;
       }).join('');
 
       return `<tr>
         <td><div class="turn-label ${t.turn_type}">${label}</div></td>
-        <td class="note-cell">${t.note ? escHtml(t.note) : ''}</td>
+        <td class="note-td note-cell">${t.note ? escHtml(t.note) : ''}</td>
         ${cells}
       </tr>`;
     }).join('');
@@ -136,7 +138,7 @@ async function load() {
       <div class="card" style="padding:12px 14px">
         <div class="chart-table-wrap">
           <table class="chart-table">
-            <thead><tr><th style="width:90px">ターン</th><th style="width:100px">備考</th>${memberCols}</tr></thead>
+            <thead><tr><th style="width:90px">ターン</th><th class="note-col" style="width:100px">備考</th>${memberCols}</tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </div>

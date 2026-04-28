@@ -1927,7 +1927,7 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
   try {
     const rows = parseCSVBuffer(req.file.buffer);
     let count = 0, skip = 0;
-    for (const [skill_name, style_name, character_name, has_target, is_special] of rows) {
+    for (const [skill_name, abbreviation, style_name, character_name, has_target, is_special] of rows) {
       if (!skill_name) continue;
       let charId = null;
       if (character_name) {
@@ -1941,8 +1941,8 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
         if (s.rows.length) styleId = s.rows[0].id;
       }
       await pool.query(
-        `INSERT INTO chart_skills (character_id, name, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5)`,
-        [charId, skill_name, has_target === '1', styleId, is_special === '1']
+        `INSERT INTO chart_skills (character_id, name, abbreviation, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [charId, skill_name, abbreviation || null, has_target === '1', styleId, is_special === '1']
       );
       count++;
     }

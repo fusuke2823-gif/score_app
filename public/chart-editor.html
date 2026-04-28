@@ -16,14 +16,15 @@
 
 /* チャートグリッド */
 .chart-table-wrap { overflow-x:auto; margin-top:12px; }
-.chart-table { border-collapse:collapse; width:100%; min-width:600px; font-size:0.82rem; }
+.chart-table { border-collapse:collapse; width:100%; min-width:600px; font-size:0.82rem; table-layout:fixed; }
 .chart-table th {
   background:var(--bg-secondary); padding:6px 8px; text-align:center;
   border:1px solid var(--border); white-space:nowrap; font-size:0.78rem; font-weight:bold;
 }
 .chart-table th.turn-col { width:90px; }
-.chart-table th.note-col { width:120px; }
+.chart-table th.note-col { display:none; }
 .chart-table td { border:1px solid var(--border); padding:4px; vertical-align:middle; }
+.chart-table td.note-td { display:none; }
 .turn-label {
   text-align:center; white-space:nowrap; font-size:0.78rem; font-weight:bold;
   color:var(--text-muted);
@@ -35,8 +36,8 @@
 .turn-label.special { color:#e0aaff; }
 .note-input { width:100%; background:transparent; border:none; outline:none; color:var(--text-primary); font-size:0.78rem; resize:none; padding:2px; }
 .action-cell {
-  cursor:pointer; min-height:36px; padding:4px 6px; text-align:center;
-  position:relative; transition:background 0.1s;
+  cursor:pointer; height:48px; padding:4px 6px; text-align:center;
+  position:relative; transition:background 0.1s; overflow:hidden; width:90px;
 }
 .action-cell:hover { background:rgba(255,255,255,0.05); }
 .action-cell.filled { background:rgba(var(--accent-rgb,100,100,220),0.08); }
@@ -338,7 +339,7 @@ function renderGrid() {
   // ヘッダー
   const memberHeaders = state.members.map((m, i) => {
     const cname = m.character_id && charMap[m.character_id] ? escHtml(charMap[m.character_id].name) : `スロット${i+1}`;
-    return `<th>${cname}</th>`;
+    return `<th style="width:90px">${cname}</th>`;
   }).join('');
   document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th><th class="note-col">備考</th>${memberHeaders}</tr>`;
 
@@ -360,7 +361,8 @@ function renderGrid() {
       if (a) {
         const orderLabel = a.order_num ? `<span class="action-order">${ORDER_LABELS[a.order_num]}</span>` : '';
         const targetLabel = a.target_slot ? `<span class="action-target">→${getSlotName(a.target_slot)}</span>` : '';
-        inner = `<div class="action-cell-inner">${orderLabel}${escHtml(a.skill_name)}${targetLabel}</div>`;
+        const displayName = skillMap[a.skill_id]?.abbreviation || a.skill_name;
+        inner = `<div class="action-cell-inner">${orderLabel}${escHtml(displayName)}${targetLabel}</div>`;
       }
       const filled = a ? ' filled' : '';
       const disabled = (!canAct && !a) ? ' disabled' : '';
@@ -371,7 +373,7 @@ function renderGrid() {
     const noteVal = escHtml(turn.note || '');
     return `<tr>
       <td><div class="turn-label ${turn.turn_type}">${label}</div></td>
-      <td><textarea class="note-input" rows="1" placeholder="備考" onchange="state.turns[${tIdx}].note=this.value">${noteVal}</textarea></td>
+      <td class="note-td"><textarea class="note-input" rows="1" placeholder="備考" onchange="state.turns[${tIdx}].note=this.value">${noteVal}</textarea></td>
       ${cells}
     </tr>`;
   }).join('');
