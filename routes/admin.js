@@ -1891,7 +1891,7 @@ router.post('/chart-data/import-characters', upload.single('csv'), async (req, r
   try {
     const rows = parseCSVBuffer(req.file.buffer);
     let count = 0;
-    for (const [name, sort_order] of rows) {
+    for (const [sort_order, name] of rows) {
       if (!name) continue;
       await pool.query(
         `INSERT INTO chart_characters (name, sort_order) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET sort_order=$2`,
@@ -1908,7 +1908,7 @@ router.post('/chart-data/import-styles', upload.single('csv'), async (req, res) 
   try {
     const rows = parseCSVBuffer(req.file.buffer);
     let count = 0, skip = 0;
-    for (const [character_name, style_name, has_special] of rows) {
+    for (const [style_name, character_name, has_special] of rows) {
       if (!character_name || !style_name) continue;
       const c = await pool.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
       if (!c.rows.length) { skip++; continue; }
@@ -1927,7 +1927,7 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
   try {
     const rows = parseCSVBuffer(req.file.buffer);
     let count = 0, skip = 0;
-    for (const [character_name, skill_name, has_target, style_name, is_special] of rows) {
+    for (const [skill_name, style_name, character_name, has_target, is_special] of rows) {
       if (!skill_name) continue;
       let charId = null;
       if (character_name) {
