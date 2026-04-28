@@ -375,7 +375,7 @@ function renderGrid() {
     </tr>`;
   }).join('');
 
-  document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">「次ターン」ボタンでターンを追加してください</td></tr>`;
+  document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">ターンを追加してください</td></tr>`;
   renderSpecialBtns();
   updateODBtnState();
 }
