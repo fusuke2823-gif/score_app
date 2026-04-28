@@ -22,9 +22,7 @@
   border:1px solid var(--border); white-space:nowrap; font-size:0.78rem; font-weight:bold;
 }
 .chart-table th.turn-col { width:90px; }
-.chart-table th.note-col { display:none; }
 .chart-table td { border:1px solid var(--border); padding:4px; vertical-align:middle; }
-.chart-table td.note-td { display:none; }
 .turn-label {
   text-align:center; white-space:nowrap; font-size:0.78rem; font-weight:bold;
   color:var(--text-muted);
@@ -341,7 +339,7 @@ function renderGrid() {
     const cname = m.character_id && charMap[m.character_id] ? escHtml(charMap[m.character_id].name) : `スロット${i+1}`;
     return `<th style="width:90px">${cname}</th>`;
   }).join('');
-  document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th><th class="note-col">備考</th>${memberHeaders}</tr>`;
+  document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th>${memberHeaders}</tr>`;
 
   // ボディ
   let nIdx = 0;
@@ -373,7 +371,6 @@ function renderGrid() {
     const noteVal = escHtml(turn.note || '');
     return `<tr>
       <td><div class="turn-label ${turn.turn_type}">${label}</div></td>
-      <td class="note-td"><textarea class="note-input" rows="1" placeholder="備考" onchange="state.turns[${tIdx}].note=this.value">${noteVal}</textarea></td>
       ${cells}
     </tr>`;
   }).join('');
