@@ -132,7 +132,7 @@
         <button class="od-btn" onclick="addOD('od_post',2)">2</button>
         <button class="od-btn" onclick="addOD('od_post',3)">3</button>
       </div>
-      <button class="turn-add-btn" style="color:#e0aaff;border-color:#6a4a8a" onclick="addTurn('special')">特殊技発動</button>
+      <div id="special-btns"></div>
       <button class="turn-add-btn" style="color:#e57373;border-color:#7a3333;margin-left:auto" onclick="deleteLastTurn()">最後の行を削除</button>
     </div>
   </div>
@@ -317,8 +317,21 @@ function getTurnLabel(t, normalIdx) {
     case 'extra': return '追加ターン';
     case 'od_pre': return `先OD${t.od_index}/${t.od_total}`;
     case 'od_post': return `後OD${t.od_index}/${t.od_total}`;
-    case 'special': return '特殊技発動';
+    case 'special': return t.special_label || '特殊技発動';
   }
+}
+
+function renderSpecialBtns() {
+  const btns = [];
+  state.members.forEach((m, i) => {
+    if (!m.character_id || !m.style_id) return;
+    const style = styleMap[m.style_id];
+    if (!style?.has_special_skill) return;
+    const skill = gameData.skills.find(s => s.style_id === m.style_id && s.is_special);
+    if (!skill) return;
+    btns.push(`<button class="turn-add-btn" style="color:#e0aaff;border-color:#6a4a8a" onclick="addSpecialTurn(${i+1},${skill.id},'${escHtml(skill.name)}')">${escHtml(skill.name)}</button>`);
+  });
+  document.getElementById('special-btns').innerHTML = btns.join('');
 }
 
 function renderGrid() {
@@ -365,6 +378,7 @@ function renderGrid() {
   }).join('');
 
   document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">「次ターン」ボタンでターンを追加してください</td></tr>`;
+  renderSpecialBtns();
 }
 
 function getSlotName(slot) {
@@ -377,6 +391,13 @@ function getSlotName(slot) {
 function addTurn(type) {
   if (type === 'normal') normalCount++;
   state.turns.push({ turn_type: type, od_index: null, od_total: null, note: '', actions: {} });
+  renderGrid();
+}
+
+function addSpecialTurn(slot, skillId, skillName) {
+  const turn = { turn_type: 'special', od_index: null, od_total: null, note: '', special_label: skillName, actions: {} };
+  turn.actions[slot] = { skill_id: skillId, skill_name: skillName, target_slot: null, order_num: null };
+  state.turns.push(turn);
   renderGrid();
 }
 

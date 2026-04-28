@@ -54,7 +54,10 @@ function getTurnLabel(t, normalIdx) {
     case 'extra': return '追加ターン';
     case 'od_pre': return `先OD${t.od_index}/${t.od_total}`;
     case 'od_post': return `後OD${t.od_index}/${t.od_total}`;
-    case 'special': return '特殊技発動';
+    case 'special': {
+      const special = t.actions.find(a => a.is_special);
+      return special ? special.skill_name : '特殊技発動';
+    }
   }
 }
 
