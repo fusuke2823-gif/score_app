@@ -18,7 +18,7 @@
     <!-- キャラクター -->
     <div class="card" style="padding:16px">
       <div style="font-weight:bold;margin-bottom:8px">キャラクター CSV</div>
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: name,abbreviation(略称),sort_order</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: sort_order,name,abbreviation(略称)</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <input type="file" id="char-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
         <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">インポート</button>
