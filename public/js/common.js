@@ -464,7 +464,6 @@ function renderNav() {
     <div class="nav-inner">
       <a class="nav-logo" href="/index.html">HBR-RB</a>
       <div class="nav-links">
-        <a href="/index.html" class="${currentPath === '/' || currentPath === '/index.html' ? 'active' : ''}">${t('nav.events')}</a>
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
@@ -489,7 +488,6 @@ function renderNav() {
       </button>
     </div>
     <div class="nav-mobile" id="nav-mobile">
-      <a href="/index.html">${t('nav.events')}</a>
       <a href="/submit.html">${t('nav.submit')}</a>
       ${user ? `<a href="/shop.html">${t('nav.shop')}</a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${t('nav.equip')}</a>` : ''}
