@@ -60,10 +60,11 @@
 .skill-modal.open { display:flex; }
 .skill-modal-box { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; width:100%; max-width:420px; max-height:80vh; display:flex; flex-direction:column; }
 .skill-list { flex:1; overflow-y:auto; margin:8px 0; }
-.skill-item { padding:7px 10px; border-radius:6px; cursor:pointer; font-size:0.85rem; }
+.skill-item { padding:7px 10px; border-radius:6px; cursor:pointer; font-size:0.85rem; color:var(--text-primary); }
 .skill-item:hover { background:var(--bg-secondary); }
 .skill-item.special-skill { color:#e0aaff; }
-.skill-item.global-skill { color:var(--text-primary); font-style:italic; opacity:0.75; }
+.skill-item.char-skill { color:#7ecfff; }
+.skill-item.global-skill { color:var(--text-muted); font-style:italic; }
 .skill-search { width:100%; margin-bottom:8px; }
 .modal-section-label { font-size:0.72rem; color:var(--text-primary); margin:8px 0 4px; font-weight:bold; }
 .order-btns { display:flex; gap:6px; margin:4px 0 8px; flex-wrap:wrap; }
@@ -459,7 +460,10 @@ function openSkillModal(turnIdx, slot) {
 
 function renderSkillList(skills) {
   const html = skills.map(s => {
-    const cls = s.is_special ? 'special-skill' : (s.character_id === null ? 'global-skill' : '');
+    const cls = s.is_special ? 'special-skill'
+              : s.character_id === null ? 'global-skill'
+              : s.style_id === null ? 'char-skill'
+              : '';
     return `<div class="skill-item ${cls}" onclick="selectSkill(${s.id},'${escHtml(s.name)}')">${escHtml(s.name)}</div>`;
   }).join('');
   document.getElementById('skill-list').innerHTML = html || '<div style="padding:8px;color:var(--text-muted);font-size:0.82rem">技がありません</div>';
