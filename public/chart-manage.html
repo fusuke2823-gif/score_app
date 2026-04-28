@@ -8,12 +8,13 @@
 <style>
 .chart-card {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
-  display: flex; align-items: center; gap: 10px;
+  border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
+  transition: border-color 0.15s, background 0.15s;
 }
-.chart-card:hover { border-color: var(--accent); }
-.chart-card-title { font-weight: bold; font-size: 0.95rem; }
-.chart-card-meta { font-size: 0.78rem; color: var(--text-muted); }
+.chart-card:hover { border-color: var(--accent); background: var(--bg-secondary); }
+.chart-card-title { font-weight: bold; font-size: 0.92rem; }
+.chart-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
 .chart-code-badge {
   font-size: 0.72rem; font-family: monospace; letter-spacing: 0.05em;
   background: var(--bg-secondary); border: 1px solid var(--border);
@@ -63,17 +64,17 @@ async function load() {
       html += `<div class="event-group-header">${escHtml(g.name)}</div>`;
       html += g.items.map(c => `
         <div class="chart-card">
-          <a href="/chart-view.html?id=${c.id}" style="flex:1;min-width:0;text-decoration:none;color:inherit">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
-              <span class="attr-badge attr-${escHtml(c.attribute)} small">${t('attr.'+c.attribute)||c.attribute}</span>
+          <span class="attr-badge attr-${escHtml(c.attribute)} small" style="flex-shrink:0">${t('attr.'+c.attribute)||c.attribute}</span>
+          <div style="flex:1;min-width:0;cursor:pointer" onclick="location.href='/chart-view.html?id=${c.id}'">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <span class="chart-card-title">${escHtml(c.title)}</span>
               <span class="chart-code-badge">${escHtml(c.chart_code)}</span>
             </div>
             <div class="chart-card-meta">${new Date(c.created_at).toLocaleDateString('ja-JP')}</div>
-          </a>
+          </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
-            <a href="/chart-editor.html?id=${c.id}" class="btn btn-secondary btn-sm">${t('chart.edit')}</a>
-            <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteChart(${c.id})">${t('chart.delete')}</button>
+            <a href="/chart-editor.html?id=${c.id}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">${t('chart.edit')}</a>
+            <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="event.stopPropagation();deleteChart(${c.id})">${t('chart.delete')}</button>
           </div>
         </div>`).join('');
     }
