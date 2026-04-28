@@ -60,9 +60,11 @@ router.post('/scores/:id/approve', async (req, res) => {
          pending_image_url = NULL,
          status = 'approved',
          admin_note = NULL,
-         youtube_url = CASE WHEN $2 THEN NULL ELSE youtube_url END,
-         youtube_score = CASE WHEN $2 THEN NULL ELSE youtube_score END,
-         video_url = CASE WHEN $2 THEN NULL ELSE youtube_url END,
+         youtube_url = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_url, youtube_url) END,
+         youtube_score = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_score, youtube_score) END,
+         video_url = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_url, youtube_url) END,
+         pending_youtube_url = NULL,
+         pending_youtube_score = NULL,
          updated_at = NOW()
        WHERE id = $1
        RETURNING *`,
@@ -100,6 +102,8 @@ router.post('/scores/:id/reject', async (req, res) => {
          admin_note = $2,
          pending_score = NULL,
          pending_image_url = NULL,
+         pending_youtube_url = NULL,
+         pending_youtube_score = NULL,
          updated_at = NOW()
        WHERE id = $1
        RETURNING *`,

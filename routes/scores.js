@@ -67,7 +67,7 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
     const scopeVal = isInternal && ranking_scope === 'public' ? 'public' : (isInternal ? 'internal' : 'public');
 
     const result = await pool.query(
-      `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, youtube_url, youtube_score)
+      `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, pending_youtube_url, pending_youtube_score)
        VALUES ($1, $2, $3, $4, $5, 'pending', NOW(), $6, $7, $8, $9)
        ON CONFLICT (user_id, event_id, attribute) DO UPDATE SET
          pending_score = $4,
@@ -75,8 +75,8 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
          status = 'pending',
          is_anonymous = $6,
          ranking_scope = $7,
-         youtube_url = $8,
-         youtube_score = $9,
+         pending_youtube_url = $8,
+         pending_youtube_score = $9,
          updated_at = NOW()
        RETURNING *`,
       [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true, scopeVal, ytUrl, ytScore]
