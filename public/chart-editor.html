@@ -113,6 +113,7 @@
   <div class="card" style="padding:12px 14px">
     <div class="chart-table-wrap">
       <table class="chart-table" id="chart-table">
+        <colgroup id="chart-colgroup"></colgroup>
         <thead id="chart-thead"></thead>
         <tbody id="chart-tbody"></tbody>
       </table>
@@ -348,6 +349,7 @@ function renderGrid() {
     const cname = m.character_id && charMap[m.character_id] ? escHtml(charMap[m.character_id].name) : `スロット${i+1}`;
     return `<th>${cname}</th>`;
   }).join('');
+  document.getElementById('chart-colgroup').innerHTML = `<col style="width:90px">${state.members.map(() => '<col>').join('')}`;
   document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th>${memberHeaders}</tr>`;
 
   // ボディ
@@ -385,7 +387,8 @@ function renderGrid() {
     </tr>`;
   }).join('');
 
-  document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">ターンを追加してください</td></tr>`;
+  const colCount = 1 + state.members.length;
+  document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="${colCount}" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">ターンを追加してください</td></tr>`;
   renderSpecialBtns();
   updateODBtnState();
 }
