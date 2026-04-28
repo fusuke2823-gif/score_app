@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チャートデータ管理 - HBR管理</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:16px">チャートゲームデータ管理</h2>
+  <div id="alert"></div>
+
+  <div id="stats" style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap"></div>
+
+  <div style="display:grid;gap:16px">
+    <!-- キャラクター -->
+    <div class="card" style="padding:16px">
+      <div style="font-weight:bold;margin-bottom:8px">キャラクター CSV</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: name,sort_order</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="file" id="char-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
+        <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">インポート</button>
+      </div>
+    </div>
+
+    <!-- スタイル -->
+    <div class="card" style="padding:16px">
+      <div style="font-weight:bold;margin-bottom:8px">スタイル CSV</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: character_name,style_name,has_special_skill(0/1)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="file" id="style-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
+        <button class="btn btn-primary btn-sm" onclick="upload('styles','style-csv')">インポート</button>
+      </div>
+    </div>
+
+    <!-- 技 -->
+    <div class="card" style="padding:16px">
+      <div style="font-weight:bold;margin-bottom:8px">技 CSV</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: character_name(空=全キャラ共通),skill_name,has_target(0/1),style_name(空=全スタイル共通),is_special(0/1)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <input type="file" id="skill-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
+        <button class="btn btn-primary btn-sm" onclick="upload('skills','skill-csv')">インポート</button>
+      </div>
+      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteSkills()">技データを全削除</button>
+    </div>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+async function loadStats() {
+  try {
+    const s = await apiFetch('/admin/chart-data/stats');
+    document.getElementById('stats').innerHTML = [
+      ['キャラクター', s.characters],
+      ['スタイル', s.styles],
+      ['技', s.skills],
+    ].map(([label, n]) => `
+      <div class="card" style="padding:12px 20px;text-align:center;min-width:100px">
+        <div style="font-size:1.4rem;font-weight:bold">${n}</div>
+        <div style="font-size:0.8rem;color:var(--text-muted)">${label}</div>
+      </div>`).join('');
+  } catch (e) { /* ignore */ }
+}
+
+async function upload(type, inputId) {
+  const file = document.getElementById(inputId).files[0];
+  if (!file) return showAlert('#alert', 'ファイルを選択してください');
+  const fd = new FormData();
+  fd.append('csv', file);
+  try {
+    const res = await apiFormFetch(`/admin/chart-data/import-${type}`, fd);
+    showAlert('#alert', res.message, 'success');
+    loadStats();
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+async function deleteSkills() {
+  if (!confirm('技データを全削除しますか？')) return;
+  try {
+    const res = await apiFetch('/admin/chart-data/skills', { method: 'DELETE' });
+    showAlert('#alert', res.message, 'success');
+    loadStats();
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+loadStats();
+</script>
+</body>
+</html>

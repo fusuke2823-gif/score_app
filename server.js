@@ -37,6 +37,7 @@ app.use('/api/gacha', require('./routes/gacha'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/videos', require('./routes/videos'));
 app.use('/api/my-videos', require('./routes/my-videos'));
+app.use('/api/charts', require('./routes/charts'));
 
 // Google Client ID 公開
 app.get('/api/auth/google/client-id', (req, res) => {

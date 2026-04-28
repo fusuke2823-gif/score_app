@@ -6,7 +6,7 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 const _i18n = {
   ja: {
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
-    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画管理',
+    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画管理','nav.charts':'チャート',
     'nav.admin':'管理','nav.account':'アカウント','nav.logout':'ログアウト',
     'nav.login':'ログイン','nav.register':'登録','nav.register_full':'新規登録',
     'nav.admin_badge':'管理者','nav.menu':'メニュー',
@@ -168,7 +168,7 @@ const _i18n = {
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
-    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片管理',
+    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片管理','nav.charts':'攻略圖表',
     'nav.admin':'管理','nav.account':'帳戶','nav.logout':'登出',
     'nav.login':'登入','nav.register':'註冊','nav.register_full':'新增帳戶',
     'nav.admin_badge':'管理員','nav.menu':'選單',
@@ -471,6 +471,7 @@ function renderNav() {
         <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">${t('nav.feedback')}</a>` : ''}
         ${user ? `<a href="/my-videos.html" class="${currentPath === '/my-videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
+        ${user && user.role === 'admin' ? `<a href="/charts.html" class="${currentPath === '/charts.html' || currentPath.startsWith('/chart') ? 'active' : ''}">${t('nav.charts')}</a>` : ''}
         ${user && user.role === 'admin' ? `<a href="/admin_index.html" class="${currentPath.startsWith('/admin') ? 'active' : ''}">${t('nav.admin')}</a>` : ''}
       </div>
       <div class="nav-user">
@@ -495,6 +496,7 @@ function renderNav() {
       <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user ? `<a href="/feedback.html">${t('nav.feedback')}</a>` : ''}
       ${user ? `<a href="/my-videos.html">${t('nav.my_videos')}</a>` : ''}
+      ${user && user.role === 'admin' ? `<a href="/charts.html">${t('nav.charts')}</a>` : ''}
       ${user && user.role === 'admin' ? `<a href="/admin_index.html">${t('nav.admin')}</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${t('nav.account')}</a>

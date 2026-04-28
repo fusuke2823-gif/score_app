@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チャート掲示板 - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.chart-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  display: block;
+  color: var(--text-primary);
+  transition: border-color 0.15s;
+}
+.chart-card:hover { border-color: var(--accent); }
+.chart-card-title { font-weight: bold; font-size: 0.95rem; margin-bottom: 4px; }
+.chart-card-meta { font-size: 0.78rem; color: var(--text-muted); }
+.chart-code-badge {
+  font-size: 0.72rem; font-family: monospace; letter-spacing: 0.05em;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; color: var(--text-muted);
+}
+.event-group-header {
+  font-size: 0.88rem; font-weight: bold; padding: 6px 0;
+  border-bottom: 1px solid var(--border); margin: 20px 0 8px;
+  color: var(--text-muted);
+}
+.filter-bar {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <h2 style="font-size:1.1rem;font-weight:bold;margin:0">チャート掲示板</h2>
+    <a id="new-chart-btn" href="/chart-editor.html" class="btn btn-primary btn-sm" style="display:none">+ 新規作成</a>
+  </div>
+
+  <!-- フィルター -->
+  <div class="filter-bar">
+    <input id="code-input" class="form-input" type="text" placeholder="チャートID検索" style="width:130px;font-family:monospace;text-transform:uppercase" maxlength="6" oninput="this.value=this.value.toUpperCase()">
+    <input id="name-input" class="form-input" type="text" placeholder="ユーザー名検索" style="width:140px">
+    <select id="event-select" class="form-input" style="width:160px">
+      <option value="">全イベント</option>
+    </select>
+    <div style="display:flex;gap:4px;flex-wrap:wrap" id="attr-btns"></div>
+    <button class="btn btn-sm btn-primary" onclick="search()">検索</button>
+    <button class="btn btn-sm btn-secondary" onclick="reset()">リセット</button>
+  </div>
+
+  <div id="list"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+if (!requireAdmin()) throw new Error('redirect');
+
+const user = getUser();
+if (user) document.getElementById('new-chart-btn').style.display = '';
+
+const ATTRS = ['火','氷','雷','光','闇','無'];
+let selectedAttr = '';
+
+// 属性ボタン
+document.getElementById('attr-btns').innerHTML = ATTRS.map(a =>
+  `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="toggleAttr('${escHtml(a)}')">${t('attr.'+a)||a}</button>`
+).join('');
+
+function toggleAttr(a) {
+  selectedAttr = selectedAttr === a ? '' : a;
+  document.querySelectorAll('#attr-btns .attr-btn').forEach(b => b.classList.toggle('active', b.dataset.attr === selectedAttr));
+}
+
+async function loadEvents() {
+  try {
+    const events = await apiFetch('/events');
+    const sel = document.getElementById('event-select');
+    events.forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id; opt.textContent = e.name;
+      sel.appendChild(opt);
+    });
+  } catch(e) {}
+}
+
+async function search() {
+  const code = document.getElementById('code-input').value.trim();
+  const name = document.getElementById('name-input').value.trim();
+  const event_id = document.getElementById('event-select').value;
+  const params = new URLSearchParams();
+  if (code) params.set('code', code);
+  if (name) params.set('username', name);
+  if (event_id) params.set('event_id', event_id);
+  if (selectedAttr) params.set('attribute', selectedAttr);
+  await load(params.toString());
+}
+
+function reset() {
+  document.getElementById('code-input').value = '';
+  document.getElementById('name-input').value = '';
+  document.getElementById('event-select').value = '';
+  selectedAttr = '';
+  document.querySelectorAll('#attr-btns .attr-btn').forEach(b => b.classList.remove('active'));
+  load('');
+}
+
+async function load(qs) {
+  const el = document.getElementById('list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const items = await apiFetch('/charts' + (qs ? '?' + qs : ''));
+    if (!items.length) {
+      el.innerHTML = '<p style="color:var(--text-muted);padding:8px 0">チャートがありません</p>';
+      return;
+    }
+    // イベント別グループ
+    const groups = new Map();
+    for (const c of items) {
+      const key = c.event_id;
+      if (!groups.has(key)) groups.set(key, { name: c.event_name, items: [] });
+      groups.get(key).items.push(c);
+    }
+    let html = '';
+    for (const [, g] of groups) {
+      html += `<div class="event-group-header">${escHtml(g.name)}</div>`;
+      html += g.items.map(c => `
+        <a href="/chart-view.html?id=${c.id}" class="chart-card">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <span class="attr-badge attr-${escHtml(c.attribute)} small">${t('attr.'+c.attribute)||c.attribute}</span>
+            <span class="chart-card-title">${escHtml(c.title)}</span>
+            <span class="chart-code-badge">${escHtml(c.chart_code)}</span>
+          </div>
+          <div class="chart-card-meta">
+            <a href="/user.html?id=${c.user_id}" onclick="event.stopPropagation()" style="color:var(--accent)">${escHtml(c.username)}</a>
+            &nbsp;·&nbsp; ${new Date(c.created_at).toLocaleDateString('ja-JP')}
+            ${c.description ? `&nbsp;·&nbsp; <span>${escHtml(c.description.slice(0,40))}${c.description.length>40?'…':''}</span>` : ''}
+          </div>
+        </a>`).join('');
+    }
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+loadEvents();
+load('');
+</script>
+</body>
+</html>

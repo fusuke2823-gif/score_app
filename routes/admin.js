@@ -1864,4 +1864,97 @@ router.post('/pending-videos/:id/reject', async (req, res) => {
   }
 });
 
+// ---- チャートゲームデータ管理 ----
+
+function parseCSVBuffer(buf) {
+  return buf.toString('utf-8').split('\n').filter(Boolean).slice(1)
+    .map(line => line.split(',').map(s => s.trim()));
+}
+
+router.get('/chart-data/stats', async (req, res) => {
+  try {
+    const [chars, styles, skills] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM chart_characters'),
+      pool.query('SELECT COUNT(*) FROM chart_styles'),
+      pool.query('SELECT COUNT(*) FROM chart_skills'),
+    ]);
+    res.json({
+      characters: parseInt(chars.rows[0].count),
+      styles: parseInt(styles.rows[0].count),
+      skills: parseInt(skills.rows[0].count),
+    });
+  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.post('/chart-data/import-characters', upload.single('csv'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ファイルがありません' });
+  try {
+    const rows = parseCSVBuffer(req.file.buffer);
+    let count = 0;
+    for (const [name, sort_order] of rows) {
+      if (!name) continue;
+      await pool.query(
+        `INSERT INTO chart_characters (name, sort_order) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET sort_order=$2`,
+        [name, parseInt(sort_order) || 0]
+      );
+      count++;
+    }
+    res.json({ message: `${count}件のキャラクターをインポートしました` });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.post('/chart-data/import-styles', upload.single('csv'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ファイルがありません' });
+  try {
+    const rows = parseCSVBuffer(req.file.buffer);
+    let count = 0, skip = 0;
+    for (const [character_name, style_name, has_special] of rows) {
+      if (!character_name || !style_name) continue;
+      const c = await pool.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
+      if (!c.rows.length) { skip++; continue; }
+      await pool.query(
+        `INSERT INTO chart_styles (character_id, name, has_special_skill) VALUES ($1, $2, $3) ON CONFLICT (character_id, name) DO UPDATE SET has_special_skill=$3`,
+        [c.rows[0].id, style_name, has_special === '1']
+      );
+      count++;
+    }
+    res.json({ message: `${count}件のスタイルをインポート（${skip}件スキップ）` });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'ファイルがありません' });
+  try {
+    const rows = parseCSVBuffer(req.file.buffer);
+    let count = 0, skip = 0;
+    for (const [character_name, skill_name, has_target, style_name, is_special] of rows) {
+      if (!skill_name) continue;
+      let charId = null;
+      if (character_name) {
+        const c = await pool.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
+        if (!c.rows.length) { skip++; continue; }
+        charId = c.rows[0].id;
+      }
+      let styleId = null;
+      if (style_name && charId) {
+        const s = await pool.query('SELECT id FROM chart_styles WHERE character_id=$1 AND name=$2', [charId, style_name]);
+        if (s.rows.length) styleId = s.rows[0].id;
+      }
+      await pool.query(
+        `INSERT INTO chart_skills (character_id, name, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5)`,
+        [charId, skill_name, has_target === '1', styleId, is_special === '1']
+      );
+      count++;
+    }
+    res.json({ message: `${count}件の技をインポート（${skip}件スキップ）` });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.delete('/chart-data/skills', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM chart_skills');
+    res.json({ message: '技データを全削除しました' });
+  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
 module.exports = router;

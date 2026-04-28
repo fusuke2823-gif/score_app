@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チャート - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.chart-table-wrap { overflow-x:auto; margin-top:12px; }
+.chart-table { border-collapse:collapse; width:100%; min-width:500px; font-size:0.82rem; }
+.chart-table th {
+  background:var(--bg-secondary); padding:7px 8px; text-align:center;
+  border:1px solid var(--border); white-space:nowrap; font-size:0.78rem; font-weight:bold;
+}
+.chart-table td { border:1px solid var(--border); padding:5px 7px; vertical-align:middle; }
+.turn-label { font-size:0.78rem; font-weight:bold; white-space:nowrap; text-align:center; color:var(--text-muted); }
+.turn-label.normal { color:var(--text-primary); }
+.turn-label.od_pre { color:#7ecfff; }
+.turn-label.od_post { color:#a8e6a3; }
+.turn-label.extra { color:#ffd580; }
+.turn-label.special { color:#e0aaff; }
+.note-cell { font-size:0.75rem; color:var(--text-muted); min-width:80px; }
+.action-cell { text-align:center; font-size:0.78rem; min-width:80px; }
+.action-order { color:var(--accent); font-size:0.7rem; margin-right:2px; }
+.action-target { font-size:0.68rem; color:var(--text-muted); display:block; }
+.member-tag {
+  display:inline-flex; align-items:center; gap:4px;
+  background:var(--bg-secondary); border:1px solid var(--border);
+  border-radius:6px; padding:3px 8px; font-size:0.78rem; margin:2px;
+}
+.refine-badge { font-size:0.68rem; color:var(--text-muted); }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <a href="/charts.html" style="color:var(--text-muted);font-size:0.85rem">← チャート掲示板</a>
+  <div id="content"><div class="loading" style="margin-top:24px"><div class="spinner"></div></div></div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+if (!requireAdmin()) throw new Error('redirect');
+
+const chartId = new URLSearchParams(location.search).get('id');
+if (!chartId) { location.href = '/charts.html'; throw new Error('no id'); }
+
+const ORDER_LABELS = ['', '①', '②', '③'];
+
+function getTurnLabel(t, normalIdx) {
+  switch(t.turn_type) {
+    case 'normal': return `${normalIdx}ターン`;
+    case 'extra': return '追加ターン';
+    case 'od_pre': return `先OD${t.od_index}/${t.od_total}`;
+    case 'od_post': return `後OD${t.od_index}/${t.od_total}`;
+    case 'special': return '特殊技発動';
+  }
+}
+
+async function load() {
+  const el = document.getElementById('content');
+  try {
+    const data = await apiFetch(`/charts/${chartId}`);
+    document.title = `${data.title} - HBR`;
+
+    const user = getUser();
+    const isOwner = user?.id === data.user_id;
+    const ownerBtns = isOwner ? `
+      <a href="/chart-editor.html?id=${data.id}" class="btn btn-secondary btn-sm">編集</a>
+      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteChart(${data.id})">削除</button>` : '';
+
+    // メンバー表示
+    const memberRow = data.members.sort((a,b)=>a.slot-b.slot).map(m => `
+      <div class="member-tag">
+        <span style="font-size:0.68rem;color:var(--text-muted)">${m.slot}</span>
+        <span>${escHtml(m.character_name)}</span>
+        <span style="color:var(--text-muted)">${escHtml(m.style_name)}</span>
+        <span class="refine-badge">${m.refine_count}凸</span>
+      </div>`).join('');
+
+    // グリッドヘッダー
+    const memberCols = data.members.sort((a,b)=>a.slot-b.slot).map(m =>
+      `<th>${escHtml(m.character_name)}<br><span style="font-size:0.68rem;font-weight:normal;color:var(--text-muted)">${escHtml(m.style_name)}</span></th>`
+    ).join('');
+
+    // グリッドボディ
+    const slotOrder = data.members.sort((a,b)=>a.slot-b.slot).map(m => m.slot);
+    let nIdx = 0;
+    const rows = data.turns.map(t => {
+      if (t.turn_type === 'normal') nIdx++;
+      const label = getTurnLabel(t, nIdx);
+      const actionBySlot = {};
+      for (const a of t.actions) actionBySlot[a.member_slot] = a;
+
+      const cells = slotOrder.map(slot => {
+        const a = actionBySlot[slot];
+        if (!a) return '<td class="action-cell"></td>';
+        const order = a.order_num ? `<span class="action-order">${ORDER_LABELS[a.order_num]}</span>` : '';
+        const target = a.target_slot
+          ? `<span class="action-target">→${escHtml(data.members.find(m=>m.slot===a.target_slot)?.character_name||String(a.target_slot))}</span>`
+          : '';
+        return `<td class="action-cell">${order}${escHtml(a.skill_name)}${target}</td>`;
+      }).join('');
+
+      return `<tr>
+        <td><div class="turn-label ${t.turn_type}">${label}</div></td>
+        <td class="note-cell">${t.note ? escHtml(t.note) : ''}</td>
+        ${cells}
+      </tr>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-top:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+            <span class="attr-badge attr-${escHtml(data.attribute)} small">${t('attr.'+data.attribute)||data.attribute}</span>
+            <h2 style="font-size:1rem;font-weight:bold;margin:0">${escHtml(data.title)}</h2>
+            <span style="font-size:0.72rem;font-family:monospace;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text-muted)">${escHtml(data.chart_code)}</span>
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-muted)">
+            ${escHtml(data.event_name)} &nbsp;·&nbsp;
+            <a href="/user.html?id=${data.user_id}" style="color:var(--accent)">${escHtml(data.username)}</a>
+            &nbsp;·&nbsp; ${new Date(data.created_at).toLocaleDateString('ja-JP')}
+          </div>
+          ${data.description ? `<div style="font-size:0.82rem;margin-top:8px;color:var(--text-muted)">${escHtml(data.description)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px">${ownerBtns}</div>
+      </div>
+
+      <div style="margin:12px 0;flex-wrap:wrap">${memberRow}</div>
+
+      <div class="card" style="padding:12px 14px">
+        <div class="chart-table-wrap">
+          <table class="chart-table">
+            <thead><tr><th style="width:90px">ターン</th><th style="width:100px">備考</th>${memberCols}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="alert alert-error" style="margin-top:16px">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function deleteChart(id) {
+  if (!confirm('このチャートを削除しますか？')) return;
+  try {
+    await apiFetch(`/charts/${id}`, { method: 'DELETE' });
+    location.href = '/charts.html';
+  } catch(e) { alert(e.message); }
+}
+
+load();
+</script>
+</body>
+</html>
