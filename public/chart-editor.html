@@ -385,31 +385,35 @@ function renderGrid() {
 
 function updateODBtnState() {
   const od = getCurrentODState();
-  const afterODPost = od?.type === 'od_post' && od.index === od.total;
   const inProgress = od && od.index < od.total;
+  const lastType = getLastRealTurn()?.turn_type;
 
-  // ODボタン
+  // 先OD blocked: OD進行中
+  const preODBlocked = inProgress;
+  // 後OD blocked: OD進行中 OR 直前が通常/追加ターン以外
+  const postODBlocked = inProgress || (lastType !== 'normal' && lastType !== 'extra');
+  // 次ターン blocked: OD進行中のみ
+  const nextTurnBlocked = inProgress;
+
   document.querySelectorAll('.od-btn').forEach(btn => {
     const isCurrentOD = inProgress && btn.dataset.type === od.type && parseInt(btn.dataset.total) === od.total;
-    const blocked = afterODPost || (inProgress && !isCurrentOD);
+    let blocked;
+    if (inProgress) {
+      blocked = !isCurrentOD;
+    } else {
+      blocked = btn.dataset.type === 'od_pre' ? preODBlocked : postODBlocked;
+    }
     btn.disabled = blocked;
     btn.style.opacity = blocked ? '0.3' : '';
     btn.style.cursor = blocked ? 'not-allowed' : '';
   });
 
-  // 次ターンボタン（OD進行中・後OD完了後はブロック）
   const nextBtn = document.getElementById('next-turn-btn');
   if (nextBtn) {
-    const blocked = inProgress || afterODPost;
-    nextBtn.disabled = blocked;
-    nextBtn.style.opacity = blocked ? '0.3' : '';
-    nextBtn.style.cursor = blocked ? 'not-allowed' : '';
+    nextBtn.disabled = nextTurnBlocked;
+    nextBtn.style.opacity = nextTurnBlocked ? '0.3' : '';
+    nextBtn.style.cursor = nextTurnBlocked ? 'not-allowed' : '';
   }
-
-  // ODラベル
-  document.querySelectorAll('.od-group > span').forEach(span => {
-    span.style.opacity = (afterODPost || inProgress) ? '0.3' : '';
-  });
 }
 
 function getSlotName(slot) {
@@ -433,6 +437,7 @@ function addSpecialTurn(slot, skillId, skillName) {
 }
 
 function getCurrentODState() {
+  // specialとextraを飛ばして最後のODターンを返す
   for (let i = state.turns.length - 1; i >= 0; i--) {
     const t = state.turns[i];
     if (t.turn_type === 'special' || t.turn_type === 'extra') continue;
@@ -444,14 +449,25 @@ function getCurrentODState() {
   return null;
 }
 
+function getLastRealTurn() {
+  // specialを飛ばして最後のターンを返す
+  for (let i = state.turns.length - 1; i >= 0; i--) {
+    if (state.turns[i].turn_type !== 'special') return state.turns[i];
+  }
+  return null;
+}
+
 function addOD(type, total) {
   const od = getCurrentODState();
-  if (od) {
-    if (od.type === 'od_post' && od.index === od.total) return; // 後OD完了後はブロック
-    if (od.type !== type || od.total !== total) return; // 別のOD進行中はブロック
-    if (od.index >= od.total) return; // このODは完了済み
-  }
-  const od_index = od ? od.index + 1 : 1;
+  const inProgress = od && od.index < od.total;
+  if (inProgress && (od.type !== type || od.total !== total)) return; // 別のOD進行中
+  if (inProgress && od.type === type && od.total === total && od.index >= od.total) return;
+
+  const lastType = getLastRealTurn()?.turn_type;
+  // 後OD開始は通常or追加ターンの直後のみ
+  if (!inProgress && type === 'od_post' && lastType !== 'normal' && lastType !== 'extra') return;
+
+  const od_index = (inProgress && od.type === type && od.total === total) ? od.index + 1 : 1;
   state.turns.push({ turn_type: type, od_index, od_total: total, note: '', actions: {} });
   renderGrid();
 }
