@@ -1940,6 +1940,13 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
         const s = await pool.query('SELECT id FROM chart_styles WHERE character_id=$1 AND name=$2', [charId, style_name]);
         if (s.rows.length) styleId = s.rows[0].id;
       }
+      const exists = await pool.query(
+        `SELECT id FROM chart_skills WHERE name=$1
+         AND (character_id=$2 OR (character_id IS NULL AND $2::int IS NULL))
+         AND (style_id=$3 OR (style_id IS NULL AND $3::int IS NULL))`,
+        [skill_name, charId, styleId]
+      );
+      if (exists.rows.length) { skip++; continue; }
       await pool.query(
         `INSERT INTO chart_skills (character_id, name, abbreviation, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5, $6)`,
         [charId, skill_name, abbreviation || null, has_target === '1', styleId, is_special === '1']
@@ -1952,6 +1959,7 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
 
 router.delete('/chart-data/skills', async (req, res) => {
   try {
+    await pool.query('DELETE FROM chart_actions WHERE skill_id IN (SELECT id FROM chart_skills)');
     await pool.query('DELETE FROM chart_skills');
     res.json({ message: '技データを全削除しました' });
   } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
@@ -1959,6 +1967,7 @@ router.delete('/chart-data/skills', async (req, res) => {
 
 router.delete('/chart-data/styles', async (req, res) => {
   try {
+    await pool.query('DELETE FROM chart_actions WHERE skill_id IN (SELECT id FROM chart_skills WHERE style_id IS NOT NULL)');
     await pool.query('DELETE FROM chart_skills WHERE style_id IS NOT NULL');
     await pool.query('DELETE FROM chart_styles');
     res.json({ message: 'スタイルデータを全削除しました（スタイル専用技も削除）' });
@@ -1967,6 +1976,7 @@ router.delete('/chart-data/styles', async (req, res) => {
 
 router.delete('/chart-data/characters', async (req, res) => {
   try {
+    await pool.query('DELETE FROM chart_actions WHERE skill_id IN (SELECT id FROM chart_skills)');
     await pool.query('DELETE FROM chart_skills');
     await pool.query('DELETE FROM chart_styles');
     await pool.query('DELETE FROM chart_characters');
