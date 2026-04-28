@@ -19,20 +19,22 @@
     <div class="card" style="padding:16px">
       <div style="font-weight:bold;margin-bottom:8px">キャラクター CSV</div>
       <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: name,sort_order</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <input type="file" id="char-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
         <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">インポート</button>
       </div>
+      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('characters','キャラクター')">キャラクターを全削除</button>
     </div>
 
     <!-- スタイル -->
     <div class="card" style="padding:16px">
       <div style="font-weight:bold;margin-bottom:8px">スタイル CSV</div>
       <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: character_name,style_name,has_special_skill(0/1)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <input type="file" id="style-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
         <button class="btn btn-primary btn-sm" onclick="upload('styles','style-csv')">インポート</button>
       </div>
+      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('styles','スタイル')">スタイルを全削除</button>
     </div>
 
     <!-- 技 -->
@@ -80,9 +82,13 @@ async function upload(type, inputId) {
 }
 
 async function deleteSkills() {
-  if (!confirm('技データを全削除しますか？')) return;
+  await deleteData('skills', '技');
+}
+
+async function deleteData(type, label) {
+  if (!confirm(`${label}データを全削除しますか？`)) return;
   try {
-    const res = await apiFetch('/admin/chart-data/skills', { method: 'DELETE' });
+    const res = await apiFetch(`/admin/chart-data/${type}`, { method: 'DELETE' });
     showAlert('#alert', res.message, 'success');
     loadStats();
   } catch (e) { showAlert('#alert', e.message); }

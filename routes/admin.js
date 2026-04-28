@@ -1957,4 +1957,21 @@ router.delete('/chart-data/skills', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
+router.delete('/chart-data/styles', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM chart_skills WHERE style_id IS NOT NULL');
+    await pool.query('DELETE FROM chart_styles');
+    res.json({ message: 'スタイルデータを全削除しました（スタイル専用技も削除）' });
+  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.delete('/chart-data/characters', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM chart_skills');
+    await pool.query('DELETE FROM chart_styles');
+    await pool.query('DELETE FROM chart_characters');
+    res.json({ message: 'キャラクターデータを全削除しました（スタイル・技も削除）' });
+  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
 module.exports = router;
