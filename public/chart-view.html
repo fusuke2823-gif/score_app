@@ -83,7 +83,7 @@ async function load() {
 
     // グリッドヘッダー
     const memberCols = data.members.sort((a,b)=>a.slot-b.slot).map(m =>
-      `<th>${escHtml(m.character_name)}</th>`
+      `<th>${escHtml(m.character_abbreviation || m.character_name)}</th>`
     ).join('');
 
     // グリッドボディ
@@ -100,7 +100,7 @@ async function load() {
         if (!a) return '<td class="action-cell"></td>';
         const order = a.order_num ? `<span class="action-order">${ORDER_LABELS[a.order_num]}</span>` : '';
         const target = a.target_slot
-          ? `<span class="action-target">→${escHtml(data.members.find(m=>m.slot===a.target_slot)?.character_name||String(a.target_slot))}</span>`
+          ? `<span class="action-target">→${escHtml(data.members.find(m=>m.slot===a.target_slot)?.character_abbreviation||data.members.find(m=>m.slot===a.target_slot)?.character_name||String(a.target_slot))}</span>`
           : '';
         const displayName = a.abbreviation || a.skill_name;
         const nameStyle = a.skill_type === 'special' ? ' style="color:#e0aaff"'

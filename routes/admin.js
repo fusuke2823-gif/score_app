@@ -1891,11 +1891,11 @@ router.post('/chart-data/import-characters', upload.single('csv'), async (req, r
   try {
     const rows = parseCSVBuffer(req.file.buffer);
     let count = 0;
-    for (const [sort_order, name] of rows) {
+    for (const [name, abbreviation, sort_order] of rows) {
       if (!name) continue;
       await pool.query(
-        `INSERT INTO chart_characters (name, sort_order) VALUES ($1, $2) ON CONFLICT (name) DO UPDATE SET sort_order=$2`,
-        [name, parseInt(sort_order) || 0]
+        `INSERT INTO chart_characters (name, abbreviation, sort_order) VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET abbreviation=$2, sort_order=$3`,
+        [name, abbreviation || null, parseInt(sort_order) || 0]
       );
       count++;
     }

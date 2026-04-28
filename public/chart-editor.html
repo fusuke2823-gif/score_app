@@ -346,7 +346,8 @@ function renderSpecialBtns() {
 function renderGrid() {
   // ヘッダー
   const memberHeaders = state.members.map((m, i) => {
-    const cname = m.character_id && charMap[m.character_id] ? escHtml(charMap[m.character_id].name) : `スロット${i+1}`;
+    const c = m.character_id && charMap[m.character_id];
+    const cname = c ? escHtml(c.abbreviation || c.name) : `スロット${i+1}`;
     return `<th>${cname}</th>`;
   }).join('');
   document.getElementById('chart-colgroup').innerHTML = `<col style="width:90px">${state.members.map(() => '<col>').join('')}`;
@@ -428,7 +429,8 @@ function updateODBtnState() {
 
 function getSlotName(slot) {
   const m = state.members[slot - 1];
-  if (m?.character_id && charMap[m.character_id]) return charMap[m.character_id].name;
+  const c = m?.character_id && charMap[m.character_id];
+  if (c) return c.abbreviation || c.name;
   return `${slot}`;
 }
 
@@ -564,7 +566,8 @@ function updateTargetSection(skillId) {
     sec.style.display = '';
     const current = modalCtx.action.target_slot;
     document.getElementById('target-btns').innerHTML = state.members.map((m, i) => {
-      const name = m.character_id && charMap[m.character_id] ? charMap[m.character_id].name : `スロット${i+1}`;
+      const c = m.character_id && charMap[m.character_id];
+      const name = c ? (c.abbreviation || c.name) : `スロット${i+1}`;
       const active = current === (i+1) ? ' active' : '';
       return `<button class="target-btn${active}" onclick="selectTarget(${i+1})">${escHtml(name)}</button>`;
     }).join('');
