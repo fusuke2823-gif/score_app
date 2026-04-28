@@ -380,6 +380,20 @@ function renderGrid() {
 
   document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">「次ターン」ボタンでターンを追加してください</td></tr>`;
   renderSpecialBtns();
+  updateODBtnState();
+}
+
+function updateODBtnState() {
+  const last = state.turns[state.turns.length - 1];
+  const blocked = last?.turn_type === 'od_post';
+  document.querySelectorAll('.od-btn').forEach(btn => {
+    btn.disabled = blocked;
+    btn.style.opacity = blocked ? '0.3' : '';
+    btn.style.cursor = blocked ? 'not-allowed' : '';
+  });
+  document.querySelectorAll('.od-group > span').forEach(span => {
+    span.style.opacity = blocked ? '0.3' : '';
+  });
 }
 
 function getSlotName(slot) {
@@ -403,6 +417,8 @@ function addSpecialTurn(slot, skillId, skillName) {
 }
 
 function addOD(type, total) {
+  const last = state.turns[state.turns.length - 1];
+  if (last?.turn_type === 'od_post') return;
   for (let i = 1; i <= total; i++) {
     state.turns.push({ turn_type: type, od_index: i, od_total: total, note: '', actions: {} });
   }
