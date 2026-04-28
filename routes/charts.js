@@ -93,7 +93,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
       ),
       pool.query(
         `SELECT ca.chart_turn_id, ca.member_slot, ca.skill_id, ca.target_slot, ca.order_num,
-                sk.name AS skill_name, sk.abbreviation, sk.has_target, sk.is_special
+                sk.name AS skill_name, sk.abbreviation, sk.has_target, sk.is_special,
+                CASE WHEN sk.is_special THEN 'special' WHEN sk.style_id IS NOT NULL THEN 'style' WHEN sk.character_id IS NOT NULL THEN 'char' ELSE 'global' END AS skill_type
          FROM chart_actions ca
          JOIN chart_skills sk ON sk.id = ca.skill_id
          JOIN chart_turns ct ON ct.id = ca.chart_turn_id

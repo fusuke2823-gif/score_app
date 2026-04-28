@@ -103,7 +103,11 @@ async function load() {
           ? `<span class="action-target">→${escHtml(data.members.find(m=>m.slot===a.target_slot)?.character_name||String(a.target_slot))}</span>`
           : '';
         const displayName = a.abbreviation || a.skill_name;
-        return `<td class="action-cell">${order}${escHtml(displayName)}${target}</td>`;
+        const nameStyle = a.skill_type === 'special' ? ' style="color:#e0aaff"'
+                        : a.skill_type === 'style'   ? ' style="color:#ffd580"'
+                        : a.skill_type === 'char'    ? ' style="color:#7ecfff"'
+                        : '';
+        return `<td class="action-cell">${order}<span${nameStyle}>${escHtml(displayName)}</span>${target}</td>`;
       }).join('');
 
       return `<tr>

@@ -177,6 +177,14 @@ renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
 
+function skillTypeStyle(skill) {
+  if (!skill) return '';
+  if (skill.is_special) return ' style="color:#e0aaff"';
+  if (skill.style_id !== null) return ' style="color:#ffd580"';
+  if (skill.character_id !== null) return ' style="color:#7ecfff"';
+  return '';
+}
+
 const ORDER_LABELS = ['', '①', '②', '③'];
 const ATTRS = ['火','氷','雷','光','闇','無'];
 const urlParams = new URLSearchParams(location.search);
@@ -361,7 +369,8 @@ function renderGrid() {
         const orderLabel = a.order_num ? `<span class="action-order">${ORDER_LABELS[a.order_num]}</span>` : '';
         const targetLabel = a.target_slot ? `<span class="action-target">→${getSlotName(a.target_slot)}</span>` : '';
         const displayName = skillMap[a.skill_id]?.abbreviation || a.skill_name;
-        inner = `<div class="action-cell-inner">${orderLabel}${escHtml(displayName)}${targetLabel}</div>`;
+        const nameStyle = skillTypeStyle(skillMap[a.skill_id]);
+        inner = `<div class="action-cell-inner">${orderLabel}<span${nameStyle}>${escHtml(displayName)}</span>${targetLabel}</div>`;
       }
       const filled = a ? ' filled' : '';
       const disabled = (!canAct && !a) ? ' disabled' : '';
