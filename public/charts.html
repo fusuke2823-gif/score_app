@@ -40,7 +40,7 @@
 <nav id="nav"></nav>
 <main class="container" style="padding-top:20px;padding-bottom:40px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-    <h2 style="font-size:1.1rem;font-weight:bold;margin:0">チャート掲示板</h2>
+    <h2 style="font-size:1.1rem;font-weight:bold;margin:0" data-i18n="chart.board">チャート掲示板</h2>
     <div style="display:flex;gap:6px">
       <a id="new-chart-btn" href="/chart-editor.html" class="btn btn-primary btn-sm" style="display:none">+ 新規作成</a>
       <a href="/chart-manage.html" class="btn btn-secondary btn-sm" data-i18n="chart.my_charts">マイチャート</a>
@@ -49,14 +49,14 @@
 
   <!-- フィルター -->
   <div class="filter-bar">
-    <input id="code-input" class="form-input" type="text" placeholder="チャートID検索" style="width:130px;font-family:monospace;text-transform:uppercase" maxlength="6" oninput="this.value=this.value.toUpperCase()">
-    <input id="name-input" class="form-input" type="text" placeholder="ユーザー名検索" style="width:140px">
+    <input id="code-input" class="form-input" type="text" data-i18n-ph="chart.search_code" placeholder="チャートID検索" style="width:130px;font-family:monospace;text-transform:uppercase" maxlength="6" oninput="this.value=this.value.toUpperCase()">
+    <input id="name-input" class="form-input" type="text" data-i18n-ph="chart.search_user" placeholder="ユーザー名検索" style="width:140px">
     <select id="event-select" class="form-input" style="width:160px">
-      <option value="">全イベント</option>
+      <option value="" data-i18n="chart.all_events">全イベント</option>
     </select>
     <div style="display:flex;gap:4px;flex-wrap:wrap" id="attr-btns"></div>
-    <button class="btn btn-sm btn-primary" onclick="search()">検索</button>
-    <button class="btn btn-sm btn-secondary" onclick="reset()">リセット</button>
+    <button class="btn btn-sm btn-primary" onclick="search()" data-i18n="chart.search">検索</button>
+    <button class="btn btn-sm btn-secondary" onclick="reset()" data-i18n="chart.reset">リセット</button>
   </div>
 
   <div id="list"><div class="loading"><div class="spinner"></div></div></div>
@@ -122,7 +122,7 @@ async function load(qs) {
   try {
     const items = await apiFetch('/charts' + (qs ? '?' + qs : ''));
     if (!items.length) {
-      el.innerHTML = '<p style="color:var(--text-muted);padding:8px 0">チャートがありません</p>';
+      el.innerHTML = `<p style="color:var(--text-muted);padding:8px 0">${t('chart.no_charts')}</p>`;
       return;
     }
     // イベント別グループ
