@@ -425,13 +425,14 @@ function getAvailableSkills(slot, turnType) {
   if (turnType === 'special') {
     return gameData.skills.filter(s => s.style_id === styleId && s.is_special);
   }
+  const rank = s => s.style_id !== null ? 0 : s.character_id !== null ? 1 : 2;
   return gameData.skills.filter(s => {
     if (s.is_special) return false;
-    if (s.character_id === null && s.style_id === null) return true; // 全キャラ共通
-    if (s.character_id === charId && s.style_id === null) return true; // キャラ共通
-    if (s.character_id === charId && s.style_id === styleId) return true; // スタイル専用
+    if (s.character_id === null && s.style_id === null) return true;
+    if (s.character_id === charId && s.style_id === null) return true;
+    if (s.character_id === charId && s.style_id === styleId) return true;
     return false;
-  });
+  }).sort((a, b) => rank(a) - rank(b));
 }
 
 function openSkillModal(turnIdx, slot) {
