@@ -119,19 +119,19 @@
       </table>
     </div>
     <div class="turn-add-btns" id="turn-add-btns">
-      <button class="turn-add-btn" onclick="addTurn('normal')">次ターン</button>
+      <button id="next-turn-btn" class="turn-add-btn" onclick="addTurn('normal')">次ターン</button>
       <button class="turn-add-btn" onclick="addTurn('extra')">追加ターン</button>
       <div class="od-group">
         <span style="font-size:0.72rem;color:var(--text-primary);align-self:center">先OD:</span>
-        <button class="od-btn" style="color:#ff9ec4" onclick="addOD('od_pre',1)">1</button>
-        <button class="od-btn" style="color:#a8e6a3" onclick="addOD('od_pre',2)">2</button>
-        <button class="od-btn" style="color:#ffd580" onclick="addOD('od_pre',3)">3</button>
+        <button class="od-btn" data-type="od_pre" data-total="1" style="color:#ff9ec4" onclick="addOD('od_pre',1)">1</button>
+        <button class="od-btn" data-type="od_pre" data-total="2" style="color:#a8e6a3" onclick="addOD('od_pre',2)">2</button>
+        <button class="od-btn" data-type="od_pre" data-total="3" style="color:#ffd580" onclick="addOD('od_pre',3)">3</button>
       </div>
       <div class="od-group">
         <span style="font-size:0.72rem;color:var(--text-primary);align-self:center">後OD:</span>
-        <button class="od-btn" style="color:#ff9ec4" onclick="addOD('od_post',1)">1</button>
-        <button class="od-btn" style="color:#a8e6a3" onclick="addOD('od_post',2)">2</button>
-        <button class="od-btn" style="color:#ffd580" onclick="addOD('od_post',3)">3</button>
+        <button class="od-btn" data-type="od_post" data-total="1" style="color:#ff9ec4" onclick="addOD('od_post',1)">1</button>
+        <button class="od-btn" data-type="od_post" data-total="2" style="color:#a8e6a3" onclick="addOD('od_post',2)">2</button>
+        <button class="od-btn" data-type="od_post" data-total="3" style="color:#ffd580" onclick="addOD('od_post',3)">3</button>
       </div>
       <div id="special-btns"></div>
       <button class="turn-add-btn" style="color:#e57373;border-color:#7a3333;margin-left:auto" onclick="deleteLastTurn()">最後の行を削除</button>
@@ -384,15 +384,31 @@ function renderGrid() {
 }
 
 function updateODBtnState() {
-  const last = state.turns[state.turns.length - 1];
-  const blocked = last?.turn_type === 'od_post';
+  const od = getCurrentODState();
+  const afterODPost = od?.type === 'od_post' && od.index === od.total;
+  const inProgress = od && od.index < od.total;
+
+  // ODボタン
   document.querySelectorAll('.od-btn').forEach(btn => {
+    const isCurrentOD = inProgress && btn.dataset.type === od.type && parseInt(btn.dataset.total) === od.total;
+    const blocked = afterODPost || (inProgress && !isCurrentOD);
     btn.disabled = blocked;
     btn.style.opacity = blocked ? '0.3' : '';
     btn.style.cursor = blocked ? 'not-allowed' : '';
   });
+
+  // 次ターンボタン（OD進行中・後OD完了後はブロック）
+  const nextBtn = document.getElementById('next-turn-btn');
+  if (nextBtn) {
+    const blocked = inProgress || afterODPost;
+    nextBtn.disabled = blocked;
+    nextBtn.style.opacity = blocked ? '0.3' : '';
+    nextBtn.style.cursor = blocked ? 'not-allowed' : '';
+  }
+
+  // ODラベル
   document.querySelectorAll('.od-group > span').forEach(span => {
-    span.style.opacity = blocked ? '0.3' : '';
+    span.style.opacity = (afterODPost || inProgress) ? '0.3' : '';
   });
 }
 
@@ -416,12 +432,27 @@ function addSpecialTurn(slot, skillId, skillName) {
   renderGrid();
 }
 
-function addOD(type, total) {
-  const last = state.turns[state.turns.length - 1];
-  if (last?.turn_type === 'od_post') return;
-  for (let i = 1; i <= total; i++) {
-    state.turns.push({ turn_type: type, od_index: i, od_total: total, note: '', actions: {} });
+function getCurrentODState() {
+  for (let i = state.turns.length - 1; i >= 0; i--) {
+    const t = state.turns[i];
+    if (t.turn_type === 'special' || t.turn_type === 'extra') continue;
+    if (t.turn_type === 'od_pre' || t.turn_type === 'od_post') {
+      return { type: t.turn_type, index: t.od_index, total: t.od_total };
+    }
+    break;
   }
+  return null;
+}
+
+function addOD(type, total) {
+  const od = getCurrentODState();
+  if (od) {
+    if (od.type === 'od_post' && od.index === od.total) return; // 後OD完了後はブロック
+    if (od.type !== type || od.total !== total) return; // 別のOD進行中はブロック
+    if (od.index >= od.total) return; // このODは完了済み
+  }
+  const od_index = od ? od.index + 1 : 1;
+  state.turns.push({ turn_type: type, od_index, od_total: total, note: '', actions: {} });
   renderGrid();
 }
 
