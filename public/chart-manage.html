@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マイチャート - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.chart-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 10px;
+}
+.chart-card:hover { border-color: var(--accent); }
+.chart-card-title { font-weight: bold; font-size: 0.95rem; }
+.chart-card-meta { font-size: 0.78rem; color: var(--text-muted); }
+.chart-code-badge {
+  font-size: 0.72rem; font-family: monospace; letter-spacing: 0.05em;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; color: var(--text-muted);
+}
+.event-group-header {
+  font-size: 0.88rem; font-weight: bold; padding: 6px 0;
+  border-bottom: 1px solid var(--border); margin: 20px 0 8px;
+  color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h2 style="font-size:1.1rem;font-weight:bold;margin:0" data-i18n="chart.my_charts">マイチャート</h2>
+    <a href="/chart-editor.html" class="btn btn-primary btn-sm" data-i18n="chart.new">+ 新規作成</a>
+  </div>
+  <div id="list"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+if (!requireLogin()) throw new Error('redirect');
+
+const user = getUser();
+
+async function load() {
+  const el = document.getElementById('list');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const items = await apiFetch(`/charts?user_id=${user.id}`);
+    if (!items.length) {
+      el.innerHTML = `<p style="color:var(--text-muted);padding:8px 0">${t('chart.no_charts')}</p>`;
+      return;
+    }
+    const groups = new Map();
+    for (const c of items) {
+      if (!groups.has(c.event_id)) groups.set(c.event_id, { name: c.event_name, items: [] });
+      groups.get(c.event_id).items.push(c);
+    }
+    let html = '';
+    for (const [, g] of groups) {
+      html += `<div class="event-group-header">${escHtml(g.name)}</div>`;
+      html += g.items.map(c => `
+        <div class="chart-card">
+          <a href="/chart-view.html?id=${c.id}" style="flex:1;min-width:0;text-decoration:none;color:inherit">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">
+              <span class="attr-badge attr-${escHtml(c.attribute)} small">${t('attr.'+c.attribute)||c.attribute}</span>
+              <span class="chart-card-title">${escHtml(c.title)}</span>
+              <span class="chart-code-badge">${escHtml(c.chart_code)}</span>
+            </div>
+            <div class="chart-card-meta">${new Date(c.created_at).toLocaleDateString('ja-JP')}</div>
+          </a>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <a href="/chart-editor.html?id=${c.id}" class="btn btn-secondary btn-sm">${t('chart.edit')}</a>
+            <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteChart(${c.id})">${t('chart.delete')}</button>
+          </div>
+        </div>`).join('');
+    }
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+async function deleteChart(id) {
+  if (!confirm(t('chart.delete_confirm'))) return;
+  try {
+    await apiFetch(`/charts/${id}`, { method: 'DELETE' });
+    load();
+  } catch(e) { alert(e.message); }
+}
+
+load();
+</script>
+</body>
+</html>

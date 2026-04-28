@@ -175,7 +175,7 @@
 <script>
 renderNav();
 applyI18n();
-if (!requireAdmin()) throw new Error('redirect');
+if (!requireLogin()) throw new Error('redirect');
 
 const ORDER_LABELS = ['', '①', '②', '③'];
 const ATTRS = ['火','氷','雷','光','闇','無'];

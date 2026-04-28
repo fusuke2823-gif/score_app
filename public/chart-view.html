@@ -41,7 +41,7 @@
 <script>
 renderNav();
 applyI18n();
-if (!requireAdmin()) throw new Error('redirect');
+if (!requireLogin()) throw new Error('redirect');
 
 const chartId = new URLSearchParams(location.search).get('id');
 if (!chartId) { location.href = '/charts.html'; throw new Error('no id'); }

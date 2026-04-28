@@ -7,6 +7,9 @@ const _i18n = {
   ja: {
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
     'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画管理','nav.charts':'チャート',
+    'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
+    'chart.no_charts':'チャートがありません',
+    'chart.edit':'編集','chart.delete':'削除','chart.delete_confirm':'このチャートを削除しますか？',
     'nav.admin':'管理','nav.account':'アカウント','nav.logout':'ログアウト',
     'nav.login':'ログイン','nav.register':'登録','nav.register_full':'新規登録',
     'nav.admin_badge':'管理者','nav.menu':'メニュー',
@@ -169,6 +172,9 @@ const _i18n = {
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
     'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片管理','nav.charts':'攻略圖表',
+    'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
+    'chart.no_charts':'沒有攻略圖表',
+    'chart.edit':'編輯','chart.delete':'刪除','chart.delete_confirm':'確定刪除此攻略圖表？',
     'nav.admin':'管理','nav.account':'帳戶','nav.logout':'登出',
     'nav.login':'登入','nav.register':'註冊','nav.register_full':'新增帳戶',
     'nav.admin_badge':'管理員','nav.menu':'選單',
