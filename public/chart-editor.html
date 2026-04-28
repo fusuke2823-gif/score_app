@@ -33,7 +33,7 @@
 .turn-label.od_post { color:#a8e6a3; }
 .turn-label.extra { color:#ffd580; }
 .turn-label.special { color:#e0aaff; }
-.note-input { width:100%; background:transparent; border:none; outline:none; color:var(--text-muted); font-size:0.78rem; resize:none; padding:2px; }
+.note-input { width:100%; background:transparent; border:none; outline:none; color:var(--text-primary); font-size:0.78rem; resize:none; padding:2px; }
 .action-cell {
   cursor:pointer; min-height:36px; padding:4px 6px; text-align:center;
   position:relative; transition:background 0.1s;
@@ -50,10 +50,10 @@
 
 /* ターン追加ボタン群 */
 .turn-add-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
-.turn-add-btn { font-size:0.78rem; padding:5px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); cursor:pointer; }
+.turn-add-btn { font-size:0.78rem; padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background:var(--bg-card); color:var(--text-primary); cursor:pointer; }
 .turn-add-btn:hover { border-color:var(--accent); }
 .od-group { display:flex; gap:3px; }
-.od-btn { font-size:0.72rem; padding:5px 7px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); cursor:pointer; }
+.od-btn { font-size:0.72rem; padding:5px 7px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background:var(--bg-card); color:var(--text-primary); cursor:pointer; }
 
 /* スキル選択モーダル */
 .skill-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; padding:12px; }
@@ -65,9 +65,9 @@
 .skill-item.special-skill { color:#e0aaff; }
 .skill-item.global-skill { color:var(--text-primary); font-style:italic; opacity:0.75; }
 .skill-search { width:100%; margin-bottom:8px; }
-.modal-section-label { font-size:0.72rem; color:var(--text-muted); margin:8px 0 4px; font-weight:bold; }
+.modal-section-label { font-size:0.72rem; color:var(--text-primary); margin:8px 0 4px; font-weight:bold; }
 .order-btns { display:flex; gap:6px; margin:4px 0 8px; flex-wrap:wrap; }
-.order-btn { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); cursor:pointer; font-size:0.82rem; }
+.order-btn { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); cursor:pointer; font-size:0.82rem; }
 .order-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 .target-btns { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 8px; }
 .target-btn { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); cursor:pointer; font-size:0.78rem; }
@@ -121,16 +121,16 @@
       <button class="turn-add-btn" onclick="addTurn('normal')">次ターン</button>
       <button class="turn-add-btn" onclick="addTurn('extra')">追加ターン</button>
       <div class="od-group">
-        <span style="font-size:0.72rem;color:var(--text-muted);align-self:center">先OD:</span>
-        <button class="od-btn" onclick="addOD('od_pre',1)">1</button>
-        <button class="od-btn" onclick="addOD('od_pre',2)">2</button>
-        <button class="od-btn" onclick="addOD('od_pre',3)">3</button>
+        <span style="font-size:0.72rem;color:var(--text-primary);align-self:center">先OD:</span>
+        <button class="od-btn" style="color:#ff9ec4" onclick="addOD('od_pre',1)">1</button>
+        <button class="od-btn" style="color:#a8e6a3" onclick="addOD('od_pre',2)">2</button>
+        <button class="od-btn" style="color:#ffd580" onclick="addOD('od_pre',3)">3</button>
       </div>
       <div class="od-group">
-        <span style="font-size:0.72rem;color:var(--text-muted);align-self:center">後OD:</span>
-        <button class="od-btn" onclick="addOD('od_post',1)">1</button>
-        <button class="od-btn" onclick="addOD('od_post',2)">2</button>
-        <button class="od-btn" onclick="addOD('od_post',3)">3</button>
+        <span style="font-size:0.72rem;color:var(--text-primary);align-self:center">後OD:</span>
+        <button class="od-btn" style="color:#ff9ec4" onclick="addOD('od_post',1)">1</button>
+        <button class="od-btn" style="color:#a8e6a3" onclick="addOD('od_post',2)">2</button>
+        <button class="od-btn" style="color:#ffd580" onclick="addOD('od_post',3)">3</button>
       </div>
       <div id="special-btns"></div>
       <button class="turn-add-btn" style="color:#e57373;border-color:#7a3333;margin-left:auto" onclick="deleteLastTurn()">最後の行を削除</button>
@@ -338,8 +338,7 @@ function renderGrid() {
   // ヘッダー
   const memberHeaders = state.members.map((m, i) => {
     const cname = m.character_id && charMap[m.character_id] ? escHtml(charMap[m.character_id].name) : `スロット${i+1}`;
-    const sname = m.style_id && styleMap[m.style_id] ? `<br><span style="font-size:0.68rem;color:var(--text-muted)">${escHtml(styleMap[m.style_id].name)}</span>` : '';
-    return `<th>${cname}${sname}</th>`;
+    return `<th>${cname}</th>`;
   }).join('');
   document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th><th class="note-col">備考</th>${memberHeaders}</tr>`;
 
