@@ -309,12 +309,12 @@ function renderMembers() {
       : `<option value="">-</option>`;
     const refineOpts = [0,1,2,3,4].map(n => `<option value="${n}"${m.refine_count===n?' selected':''}>${n}凸</option>`).join('');
     return `
-      <div class="member-slot${m.character_id ? ' selected' : ''}">
+      <div class="member-slot">
         <span class="slot-num">${i+1}</span>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onCharChange(${i}, this.value)">
+        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px${m.character_id ? ';background:rgba(255,213,128,0.1)' : ''}" onchange="onCharChange(${i}, this.value)">
           ${charOpts}
         </select>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onStyleChange(${i}, this.value)">
+        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px${m.style_id ? ';background:rgba(255,213,128,0.1)' : ''}" onchange="onStyleChange(${i}, this.value)">
           ${styleOpts}
         </select>
         <select class="form-input" style="font-size:0.78rem;padding:5px 6px;width:60px" onchange="state.members[${i}].refine_count=parseInt(this.value)">
