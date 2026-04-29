@@ -60,8 +60,16 @@
 /* スキル選択モーダル */
 .skill-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; padding:12px; }
 .skill-modal.open { display:flex; }
-.skill-modal-box { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; width:100%; max-width:420px; height:80vh; display:flex; flex-direction:column; }
+.skill-modal-box { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; width:100%; max-width:420px; height:80vh; display:flex; flex-direction:column; gap:0; }
+.skill-modal-left { display:flex; flex-direction:column; flex-shrink:0; }
+.skill-modal-right { display:flex; flex-direction:column; flex:1; min-height:0; }
 .skill-list { flex:1; overflow-y:auto; margin:8px 0; }
+@media (max-height:500px) and (orientation:landscape) {
+  .skill-modal-box { flex-direction:row; max-width:700px; gap:12px; }
+  .skill-modal-left { width:220px; overflow-y:auto; }
+  .skill-modal-right { border-left:1px solid var(--border); padding-left:12px; }
+  .skill-list { margin:0; }
+}
 .skill-item { padding:7px 10px 7px 12px; border-radius:6px; cursor:pointer; font-size:0.85rem; color:var(--text-primary); border-left:3px solid #ffd580; background:rgba(255,213,128,0.07); margin-bottom:2px; }
 .skill-item.char-skill { border-left-color:#7ecfff; background:rgba(126,207,255,0.07); }
 .skill-item.global-skill { border-left-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.04); }
@@ -150,39 +158,44 @@
 <!-- スキル選択モーダル -->
 <div class="skill-modal" id="skill-modal" onclick="if(event.target===this)closeSkillModal()">
   <div class="skill-modal-box">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div style="font-weight:bold;font-size:0.9rem" id="modal-char-name">スキル選択</div>
-      <button onclick="clearAction();closeSkillModal()" style="background:none;border:none;color:#e57373;cursor:pointer;font-size:0.82rem">クリア</button>
-    </div>
+    <div class="skill-modal-left">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:bold;font-size:0.9rem" id="modal-char-name">スキル選択</div>
+        <button onclick="clearAction();closeSkillModal()" style="background:none;border:none;color:#e57373;cursor:pointer;font-size:0.82rem">クリア</button>
+      </div>
 
-    <input class="form-input skill-search" id="skill-search" type="text" placeholder="技名検索..." oninput="filterSkills()">
+      <input class="form-input skill-search" id="skill-search" type="text" placeholder="技名検索..." oninput="filterSkills()">
 
-    <!-- 順番 -->
-    <div class="modal-section-label">順番（任意）</div>
-    <div class="order-btns">
-      <button class="order-btn" data-n="0" onclick="selectOrder(0)">なし</button>
-      <button class="order-btn" data-n="1" onclick="selectOrder(1)">①</button>
-      <button class="order-btn" data-n="2" onclick="selectOrder(2)">②</button>
-      <button class="order-btn" data-n="3" onclick="selectOrder(3)">③</button>
-    </div>
+      <!-- 順番 -->
+      <div class="modal-section-label">順番（任意）</div>
+      <div class="order-btns">
+        <button class="order-btn" data-n="0" onclick="selectOrder(0)">なし</button>
+        <button class="order-btn" data-n="1" onclick="selectOrder(1)">①</button>
+        <button class="order-btn" data-n="2" onclick="selectOrder(2)">②</button>
+        <button class="order-btn" data-n="3" onclick="selectOrder(3)">③</button>
+      </div>
 
-    <!-- 対象 -->
-    <div id="target-section" style="display:none">
-      <div class="modal-section-label">対象</div>
-      <div class="target-btns" id="target-btns"></div>
-    </div>
+      <!-- 対象 -->
+      <div id="target-section" style="display:none">
+        <div class="modal-section-label">対象</div>
+        <div class="target-btns" id="target-btns"></div>
+      </div>
 
-    <!-- タブ -->
-    <div class="skill-tabs" id="skill-tabs">
-      <button class="skill-tab active" data-tab="all" onclick="selectSkillTab('all')">全て</button>
-      <button class="skill-tab" data-tab="style" onclick="selectSkillTab('style')" style="color:#ffd580">スタイル</button>
-      <button class="skill-tab" data-tab="char" onclick="selectSkillTab('char')" style="color:#7ecfff">キャラ</button>
-      <button class="skill-tab" data-tab="global" onclick="selectSkillTab('global')">共通</button>
+      <!-- タブ -->
+      <div class="skill-tabs" id="skill-tabs">
+        <button class="skill-tab active" data-tab="all" onclick="selectSkillTab('all')">全て</button>
+        <button class="skill-tab" data-tab="style" onclick="selectSkillTab('style')" style="color:#ffd580">スタイル</button>
+        <button class="skill-tab" data-tab="char" onclick="selectSkillTab('char')" style="color:#7ecfff">キャラ</button>
+        <button class="skill-tab" data-tab="global" onclick="selectSkillTab('global')">共通</button>
+      </div>
+
+      <button onclick="closeSkillModal()" style="margin-top:auto;padding-top:8px;width:100%" class="btn btn-secondary btn-sm">閉じる</button>
     </div>
 
     <!-- スキルリスト -->
-    <div class="skill-list" id="skill-list"></div>
-    <button onclick="closeSkillModal()" style="margin-top:8px;width:100%" class="btn btn-secondary btn-sm">閉じる</button>
+    <div class="skill-modal-right">
+      <div class="skill-list" id="skill-list"></div>
+    </div>
   </div>
 </div>
 
