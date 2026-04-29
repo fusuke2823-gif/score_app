@@ -67,6 +67,9 @@
 .skill-item.global-skill { border-left-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.04); }
 .skill-item:hover, .skill-item.char-skill:hover, .skill-item.global-skill:hover { background:var(--bg-secondary); }
 .skill-search { width:100%; margin-bottom:8px; }
+.skill-tabs { display:flex; gap:4px; margin-bottom:8px; }
+.skill-tab { flex:1; padding:5px 4px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-muted); cursor:pointer; font-size:0.75rem; text-align:center; }
+.skill-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 .modal-section-label { font-size:0.72rem; color:var(--text-primary); margin:8px 0 4px; font-weight:bold; }
 .order-btns { display:flex; gap:6px; margin:4px 0 8px; flex-wrap:wrap; }
 .order-btn { padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); cursor:pointer; font-size:0.82rem; }
@@ -169,6 +172,14 @@
       <div class="target-btns" id="target-btns"></div>
     </div>
 
+    <!-- タブ -->
+    <div class="skill-tabs" id="skill-tabs">
+      <button class="skill-tab active" data-tab="all" onclick="selectSkillTab('all')">全て</button>
+      <button class="skill-tab" data-tab="style" onclick="selectSkillTab('style')" style="color:#ffd580">スタイル</button>
+      <button class="skill-tab" data-tab="char" onclick="selectSkillTab('char')" style="color:#7ecfff">キャラ</button>
+      <button class="skill-tab" data-tab="global" onclick="selectSkillTab('global')">共通</button>
+    </div>
+
     <!-- スキルリスト -->
     <div class="skill-list" id="skill-list"></div>
     <button onclick="closeSkillModal()" style="margin-top:8px;width:100%" class="btn btn-secondary btn-sm">閉じる</button>
@@ -214,6 +225,7 @@ let normalCount = 0; // 通常ターンの連番カウント用
 // モーダル状態
 let modalCtx = { turnIdx: null, slot: null, action: {} };
 let allSkillsForModal = [];
+let activeSkillTab = 'all';
 
 // ---- 初期化 ----
 async function init() {
@@ -527,9 +539,11 @@ function openSkillModal(turnIdx, slot) {
   const styleName = m.style_id && styleMap[m.style_id] ? styleMap[m.style_id].name : '';
   document.getElementById('modal-char-name').textContent = `${charName}${styleName ? ' / ' + styleName : ''}`;
   document.getElementById('skill-search').value = '';
+  activeSkillTab = 'all';
+  document.querySelectorAll('.skill-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'all'));
 
   allSkillsForModal = getAvailableSkills(slot, turn.turn_type);
-  renderSkillList(allSkillsForModal);
+  renderSkillList(getTabFilteredSkills());
 
   // 順番
   document.querySelectorAll('.order-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n) === (existing.order_num || 0)));
@@ -550,9 +564,26 @@ function renderSkillList(skills) {
   document.getElementById('skill-list').innerHTML = html || '<div style="padding:8px;color:var(--text-muted);font-size:0.82rem">技がありません</div>';
 }
 
+function getTabFilteredSkills() {
+  return allSkillsForModal.filter(s => {
+    if (activeSkillTab === 'style')  return s.style_id !== null;
+    if (activeSkillTab === 'char')   return s.character_id !== null && s.style_id === null;
+    if (activeSkillTab === 'global') return s.character_id === null;
+    return true;
+  });
+}
+
+function selectSkillTab(tab) {
+  activeSkillTab = tab;
+  document.querySelectorAll('.skill-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('skill-search').value = '';
+  renderSkillList(getTabFilteredSkills());
+}
+
 function filterSkills() {
   const q = document.getElementById('skill-search').value.toLowerCase();
-  renderSkillList(q ? allSkillsForModal.filter(s => s.name.toLowerCase().includes(q)) : allSkillsForModal);
+  const base = getTabFilteredSkills();
+  renderSkillList(q ? base.filter(s => s.name.toLowerCase().includes(q)) : base);
 }
 
 function selectSkill(skillId, skillName) {
