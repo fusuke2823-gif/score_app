@@ -73,7 +73,7 @@ router.post('/scores/:id/approve', async (req, res) => {
     if (result.rows.length === 0)
       return res.status(404).json({ error: 'スコアが見つかりません' });
     const score = result.rows[0];
-    if (!clearYoutube && score.video_url && score.ranking_scope === 'public') {
+    if (!clearYoutube && score.video_url && ['public', 'external'].includes(score.ranking_scope)) {
       await pool.query(
         `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -583,7 +583,7 @@ router.post('/events/:id/distribute-interim-external', async (req, res) => {
          SELECT DISTINCT ON (s.user_id)
            s.user_id, s.approved_score
          FROM scores s
-         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.ranking_scope='public'
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'external')
          ORDER BY s.user_id, s.approved_score DESC
        )
        SELECT user_id, approved_score,
@@ -822,7 +822,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
          SELECT DISTINCT ON (s.user_id)
            s.user_id, s.approved_score
          FROM scores s
-         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.ranking_scope='public'
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'external')
          ORDER BY s.user_id, s.approved_score DESC
        )
        SELECT user_id, approved_score,
@@ -900,7 +900,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
         `SELECT s.user_id,
            RANK() OVER (ORDER BY MAX(s.approved_score) DESC) AS rank
          FROM scores s
-         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.attribute=$2 AND s.ranking_scope='public'
+         WHERE s.event_id=$1 AND s.approved_score IS NOT NULL AND s.attribute=$2 AND s.ranking_scope IN ('public', 'external')
          GROUP BY s.user_id`,
         [req.params.id, attr]
       );

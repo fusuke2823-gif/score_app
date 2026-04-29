@@ -83,13 +83,13 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     const viewerIsInternal = !!(req.user && req.user.is_internal);
 
-    // 外部順位（ranking_scope='public' のみ）
+    // 外部順位（ranking_scope='public' or 'external'）
     const extRankResult = await pool.query(
       `WITH event_ranks AS (
          SELECT s.event_id, s.user_id,
            RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
          FROM scores s
-         WHERE s.approved_score IS NOT NULL AND s.ranking_scope = 'public'
+         WHERE s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'external')
          GROUP BY s.event_id, s.user_id
        )
        SELECT event_id, rank FROM event_ranks WHERE user_id = $1`,
@@ -103,7 +103,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
          SELECT event_id, attribute, user_id,
            RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank
          FROM scores
-         WHERE approved_score IS NOT NULL AND ranking_scope = 'public'
+         WHERE approved_score IS NOT NULL AND ranking_scope IN ('public', 'external')
        )
        SELECT event_id, attribute, rank FROM attr_ranks WHERE user_id = $1`,
       [req.params.id]

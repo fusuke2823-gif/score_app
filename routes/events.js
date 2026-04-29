@@ -239,7 +239,7 @@ router.get('/:id/ranking', optionalAuth, async (req, res) => {
         WHERE s.event_id = $1
           AND s.attribute = ANY($2)
           AND s.approved_score IS NOT NULL
-          AND ($3 = 'internal' OR s.ranking_scope = 'public')
+          AND ($3 = 'internal' OR s.ranking_scope IN ('public', 'external'))
         ORDER BY s.user_id, s.approved_score DESC
       )
       SELECT

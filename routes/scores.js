@@ -61,10 +61,10 @@ router.post('/', authenticateToken, upload.single('image'), async (req, res) => 
       imageUrl = uploadResult.secure_url;
     }
 
-    // 内部ユーザーのみ ranking_scope='public' を選択可。外部ユーザーは常に 'public'
     const userResult = await pool.query('SELECT is_internal FROM users WHERE id = $1', [req.user.id]);
     const isInternal = userResult.rows[0]?.is_internal ?? false;
-    const scopeVal = isInternal && ranking_scope === 'public' ? 'public' : (isInternal ? 'internal' : 'public');
+    // 外部ユーザーは常に 'external'（内部ランキングに入らない）
+    const scopeVal = !isInternal ? 'external' : (ranking_scope === 'public' ? 'public' : 'internal');
 
     const result = await pool.query(
       `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, pending_youtube_url, pending_youtube_score)
