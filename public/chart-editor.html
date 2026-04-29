@@ -28,8 +28,6 @@
   color:var(--text-muted);
 }
 .turn-label.normal { color:var(--text-primary); }
-.turn-label.od_pre { color:#7ecfff; }
-.turn-label.od_post { color:#a8e6a3; }
 .turn-label.extra { color:#ffd580; }
 .turn-label.special { color:#e0aaff; }
 .note-input { width:100%; background:transparent; border:none; outline:none; color:var(--text-primary); font-size:0.78rem; resize:none; padding:2px; }
@@ -383,7 +381,7 @@ function renderGrid() {
 
     const noteVal = escHtml(turn.note || '');
     return `<tr>
-      <td><div class="turn-label ${turn.turn_type}">${label}</div></td>
+      <td><div class="turn-label ${turn.turn_type}"${(turn.turn_type==='od_pre'||turn.turn_type==='od_post')?` style="color:${['','#ff9ec4','#a8e6a3','#ffd580'][turn.od_total]||''}"`:''} >${label}</div></td>
       ${cells}
     </tr>`;
   }).join('');
