@@ -46,7 +46,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
        JOIN events e ON e.id = s.event_id
        WHERE s.user_id = $1
          AND s.approved_score IS NOT NULL
-         AND s.ranking_scope IN ('public', 'internal')
+         AND s.ranking_scope IN ('public', 'internal', 'external')
          AND e.event_type IN ('score_attack', 'seraph')
          ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
        ORDER BY corrected_score DESC`,
@@ -68,7 +68,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
        JOIN events e ON e.id = s.event_id
        WHERE s.user_id = $1
          AND s.approved_score IS NOT NULL
-         AND s.ranking_scope IN ('public', 'internal')
+         AND s.ranking_scope IN ('public', 'internal', 'external')
          AND e.event_type IN ('score_attack', 'seraph')
          ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
        GROUP BY e.id, e.event_number, e.event_type
