@@ -520,8 +520,10 @@ function getAvailableSkills(slot, turnType) {
     return gameData.skills.filter(s => s.style_id === styleId && s.is_special);
   }
   const rank = s => s.style_id !== null ? 0 : s.character_id !== null ? 1 : 2;
+  const hasShikiBehavior = gameData.skills.some(s => s.style_id === styleId && s.name === '指揮行動');
   return gameData.skills.filter(s => {
     if (s.is_special) return false;
+    if (hasShikiBehavior && s.name === '通常攻撃') return false;
     if (s.character_id === null && s.style_id === null) return true;
     if (s.character_id === charId && s.style_id === null) return true;
     if (s.character_id === charId && s.style_id === styleId) return true;
