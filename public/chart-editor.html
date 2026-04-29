@@ -593,6 +593,7 @@ function selectSkill(skillId, skillName) {
   if (!skill?.has_target) modalCtx.action.target_slot = null;
   updateTargetSection(skillId);
   applyAction();
+  if (!skill?.has_target) closeSkillModal();
 }
 
 function updateTargetSection(skillId) {
@@ -616,6 +617,7 @@ function selectTarget(slot) {
   modalCtx.action.target_slot = slot;
   document.querySelectorAll('.target-btn').forEach((b, i) => b.classList.toggle('active', i+1 === slot));
   applyAction();
+  closeSkillModal();
 }
 
 function selectOrder(n) {
