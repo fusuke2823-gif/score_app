@@ -11,7 +11,6 @@
   display:flex; align-items:center; gap:8px; padding:8px 10px;
   background:var(--bg-card); border:1px solid var(--border); border-radius:8px; margin-bottom:6px;
 }
-.member-slot.selected { background:rgba(255,213,128,0.07); border-color:rgba(255,213,128,0.3); }
 .slot-num { font-size:0.78rem; color:var(--text-muted); width:20px; flex-shrink:0; text-align:center; }
 .slot-select { flex:1; min-width:0; }
 
@@ -311,10 +310,10 @@ function renderMembers() {
     return `
       <div class="member-slot">
         <span class="slot-num">${i+1}</span>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px${m.character_id ? ';background:rgba(255,213,128,0.18)' : ''}" onchange="onCharChange(${i}, this.value)">
+        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onCharChange(${i}, this.value)">
           ${charOpts}
         </select>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px${m.style_id ? ';background:rgba(255,213,128,0.18)' : ''}" onchange="onStyleChange(${i}, this.value)">
+        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onStyleChange(${i}, this.value)">
           ${styleOpts}
         </select>
         <select class="form-input" style="font-size:0.78rem;padding:5px 6px;width:60px" onchange="state.members[${i}].refine_count=parseInt(this.value)">
