@@ -1908,13 +1908,13 @@ router.post('/chart-data/import-styles', upload.single('csv'), async (req, res) 
   try {
     const rows = parseCSVBuffer(req.file.buffer);
     let count = 0, skip = 0;
-    for (const [style_name, character_name, has_special] of rows) {
+    for (const [style_name, abbreviation, character_name, has_special] of rows) {
       if (!character_name || !style_name) continue;
       const c = await pool.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
       if (!c.rows.length) { skip++; continue; }
       await pool.query(
-        `INSERT INTO chart_styles (character_id, name, has_special_skill) VALUES ($1, $2, $3) ON CONFLICT (character_id, name) DO UPDATE SET has_special_skill=$3`,
-        [c.rows[0].id, style_name, has_special === '1']
+        `INSERT INTO chart_styles (character_id, name, abbreviation, has_special_skill) VALUES ($1, $2, $3, $4) ON CONFLICT (character_id, name) DO UPDATE SET abbreviation=$3, has_special_skill=$4`,
+        [c.rows[0].id, style_name, abbreviation || null, has_special === '1']
       );
       count++;
     }

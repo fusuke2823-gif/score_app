@@ -22,7 +22,7 @@ router.get('/game-data', async (req, res) => {
   try {
     const [chars, styles, skills] = await Promise.all([
       pool.query('SELECT id, name, abbreviation, sort_order FROM chart_characters ORDER BY sort_order, name'),
-      pool.query('SELECT id, character_id, name, has_special_skill FROM chart_styles ORDER BY id'),
+      pool.query('SELECT id, character_id, name, abbreviation, has_special_skill FROM chart_styles ORDER BY id'),
       pool.query('SELECT id, character_id, name, abbreviation, has_target, style_id, is_special FROM chart_skills ORDER BY id'),
     ]);
     res.json({ characters: chars.rows, styles: styles.rows, skills: skills.rows });
@@ -79,7 +79,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const [members, turns, actions] = await Promise.all([
       pool.query(
         `SELECT cm.slot, cm.character_id, cm.style_id, cm.refine_count,
-                cc.name AS character_name, cc.abbreviation AS character_abbreviation, cs.name AS style_name, cs.has_special_skill
+                cc.name AS character_name, cc.abbreviation AS character_abbreviation, cs.name AS style_name, cs.abbreviation AS style_abbreviation, cs.has_special_skill
          FROM chart_members cm
          JOIN chart_characters cc ON cc.id = cm.character_id
          JOIN chart_styles cs ON cs.id = cm.style_id
