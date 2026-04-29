@@ -11,6 +11,7 @@
   display:flex; align-items:center; gap:8px; padding:8px 10px;
   background:var(--bg-card); border:1px solid var(--border); border-radius:8px; margin-bottom:6px;
 }
+.member-slot.selected { background:rgba(255,213,128,0.07); border-color:rgba(255,213,128,0.3); }
 .slot-num { font-size:0.78rem; color:var(--text-muted); width:20px; flex-shrink:0; text-align:center; }
 .slot-select { flex:1; min-width:0; }
 
@@ -308,7 +309,7 @@ function renderMembers() {
       : `<option value="">-</option>`;
     const refineOpts = [0,1,2,3,4].map(n => `<option value="${n}"${m.refine_count===n?' selected':''}>${n}凸</option>`).join('');
     return `
-      <div class="member-slot">
+      <div class="member-slot${m.character_id ? ' selected' : ''}">
         <span class="slot-num">${i+1}</span>
         <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onCharChange(${i}, this.value)">
           ${charOpts}
