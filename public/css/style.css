@@ -630,21 +630,24 @@ main {
   flex-wrap: wrap;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
-  padding: 8px 16px 12px;
+  padding: 10px 12px 14px;
+  gap: 6px;
 }
 .nav-mobile.open { display: flex; }
 .nav-mobile a {
-  width: 50%;
+  width: calc(50% - 3px);
   padding: 10px 4px;
   color: var(--text-secondary);
   text-decoration: none;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   box-sizing: border-box;
+  text-align: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 .nav-mobile span[style*="contents"] { display: contents; }
-.nav-mobile span[style*="contents"] a { border-bottom: 1px solid var(--border); }
-.nav-mobile a:hover { color: var(--text-primary); }
+.nav-mobile a:hover { color: var(--text-primary); border-color: var(--accent); }
 
 /* レスポンシブ */
 @media (max-width: 1024px) {
