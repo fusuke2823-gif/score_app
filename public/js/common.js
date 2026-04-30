@@ -6,7 +6,7 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 const _i18n = {
   ja: {
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
-    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画管理','nav.charts':'チャート',
+    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート',
     'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
     'chart.board':'チャート掲示板','chart.all_events':'全イベント',
     'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索',
@@ -174,7 +174,7 @@ const _i18n = {
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
-    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片管理','nav.charts':'攻略圖表',
+    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表',
     'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
     'chart.board':'攻略圖表看板','chart.all_events':'全部活動',
     'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名',
@@ -498,7 +498,7 @@ function renderNav() {
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user && user.role === 'admin' ? `<a href="/charts.html" class="${currentPath === '/charts.html' || currentPath.startsWith('/chart') ? 'active' : ''}">${t('nav.charts')}</a>` : ''}
-        ${user ? `<a href="/my-videos.html" class="${currentPath === '/my-videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
+        ${user ? `<a href="/videos.html" class="${currentPath === '/videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
         ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
         ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">${t('nav.feedback')}</a>` : ''}
@@ -522,7 +522,7 @@ function renderNav() {
       <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user && user.role === 'admin' ? `<a href="/charts.html">${ni('charts')}<span>${t('nav.charts')}</span></a>` : ''}
-      ${user ? `<a href="/my-videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
+      ${user ? `<a href="/videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
       ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}
       ${user ? `<a href="/feedback.html">${ni('feedback')}<span>${t('nav.feedback')}</span></a>` : ''}
