@@ -641,7 +641,10 @@ main {
   text-decoration: none;
   font-size: 0.9rem;
   box-sizing: border-box;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;

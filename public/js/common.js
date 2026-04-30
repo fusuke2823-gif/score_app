@@ -463,6 +463,25 @@ function statusBadge(status) {
   return `<span class="status-badge status-${status}">${labels[status] || status}</span>`;
 }
 
+// ===== ナビアイコン =====
+const NAV_ICONS = {
+  submit:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V4M5 7l3-3 3 3"/><line x1="3" y1="13" x2="13" y2="13"/></svg>`,
+  gacha:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5z"/></svg>`,
+  charts:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="10" x2="14" y2="10"/><line x1="7" y1="2" x2="7" y2="14"/></svg>`,
+  videos:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="12" height="9" rx="1.5"/><path d="M6.5 7.5l3 1.5-3 1.5V7.5z" fill="currentColor" stroke="none"/></svg>`,
+  shop:     `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h10l-1.5 7.5h-7z"/><path d="M6 5c0-1.1.9-2 2-2s2 .9 2 2"/></svg>`,
+  equip:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2L3 4.5v4C3 11.5 5.5 13.5 8 14c2.5-.5 5-2.5 5-5.5v-4L8 2z"/></svg>`,
+  feedback: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="9" rx="1"/><path d="M2 5l6 4 6-4"/></svg>`,
+  account:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>`,
+  admin:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M12.2 3.8l-1 1M4.8 11.2l-1 1"/></svg>`,
+  logout:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3H3v10h3"/><path d="M10 5l3 3-3 3M13 8H7"/></svg>`,
+  login:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h3v10h-3"/><path d="M6 11l-3-3 3-3M3 8h6"/></svg>`,
+  register: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="5.5" r="2.5"/><path d="M2 13c0-2.8 2.2-5 5-5"/><path d="M12 9v4M10 11h4"/></svg>`,
+};
+function ni(key) {
+  return NAV_ICONS[key] ? `<span style="display:inline-flex;align-items:center;gap:6px">${NAV_ICONS[key]}<span>` : '<span>';
+}
+
 // ===== ナビ =====
 function renderNav() {
   const user = getUser();
@@ -500,19 +519,19 @@ function renderNav() {
       </button>
     </div>
     <div class="nav-mobile" id="nav-mobile">
-      <a href="/submit.html">${t('nav.submit')}</a>
+      <a href="/submit.html">${ni('submit')}${t('nav.submit')}</span></span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user && user.role === 'admin' ? `<a href="/charts.html">${t('nav.charts')}</a>` : ''}
-      ${user ? `<a href="/my-videos.html">${t('nav.my_videos')}</a>` : ''}
-      ${user ? `<a href="/shop.html">${t('nav.shop')}</a>` : ''}
-      ${user ? `<a href="/shop.html?tab=equip">${t('nav.equip')}</a>` : ''}
-      ${user ? `<a href="/feedback.html">${t('nav.feedback')}</a>` : ''}
+      ${user && user.role === 'admin' ? `<a href="/charts.html">${ni('charts')}${t('nav.charts')}</span></span></a>` : ''}
+      ${user ? `<a href="/my-videos.html">${ni('videos')}${t('nav.my_videos')}</span></span></a>` : ''}
+      ${user ? `<a href="/shop.html">${ni('shop')}${t('nav.shop')}</span></span></a>` : ''}
+      ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}${t('nav.equip')}</span></span></a>` : ''}
+      ${user ? `<a href="/feedback.html">${ni('feedback')}${t('nav.feedback')}</span></span></a>` : ''}
       ${user
-        ? `<a href="/user.html?id=${user.id}">${t('nav.account')}</a>
-           ${user.role === 'admin' ? `<a href="/admin_index.html">${t('nav.admin')}</a>` : ''}
-           <a href="#" onclick="logout();return false;">${t('nav.logout')}</a>`
-        : `<a href="/login.html">${t('nav.login')}</a>
-           <a href="/register.html">${t('nav.register_full')}</a>`
+        ? `<a href="/user.html?id=${user.id}">${ni('account')}${t('nav.account')}</span></span></a>
+           ${user.role === 'admin' ? `<a href="/admin_index.html">${ni('admin')}${t('nav.admin')}</span></span></a>` : ''}
+           <a href="#" onclick="logout();return false;">${ni('logout')}${t('nav.logout')}</span></span></a>`
+        : `<a href="/login.html">${ni('login')}${t('nav.login')}</span></span></a>
+           <a href="/register.html">${ni('register')}${t('nav.register_full')}</span></span></a>`
       }
     </div>`;
   applyI18n();
