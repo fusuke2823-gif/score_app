@@ -477,12 +477,12 @@ function renderNav() {
       <a class="nav-logo" href="/index.html">HBR-RB</a>
       <div class="nav-links">
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
+        <span id="nav-gacha-desktop" style="display:contents"></span>
+        ${user && user.role === 'admin' ? `<a href="/charts.html" class="${currentPath === '/charts.html' || currentPath.startsWith('/chart') ? 'active' : ''}">${t('nav.charts')}</a>` : ''}
+        ${user ? `<a href="/my-videos.html" class="${currentPath === '/my-videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
         ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
-        <span id="nav-gacha-desktop" style="display:contents"></span>
         ${user ? `<a href="/feedback.html" class="${currentPath === '/feedback.html' ? 'active' : ''}">${t('nav.feedback')}</a>` : ''}
-        ${user ? `<a href="/my-videos.html" class="${currentPath === '/my-videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
-        ${user && user.role === 'admin' ? `<a href="/charts.html" class="${currentPath === '/charts.html' || currentPath.startsWith('/chart') ? 'active' : ''}">${t('nav.charts')}</a>` : ''}
         ${user && user.role === 'admin' ? `<a href="/admin_index.html" class="${currentPath.startsWith('/admin') ? 'active' : ''}">${t('nav.admin')}</a>` : ''}
       </div>
       <div class="nav-user">
@@ -501,15 +501,15 @@ function renderNav() {
     </div>
     <div class="nav-mobile" id="nav-mobile">
       <a href="/submit.html">${t('nav.submit')}</a>
+      <span id="nav-gacha-mobile" style="display:contents"></span>
+      ${user && user.role === 'admin' ? `<a href="/charts.html">${t('nav.charts')}</a>` : ''}
+      ${user ? `<a href="/my-videos.html">${t('nav.my_videos')}</a>` : ''}
       ${user ? `<a href="/shop.html">${t('nav.shop')}</a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${t('nav.equip')}</a>` : ''}
-      <span id="nav-gacha-mobile" style="display:contents"></span>
       ${user ? `<a href="/feedback.html">${t('nav.feedback')}</a>` : ''}
-      ${user ? `<a href="/my-videos.html">${t('nav.my_videos')}</a>` : ''}
-      ${user && user.role === 'admin' ? `<a href="/charts.html">${t('nav.charts')}</a>` : ''}
-      ${user && user.role === 'admin' ? `<a href="/admin_index.html">${t('nav.admin')}</a>` : ''}
       ${user
         ? `<a href="/user.html?id=${user.id}">${t('nav.account')}</a>
+           ${user.role === 'admin' ? `<a href="/admin_index.html">${t('nav.admin')}</a>` : ''}
            <a href="#" onclick="logout();return false;">${t('nav.logout')}</a>`
         : `<a href="/login.html">${t('nav.login')}</a>
            <a href="/register.html">${t('nav.register_full')}</a>`
