@@ -479,7 +479,7 @@ const NAV_ICONS = {
   register: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="5.5" r="2.5"/><path d="M2 13c0-2.8 2.2-5 5-5"/><path d="M12 9v4M10 11h4"/></svg>`,
 };
 function ni(key) {
-  return NAV_ICONS[key] ? `<span style="display:inline-flex;align-items:center;gap:6px">${NAV_ICONS[key]}<span>` : '<span>';
+  return NAV_ICONS[key] ? `<i class="nvi">${NAV_ICONS[key]}</i>` : '';
 }
 
 // ===== ナビ =====
@@ -519,19 +519,19 @@ function renderNav() {
       </button>
     </div>
     <div class="nav-mobile" id="nav-mobile">
-      <a href="/submit.html">${ni('submit')}${t('nav.submit')}</span></span></a>
+      <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user && user.role === 'admin' ? `<a href="/charts.html">${ni('charts')}${t('nav.charts')}</span></span></a>` : ''}
-      ${user ? `<a href="/my-videos.html">${ni('videos')}${t('nav.my_videos')}</span></span></a>` : ''}
-      ${user ? `<a href="/shop.html">${ni('shop')}${t('nav.shop')}</span></span></a>` : ''}
-      ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}${t('nav.equip')}</span></span></a>` : ''}
-      ${user ? `<a href="/feedback.html">${ni('feedback')}${t('nav.feedback')}</span></span></a>` : ''}
+      ${user && user.role === 'admin' ? `<a href="/charts.html">${ni('charts')}<span>${t('nav.charts')}</span></a>` : ''}
+      ${user ? `<a href="/my-videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
+      ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
+      ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}
+      ${user ? `<a href="/feedback.html">${ni('feedback')}<span>${t('nav.feedback')}</span></a>` : ''}
       ${user
-        ? `<a href="/user.html?id=${user.id}">${ni('account')}${t('nav.account')}</span></span></a>
-           ${user.role === 'admin' ? `<a href="/admin_index.html">${ni('admin')}${t('nav.admin')}</span></span></a>` : ''}
-           <a href="#" onclick="logout();return false;">${ni('logout')}${t('nav.logout')}</span></span></a>`
-        : `<a href="/login.html">${ni('login')}${t('nav.login')}</span></span></a>
-           <a href="/register.html">${ni('register')}${t('nav.register_full')}</span></span></a>`
+        ? `<a href="/user.html?id=${user.id}">${ni('account')}<span>${t('nav.account')}</span></a>
+           ${user.role === 'admin' ? `<a href="/admin_index.html">${ni('admin')}<span>${t('nav.admin')}</span></a>` : ''}
+           <a href="#" onclick="logout();return false;">${ni('logout')}<span>${t('nav.logout')}</span></a>`
+        : `<a href="/login.html">${ni('login')}<span>${t('nav.login')}</span></a>
+           <a href="/register.html">${ni('register')}<span>${t('nav.register_full')}</span></a>`
       }
     </div>`;
   applyI18n();
@@ -584,11 +584,10 @@ async function updateGachaNav() {
     if (!show && user.role !== 'admin') return;
     const currentPath = location.pathname;
     const isActive = currentPath === '/gacha.html';
-    const linkHtml = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${t('nav.gacha')}</a>`;
     const d = document.getElementById('nav-gacha-desktop');
     const m = document.getElementById('nav-gacha-mobile');
-    if (d) d.innerHTML = linkHtml;
-    if (m) m.innerHTML = linkHtml;
+    if (d) d.innerHTML = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${t('nav.gacha')}</a>`;
+    if (m) m.innerHTML = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${ni('gacha')}<span>${t('nav.gacha')}</span></a>`;
   } catch {}
 }
 

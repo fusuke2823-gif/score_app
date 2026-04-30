@@ -644,11 +644,13 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  position: relative;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
+.nvi { position: absolute; left: 10px; display: flex; align-items: center; }
+.nav-mobile a span { text-align: center; }
 .nav-mobile span[style*="contents"] { display: contents; }
 .nav-mobile a:hover { color: var(--text-primary); border-color: var(--accent); }
 
