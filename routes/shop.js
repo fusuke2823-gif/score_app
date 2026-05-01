@@ -10,7 +10,7 @@ router.get('/titles', async (req, res) => {
     let query, params = [];
     if (tag) {
       params.push(tag);
-      query = `SELECT * FROM titles WHERE is_active = TRUE AND point_cost IS NOT NULL AND tag = $1 ORDER BY point_cost ASC, name ASC`;
+      query = `SELECT * FROM titles WHERE is_active = TRUE AND point_cost IS NOT NULL AND tag = $1 ORDER BY sort_order ASC NULLS LAST, name ASC`;
     } else {
       query = `SELECT * FROM titles WHERE is_active = TRUE AND point_cost IS NOT NULL AND (tag IS NULL OR tag = '') ORDER BY point_cost ASC, name ASC`;
     }

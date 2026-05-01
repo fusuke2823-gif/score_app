@@ -4,7 +4,8 @@ async function main() {
   const client = await pool.connect();
   try {
     await client.query(`ALTER TABLE titles ADD COLUMN IF NOT EXISTS tag VARCHAR(20)`);
-    console.log('Added tag column to titles table');
+    await client.query(`ALTER TABLE titles ADD COLUMN IF NOT EXISTS sort_order INTEGER`);
+    console.log('Added tag, sort_order columns to titles table');
   } finally {
     client.release();
     await pool.end();
