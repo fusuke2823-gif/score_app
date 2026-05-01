@@ -214,11 +214,32 @@ function renderTable() {
 
 function renderNewUsers() {
   if (!data) return;
-  const list = data[currentView];
-  let rows = list.filter(r => r.new_tot > 0).map(r => `<tr>
-    <td class="period-cell">${periodLabel(r.period)}</td>
-    <td>${fmt(r.new_int)}</td><td>${fmt(r.new_ext)}</td><td>${fmt(r.new_tot)}</td>
-  </tr>`).join('');
+  // 全日付を生成して登録者がいない日も表示
+  const start = new Date(data.period.start);
+  const end = new Date(data.period.end);
+  const newMap = new Map(data[currentView].map(r => [periodLabel(r.period), r]));
+
+  const allPeriods = [];
+  if (currentView === 'daily') {
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1))
+      allPeriods.push(new Date(d));
+  } else if (currentView === 'weekly') {
+    const d = new Date(start);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    for (; d <= end; d.setUTCDate(d.getUTCDate() + 7)) allPeriods.push(new Date(d));
+  } else {
+    for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1)); d <= end; d.setUTCMonth(d.getUTCMonth() + 1))
+      allPeriods.push(new Date(d));
+  }
+
+  let rows = allPeriods.map(period => {
+    const label = periodLabel(period.toISOString());
+    const r = newMap.get(label) || { new_int: 0, new_ext: 0, new_tot: 0 };
+    return `<tr>
+      <td class="period-cell">${label}</td>
+      <td>${fmt(r.new_int)}</td><td>${fmt(r.new_ext)}</td><td>${fmt(r.new_tot)}</td>
+    </tr>`;
+  }).join('');
 
   document.getElementById('new-users-area').innerHTML = `
     <div class="analytics-wrap">
