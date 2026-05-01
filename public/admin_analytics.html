@@ -15,25 +15,33 @@
 .stat-card-value { font-size:1.5rem; font-weight:bold; color:var(--text-primary); }
 .stat-card-sub { font-size:0.78rem; color:var(--text-muted); margin-top:4px; }
 
-.view-tabs { display:flex; gap:6px; margin-bottom:16px; }
+.view-tabs { display:flex; gap:6px; margin-bottom:14px; }
 .view-tab {
   padding:6px 16px; border-radius:6px; border:1px solid var(--border);
   background:transparent; color:var(--text-muted); font-size:0.88rem; cursor:pointer;
 }
 .view-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:bold; }
 
-.analytics-wrap { overflow-x:auto; }
-.analytics-table { border-collapse:collapse; font-size:0.78rem; min-width:820px; }
+.page-filter { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.page-pill {
+  padding:4px 12px; border-radius:20px; border:1px solid var(--border);
+  background:transparent; color:var(--text-muted); font-size:0.78rem; cursor:pointer; white-space:nowrap;
+}
+.page-pill.active { background:var(--bg-secondary); color:var(--text-primary); border-color:var(--accent); }
+
+.analytics-wrap { overflow-x:auto; margin-bottom:24px; }
+.analytics-table { border-collapse:collapse; font-size:0.78rem; min-width:600px; }
 .analytics-table th, .analytics-table td {
   border:1px solid var(--border); padding:5px 8px; white-space:nowrap; text-align:right;
 }
-.analytics-table th { background:var(--bg-secondary); text-align:center; font-weight:bold; }
-.analytics-table td.period-cell { text-align:left; font-weight:bold; color:var(--text-primary); }
-.analytics-table .group-header { background:var(--bg-secondary); font-size:0.72rem; color:var(--text-muted); }
+.analytics-table th { background:var(--bg-secondary); text-align:center; font-weight:bold; font-size:0.72rem; }
+.analytics-table td.period-cell { text-align:left; font-weight:bold; color:var(--text-primary); background:var(--bg-secondary); }
+.analytics-table td.page-cell { text-align:left; color:var(--text-muted); font-size:0.75rem; padding-left:12px; }
 .col-int { color:#7ecfff; }
 .col-ext { color:#ff9ec4; }
 .col-tot { color:var(--text-primary); }
-.zero { color:var(--text-muted); }
+.zero { color:var(--border); }
+.section-title { font-size:0.88rem; font-weight:bold; color:var(--text-muted); margin:16px 0 8px; }
 </style>
 </head>
 <body>
@@ -55,7 +63,10 @@
     <button class="view-tab" onclick="switchView('monthly')">月間</button>
   </div>
 
+  <div id="page-filter" class="page-filter"></div>
   <div id="table-area"><div class="loading"><div class="spinner"></div></div></div>
+  <div class="section-title">新規登録</div>
+  <div id="new-users-area"></div>
 </main>
 <script src="/js/common.js"></script>
 <script>
@@ -64,16 +75,27 @@ if (!requireAdmin()) throw new Error('redirect');
 
 let data = null;
 let currentView = 'daily';
+let selectedPage = '__all__';
+let allPages = [];
+
+const PAGE_LABELS = {
+  '/index.html': 'トップ', '/': 'トップ',
+  '/submit.html': 'スコア投稿', '/videos.html': '動画掲示板',
+  '/my-videos.html': '動画管理', '/charts.html': 'チャート掲示板',
+  '/chart-editor.html': 'チャート作成', '/chart-manage.html': 'マイチャート',
+  '/chart-view.html': 'チャート表示', '/shop.html': 'ショップ',
+  '/feedback.html': 'お便り箱', '/user.html': 'ユーザー',
+  '/login.html': 'ログイン', '/register.html': '新規登録',
+  '/rate-ranking.html': 'レートランキング',
+};
+function pageLabel(p) { return PAGE_LABELS[p] || p.replace(/^\//, '').replace(/\.html$/, ''); }
 
 async function load() {
   try {
     data = await apiFetch('/analytics/summary');
-
-    // 期間ラベル
     document.getElementById('period-label').textContent =
       `${data.period.start} 〜 ${data.period.end}`;
 
-    // ユーザー数カード
     const u = data.users;
     document.getElementById('stat-cards').innerHTML = `
       <div class="stat-card">
@@ -85,11 +107,38 @@ async function load() {
         </div>
       </div>`;
 
+    // 全期間のページ一覧を収集
+    const pageSet = new Set();
+    for (const key of ['daily','weekly','monthly'])
+      for (const row of data[key]) Object.keys(row.pages).forEach(p => pageSet.add(p));
+    allPages = [...pageSet].sort((a, b) => {
+      const order = ['/index.html','/','/submit.html','/videos.html','/my-videos.html',
+        '/charts.html','/chart-editor.html','/chart-manage.html','/chart-view.html',
+        '/shop.html','/feedback.html','/user.html','/login.html','/register.html'];
+      const ia = order.indexOf(a), ib = order.indexOf(b);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+
+    renderPageFilter();
     renderTable();
+    renderNewUsers();
   } catch (e) {
     document.getElementById('stat-cards').innerHTML =
       `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }
+}
+
+function renderPageFilter() {
+  const pills = [['__all__', '全ページ'], ...allPages.map(p => [p, pageLabel(p)])];
+  document.getElementById('page-filter').innerHTML = pills.map(([val, label]) =>
+    `<button class="page-pill${selectedPage === val ? ' active' : ''}" onclick="selectPage('${escHtml(val)}')">${escHtml(label)}</button>`
+  ).join('');
+}
+
+function selectPage(p) {
+  selectedPage = p;
+  renderPageFilter();
+  renderTable();
 }
 
 function switchView(view) {
@@ -98,64 +147,88 @@ function switchView(view) {
     b.classList.toggle('active', ['daily','weekly','monthly'][i] === view);
   });
   renderTable();
+  renderNewUsers();
 }
 
 function fmt(n) {
-  return n === 0
-    ? `<span class="zero">-</span>`
-    : n.toLocaleString();
+  return n === 0 ? `<span class="zero">-</span>` : n.toLocaleString();
 }
 
-function periodLabel(period, view) {
+function periodLabel(period) {
   const d = new Date(period);
-  if (view === 'daily') {
-    return `${d.getUTCMonth()+1}/${d.getUTCDate()}`;
-  } else if (view === 'weekly') {
-    const end = new Date(d);
-    end.setUTCDate(end.getUTCDate() + 6);
-    return `${d.getUTCMonth()+1}/${d.getUTCDate()}〜${end.getUTCMonth()+1}/${end.getUTCDate()}`;
-  } else {
-    return `${d.getUTCMonth()+1}月`;
+  if (currentView === 'daily') return `${d.getUTCMonth()+1}/${d.getUTCDate()}`;
+  if (currentView === 'weekly') {
+    const e = new Date(d); e.setUTCDate(e.getUTCDate() + 6);
+    return `${d.getUTCMonth()+1}/${d.getUTCDate()}〜${e.getUTCMonth()+1}/${e.getUTCDate()}`;
   }
+  return `${d.getUTCMonth()+1}月`;
 }
 
 function renderTable() {
   if (!data) return;
-  const rows = view => data[view];
-  const list = rows(currentView);
+  const list = data[currentView];
+  const pages = selectedPage === '__all__' ? allPages : [selectedPage];
 
-  const thead = `
-    <thead>
-      <tr class="group-header">
-        <th rowspan="2" style="text-align:left">期間</th>
-        <th colspan="6">トップページ (index)</th>
-        <th colspan="6">一般ページ</th>
-        <th colspan="3">新規登録</th>
-      </tr>
-      <tr class="group-header">
-        <th class="col-int">人内</th><th class="col-ext">人外</th><th class="col-tot">人計</th>
-        <th class="col-int">回内</th><th class="col-ext">回外</th><th class="col-tot">回計</th>
-        <th class="col-int">人内</th><th class="col-ext">人外</th><th class="col-tot">人計</th>
-        <th class="col-int">回内</th><th class="col-ext">回外</th><th class="col-tot">回計</th>
-        <th class="col-int">内部</th><th class="col-ext">外部</th><th class="col-tot">合計</th>
-      </tr>
-    </thead>`;
+  const thead = `<thead><tr>
+    <th style="text-align:left">期間</th>
+    ${pages.length > 1 ? '<th style="text-align:left">ページ</th>' : ''}
+    <th class="col-int">人内</th><th class="col-ext">人外</th><th class="col-tot">人計</th>
+    <th class="col-int">回内</th><th class="col-ext">回外</th><th class="col-tot">回計</th>
+  </tr></thead>`;
 
-  const tbody = list.length === 0
-    ? `<tbody><tr><td colspan="16" style="text-align:center;color:var(--text-muted);padding:16px">データなし</td></tr></tbody>`
-    : `<tbody>${list.map(r => `
-      <tr>
-        <td class="period-cell">${periodLabel(r.period, currentView)}</td>
-        <td>${fmt(r.index.iu)}</td><td>${fmt(r.index.eu)}</td><td>${fmt(r.index.tu)}</td>
-        <td>${fmt(r.index.ih)}</td><td>${fmt(r.index.eh)}</td><td>${fmt(r.index.th)}</td>
-        <td>${fmt(r.other.iu)}</td><td>${fmt(r.other.eu)}</td><td>${fmt(r.other.tu)}</td>
-        <td>${fmt(r.other.ih)}</td><td>${fmt(r.other.eh)}</td><td>${fmt(r.other.th)}</td>
-        <td>${fmt(r.new_int)}</td><td>${fmt(r.new_ext)}</td><td>${fmt(r.new_tot)}</td>
-      </tr>`).join('')}</tbody>`;
+  let rows = '';
+  for (const r of list) {
+    const plabel = periodLabel(r.period);
+    if (pages.length === 1) {
+      const pg = pages[0];
+      const m = r.pages[pg] || { iu:0, eu:0, tu:0, ih:0, eh:0, th:0 };
+      rows += `<tr>
+        <td class="period-cell">${plabel}</td>
+        <td>${fmt(m.iu)}</td><td>${fmt(m.eu)}</td><td>${fmt(m.tu)}</td>
+        <td>${fmt(m.ih)}</td><td>${fmt(m.eh)}</td><td>${fmt(m.th)}</td>
+      </tr>`;
+    } else {
+      const visiblePages = pages.filter(p => r.pages[p]);
+      if (!visiblePages.length) continue;
+      visiblePages.forEach((pg, i) => {
+        const m = r.pages[pg];
+        rows += `<tr>
+          ${i === 0 ? `<td class="period-cell" rowspan="${visiblePages.length}">${plabel}</td>` : ''}
+          <td class="page-cell">${escHtml(pageLabel(pg))}</td>
+          <td>${fmt(m.iu)}</td><td>${fmt(m.eu)}</td><td>${fmt(m.tu)}</td>
+          <td>${fmt(m.ih)}</td><td>${fmt(m.eh)}</td><td>${fmt(m.th)}</td>
+        </tr>`;
+      });
+    }
+  }
+
+  const tbody = rows
+    ? `<tbody>${rows}</tbody>`
+    : `<tbody><tr><td colspan="${pages.length > 1 ? 8 : 7}" style="text-align:center;color:var(--text-muted);padding:16px">データなし</td></tr></tbody>`;
 
   document.getElementById('table-area').innerHTML = `
     <div class="analytics-wrap">
       <table class="analytics-table">${thead}${tbody}</table>
+    </div>`;
+}
+
+function renderNewUsers() {
+  if (!data) return;
+  const list = data[currentView];
+  let rows = list.filter(r => r.new_tot > 0).map(r => `<tr>
+    <td class="period-cell">${periodLabel(r.period)}</td>
+    <td>${fmt(r.new_int)}</td><td>${fmt(r.new_ext)}</td><td>${fmt(r.new_tot)}</td>
+  </tr>`).join('');
+
+  document.getElementById('new-users-area').innerHTML = `
+    <div class="analytics-wrap">
+      <table class="analytics-table">
+        <thead><tr>
+          <th style="text-align:left">期間</th>
+          <th class="col-int">内部</th><th class="col-ext">外部</th><th class="col-tot">合計</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px">登録なし</td></tr>'}</tbody>
+      </table>
     </div>`;
 }
 

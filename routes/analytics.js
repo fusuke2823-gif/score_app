@@ -20,14 +20,14 @@ async function getPVData(trunc, start, end) {
   return pool.query(`
     SELECT
       DATE_TRUNC($1, created_at) AS period,
-      CASE WHEN page IN ('/index.html', '/') THEN 'index' ELSE 'other' END AS page_type,
+      page,
       is_internal,
       COUNT(DISTINCT user_id) AS u,
       COUNT(*) AS h
     FROM page_views
     WHERE created_at >= $2 AND created_at < $3
       AND page NOT LIKE '/admin%'
-    GROUP BY 1, 2, 3 ORDER BY 1
+    GROUP BY 1, 2, 3 ORDER BY 1, 2
   `, [trunc, start, end]);
 }
 
@@ -47,23 +47,19 @@ async function getNewUsers(trunc, start, end) {
 function merge(pvRows, newRows) {
   const map = new Map();
   const key = r => r.period instanceof Date ? r.period.toISOString() : String(r.period);
-  const empty = () => ({
-    index: { iu: 0, eu: 0, tu: 0, ih: 0, eh: 0, th: 0 },
-    other: { iu: 0, eu: 0, tu: 0, ih: 0, eh: 0, th: 0 },
-    new_int: 0, new_ext: 0, new_tot: 0
-  });
   for (const r of pvRows) {
     const k = key(r);
-    if (!map.has(k)) map.set(k, { period: r.period, ...empty() });
+    if (!map.has(k)) map.set(k, { period: r.period, pages: {}, new_int: 0, new_ext: 0, new_tot: 0 });
     const e = map.get(k);
-    const tgt = r.page_type === 'index' ? e.index : e.other;
+    if (!e.pages[r.page]) e.pages[r.page] = { iu: 0, eu: 0, tu: 0, ih: 0, eh: 0, th: 0 };
+    const t = e.pages[r.page];
     const u = +r.u, h = +r.h;
-    if (r.is_internal) { tgt.iu += u; tgt.ih += h; } else { tgt.eu += u; tgt.eh += h; }
-    tgt.tu += u; tgt.th += h;
+    if (r.is_internal) { t.iu += u; t.ih += h; } else { t.eu += u; t.eh += h; }
+    t.tu += u; t.th += h;
   }
   for (const r of newRows) {
     const k = key(r);
-    if (!map.has(k)) map.set(k, { period: r.period, ...empty() });
+    if (!map.has(k)) map.set(k, { period: r.period, pages: {}, new_int: 0, new_ext: 0, new_tot: 0 });
     const e = map.get(k);
     e.new_int = +r.int_n; e.new_ext = +r.ext_n; e.new_tot = +r.tot_n;
   }
