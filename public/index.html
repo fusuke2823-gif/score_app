@@ -83,6 +83,10 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           <span id="copy-link-label" data-i18n="doc.copy_link">リンクをコピー</span>
         </button>
+        <button id="copy-uid-btn" onclick="copyUserId(event)" style="display:none;width:100%;text-align:left;padding:8px 12px;border-radius:5px;font-size:0.85rem;color:var(--text-primary);background:transparent;border:none;cursor:pointer" onmouseover="this.style.background='var(--bg-card2)'" onmouseout="this.style.background='transparent'">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span id="copy-uid-label" data-i18n="doc.copy_uid">ユーザーIDをコピー</span>
+        </button>
         <div style="height:1px;background:var(--border);margin:4px 0"></div>
         <a href="/terms.html" style="display:block;padding:8px 12px;border-radius:5px;font-size:0.85rem;color:var(--text-primary);text-decoration:none" onmouseover="this.style.background='var(--bg-card2)'" onmouseout="this.style.background=''" data-i18n="doc.terms">利用規約</a>
         <a href="/privacy.html" style="display:block;padding:8px 12px;border-radius:5px;font-size:0.85rem;color:var(--text-primary);text-decoration:none" onmouseover="this.style.background='var(--bg-card2)'" onmouseout="this.style.background=''" data-i18n="doc.privacy">プライバシーポリシー</a>
@@ -228,6 +232,27 @@
 window._rankUpdatePromise = new Promise(resolve => { window._resolveRankUpdate = resolve; });
 renderNav();
 applyI18n();
+
+// ユーザーIDコピーボタン表示
+(function() {
+  const u = getUser();
+  if (u?.user_code) document.getElementById('copy-uid-btn').style.display = 'block';
+})();
+
+function copyUserId(e) {
+  e.stopPropagation();
+  const u = getUser();
+  if (!u?.user_code) return;
+  navigator.clipboard.writeText(u.user_code).then(() => {
+    const el = document.getElementById('copy-uid-label');
+    const orig = el.textContent;
+    el.textContent = t('doc.copy_done');
+    setTimeout(() => {
+      el.textContent = orig;
+      document.getElementById('doc-menu').style.display = 'none';
+    }, 1500);
+  });
+}
 
 function copyPageLink(e) {
   e.stopPropagation();

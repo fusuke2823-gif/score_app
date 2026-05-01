@@ -148,7 +148,7 @@ const _i18n = {
     'filter.weak_attr':'弱点属性','filter.or':'いずれか','filter.and':'すべて含む',
     'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
     'doc.terms':'利用規約','doc.privacy':'プライバシーポリシー',
-    'doc.copy_link':'リンクをコピー','doc.copy_done':'コピーしました！',
+    'doc.copy_link':'リンクをコピー','doc.copy_done':'コピーしました！','doc.copy_uid':'ユーザーIDをコピー',
     'rate.title':'レートランキング','rate.subtitle':'X・Exランクユーザーのレート順',
     'rate.scope_ext':'外部','rate.scope_int':'内部',
     'rate.my_label':'あなたのレート',
@@ -316,7 +316,7 @@ const _i18n = {
     'filter.weak_attr':'弱點屬性','filter.or':'任一','filter.and':'全部包含',
     'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
     'doc.terms':'使用條款','doc.privacy':'隱私政策',
-    'doc.copy_link':'複製連結','doc.copy_done':'已複製！',
+    'doc.copy_link':'複製連結','doc.copy_done':'已複製！','doc.copy_uid':'複製用戶ID',
     'rate.title':'評分排行榜','rate.subtitle':'X・Ex等級玩家評分排名',
     'rate.scope_ext':'外部','rate.scope_int':'內部',
     'rate.my_label':'你的評分',
@@ -378,8 +378,9 @@ if (getToken()) {
     .then(data => {
       if (data) {
         const user = getUser();
-        if (user && user.is_internal !== data.is_internal) {
+        if (user && (user.is_internal !== data.is_internal || user.user_code !== data.user_code)) {
           user.is_internal = data.is_internal;
+          if (data.user_code) user.user_code = data.user_code;
           localStorage.setItem('user', JSON.stringify(user));
         }
       }

@@ -7,6 +7,19 @@ const { authenticateToken } = require('../middleware/auth');
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+function genUserCode() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+async function uniqueUserCode() {
+  for (let i = 0; i < 20; i++) {
+    const code = genUserCode();
+    const r = await pool.query('SELECT id FROM users WHERE user_code=$1', [code]);
+    if (!r.rows.length) return code;
+  }
+  throw new Error('Failed to generate unique user code');
+}
+
 router.post('/register', async (req, res) => {
   const { username, password, oshi_character, ref, twitter_username, youtube_channel } = req.body;
 
@@ -29,9 +42,10 @@ router.post('/register', async (req, res) => {
     if (existing.rows.length > 0)
       return res.status(409).json({ error: 'このユーザー名は既に使用されています [dup]' });
     const hash = await bcrypt.hash(password, 10);
+    const user_code = await uniqueUserCode();
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character, twitter_username, youtube_channel) VALUES ($1, $2, $3, $4, $5) RETURNING id, username, role, oshi_character',
-      [username, hash, oshi_character || null, twitter_username || null, youtube_channel || null]
+      'INSERT INTO users (username, password_hash, oshi_character, twitter_username, youtube_channel, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, oshi_character, user_code',
+      [username, hash, oshi_character || null, twitter_username || null, youtube_channel || null, user_code]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
@@ -69,7 +83,7 @@ router.post('/login', async (req, res) => {
     );
     res.json({
       token,
-      user: { id: user.id, username: user.username, role: user.role, oshi_character: user.oshi_character, is_internal: user.is_internal }
+      user: { id: user.id, username: user.username, role: user.role, oshi_character: user.oshi_character, is_internal: user.is_internal, user_code: user.user_code }
     });
   } catch (err) {
     console.error(err);
@@ -80,7 +94,7 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, role, oshi_character, is_internal, created_at, (google_id IS NOT NULL) AS has_google FROM users WHERE id = $1',
+      'SELECT id, username, role, oshi_character, is_internal, created_at, user_code, (google_id IS NOT NULL) AS has_google FROM users WHERE id = $1',
       [req.user.id]
     );
     res.json(result.rows[0]);
