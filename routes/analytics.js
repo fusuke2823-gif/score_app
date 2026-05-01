@@ -5,8 +5,9 @@ const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware
 
 router.post('/pageview', optionalAuth, async (req, res) => {
   if (!req.user) return res.json({ ok: true });
-  const { page } = req.body;
+  let { page } = req.body;
   if (!page) return res.json({ ok: true });
+  if (page === '/') page = '/index.html';
   try {
     await pool.query(
       'INSERT INTO page_views (user_id, is_internal, page) VALUES ($1, $2, $3)',
