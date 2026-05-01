@@ -551,7 +551,18 @@ renderNav = function() {
   updateFeedbackBadge();
   checkGoogleLink();
   initAccountSettingsPrompt();
+  _trackPageView();
 };
+
+function _trackPageView() {
+  const token = getToken();
+  if (!token) return;
+  fetch('/api/analytics/pageview', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page: location.pathname })
+  }).catch(() => {});
+}
 
 async function updateFeedbackBadge() {
   const user = getUser();

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>集計 - 管理</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.stat-cards { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
+.stat-card {
+  background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
+  padding:14px 20px; min-width:140px; flex:1;
+}
+.stat-card-label { font-size:0.75rem; color:var(--text-muted); margin-bottom:6px; }
+.stat-card-value { font-size:1.5rem; font-weight:bold; color:var(--text-primary); }
+.stat-card-sub { font-size:0.78rem; color:var(--text-muted); margin-top:4px; }
+
+.view-tabs { display:flex; gap:6px; margin-bottom:16px; }
+.view-tab {
+  padding:6px 16px; border-radius:6px; border:1px solid var(--border);
+  background:transparent; color:var(--text-muted); font-size:0.88rem; cursor:pointer;
+}
+.view-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:bold; }
+
+.analytics-wrap { overflow-x:auto; }
+.analytics-table { border-collapse:collapse; font-size:0.78rem; min-width:820px; }
+.analytics-table th, .analytics-table td {
+  border:1px solid var(--border); padding:5px 8px; white-space:nowrap; text-align:right;
+}
+.analytics-table th { background:var(--bg-secondary); text-align:center; font-weight:bold; }
+.analytics-table td.period-cell { text-align:left; font-weight:bold; color:var(--text-primary); }
+.analytics-table .group-header { background:var(--bg-secondary); font-size:0.72rem; color:var(--text-muted); }
+.col-int { color:#7ecfff; }
+.col-ext { color:#ff9ec4; }
+.col-tot { color:var(--text-primary); }
+.zero { color:var(--text-muted); }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main class="container" style="padding-top:20px;padding-bottom:40px">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+    <a href="/admin_index.html" style="color:var(--text-muted);font-size:0.85rem">← 管理メニュー</a>
+    <h2 style="font-size:1.1rem;font-weight:bold;margin:0">集計</h2>
+    <span id="period-label" style="font-size:0.8rem;color:var(--text-muted)"></span>
+  </div>
+
+  <div class="stat-cards" id="stat-cards">
+    <div class="loading"><div class="spinner"></div></div>
+  </div>
+
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="switchView('daily')">日別</button>
+    <button class="view-tab" onclick="switchView('weekly')">週間</button>
+    <button class="view-tab" onclick="switchView('monthly')">月間</button>
+  </div>
+
+  <div id="table-area"><div class="loading"><div class="spinner"></div></div></div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+if (!requireAdmin()) throw new Error('redirect');
+
+let data = null;
+let currentView = 'daily';
+
+async function load() {
+  try {
+    data = await apiFetch('/analytics/summary');
+
+    // 期間ラベル
+    document.getElementById('period-label').textContent =
+      `${data.period.start} 〜 ${data.period.end}`;
+
+    // ユーザー数カード
+    const u = data.users;
+    document.getElementById('stat-cards').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-card-label">総ユーザー数</div>
+        <div class="stat-card-value">${u.tot_n}</div>
+        <div class="stat-card-sub">
+          <span class="col-int">内部 ${u.int_n}</span> &nbsp;
+          <span class="col-ext">外部 ${u.ext_n}</span>
+        </div>
+      </div>`;
+
+    renderTable();
+  } catch (e) {
+    document.getElementById('stat-cards').innerHTML =
+      `<div class="alert alert-error">${escHtml(e.message)}</div>`;
+  }
+}
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-tab').forEach((b, i) => {
+    b.classList.toggle('active', ['daily','weekly','monthly'][i] === view);
+  });
+  renderTable();
+}
+
+function fmt(n) {
+  return n === 0
+    ? `<span class="zero">-</span>`
+    : n.toLocaleString();
+}
+
+function periodLabel(period, view) {
+  const d = new Date(period);
+  if (view === 'daily') {
+    return `${d.getUTCMonth()+1}/${d.getUTCDate()}`;
+  } else if (view === 'weekly') {
+    const end = new Date(d);
+    end.setUTCDate(end.getUTCDate() + 6);
+    return `${d.getUTCMonth()+1}/${d.getUTCDate()}〜${end.getUTCMonth()+1}/${end.getUTCDate()}`;
+  } else {
+    return `${d.getUTCMonth()+1}月`;
+  }
+}
+
+function renderTable() {
+  if (!data) return;
+  const rows = view => data[view];
+  const list = rows(currentView);
+
+  const thead = `
+    <thead>
+      <tr class="group-header">
+        <th rowspan="2" style="text-align:left">期間</th>
+        <th colspan="6">トップページ (index)</th>
+        <th colspan="6">一般ページ</th>
+        <th colspan="3">新規登録</th>
+      </tr>
+      <tr class="group-header">
+        <th class="col-int">人内</th><th class="col-ext">人外</th><th class="col-tot">人計</th>
+        <th class="col-int">回内</th><th class="col-ext">回外</th><th class="col-tot">回計</th>
+        <th class="col-int">人内</th><th class="col-ext">人外</th><th class="col-tot">人計</th>
+        <th class="col-int">回内</th><th class="col-ext">回外</th><th class="col-tot">回計</th>
+        <th class="col-int">内部</th><th class="col-ext">外部</th><th class="col-tot">合計</th>
+      </tr>
+    </thead>`;
+
+  const tbody = list.length === 0
+    ? `<tbody><tr><td colspan="16" style="text-align:center;color:var(--text-muted);padding:16px">データなし</td></tr></tbody>`
+    : `<tbody>${list.map(r => `
+      <tr>
+        <td class="period-cell">${periodLabel(r.period, currentView)}</td>
+        <td>${fmt(r.index.iu)}</td><td>${fmt(r.index.eu)}</td><td>${fmt(r.index.tu)}</td>
+        <td>${fmt(r.index.ih)}</td><td>${fmt(r.index.eh)}</td><td>${fmt(r.index.th)}</td>
+        <td>${fmt(r.other.iu)}</td><td>${fmt(r.other.eu)}</td><td>${fmt(r.other.tu)}</td>
+        <td>${fmt(r.other.ih)}</td><td>${fmt(r.other.eh)}</td><td>${fmt(r.other.th)}</td>
+        <td>${fmt(r.new_int)}</td><td>${fmt(r.new_ext)}</td><td>${fmt(r.new_tot)}</td>
+      </tr>`).join('')}</tbody>`;
+
+  document.getElementById('table-area').innerHTML = `
+    <div class="analytics-wrap">
+      <table class="analytics-table">${thead}${tbody}</table>
+    </div>`;
+}
+
+load();
+</script>
+</body>
+</html>
