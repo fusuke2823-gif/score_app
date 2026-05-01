@@ -557,10 +557,11 @@ renderNav = function() {
 function _trackPageView() {
   const token = getToken();
   if (!token) return;
+  const page = location.pathname === '/' ? '/index.html' : location.pathname;
   fetch('/api/analytics/pageview', {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ page: location.pathname })
+    body: JSON.stringify({ page })
   }).catch(() => {});
 }
 

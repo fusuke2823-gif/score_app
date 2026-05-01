@@ -20,7 +20,7 @@ async function getPVData(trunc, start, end) {
   return pool.query(`
     SELECT
       DATE_TRUNC($1, created_at) AS period,
-      page,
+      CASE WHEN page = '/' THEN '/index.html' ELSE page END AS page,
       is_internal,
       COUNT(DISTINCT user_id) AS u,
       COUNT(*) AS h
