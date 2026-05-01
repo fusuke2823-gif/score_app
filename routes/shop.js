@@ -6,9 +6,15 @@ const { authenticateToken } = require('../middleware/auth');
 // 購入可能な称号一覧（ログイン不要）
 router.get('/titles', async (req, res) => {
   try {
-    const titles = await pool.query(
-      'SELECT * FROM titles WHERE is_active = TRUE AND point_cost IS NOT NULL ORDER BY point_cost ASC'
-    );
+    const { tag } = req.query;
+    let query, params = [];
+    if (tag) {
+      params.push(tag);
+      query = `SELECT * FROM titles WHERE is_active = TRUE AND point_cost IS NOT NULL AND tag = $1 ORDER BY point_cost ASC, name ASC`;
+    } else {
+      query = `SELECT * FROM titles WHERE is_active = TRUE AND point_cost IS NOT NULL AND (tag IS NULL OR tag = '') ORDER BY point_cost ASC, name ASC`;
+    }
+    const titles = await pool.query(query, params);
     res.json(titles.rows);
   } catch (err) {
     console.error(err);
