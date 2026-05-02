@@ -243,6 +243,11 @@ async function loadEvent() {
       document.getElementById('enemy-section').innerHTML = enemySectionHtml;
     }
 
+    if (event.event_type === 'media_only') {
+      document.getElementById('filter-section').style.display = 'none';
+      document.getElementById('ranking-content').innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem;padding:16px 0">このイベントはスコアランキングがありません。</div>';
+      return;
+    }
     document.getElementById('filter-section').style.display = '';
     initStickyTitle(event.name);
     updateTheadTop();

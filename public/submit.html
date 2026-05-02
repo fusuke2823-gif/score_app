@@ -134,6 +134,7 @@ async function loadEvents() {
     const sel = document.getElementById('event-select');
     const now = new Date();
     const active = events.filter(e => {
+      if (e.event_type === 'media_only') return false;
       if (e.submission_start && now < new Date(e.submission_start)) return false;
       if (e.submission_end && now > new Date(e.submission_end)) return false;
       return true;

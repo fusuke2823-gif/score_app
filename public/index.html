@@ -756,7 +756,7 @@ function renderEvents() {
 
 async function load() {
   try {
-    allEvents = await apiFetch('/events');
+    allEvents = (await apiFetch('/events')).filter(e => e.event_type !== 'media_only');
     const el = document.getElementById('content');
     if (allEvents.length === 0) {
       el.innerHTML = `<div class="empty-state">
