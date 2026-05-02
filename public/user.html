@@ -191,7 +191,7 @@ async function load() {
 
     document.getElementById('content').innerHTML = `
       <div class="user-header">
-        <div class="user-avatar" style="${data.equipped_icon_url ? 'border:none' : ''}">${data.equipped_icon_url ? `<img src="${escHtml(data.equipped_icon_url)}" alt="${escHtml(data.username)}" class="${data.equipped_icon_rarity ? `icon-rarity-${escHtml(data.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(data.username.charAt(0))}</div>
+        <div class="user-avatar" style="${data.equipped_icon_url ? 'border:none' : ''}">${data.equipped_icon_url ? `<img src="${escHtml(thumbUrl(data.equipped_icon_url))}" alt="${escHtml(data.username)}" class="${data.equipped_icon_rarity ? `icon-rarity-${escHtml(data.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(data.username.charAt(0))}</div>
         <div class="user-info">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <h2 style="margin:0">${escHtml(data.username)}</h2>
@@ -297,7 +297,7 @@ async function load() {
                         ${s.attr_rank_ext ? `<span style="font-size:0.72rem;color:var(--text-muted)">外部${s.attr_rank_ext}位</span>` : ''}
                       ` : `${s.attr_rank_ext ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank_ext}位</span>` : ''}`}
                       ${s.approved_image_url
-                        ? `<img class="attr-score-img${s.youtube_url ? ' has-yt' : ''}" src="${escHtml(s.approved_image_url)}" alt="result" loading="lazy" onclick="openModal('${escHtml(s.approved_image_url)}','${s.youtube_url ? escHtml(s.youtube_url) : ''}',${s.youtube_score ? s.youtube_score : 'null'})">`
+                        ? `<img class="attr-score-img${s.youtube_url ? ' has-yt' : ''}" src="${escHtml(thumbUrl(s.approved_image_url))}" alt="result" loading="lazy" onclick="openModal('${escHtml(s.approved_image_url)}','${s.youtube_url ? escHtml(s.youtube_url) : ''}',${s.youtube_score ? s.youtube_score : 'null'})">`
                         : ''}
                     </div>`).join('')}
                 </div>

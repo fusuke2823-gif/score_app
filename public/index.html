@@ -753,7 +753,7 @@ function renderEvents() {
           ${e.first_enemy_weak ? e.first_enemy_weak.split(',').filter(Boolean).map(a => `<span style="font-size:0.72rem">${attrBadge(a, true)}</span>`).join('') : ''}
         </div>
       </div>
-      ${e.first_enemy_image ? `<img src="${escHtml(e.first_enemy_image)}" alt="" style="width:64px;height:64px;object-fit:contain;flex-shrink:0;opacity:0.92;margin:-4px 0">` : ''}
+      ${e.first_enemy_image ? `<img src="${escHtml(thumbUrl(e.first_enemy_image))}" alt="" style="width:64px;height:64px;object-fit:contain;flex-shrink:0;opacity:0.92;margin:-4px 0">` : ''}
     </a>`;
   }).join('')}</div>`;
 }

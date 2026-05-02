@@ -440,7 +440,7 @@ const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
 function iconCardHtml(icon, equippedId) {
   const equipped = icon.id === equippedId;
   return `<div class="equip-icon-card${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})">
-    <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
+    <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
     <div class="iname">${escHtml(icon.name)}</div>
     ${equipped ? `<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">${t('shop.equipped_badge')}</div>` : ''}
   </div>`;

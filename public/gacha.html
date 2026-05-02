@@ -361,7 +361,7 @@ function renderPoolSelector(pools) {
     const pickupRow = p.pickup_icons && p.pickup_icons.length > 0 ? `
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px">
         <span style="font-size:0.68rem;color:#ffd700;font-weight:bold">★PU</span>
-        ${p.pickup_icons.slice(0,5).map(pu => `<img src="${escHtml(pu.image_url)}" title="${escHtml(pu.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid #ffd700">`).join('')}
+        ${p.pickup_icons.slice(0,5).map(pu => `<img src="${escHtml(thumbUrl(pu.image_url))}" title="${escHtml(pu.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid #ffd700">`).join('')}
         ${p.pickup_icons.length > 5 ? `<span style="font-size:0.68rem;color:var(--text-muted)">+${p.pickup_icons.length - 5}</span>` : ''}
       </div>` : '';
     const daysLabel = poolDaysLabel(p.end_at);
@@ -444,7 +444,7 @@ async function loadExchangeList(pickupIds = null) {
     if (ss.length === 0) { container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem">${t('gacha.no_exchange')}</div>`; return; }
     container.innerHTML = ss.map(i => `
       <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}')">
-        <img src="${escHtml(i.image_url)}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
+        <img src="${escHtml(thumbUrl(i.image_url))}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
         <div style="font-size:0.7rem;color:#ffd700;word-break:break-all">${escHtml(i.name)}</div>
       </div>
     `).join('');
@@ -515,7 +515,7 @@ function renderMyIcons(icons) {
   el.innerHTML = `<div class="icon-grid">${icons.map(icon => `
     <div class="icon-item">
       <span class="irarity irarity-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
-      <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}" loading="lazy"
+      <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}" loading="lazy"
            class="${icon.is_equipped ? 'equipped' : ''}"
            onclick="equipIcon(${icon.id}, this)"
            title="${escHtml(icon.name)}">
@@ -625,7 +625,7 @@ async function animatePull(results) {
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
         <div class="g-card-back">
           <span class="g-rarity-tag r-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span>
-          <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}">
+          <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}">
           <div class="g-name">${escHtml(icon.name)}</div>
           ${icon.is_dup ? `<span class="g-dup">重複+${icon.dup_pts}pt</span>` : ''}
         </div>
@@ -728,7 +728,7 @@ async function openPoolModal() {
             ${grouped[r].map(ic => `
               <div style="text-align:center;position:relative">
                 ${ic.is_pickup ? `<span style="position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:0.6rem;font-weight:bold;color:#ffd700;background:rgba(0,0,0,0.6);border-radius:3px;padding:0 3px;white-space:nowrap;z-index:1">★PU</span>` : ''}
-                <img src="${escHtml(ic.image_url)}" alt="${escHtml(ic.name)}" loading="lazy"
+                <img src="${escHtml(thumbUrl(ic.image_url))}" alt="${escHtml(ic.name)}" loading="lazy"
                      style="width:54px;height:54px;border-radius:20%;object-fit:cover;border:2px solid ${ic.is_pickup ? '#ffd700' : rarityColors[r]};display:block;margin:0 auto 4px;${ic.is_pickup ? 'box-shadow:0 0 6px #ffd700aa' : ''}">
                 <div style="font-size:0.62rem;color:var(--text-secondary);word-break:break-all;line-height:1.2">${escHtml(ic.name)}</div>
               </div>`).join('')}

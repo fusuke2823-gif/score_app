@@ -279,7 +279,7 @@ async function loadMyVideos() {
     }
     el.innerHTML = items.map(item => {
       const thumb = item.approved_image_url
-        ? `<div class="video-row-thumb"><img src="${escHtml(item.approved_image_url)}" alt="" loading="lazy"></div>`
+        ? `<div class="video-row-thumb"><img src="${escHtml(thumbUrl(item.approved_image_url))}" alt="" loading="lazy"></div>`
         : `<div class="video-row-thumb">▶</div>`;
       return `
         <div class="video-row" id="vid-${item.id}">

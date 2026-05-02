@@ -447,6 +447,11 @@ function clearAlert(container) {
   if (el) el.innerHTML = '';
 }
 
+function thumbUrl(url) {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  return url.replace(/\/upload\/[^/]+\//, '/upload/q_60,f_auto,w_300,c_limit/');
+}
+
 function escHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;')

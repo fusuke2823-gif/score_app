@@ -301,14 +301,14 @@ function setEvent(id) {
 function renderCard(v) {
   const thumb = v.approved_image_url
     ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
-         <img class="video-thumb lazy-img" data-src="${escHtml(v.approved_image_url)}" alt="">
+         <img class="video-thumb lazy-img" data-src="${escHtml(thumbUrl(v.approved_image_url))}" alt="">
        </a>`
     : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
   const showAnon = v.is_anonymous;
   const iconLabel = showAnon ? t('ranking.anonymous').charAt(0) : escHtml(v.username.charAt(0));
   const rarityClass = v.equipped_icon_rarity ? ` icon-rarity-${escHtml(v.equipped_icon_rarity)}` : '';
   const iconInner = (!showAnon && v.equipped_icon_url)
-    ? `<img src="${escHtml(v.equipped_icon_url)}" alt="" class="${rarityClass.trim()}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" loading="lazy">`
+    ? `<img src="${escHtml(thumbUrl(v.equipped_icon_url))}" alt="" class="${rarityClass.trim()}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" loading="lazy">`
     : iconLabel;
   const iconEl = showAnon
     ? `<span class="rank-avatar" style="display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;color:#e8e8e8">${iconLabel}</span>`

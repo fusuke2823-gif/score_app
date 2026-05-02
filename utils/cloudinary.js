@@ -1,4 +1,5 @@
-const TRANSFORM = 'q_auto,f_auto,w_1080,c_limit';
+const TRANSFORM = 'q_auto,f_auto,w_800,c_limit';
+const THUMB_TRANSFORM = 'q_60,f_auto,w_300,c_limit';
 
 function optimizeUrl(url) {
   if (!url || !url.includes('res.cloudinary.com')) return url;
