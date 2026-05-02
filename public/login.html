@@ -46,7 +46,16 @@
     <h2 style="margin:0 0 6px;font-size:1.1rem">ユーザー名を設定</h2>
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">Googleアカウントで初めてログインしました。このアプリで使うユーザー名を設定してください。</p>
     <div id="google-modal-alert" style="margin-bottom:10px"></div>
-    <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:12px">
+    <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
+    <input class="form-input" id="google-oshi-input" type="text" placeholder="推しキャラクター（任意）" maxlength="100" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
+      <input class="form-input" id="google-twitter-input" type="text" placeholder="X (Twitter) ID（任意）" maxlength="15" autocomplete="off" style="flex:1">
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
+      <input class="form-input" id="google-youtube-input" type="text" placeholder="YouTubeハンドル（任意）" maxlength="30" autocomplete="off" style="flex:1">
+    </div>
     <button class="btn btn-primary" style="width:100%" onclick="submitGoogleUsername()">登録してログイン</button>
   </div>
 </div>
@@ -114,10 +123,13 @@ async function handleGoogleCredential(response) {
 async function submitGoogleUsername() {
   const username = document.getElementById('google-username-input').value.trim();
   if (!username) return;
+  const oshi_character = document.getElementById('google-oshi-input').value.trim() || undefined;
+  const twitter_username = document.getElementById('google-twitter-input').value.trim() || undefined;
+  const youtube_channel = document.getElementById('google-youtube-input').value.trim() || undefined;
   try {
     const data = await apiFetch('/auth/google/register', {
       method: 'POST',
-      body: JSON.stringify({ google_id: _pendingGoogleId, username })
+      body: JSON.stringify({ google_id: _pendingGoogleId, username, oshi_character, twitter_username, youtube_channel })
     });
     setAuth(data.token, data.user);
     const redirect = new URLSearchParams(location.search).get('redirect');

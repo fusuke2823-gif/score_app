@@ -242,10 +242,14 @@ router.post('/google/link', authenticateToken, async (req, res) => {
 
 // Google新規登録（ユーザー名確定）
 router.post('/google/register', async (req, res) => {
-  const { google_id, username, oshi_character, ref } = req.body;
+  const { google_id, username, oshi_character, ref, twitter_username, youtube_channel } = req.body;
   if (!google_id || !username) return res.status(400).json({ error: 'ユーザー名を入力してください' });
   if (username.length < 1 || username.length > 12)
     return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
+  if (twitter_username && !/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
+    return res.status(400).json({ error: 'X IDは英数字・アンダースコアのみ15文字以内で入力してください' });
+  if (youtube_channel && !/^[A-Za-z0-9._-]{3,30}$/.test(youtube_channel))
+    return res.status(400).json({ error: 'YouTubeハンドルは英数字・ピリオド・ハイフン・アンダースコアのみ3〜30文字で入力してください' });
 
   const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
 
@@ -255,8 +259,8 @@ router.post('/google/register', async (req, res) => {
       return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
 
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character, google_id) VALUES ($1, $2, $3, $4) RETURNING id, username, role, oshi_character',
-      [username, '', oshi_character || null, google_id]
+      'INSERT INTO users (username, password_hash, oshi_character, google_id, twitter_username, youtube_channel) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, oshi_character',
+      [username, '', oshi_character || null, google_id, twitter_username || null, youtube_channel || null]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
