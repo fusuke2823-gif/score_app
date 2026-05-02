@@ -47,7 +47,9 @@
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">Googleアカウントで初めてログインしました。このアプリで使うユーザー名を設定してください。</p>
     <div id="google-modal-alert" style="margin-bottom:10px"></div>
     <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
-    <input class="form-input" id="google-oshi-input" type="text" placeholder="推しキャラクター（任意）" maxlength="100" style="margin-bottom:10px">
+    <select class="form-input" id="google-oshi-input" style="margin-bottom:10px">
+      <option value="">推しキャラクター（任意）</option>
+    </select>
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
       <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
       <input class="form-input" id="google-twitter-input" type="text" placeholder="X (Twitter) ID（任意）" maxlength="15" autocomplete="off" style="flex:1">
@@ -69,6 +71,11 @@ if (new URLSearchParams(location.search).get('expired')) {
 }
 
 let _pendingGoogleId = null;
+
+fetch('/api/charts/game-data').then(r => r.json()).then(({ characters }) => {
+  const opts = characters.map(c => `<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('');
+  document.getElementById('google-oshi-input').innerHTML += opts;
+}).catch(() => {});
 
 // アプリ内ブラウザ検出（LINE・X等ではGoogle OAuthがブロックされる）
 function isInAppBrowser() {

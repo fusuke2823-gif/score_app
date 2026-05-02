@@ -36,7 +36,9 @@
       </div>
       <div class="form-group">
         <label class="form-label" data-i18n="register.oshi">推しキャラクター（任意）</label>
-        <input class="form-input" type="text" id="oshi" maxlength="100" data-i18n-ph="register.oshi_ph" placeholder="例: 茅森月歌">
+        <select class="form-input" id="oshi">
+          <option value="">選択しない</option>
+        </select>
       </div>
       <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-card2);border-radius:8px;padding:8px 12px;margin-bottom:4px">
         ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。
@@ -83,6 +85,17 @@
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">このアプリで使うユーザー名を設定してください。</p>
     <div id="google-modal-alert" style="margin-bottom:10px"></div>
     <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
+    <select class="form-input" id="google-oshi-input" style="margin-bottom:10px">
+      <option value="">推しキャラクター（任意）</option>
+    </select>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
+      <input class="form-input" id="google-twitter-input" type="text" placeholder="X (Twitter) ID（任意）" maxlength="15" autocomplete="off" style="flex:1">
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
+      <input class="form-input" id="google-youtube-input" type="text" placeholder="YouTubeハンドル（任意）" maxlength="30" autocomplete="off" style="flex:1">
+    </div>
     <button class="btn btn-primary" style="width:100%" onclick="submitGoogleUsername()">登録してログイン</button>
   </div>
 </div>
@@ -93,6 +106,12 @@ applyI18n();
 if (getToken()) location.href = '/index.html';
 
 let _pendingGoogleId = null;
+
+fetch('/api/charts/game-data').then(r => r.json()).then(({ characters }) => {
+  const opts = characters.map(c => `<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('');
+  document.getElementById('oshi').innerHTML += opts;
+  document.getElementById('google-oshi-input').innerHTML += opts;
+}).catch(() => {});
 
 function isInAppBrowser() {
   return /Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\b/i.test(navigator.userAgent);
@@ -144,10 +163,13 @@ async function submitGoogleUsername() {
   const username = document.getElementById('google-username-input').value.trim();
   if (!username) return;
   const ref = getParam('ref') || '';
+  const oshi_character = document.getElementById('google-oshi-input').value || undefined;
+  const twitter_username = document.getElementById('google-twitter-input').value.trim() || undefined;
+  const youtube_channel = document.getElementById('google-youtube-input').value.trim() || undefined;
   try {
     const data = await apiFetch('/auth/google/register', {
       method: 'POST',
-      body: JSON.stringify({ google_id: _pendingGoogleId, username, ref })
+      body: JSON.stringify({ google_id: _pendingGoogleId, username, ref, oshi_character, twitter_username, youtube_channel })
     });
     setAuth(data.token, data.user);
     location.href = '/index.html';
