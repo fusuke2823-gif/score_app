@@ -226,8 +226,7 @@ function closeAnonModal() {
 
 async function submitWithAnon(isAnon) {
   closeAnonModal();
-  _pendingIsAnon = isAnon;
-  await checkYtKeepThenSubmit();
+  await doSubmit(isAnon);
 }
 
 async function doSubmit(isAnon) {
