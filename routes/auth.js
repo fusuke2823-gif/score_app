@@ -258,9 +258,10 @@ router.post('/google/register', async (req, res) => {
     if (existing.rows.length > 0)
       return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
 
+    const user_code = await uniqueUserCode();
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character, google_id, twitter_username, youtube_channel) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, oshi_character',
-      [username, '', oshi_character || null, google_id, twitter_username || null, youtube_channel || null]
+      'INSERT INTO users (username, password_hash, oshi_character, google_id, twitter_username, youtube_channel, user_code) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, username, role, oshi_character, user_code',
+      [username, '', oshi_character || null, google_id, twitter_username || null, youtube_channel || null, user_code]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
