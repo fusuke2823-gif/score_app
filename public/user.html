@@ -224,7 +224,9 @@ async function load() {
         </div>
         <div class="form-group">
           <label class="form-label">${t('user.oshi_field')}</label>
-          <input class="form-input" id="edit-oshi" type="text" value="${escHtml(data.oshi_character || '')}" maxlength="50" placeholder="${t('user.oshi_ph')}">
+          <select class="form-input" id="edit-oshi">
+            <option value="">選択しない</option>
+          </select>
         </div>
         <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-card2);border-radius:8px;padding:8px 12px;margin-bottom:4px">
           ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。
@@ -303,6 +305,20 @@ async function load() {
           </div>`
       }
     `;
+  if (isMe) {
+    fetch('/api/charts/game-data').then(r => r.json()).then(({ characters }) => {
+      const sel = document.getElementById('edit-oshi');
+      if (!sel) return;
+      const current = data.oshi_character || '';
+      characters.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.name;
+        opt.textContent = c.name;
+        if (c.name === current) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }).catch(() => {});
+  }
   } catch (err) {
     showAlert('#alert', err.message);
     document.getElementById('content').innerHTML = '';
