@@ -120,7 +120,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
            SELECT s.event_id, s.user_id,
              RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
            FROM scores s
-           WHERE s.approved_score IS NOT NULL
+           JOIN users u ON u.id = s.user_id
+           WHERE s.approved_score IS NOT NULL AND u.is_internal = TRUE
            GROUP BY s.event_id, s.user_id
          )
          SELECT event_id, rank FROM event_ranks WHERE user_id = $1`,
@@ -131,10 +132,11 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
       const intAttrRankResult = await pool.query(
         `WITH attr_ranks AS (
-           SELECT event_id, attribute, user_id,
-             RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank
-           FROM scores
-           WHERE approved_score IS NOT NULL
+           SELECT s.event_id, s.attribute, s.user_id,
+             RANK() OVER (PARTITION BY s.event_id, s.attribute ORDER BY s.approved_score DESC) AS rank
+           FROM scores s
+           JOIN users u ON u.id = s.user_id
+           WHERE s.approved_score IS NOT NULL AND u.is_internal = TRUE
          )
          SELECT event_id, attribute, rank FROM attr_ranks WHERE user_id = $1`,
         [req.params.id]
