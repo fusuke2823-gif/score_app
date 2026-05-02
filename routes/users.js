@@ -39,6 +39,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const userResult = await pool.query(
       `SELECT u.id, u.username, u.oshi_character, u.created_at, u.equipped_title_id,
+              u.is_internal,
               u.comp_rank, u.rank_points, u.s_rate, u.x_rate, u.twitter_username, u.youtube_channel,
               CASE WHEN u.comp_rank = 'Ex' THEN
                 (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.comp_rank = 'Ex' AND u2.x_rate > u.x_rate)
@@ -111,9 +112,9 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const extAttrRankMap = {};
     extAttrRankResult.rows.forEach(r => { extAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
 
-    // 内部順位（全承認済みスコア対象）― 内部ユーザーが閲覧時のみ計算
+    // 内部順位 ― 閲覧者・対象者ともに内部ユーザーの場合のみ計算
     let intRankMap = null, intAttrRankMap = null;
-    if (viewerIsInternal) {
+    if (viewerIsInternal && user.is_internal) {
       const intRankResult = await pool.query(
         `WITH event_ranks AS (
            SELECT s.event_id, s.user_id,
