@@ -301,7 +301,7 @@ function setEvent(id) {
 function renderCard(v) {
   const thumb = v.approved_image_url
     ? `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer">
-         <img class="video-thumb lazy-img" data-src="${escHtml(thumbUrl(v.approved_image_url))}" alt="">
+         <img class="video-thumb lazy-img" data-src="${escHtml(mediumUrl(v.approved_image_url))}" alt="">
        </a>`
     : `<a href="${escHtml(v.youtube_url)}" target="_blank" rel="noopener noreferrer" class="video-thumb-placeholder">▶</a>`;
   const showAnon = v.is_anonymous;

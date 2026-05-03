@@ -452,6 +452,11 @@ function thumbUrl(url) {
   return url.replace(/\/upload\/[^/]+\//, '/upload/q_60,f_auto,w_300,c_limit/');
 }
 
+function mediumUrl(url) {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  return url.replace(/\/upload\/[^/]+\//, '/upload/q_auto,f_auto,w_640,c_limit/');
+}
+
 function escHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;')
