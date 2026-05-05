@@ -191,7 +191,7 @@ const _i18n = {
     'event.before':'尚未開始','event.ended':'已結束','event.active':'進行中',
     'event.hours_left':'剩{0}小時','event.days_left':'剩{0}天',
     'event.empty':'目前沒有公開的活動','event.back':'← 活動列表',
-    'index.title':'Heaven Burns Red 排行榜','index.subtitle':'製作：つんつく',
+    'index.title':'緋染天空 排行榜','index.subtitle':'製作：つんつく',
     'ranking.all_on':'全屬性ON','ranking.all_off':'全屬性OFF','ranking.submit_btn':'上傳分數',
     'ranking.col_score':'分數','ranking.col_title':'稱號',
     'ranking.th_rank':'排名','ranking.th_attr':'屬性','ranking.th_player':'玩家',
