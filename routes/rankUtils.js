@@ -88,10 +88,10 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
     if (rsPt.length === 0) {
       recentPt = 0;
     } else if (rsPt.length === 1) {
-      const fill = rsPt[0] * 0.9;
+      const fill = rsPt[0] * 0.8;
       recentPt = (rsPt[0] + fill + fill) / 3;
     } else if (rsPt.length === 2) {
-      const fill = ((rsPt[0] + rsPt[1]) / 2) * 0.9;
+      const fill = ((rsPt[0] + rsPt[1]) / 2) * 0.8;
       recentPt = (rsPt[0] + rsPt[1] + fill) / 3;
     } else {
       recentPt = (rsPt[0] + rsPt[1] + rsPt[2]) / 3;
