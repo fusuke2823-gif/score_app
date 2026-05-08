@@ -120,9 +120,9 @@ function renderTable(rows) {
     const rateDisp = r.x_rate != null ? Math.floor(r.x_rate) : '-';
     const fc = r.equipped_frame || '';
     const fr = fc ? `has-frame ${fc}` : '';
-    const rankLabel = `<span style="display:inline-flex;align-items:center;gap:4px">
+    const rankLabel = `<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">
       <img src="/img/rank_${r.comp_rank.toLowerCase()}.png" style="width:28px;height:28px;object-fit:contain" alt="${r.comp_rank}">
-      ${r.comp_rank === 'Ex' && r.ex_rank != null ? `<span style="font-weight:700;font-size:0.9rem;color:#a855f7">${r.ex_rank}位</span>` : ''}
+      ${r.comp_rank === 'Ex' && r.ex_rank != null ? `<span style="font-weight:700;font-size:0.9rem;color:#a855f7;white-space:nowrap">${r.ex_rank}位</span>` : ''}
     </span>`;
     const avatarInner = r.equipped_icon_url && showImages
       ? `<img src="${escHtml(thumbUrl(r.equipped_icon_url))}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" loading="lazy">`
