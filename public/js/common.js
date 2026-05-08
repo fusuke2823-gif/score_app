@@ -755,7 +755,8 @@ async function initInterimDistributionNotice() {
             <tr><td>11〜20位</td><td>${extRankPts.ext_rank_pts_11_20 ?? 60}pt</td></tr>
             <tr><td>21〜30位</td><td>${extRankPts.ext_rank_pts_21_30 ?? 40}pt</td></tr>
             <tr><td>31〜50位</td><td>${extRankPts.ext_rank_pts_31_50 ?? 20}pt</td></tr>
-            <tr><td>51〜100位</td><td>${extRankPts.ext_rank_pts_51_100 ?? 10}pt</td></tr>
+            <tr><td>51〜75位</td><td>${extRankPts.ext_rank_pts_51_75 ?? 10}pt</td></tr>
+            <tr><td>76〜100位</td><td>${extRankPts.ext_rank_pts_76_100 ?? 7}pt</td></tr>
             <tr><td>101位以降</td><td>${extRankPts.ext_rank_pts_101plus ?? 5}pt</td></tr>
           </table>
           <div class="rank-pts-note">${t('dist.note')}</div>

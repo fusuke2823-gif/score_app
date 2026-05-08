@@ -593,7 +593,7 @@ router.post('/events/:id/distribute-interim-external', async (req, res) => {
     );
 
     const rpResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_75','ext_rank_pts_76_100','ext_rank_pts_101plus')"
     );
     const rp = {};
     rpResult.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
@@ -603,7 +603,8 @@ router.post('/events/:id/distribute-interim-external', async (req, res) => {
       if (rank <= 20)  return rp.ext_rank_pts_11_20  ?? 60;
       if (rank <= 30)  return rp.ext_rank_pts_21_30  ?? 40;
       if (rank <= 50)  return rp.ext_rank_pts_31_50  ?? 20;
-      if (rank <= 100) return rp.ext_rank_pts_51_100 ?? 10;
+      if (rank <= 75)  return rp.ext_rank_pts_51_75  ?? 10;
+      if (rank <= 100) return rp.ext_rank_pts_76_100 ?? 7;
       return rp.ext_rank_pts_101plus ?? 5;
     };
 
@@ -832,7 +833,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
     );
 
     const rpResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_75','ext_rank_pts_76_100','ext_rank_pts_101plus')"
     );
     const rp = {};
     rpResult.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
@@ -842,7 +843,8 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       if (rank <= 20)  return rp.ext_rank_pts_11_20  ?? 60;
       if (rank <= 30)  return rp.ext_rank_pts_21_30  ?? 40;
       if (rank <= 50)  return rp.ext_rank_pts_31_50  ?? 20;
-      if (rank <= 100) return rp.ext_rank_pts_51_100 ?? 10;
+      if (rank <= 75)  return rp.ext_rank_pts_51_75  ?? 10;
+      if (rank <= 100) return rp.ext_rank_pts_76_100 ?? 7;
       return rp.ext_rank_pts_101plus ?? 5;
     };
 
@@ -1224,7 +1226,7 @@ router.put('/settings/rank-pts', async (req, res) => {
 router.get('/settings/ext-rank-pts', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_75','ext_rank_pts_76_100','ext_rank_pts_101plus')"
     );
     const map = {};
     result.rows.forEach(r => { map[r.key] = parseInt(r.value); });
@@ -1236,7 +1238,7 @@ router.get('/settings/ext-rank-pts', async (req, res) => {
 });
 
 router.put('/settings/ext-rank-pts', async (req, res) => {
-  const keys = ['ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus'];
+  const keys = ['ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_75','ext_rank_pts_76_100','ext_rank_pts_101plus'];
   try {
     for (const key of keys) {
       if (req.body[key] !== undefined) {

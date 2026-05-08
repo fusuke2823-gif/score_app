@@ -163,7 +163,7 @@ router.get('/final-distributions/recent', authenticateToken, async (req, res) =>
 router.get('/ext-rank-pts', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_100','ext_rank_pts_101plus')"
+      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_75','ext_rank_pts_76_100','ext_rank_pts_101plus')"
     );
     const rp = {};
     result.rows.forEach(r => { rp[r.key] = parseInt(r.value); });

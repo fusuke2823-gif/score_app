@@ -113,7 +113,8 @@
         <div class="form-group"><label class="form-label">11〜20位</label><input class="form-input" type="number" id="erp-11-20" min="0" placeholder="60"></div>
         <div class="form-group"><label class="form-label">21〜30位</label><input class="form-input" type="number" id="erp-21-30" min="0" placeholder="40"></div>
         <div class="form-group"><label class="form-label">31〜50位</label><input class="form-input" type="number" id="erp-31-50" min="0" placeholder="20"></div>
-        <div class="form-group"><label class="form-label">51〜100位</label><input class="form-input" type="number" id="erp-51-100" min="0" placeholder="10"></div>
+        <div class="form-group"><label class="form-label">51〜75位</label><input class="form-input" type="number" id="erp-51-75" min="0" placeholder="10"></div>
+        <div class="form-group"><label class="form-label">76〜100位</label><input class="form-input" type="number" id="erp-76-100" min="0" placeholder="7"></div>
         <div class="form-group"><label class="form-label">101位以降</label><input class="form-input" type="number" id="erp-101plus" min="0" placeholder="5"></div>
       </div>
       <button class="btn btn-primary" onclick="saveExtRankPts()">保存する</button>
@@ -810,7 +811,8 @@ async function loadExtRankPts() {
     document.getElementById('erp-11-20').value  = r.ext_rank_pts_11_20  ?? '';
     document.getElementById('erp-21-30').value  = r.ext_rank_pts_21_30  ?? '';
     document.getElementById('erp-31-50').value  = r.ext_rank_pts_31_50  ?? '';
-    document.getElementById('erp-51-100').value = r.ext_rank_pts_51_100 ?? '';
+    document.getElementById('erp-51-75').value  = r.ext_rank_pts_51_75  ?? '';
+    document.getElementById('erp-76-100').value = r.ext_rank_pts_76_100 ?? '';
     document.getElementById('erp-101plus').value= r.ext_rank_pts_101plus ?? '';
   } catch (err) { showAlert('#ext-rank-pts-alert', err.message); }
 }
@@ -822,7 +824,8 @@ async function saveExtRankPts() {
     ext_rank_pts_11_20:  parseInt(document.getElementById('erp-11-20').value),
     ext_rank_pts_21_30:  parseInt(document.getElementById('erp-21-30').value),
     ext_rank_pts_31_50:  parseInt(document.getElementById('erp-31-50').value),
-    ext_rank_pts_51_100: parseInt(document.getElementById('erp-51-100').value),
+    ext_rank_pts_51_75:  parseInt(document.getElementById('erp-51-75').value),
+    ext_rank_pts_76_100: parseInt(document.getElementById('erp-76-100').value),
     ext_rank_pts_101plus:parseInt(document.getElementById('erp-101plus').value),
   };
   try {
