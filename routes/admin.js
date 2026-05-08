@@ -671,13 +671,23 @@ router.get('/events/distributable', async (req, res) => {
 
 // 称号付与ヘルパー（内部・外部共通）
 async function awardTitle(client, userId, name, description, scope) {
-  const tr = await client.query(
-    'INSERT INTO titles (name, description, point_cost, is_active, scope) VALUES ($1, $2, NULL, TRUE, $3) RETURNING id',
-    [name, description, scope]
+  const existing = await client.query(
+    'SELECT id FROM titles WHERE name=$1 AND scope=$2',
+    [name, scope]
   );
+  let titleId;
+  if (existing.rows.length > 0) {
+    titleId = existing.rows[0].id;
+  } else {
+    const tr = await client.query(
+      'INSERT INTO titles (name, description, point_cost, is_active, scope) VALUES ($1, $2, NULL, TRUE, $3) RETURNING id',
+      [name, description, scope]
+    );
+    titleId = tr.rows[0].id;
+  }
   await client.query(
     'INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-    [userId, tr.rows[0].id]
+    [userId, titleId]
   );
   return name;
 }
@@ -891,10 +901,10 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
     // 外部称号付与（属性別）
     const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
     const attrDefs = [
-      { key: 'ext_attr1',    maxRank: 1,  label: '1位' },
-      { key: 'ext_attr2',    maxRank: 2,  label: '2位' },
-      { key: 'ext_attr3',    maxRank: 3,  label: '3位' },
-      { key: 'ext_attr_top5', maxRank: 5, label: 'TOP5' },
+      { key: 'ext_attr1',     exactRank: 1, label: '1位' },
+      { key: 'ext_attr2',     exactRank: 2, label: '2位' },
+      { key: 'ext_attr3',     exactRank: 3, label: '3位' },
+      { key: 'ext_attr_top5', maxRank: 5,   label: 'TOP5' },
     ];
     for (const attr of ATTRIBUTES) {
       // 属性別ランキング取得
@@ -908,7 +918,8 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       );
       for (const def of attrDefs) {
         if (!award_titles[`${def.key}_${attr}`]) continue;
-        for (const row of attrRankResult.rows.filter(r => Number(r.rank) <= def.maxRank)) {
+        for (const row of attrRankResult.rows.filter(r =>
+          def.exactRank != null ? Number(r.rank) === def.exactRank : Number(r.rank) <= def.maxRank)) {
           awardedTitles.push(await awardTitle(client, row.user_id,
             `${event.name} ${attr}属性${def.label}`,
             `${event.name} ${attr}属性${def.label}達成`, 'external'));
