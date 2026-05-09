@@ -877,34 +877,33 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       distributed++;
     }
 
-    // 外部称号付与（総合）
+    // 外部称号付与（総合）― 各ユーザーに最上位1称号のみ付与
     const awardedTitles = [];
     const overallDefs = [
-      { key: 'ext_rank1',  ranks: [1],        label: '優勝' },
-      { key: 'ext_rank2',  ranks: [2],        label: '準優勝' },
-      { key: 'ext_rank3',  ranks: [3],        label: '第3位' },
-      { key: 'ext_top10',  ranks: null, maxRank: 10,  label: 'TOP10' },
-      { key: 'ext_top30',  ranks: null, maxRank: 30,  label: 'TOP30' },
-      { key: 'ext_top50',  ranks: null, maxRank: 50,  label: 'TOP50' },
+      { key: 'ext_rank1', qualify: r => r === 1,        label: '優勝' },
+      { key: 'ext_rank2', qualify: r => r === 2,        label: '準優勝' },
+      { key: 'ext_rank3', qualify: r => r === 3,        label: '第3位' },
+      { key: 'ext_top10', qualify: r => r <= 10,        label: 'TOP10' },
+      { key: 'ext_top30', qualify: r => r <= 30,        label: 'TOP30' },
+      { key: 'ext_top50', qualify: r => r <= 50,        label: 'TOP50' },
     ];
-    for (const def of overallDefs) {
-      if (!award_titles[def.key]) continue;
-      const targets = def.ranks
-        ? rankResult.rows.filter(r => def.ranks.includes(Number(r.rank)))
-        : rankResult.rows.filter(r => Number(r.rank) <= def.maxRank);
-      for (const row of targets) {
+    const enabledOverall = overallDefs.filter(d => award_titles[d.key]);
+    for (const row of rankResult.rows) {
+      const rank = Number(row.rank);
+      const bestDef = enabledOverall.find(d => d.qualify(rank));
+      if (bestDef) {
         awardedTitles.push(await awardTitle(client, row.user_id,
-          `${event.name} ${def.label}`, `${event.name} ${def.label}達成`, 'external'));
+          `${event.name} ${bestDef.label}`, `${event.name} ${bestDef.label}達成`, 'external'));
       }
     }
 
-    // 外部称号付与（属性別）
+    // 外部称号付与（属性別）― 各ユーザーに最上位1称号のみ付与
     const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
     const attrDefs = [
-      { key: 'ext_attr1',     exactRank: 1, label: '1位' },
-      { key: 'ext_attr2',     exactRank: 2, label: '2位' },
-      { key: 'ext_attr3',     exactRank: 3, label: '3位' },
-      { key: 'ext_attr_top5', maxRank: 5,   label: 'TOP5' },
+      { key: 'ext_attr1',     qualify: r => r === 1, label: '1位' },
+      { key: 'ext_attr2',     qualify: r => r === 2, label: '2位' },
+      { key: 'ext_attr3',     qualify: r => r === 3, label: '3位' },
+      { key: 'ext_attr_top5', qualify: r => r <= 5,  label: 'TOP5' },
     ];
     for (const attr of ATTRIBUTES) {
       // 属性別ランキング取得
@@ -916,32 +915,32 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
          GROUP BY s.user_id`,
         [req.params.id, attr]
       );
-      for (const def of attrDefs) {
-        if (!award_titles[`${def.key}_${attr}`]) continue;
-        for (const row of attrRankResult.rows.filter(r =>
-          def.exactRank != null ? Number(r.rank) === def.exactRank : Number(r.rank) <= def.maxRank)) {
+      const enabledAttr = attrDefs.filter(d => award_titles[`${d.key}_${attr}`]);
+      for (const row of attrRankResult.rows) {
+        const rank = Number(row.rank);
+        const bestDef = enabledAttr.find(d => d.qualify(rank));
+        if (bestDef) {
           awardedTitles.push(await awardTitle(client, row.user_id,
-            `${event.name} ${attr}属性${def.label}`,
-            `${event.name} ${attr}属性${def.label}達成`, 'external'));
+            `${event.name} ${attr}属性${bestDef.label}`,
+            `${event.name} ${attr}属性${bestDef.label}達成`, 'external'));
         }
         // 属性1位3回達成で「X神」称号（外部）
-        if (def.key === 'ext_attr1') {
-          for (const row of attrRankResult.rows.filter(r => Number(r.rank) <= 1)) {
-            const countResult = await client.query(
-              `SELECT COUNT(*) FROM user_titles ut JOIN titles t ON t.id=ut.title_id
-               WHERE ut.user_id=$1 AND t.name LIKE $2 AND t.scope='external'`,
-              [row.user_id, `%${attr}属性1位`]
+        if (rank === 1 && award_titles[`ext_attr1_${attr}`]) {
+          const countResult = await client.query(
+            `SELECT COUNT(*) FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+             WHERE ut.user_id=$1 AND t.name LIKE $2 AND t.scope='external'`,
+            [row.user_id, `%${attr}属性1位`]
+          );
+          if (parseInt(countResult.rows[0].count) >= 3) {
+            const godTitle = `${attr}神`;
+            const already = await client.query(
+              `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+               WHERE ut.user_id=$1 AND t.name=$2 AND t.scope='external'`,
+              [row.user_id, godTitle]
             );
-            if (parseInt(countResult.rows[0].count) >= 3) {
-              const godTitle = `${attr}神`;
-              const already = await client.query(
-                `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id
-                 WHERE ut.user_id=$1 AND t.name=$2 AND t.scope='external'`,
-                [row.user_id, godTitle]
-              );
-              if (already.rows.length === 0) {
-                awardedTitles.push(await awardTitle(client, row.user_id,
-                  godTitle, `${attr}属性1位を3回達成`, 'external'));
+            if (already.rows.length === 0) {
+              awardedTitles.push(await awardTitle(client, row.user_id,
+                godTitle, `${attr}属性1位を3回達成`, 'external'));
               }
             }
           }

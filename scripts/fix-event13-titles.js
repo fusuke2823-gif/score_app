@@ -81,32 +81,31 @@ async function run() {
 
     const awardedTitles = [];
 
-    // 4. 総合称号（全て付与）
+    // 4. 総合称号（各ユーザーに最上位1称号のみ付与）
     const overallDefs = [
-      { ranks: [1],        label: '優勝' },
-      { ranks: [2],        label: '準優勝' },
-      { ranks: [3],        label: '第3位' },
-      { maxRank: 10,       label: 'TOP10' },
-      { maxRank: 30,       label: 'TOP30' },
-      { maxRank: 50,       label: 'TOP50' },
+      { qualify: r => r === 1,  label: '優勝' },
+      { qualify: r => r === 2,  label: '準優勝' },
+      { qualify: r => r === 3,  label: '第3位' },
+      { qualify: r => r <= 10,  label: 'TOP10' },
+      { qualify: r => r <= 30,  label: 'TOP30' },
+      { qualify: r => r <= 50,  label: 'TOP50' },
     ];
-    for (const def of overallDefs) {
-      const targets = def.ranks
-        ? rankResult.rows.filter(r => def.ranks.includes(Number(r.rank)))
-        : rankResult.rows.filter(r => Number(r.rank) <= def.maxRank);
-      for (const row of targets) {
+    for (const row of rankResult.rows) {
+      const rank = Number(row.rank);
+      const bestDef = overallDefs.find(d => d.qualify(rank));
+      if (bestDef) {
         const t = await awardTitle(client, row.user_id,
-          `${event.name} ${def.label}`, `${event.name} ${def.label}達成`, 'external');
-        awardedTitles.push(`${t}(${row.rank}位)`);
+          `${event.name} ${bestDef.label}`, `${event.name} ${bestDef.label}達成`, 'external');
+        awardedTitles.push(`${t}(${rank}位)`);
       }
     }
 
-    // 5. 属性別称号（全て付与）
+    // 5. 属性別称号（各ユーザーに最上位1称号のみ付与）
     const attrDefs = [
-      { exactRank: 1, label: '1位' },
-      { exactRank: 2, label: '2位' },
-      { exactRank: 3, label: '3位' },
-      { maxRank: 5,   label: 'TOP5' },
+      { qualify: r => r === 1, label: '1位' },
+      { qualify: r => r === 2, label: '2位' },
+      { qualify: r => r === 3, label: '3位' },
+      { qualify: r => r <= 5,  label: 'TOP5' },
     ];
     for (const attr of ATTRIBUTES) {
       const attrRankResult = await client.query(
@@ -117,35 +116,32 @@ async function run() {
          GROUP BY s.user_id`,
         [EVENT_ID, attr]
       );
-      for (const def of attrDefs) {
-        const rows = attrRankResult.rows.filter(r =>
-          def.exactRank != null ? Number(r.rank) === def.exactRank : Number(r.rank) <= def.maxRank
-        );
-        for (const row of rows) {
+      for (const row of attrRankResult.rows) {
+        const rank = Number(row.rank);
+        const bestDef = attrDefs.find(d => d.qualify(rank));
+        if (bestDef) {
           const t = await awardTitle(client, row.user_id,
-            `${event.name} ${attr}属性${def.label}`,
-            `${event.name} ${attr}属性${def.label}達成`, 'external');
-          awardedTitles.push(`${t}`);
+            `${event.name} ${attr}属性${bestDef.label}`,
+            `${event.name} ${attr}属性${bestDef.label}達成`, 'external');
+          awardedTitles.push(t);
         }
         // 属性1位3回達成で「X神」称号
-        if (def.exactRank === 1) {
-          for (const row of attrRankResult.rows.filter(r => Number(r.rank) === 1)) {
-            const countRes = await client.query(
-              `SELECT COUNT(*) FROM user_titles ut JOIN titles t ON t.id=ut.title_id
-               WHERE ut.user_id=$1 AND t.name LIKE $2 AND t.scope='external'`,
-              [row.user_id, `%${attr}属性1位`]
+        if (rank === 1) {
+          const countRes = await client.query(
+            `SELECT COUNT(*) FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+             WHERE ut.user_id=$1 AND t.name LIKE $2 AND t.scope='external'`,
+            [row.user_id, `%${attr}属性1位`]
+          );
+          if (parseInt(countRes.rows[0].count) >= 3) {
+            const godTitle = `${attr}神`;
+            const already = await client.query(
+              `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id
+               WHERE ut.user_id=$1 AND t.name=$2 AND t.scope='external'`,
+              [row.user_id, godTitle]
             );
-            if (parseInt(countRes.rows[0].count) >= 3) {
-              const godTitle = `${attr}神`;
-              const already = await client.query(
-                `SELECT 1 FROM user_titles ut JOIN titles t ON t.id=ut.title_id
-                 WHERE ut.user_id=$1 AND t.name=$2 AND t.scope='external'`,
-                [row.user_id, godTitle]
-              );
-              if (already.rows.length === 0) {
-                const t = await awardTitle(client, row.user_id, godTitle, `${attr}属性1位を3回達成`, 'external');
-                awardedTitles.push(t);
-              }
+            if (already.rows.length === 0) {
+              const t = await awardTitle(client, row.user_id, godTitle, `${attr}属性1位を3回達成`, 'external');
+              awardedTitles.push(t);
             }
           }
         }
