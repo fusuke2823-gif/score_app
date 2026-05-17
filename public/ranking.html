@@ -261,7 +261,7 @@ async function loadEvent() {
           <div id="notes-content" style="display:none">
             <ul style="margin:12px 0 0 0;padding:0;list-style:none">
               ${event.notes.map((n, i) => `
-                <li style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openNoteModal(${i})" data-note-idx="${i}">
+                <li style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="openNoteModal(${i})" data-note-idx="${i}">
                   ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:24px;height:24px;object-fit:contain;flex-shrink:0">` : '<span style="width:24px;flex-shrink:0"></span>'}
                   <span style="font-size:0.9rem;font-weight:bold">${escHtml(n.name)}</span>
                   ${n.description ? '<span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto">▶</span>' : ''}
