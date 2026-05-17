@@ -176,13 +176,24 @@ router.get('/event-notes', async (req, res) => {
   }
 });
 
-router.post('/event-notes', async (req, res) => {
-  const { name, description, icon_url } = req.body;
+router.post('/event-notes', upload.single('icon'), async (req, res) => {
+  const { name, description } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '名前は必須です' });
   try {
+    let iconUrl = null;
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: 'hbr-ranking/event-notes', resource_type: 'image' }, (err, r) => {
+            if (err) reject(err); else resolve(r);
+          })
+          .end(req.file.buffer);
+      });
+      iconUrl = result.secure_url;
+    }
     const r = await pool.query(
       `INSERT INTO event_notes (name, description, icon_url) VALUES ($1,$2,$3) RETURNING *`,
-      [name.trim(), description || null, icon_url || null]
+      [name.trim(), description || null, iconUrl]
     );
     res.json(r.rows[0]);
   } catch (err) {
@@ -191,15 +202,27 @@ router.post('/event-notes', async (req, res) => {
   }
 });
 
-router.put('/event-notes/:id', async (req, res) => {
-  const { name, description, icon_url } = req.body;
+router.put('/event-notes/:id', upload.single('icon'), async (req, res) => {
+  const { name, description } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: '名前は必須です' });
   try {
+    const existing = await pool.query(`SELECT icon_url FROM event_notes WHERE id=$1`, [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
+    let iconUrl = existing.rows[0].icon_url;
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: 'hbr-ranking/event-notes', resource_type: 'image' }, (err, r) => {
+            if (err) reject(err); else resolve(r);
+          })
+          .end(req.file.buffer);
+      });
+      iconUrl = result.secure_url;
+    }
     const r = await pool.query(
       `UPDATE event_notes SET name=$1, description=$2, icon_url=$3 WHERE id=$4 RETURNING *`,
-      [name.trim(), description || null, icon_url || null, req.params.id]
+      [name.trim(), description || null, iconUrl, req.params.id]
     );
-    if (r.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
     res.json(r.rows[0]);
   } catch (err) {
     console.error(err);

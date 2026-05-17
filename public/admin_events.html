@@ -65,8 +65,9 @@
           <textarea class="form-textarea" id="note-edit-desc" rows="2"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">アイコンURL（任意）</label>
-          <input class="form-input" type="text" id="note-edit-icon">
+          <label class="form-label">アイコン（任意）</label>
+          <div id="note-edit-icon-preview" style="margin-bottom:6px;display:none"><img id="note-edit-icon-img" src="" style="width:36px;height:36px;object-fit:contain;border-radius:4px;border:1px solid var(--border)"></div>
+          <input class="form-input" type="file" id="note-edit-icon" accept="image/*" style="padding:8px">
         </div>
         <div id="note-edit-alert" style="margin-bottom:8px"></div>
         <button type="submit" class="btn btn-primary btn-sm">保存</button>
@@ -274,19 +275,17 @@
     </div>
     <div id="note-section-content" style="display:none;margin-top:16px">
       <form id="note-create-form" style="margin-bottom:16px">
-        <div class="enemy-form-grid">
-          <div class="form-group">
-            <label class="form-label">名前</label>
-            <input class="form-input" type="text" id="note-create-name" placeholder="特記名" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">アイコンURL（任意）</label>
-            <input class="form-input" type="text" id="note-create-icon" placeholder="https://...">
-          </div>
+        <div class="form-group">
+          <label class="form-label">名前</label>
+          <input class="form-input" type="text" id="note-create-name" placeholder="特記名" required>
         </div>
         <div class="form-group">
           <label class="form-label">説明</label>
           <textarea class="form-textarea" id="note-create-desc" rows="2" placeholder="詳細説明（タップで表示）"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">アイコン（任意）</label>
+          <input class="form-input" type="file" id="note-create-icon" accept="image/*" style="padding:8px">
         </div>
         <div id="note-create-alert" style="margin-bottom:8px"></div>
         <button type="submit" class="btn btn-primary btn-sm">追加</button>
@@ -628,14 +627,12 @@ document.getElementById('note-create-form').addEventListener('submit', async e =
   const alertEl = document.getElementById('note-create-alert');
   alertEl.innerHTML = '';
   try {
-    await apiFetch('/admin/event-notes', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: document.getElementById('note-create-name').value,
-        description: document.getElementById('note-create-desc').value,
-        icon_url: document.getElementById('note-create-icon').value.trim() || null
-      })
-    });
+    const fd = new FormData();
+    fd.append('name', document.getElementById('note-create-name').value);
+    fd.append('description', document.getElementById('note-create-desc').value);
+    const iconFile = document.getElementById('note-create-icon').files[0];
+    if (iconFile) fd.append('icon', iconFile);
+    await apiFormFetch('/admin/event-notes', fd);
     document.getElementById('note-create-form').reset();
     alertEl.innerHTML = '<div class="alert alert-success">追加しました</div>';
     await loadNoteMaster(document.getElementById('note-master-search').value);
@@ -658,7 +655,11 @@ function openNoteEditModal(id) {
   document.getElementById('note-edit-id').value = n.id;
   document.getElementById('note-edit-name').value = n.name;
   document.getElementById('note-edit-desc').value = n.description || '';
-  document.getElementById('note-edit-icon').value = n.icon_url || '';
+  document.getElementById('note-edit-icon').value = '';
+  const preview = document.getElementById('note-edit-icon-preview');
+  const img = document.getElementById('note-edit-icon-img');
+  if (n.icon_url) { img.src = n.icon_url; preview.style.display = ''; }
+  else { preview.style.display = 'none'; }
   document.getElementById('note-edit-alert').innerHTML = '';
   document.getElementById('note-edit-modal').style.display = '';
 }
@@ -673,14 +674,12 @@ document.getElementById('note-edit-form').addEventListener('submit', async e => 
   const alertEl = document.getElementById('note-edit-alert');
   alertEl.innerHTML = '';
   try {
-    await apiFetch(`/admin/event-notes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        name: document.getElementById('note-edit-name').value,
-        description: document.getElementById('note-edit-desc').value,
-        icon_url: document.getElementById('note-edit-icon').value.trim() || null
-      })
-    });
+    const fd = new FormData();
+    fd.append('name', document.getElementById('note-edit-name').value);
+    fd.append('description', document.getElementById('note-edit-desc').value);
+    const iconFile = document.getElementById('note-edit-icon').files[0];
+    if (iconFile) fd.append('icon', iconFile);
+    await apiFormFetch(`/admin/event-notes/${id}`, fd, 'PUT');
     closeNoteEditModal();
     await loadNoteMaster(document.getElementById('note-master-search').value);
   } catch (err) {
