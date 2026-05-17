@@ -727,17 +727,26 @@ function renderNoteList(q) {
 
   if (filtered.length === 0) {
     listEl.innerHTML = '<div style="padding:10px 12px;font-size:0.82rem;color:var(--text-muted)">該当なし</div>';
-  } else {
-    listEl.innerHTML = filtered.map(n => {
-      const added = !!_editEventNotes.find(x => x.id === n.id);
-      return `
-        <div class="note-search-result-item" onclick="${added ? `removeEventNote(${n.id})` : `addEventNote(${n.id}, ${JSON.stringify(n.name)}, ${JSON.stringify(n.icon_url || '')})`}" style="${added ? 'opacity:0.5' : ''}">
-          ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">` : '<span style="width:18px;flex-shrink:0"></span>'}
-          <span style="flex:1;font-size:0.85rem">${escHtml(n.name)}</span>
-          <span style="font-size:0.75rem;color:${added ? 'var(--accent)' : 'var(--text-muted)'};flex-shrink:0">${added ? '✓ 追加済' : '+ 追加'}</span>
-        </div>`;
-    }).join('');
+    return;
   }
+  listEl.innerHTML = filtered.map(n => {
+    const added = !!_editEventNotes.find(x => x.id === n.id);
+    return `
+      <div class="note-search-result-item" data-note-id="${n.id}" style="${added ? 'opacity:0.55' : 'cursor:pointer'}">
+        ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">` : '<span style="width:18px;flex-shrink:0"></span>'}
+        <span style="flex:1;font-size:0.85rem">${escHtml(n.name)}</span>
+        <span style="font-size:0.75rem;color:${added ? 'var(--accent)' : 'var(--text-muted)'};flex-shrink:0">${added ? '✓ 追加済' : '+ 追加'}</span>
+      </div>`;
+  }).join('');
+
+  listEl.querySelectorAll('[data-note-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const note = _allNotesForEvent.find(n => n.id === parseInt(el.dataset.noteId));
+      if (!note) return;
+      if (_editEventNotes.find(x => x.id === note.id)) removeEventNote(note.id);
+      else addEventNote(note.id, note.name, note.icon_url || '');
+    });
+  });
 }
 
 async function loadNotesForEvent() {
