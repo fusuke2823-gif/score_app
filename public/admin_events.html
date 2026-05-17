@@ -190,11 +190,12 @@
         </div>
         <div class="form-group">
           <label class="form-label">特記</label>
-          <div style="display:flex;gap:6px;margin-bottom:6px">
-            <input class="form-input" type="text" id="edit-note-search" placeholder="特記を検索して追加..." style="font-size:0.85rem" oninput="searchNotesForEvent(this.value)" autocomplete="off">
+          <div id="edit-note-chips" style="margin-bottom:6px"></div>
+          <input class="form-input" type="text" id="edit-note-search" placeholder="絞り込み..." style="font-size:0.85rem;margin-bottom:4px" oninput="filterNoteList(this.value)" autocomplete="off">
+          <div id="edit-note-list-wrap">
+            <button type="button" id="edit-note-list-toggle" style="width:100%;text-align:left;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.82rem;color:var(--text-muted);cursor:pointer" onclick="toggleNoteList()">▶ 特記一覧を表示</button>
+            <div id="edit-note-all-list" class="note-search-result" style="display:none"></div>
           </div>
-          <div id="edit-note-search-results" class="note-search-result" style="display:none"></div>
-          <div id="edit-note-chips" style="margin-top:4px"></div>
         </div>
         <div class="form-group">
           <label style="cursor:pointer;display:flex;align-items:center;gap:8px">
@@ -469,9 +470,13 @@ async function openEditEvent(id) {
   document.getElementById('edit-rules-container').innerHTML = '';
   editRulesCount = 0;
   _editEventNotes = [];
+  _allNotesForEvent = [];
+  _noteListOpen = false;
   document.getElementById('edit-note-chips').innerHTML = '';
   document.getElementById('edit-note-search').value = '';
-  document.getElementById('edit-note-search-results').style.display = 'none';
+  document.getElementById('edit-note-all-list').style.display = 'none';
+  const toggleBtn = document.getElementById('edit-note-list-toggle');
+  if (toggleBtn) toggleBtn.textContent = '▶ 特記一覧を表示';
 
   try {
     const detail = await apiFetch(`/events/${id}`);
@@ -480,6 +485,7 @@ async function openEditEvent(id) {
     renderEditNoteChips();
   } catch {}
   if (document.getElementById('edit-rules-container').children.length === 0) addEditRule();
+  loadNotesForEvent();
 
   document.getElementById('event-edit-modal').style.display = '';
 }
@@ -692,7 +698,8 @@ document.getElementById('note-edit-form').addEventListener('submit', async e => 
 
 // ===== イベント編集モーダルの特記 =====
 let _editEventNotes = []; // { id, name, icon_url }
-let _noteSearchTimer = null;
+let _allNotesForEvent = [];
+let _noteListOpen = false;
 
 function renderEditNoteChips() {
   const el = document.getElementById('edit-note-chips');
@@ -708,45 +715,65 @@ function renderEditNoteChips() {
 function removeEventNote(id) {
   _editEventNotes = _editEventNotes.filter(n => n.id !== id);
   renderEditNoteChips();
+  renderNoteList(document.getElementById('edit-note-search').value);
 }
 
-async function searchNotesForEvent(q) {
-  clearTimeout(_noteSearchTimer);
-  const resEl = document.getElementById('edit-note-search-results');
-  if (!q.trim()) { resEl.style.display = 'none'; return; }
-  _noteSearchTimer = setTimeout(async () => {
-    try {
-      const notes = await apiFetch(`/admin/event-notes?q=${encodeURIComponent(q.trim())}`);
-      const available = notes.filter(n => !_editEventNotes.find(x => x.id === n.id));
-      if (available.length === 0) {
-        resEl.innerHTML = '<div style="padding:10px 12px;font-size:0.82rem;color:var(--text-muted)">該当なし</div>';
-      } else {
-        resEl.innerHTML = available.map(n => `
-          <div class="note-search-result-item" onclick="addEventNote(${n.id}, ${JSON.stringify(escHtml(n.name))}, ${JSON.stringify(n.icon_url || '')})">
-            ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:18px;height:18px;object-fit:contain">` : ''}
-            <span>${escHtml(n.name)}</span>
-          </div>`).join('');
-      }
-      resEl.style.display = '';
-    } catch {}
-  }, 200);
+function renderNoteList(q) {
+  const listEl = document.getElementById('edit-note-all-list');
+  const q2 = q.trim().toLowerCase();
+  const filtered = q2
+    ? _allNotesForEvent.filter(n => n.name.toLowerCase().includes(q2) || (n.description || '').toLowerCase().includes(q2))
+    : _allNotesForEvent;
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div style="padding:10px 12px;font-size:0.82rem;color:var(--text-muted)">該当なし</div>';
+  } else {
+    listEl.innerHTML = filtered.map(n => {
+      const added = !!_editEventNotes.find(x => x.id === n.id);
+      return `
+        <div class="note-search-result-item" onclick="${added ? `removeEventNote(${n.id})` : `addEventNote(${n.id}, ${JSON.stringify(n.name)}, ${JSON.stringify(n.icon_url || '')})`}" style="${added ? 'opacity:0.5' : ''}">
+          ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:18px;height:18px;object-fit:contain;flex-shrink:0">` : '<span style="width:18px;flex-shrink:0"></span>'}
+          <span style="flex:1;font-size:0.85rem">${escHtml(n.name)}</span>
+          <span style="font-size:0.75rem;color:${added ? 'var(--accent)' : 'var(--text-muted)'};flex-shrink:0">${added ? '✓ 追加済' : '+ 追加'}</span>
+        </div>`;
+    }).join('');
+  }
+}
+
+async function loadNotesForEvent() {
+  try {
+    _allNotesForEvent = await apiFetch('/admin/event-notes');
+  } catch { _allNotesForEvent = []; }
+  renderNoteList('');
+  const toggle = document.getElementById('edit-note-list-toggle');
+  if (toggle) toggle.textContent = `▶ 特記一覧を表示（${_allNotesForEvent.length}件）`;
+}
+
+function toggleNoteList() {
+  _noteListOpen = !_noteListOpen;
+  const listEl = document.getElementById('edit-note-all-list');
+  const toggle = document.getElementById('edit-note-list-toggle');
+  listEl.style.display = _noteListOpen ? '' : 'none';
+  toggle.textContent = (_noteListOpen ? '▼ ' : '▶ ') + `特記一覧を表示（${_allNotesForEvent.length}件）`;
+}
+
+function filterNoteList(q) {
+  if (!_noteListOpen) {
+    _noteListOpen = true;
+    document.getElementById('edit-note-all-list').style.display = '';
+    const toggle = document.getElementById('edit-note-list-toggle');
+    if (toggle) toggle.textContent = `▼ 特記一覧を表示（${_allNotesForEvent.length}件）`;
+  }
+  renderNoteList(q);
 }
 
 function addEventNote(id, name, iconUrl) {
   if (!_editEventNotes.find(n => n.id === id)) {
     _editEventNotes.push({ id, name, icon_url: iconUrl });
     renderEditNoteChips();
+    renderNoteList(document.getElementById('edit-note-search').value);
   }
-  document.getElementById('edit-note-search').value = '';
-  document.getElementById('edit-note-search-results').style.display = 'none';
 }
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#edit-note-search') && !e.target.closest('#edit-note-search-results')) {
-    const el = document.getElementById('edit-note-search-results');
-    if (el) el.style.display = 'none';
-  }
-});
 </script>
 </body>
 </html>
