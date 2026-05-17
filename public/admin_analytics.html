@@ -47,11 +47,21 @@
 <body>
 <nav id="nav"></nav>
 <main class="container" style="padding-top:20px;padding-bottom:40px">
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-    <a href="/admin_index.html" style="color:var(--text-muted);font-size:0.85rem">← 管理メニュー</a>
-    <h2 style="font-size:1.1rem;font-weight:bold;margin:0">集計</h2>
-    <span id="period-label" style="font-size:0.8rem;color:var(--text-muted)"></span>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <h1 class="page-title" style="margin:0">集計</h1>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <a href="/admin_scores.html" class="btn btn-sm btn-secondary">スコア</a>
+      <a href="/admin_events.html" class="btn btn-sm btn-secondary">イベント</a>
+      <a href="/admin_users.html" class="btn btn-sm btn-secondary">ユーザー</a>
+      <a href="/admin_shop.html" class="btn btn-sm btn-secondary">ショップ</a>
+      <a href="/admin_distribute.html" class="btn btn-sm btn-secondary">配布</a>
+      <a href="/admin_settings.html" class="btn btn-sm btn-secondary">設定</a>
+      <a href="/admin_pending_videos.html" class="btn btn-sm btn-secondary">動画</a>
+      <a href="/admin_chart_data.html" class="btn btn-sm btn-secondary">チャート</a>
+      <span class="btn btn-sm btn-primary" style="cursor:default">集計</span>
+    </div>
   </div>
+  <div style="margin-bottom:12px"><span id="period-label" style="font-size:0.8rem;color:var(--text-muted)"></span></div>
 
   <div class="stat-cards" id="stat-cards">
     <div class="loading"><div class="spinner"></div></div>

@@ -21,7 +21,20 @@
 <body>
 <nav id="nav"></nav>
 <main class="container" style="padding-top:20px;padding-bottom:40px">
-  <h2 style="font-size:1.1rem;font-weight:bold;margin-bottom:16px">動画承認待ち</h2>
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+    <h1 class="page-title" style="margin:0">動画承認待ち</h1>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <a href="/admin_scores.html" class="btn btn-sm btn-secondary">スコア</a>
+      <a href="/admin_events.html" class="btn btn-sm btn-secondary">イベント</a>
+      <a href="/admin_users.html" class="btn btn-sm btn-secondary">ユーザー</a>
+      <a href="/admin_shop.html" class="btn btn-sm btn-secondary">ショップ</a>
+      <a href="/admin_distribute.html" class="btn btn-sm btn-secondary">配布</a>
+      <a href="/admin_settings.html" class="btn btn-sm btn-secondary">設定</a>
+      <span class="btn btn-sm btn-primary" style="cursor:default">動画</span>
+      <a href="/admin_chart_data.html" class="btn btn-sm btn-secondary">チャート</a>
+      <a href="/admin_analytics.html" class="btn btn-sm btn-secondary">集計</a>
+    </div>
+  </div>
   <div id="alert"></div>
   <div id="list"><div class="loading"><div class="spinner"></div></div></div>
 </main>
