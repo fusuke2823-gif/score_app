@@ -487,6 +487,26 @@ const initDB = async () => {
       SELECT setval('event_interim_distributions_id_seq', COALESCE((SELECT MAX(id) FROM event_interim_distributions), 1));
     `);
 
+    // 特記マスタ・リンクテーブル
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS event_notes (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        icon_url TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS event_note_links (
+        event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+        note_id  INTEGER REFERENCES event_notes(id) ON DELETE CASCADE,
+        order_index INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (event_id, note_id)
+      );
+    `);
+    await client.query(`
+      SELECT setval('event_notes_id_seq', COALESCE((SELECT MAX(id) FROM event_notes), 1));
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();

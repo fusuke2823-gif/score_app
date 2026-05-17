@@ -159,6 +159,84 @@ router.put('/events/:id', async (req, res) => {
   }
 });
 
+// ===== 特記マスタ =====
+router.get('/event-notes', async (req, res) => {
+  const { q } = req.query;
+  try {
+    const rows = q && q.trim()
+      ? (await pool.query(
+          `SELECT * FROM event_notes WHERE name ILIKE $1 OR description ILIKE $1 ORDER BY id DESC`,
+          [`%${q.trim()}%`]
+        )).rows
+      : (await pool.query(`SELECT * FROM event_notes ORDER BY id DESC`)).rows;
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/event-notes', async (req, res) => {
+  const { name, description, icon_url } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '名前は必須です' });
+  try {
+    const r = await pool.query(
+      `INSERT INTO event_notes (name, description, icon_url) VALUES ($1,$2,$3) RETURNING *`,
+      [name.trim(), description || null, icon_url || null]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/event-notes/:id', async (req, res) => {
+  const { name, description, icon_url } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '名前は必須です' });
+  try {
+    const r = await pool.query(
+      `UPDATE event_notes SET name=$1, description=$2, icon_url=$3 WHERE id=$4 RETURNING *`,
+      [name.trim(), description || null, icon_url || null, req.params.id]
+    );
+    if (r.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/event-notes/:id', async (req, res) => {
+  try {
+    await pool.query(`DELETE FROM event_notes WHERE id=$1`, [req.params.id]);
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// イベントへの特記紐付け（全件置き換え）
+router.put('/events/:id/notes', async (req, res) => {
+  const { note_ids } = req.body; // number[]
+  try {
+    await pool.query(`DELETE FROM event_note_links WHERE event_id=$1`, [req.params.id]);
+    if (Array.isArray(note_ids) && note_ids.length > 0) {
+      for (let i = 0; i < note_ids.length; i++) {
+        await pool.query(
+          `INSERT INTO event_note_links (event_id, note_id, order_index) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
+          [req.params.id, note_ids[i], i]
+        );
+      }
+    }
+    res.json({ message: '保存しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // イベントルール保存（全件置き換え）
 router.put('/events/:id/rules', async (req, res) => {
   const { rules } = req.body;

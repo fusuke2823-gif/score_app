@@ -125,6 +125,18 @@
 }
 </style>
 
+<!-- 特記モーダル -->
+<div id="note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;padding:24px 16px">
+  <div style="background:var(--bg-card);border-radius:16px;padding:24px;max-width:400px;width:100%;position:relative">
+    <button onclick="closeNoteModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1">×</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <img id="note-modal-icon" src="" alt="" style="width:32px;height:32px;object-fit:contain;display:none">
+      <h3 id="note-modal-name" style="margin:0;font-size:1rem"></h3>
+    </div>
+    <p id="note-modal-desc" style="margin:0;font-size:0.9rem;color:var(--text-secondary);white-space:pre-wrap;line-height:1.6"></p>
+  </div>
+</div>
+
 <div id="img-modal">
   <button id="img-modal-close" onclick="closeModal()">×</button>
   <img id="modal-img" src="" alt="">
@@ -145,6 +157,7 @@ applyI18n();
 const eventId = getParam('id');
 if (!eventId) location.href = '/index.html';
 let showImages = true;
+let _eventNotes = [];
 
 let selectedAttrs = new Set(ATTRIBUTES);
 let _eventData = null;
@@ -238,6 +251,25 @@ async function loadEvent() {
             </ul>
           </div>
         </div>`;
+    }
+    if (event.notes && event.notes.length > 0) {
+      enemySectionHtml += `
+        <div class="enemy-section" style="margin-top:8px">
+          <button class="section-toggle-btn" onclick="toggleSection('notes-content')" aria-expanded="false">
+            <span>特記</span><span class="toggle-arrow">▶</span>
+          </button>
+          <div id="notes-content" style="display:none">
+            <ul style="margin:12px 0 0 0;padding:0;list-style:none">
+              ${event.notes.map((n, i) => `
+                <li style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openNoteModal(${i})" data-note-idx="${i}">
+                  ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:24px;height:24px;object-fit:contain;flex-shrink:0">` : '<span style="width:24px;flex-shrink:0"></span>'}
+                  <span style="font-size:0.9rem;font-weight:bold">${escHtml(n.name)}</span>
+                  ${n.description ? '<span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto">▶</span>' : ''}
+                </li>`).join('')}
+            </ul>
+          </div>
+        </div>`;
+      _eventNotes = event.notes;
     }
     if (enemySectionHtml) {
       document.getElementById('enemy-section').innerHTML = enemySectionHtml;
@@ -412,6 +444,26 @@ function toggleSection(id) {
   el.style.display = open ? '' : 'none';
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
+
+function openNoteModal(idx) {
+  const n = _eventNotes[idx];
+  if (!n) return;
+  const iconEl = document.getElementById('note-modal-icon');
+  if (n.icon_url) { iconEl.src = n.icon_url; iconEl.style.display = ''; }
+  else { iconEl.style.display = 'none'; }
+  document.getElementById('note-modal-name').textContent = n.name;
+  document.getElementById('note-modal-desc').textContent = n.description || '';
+  const modal = document.getElementById('note-modal');
+  modal.style.display = 'flex';
+}
+
+function closeNoteModal() {
+  document.getElementById('note-modal').style.display = 'none';
+}
+
+document.getElementById('note-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeNoteModal();
+});
 
 function showRankingToast(msg) {
   const el = document.createElement('div');

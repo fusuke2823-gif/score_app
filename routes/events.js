@@ -190,7 +190,14 @@ router.get('/:id', optionalAuth, async (req, res) => {
       'SELECT * FROM event_rules WHERE event_id = $1 ORDER BY order_index',
       [req.params.id]
     );
-    res.json({ ...event, enemies: enemiesResult.rows.map(e => ({ ...e, image_url: optimizeUrl(e.image_url) })), rules: rulesResult.rows });
+    const notesResult = await pool.query(
+      `SELECT n.* FROM event_notes n
+       JOIN event_note_links l ON l.note_id = n.id
+       WHERE l.event_id = $1
+       ORDER BY l.order_index`,
+      [req.params.id]
+    );
+    res.json({ ...event, enemies: enemiesResult.rows.map(e => ({ ...e, image_url: optimizeUrl(e.image_url) })), rules: rulesResult.rows, notes: notesResult.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
