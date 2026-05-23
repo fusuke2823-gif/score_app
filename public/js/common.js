@@ -1025,6 +1025,11 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     ctx.textAlign = 'left';
   }
 
+  // 外周ふち
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
   try {
     return canvas.toDataURL('image/png');
   } catch {
