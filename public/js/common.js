@@ -827,7 +827,7 @@ async function openResultImageModal() {
       #result-img-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:92vw; width:480px; text-align:center; max-height:90vh; overflow-y:auto; }
       #result-img-box h3 { margin:0 0 14px; font-size:1rem; }
       #result-img-preview { max-width:100%; border-radius:8px; margin-bottom:14px; display:block; }
-      .result-img-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+      .result-img-actions { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; }
     `;
     document.head.appendChild(style);
     modal = document.createElement('div');
