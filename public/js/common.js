@@ -983,7 +983,7 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.font = `bold 19px ${font}`;
   ctx.fillText(username, PAD + 20, TITLE_H + 66);
 
-  // 総合順位ピルバッジ（右側・白背景）
+  // 総合順位ピルバッジ（右側・赤背景）
   const rankLabel = `総合 ${overallRank}位`;
   ctx.font = `bold 26px ${font}`;
   ctx.textBaseline = 'middle';
@@ -991,8 +991,8 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   const rPillW = rankTextW + 28, rPillH = 44;
   const rPillX = canvas.width - PAD - 20 - rPillW;
   const rPillY = TITLE_H + (HEADER_H - rPillH) / 2;
-  drawPill(rPillX, rPillY, rPillW, rPillH, '#ffffff');
-  ctx.fillStyle = '#0d0d1a';
+  drawPill(rPillX, rPillY, rPillW, rPillH, '#c0392b');
+  ctx.fillStyle = rankColor(Number(overallRank));
   ctx.textAlign = 'center';
   ctx.fillText(rankLabel, rPillX + rPillW / 2, rPillY + rPillH / 2);
   ctx.textAlign = 'left';
@@ -1034,12 +1034,12 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     // 属性順位ピルバッジ（左上・1行）
     const attrColor = ATTR_COLORS[r.attribute] || '#ffffff';
     const rankCol = attrRankColor(Number(r.attr_rank));
-    ctx.font = `bold 17px ${font}`;
+    ctx.font = `bold 20px ${font}`;
     ctx.textBaseline = 'middle';
     const attrW = ctx.measureText(r.attribute).width;
     const rankStr = ` ${r.attr_rank}位`;
     const rankW = ctx.measureText(rankStr).width;
-    const aPillW = attrW + rankW + 22, aPillH = 30;
+    const aPillW = attrW + rankW + 24, aPillH = 34;
     const aPillX = x + 8, aPillY = y + 8;
     drawPill(aPillX, aPillY, aPillW, aPillH, 'rgba(0,0,0,0.78)');
     const textStartX = aPillX + 11;
