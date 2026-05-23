@@ -860,18 +860,30 @@ async function openResultImageModal() {
       return;
     }
 
-    const tweetText = `【HBR】${d.event_name} 結果\n総合${d.user_rank}位　+${d.user_pts}pt\n#HBR`;
-    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
     const fileName = `${d.event_name}_result.png`;
+
+    // シェアURL生成（Cloudinaryアップ → OGタグ付きページ）
+    let sharePageUrl = null;
+    try {
+      modal.querySelector('#result-img-box h3').textContent = '画像をアップロード中...';
+      const shareRes = await apiFetch('/api/share-image', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl, eventName: d.event_name }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      sharePageUrl = location.origin + shareRes.url;
+    } catch { /* アップ失敗時はダウンロードのみ */ }
+
+    const tweetText = `ヘブバン ランクボードで${d.event_name}の結果を生成しました\n#ヘブバン　#ヘブバンランクボード\nhebuban-rankboard.com`;
+    const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}${sharePageUrl ? `&url=${encodeURIComponent(sharePageUrl)}` : ''}`;
 
     modal.innerHTML = `
       <div id="result-img-box">
         <h3>結果画像</h3>
         <img id="result-img-preview" src="${dataUrl}" alt="result">
-        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 12px">画像をダウンロードしてツイートに添付してください</p>
         <div class="result-img-actions">
           <a href="${dataUrl}" download="${escHtml(fileName)}" class="btn btn-secondary btn-sm">⬇ ダウンロード</a>
-          <a href="${escHtml(tweetUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>ツイートへ</a>
+          <a href="${escHtml(tweetIntentUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>ツイート</a>
           <button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button>
         </div>
       </div>`;

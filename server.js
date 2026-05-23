@@ -70,6 +70,54 @@ app.get('/api/version', async (req, res) => {
   }
 });
 
+// 結果画像シェア
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
+const { authenticateToken: _authToken } = require('./middleware/auth');
+
+app.post('/api/share-image', _authToken, async (req, res) => {
+  const { dataUrl, eventName } = req.body;
+  if (!dataUrl || !eventName) return res.status(400).json({ error: 'パラメータ不足' });
+  try {
+    const uploadRes = await cloudinary.uploader.upload(dataUrl, { folder: 'hbr-ranking/share', resource_type: 'image' });
+    const id = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+    await pool.query(
+      'INSERT INTO share_images (id, image_url, event_name) VALUES ($1, $2, $3)',
+      [id, uploadRes.secure_url, eventName]
+    );
+    res.json({ id, url: `/s/${id}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'アップロード失敗' });
+  }
+});
+
+app.get('/s/:id', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM share_images WHERE id = $1', [req.params.id]);
+    if (!r.rows[0]) return res.status(404).send('Not found');
+    const { image_url, event_name } = r.rows[0];
+    const title = `${event_name} - ヘブバン ランクボード`;
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
+<meta property="og:type" content="website">
+<meta property="og:title" content="${title.replace(/"/g, '&quot;')}">
+<meta property="og:image" content="${image_url}">
+<meta property="og:description" content="ヘブバン ランクボードで生成した結果画像">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}">
+<meta name="twitter:image" content="${image_url}">
+<title>${title.replace(/</g, '&lt;')}</title>
+</head><body style="margin:0;background:#0d0d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh">
+<img src="${image_url}" style="max-width:100%;border-radius:8px">
+<p style="color:#aaa;font-size:0.85rem;margin-top:12px"><a href="/" style="color:#e8d070">ヘブバン ランクボード</a></p>
+</body></html>`);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error');
+  }
+});
+
 // DB初期化してからサーバー起動
 require('./db/init')()
   .then(() => {

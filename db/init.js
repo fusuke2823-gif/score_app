@@ -507,6 +507,16 @@ const initDB = async () => {
       SELECT setval('event_notes_id_seq', COALESCE((SELECT MAX(id) FROM event_notes), 1));
     `);
 
+    // 結果シェア画像
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS share_images (
+        id VARCHAR(16) PRIMARY KEY,
+        image_url TEXT NOT NULL,
+        event_name TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();
