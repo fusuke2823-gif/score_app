@@ -951,7 +951,23 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     if (r.approved_image_url) {
       try {
         const img = await _loadImage(r.approved_image_url);
-        ctx.drawImage(img, x, y, IMG_W, IMG_H);
+        // object-fit: cover — アスペクト比保持・中央クロップ
+        const imgAspect = img.naturalWidth / img.naturalHeight;
+        const boxAspect = IMG_W / IMG_H;
+        let sx, sy, sw, sh;
+        if (imgAspect > boxAspect) {
+          sh = img.naturalHeight; sw = sh * boxAspect;
+          sx = (img.naturalWidth - sw) / 2; sy = 0;
+        } else {
+          sw = img.naturalWidth; sh = sw / boxAspect;
+          sx = 0; sy = (img.naturalHeight - sh) / 2;
+        }
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, IMG_W, IMG_H);
+        ctx.clip();
+        ctx.drawImage(img, sx, sy, sw, sh, x, y, IMG_W, IMG_H);
+        ctx.restore();
       } catch { /* 画像なしのまま */ }
     }
 
