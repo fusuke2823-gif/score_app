@@ -864,7 +864,7 @@ async function openResultImageModal() {
 
     // シェアURL生成（Cloudinaryアップ → OGタグ付きページ）
     let sharePageUrl = null;
-    const tweetText = `ヘブバン ランクボードで${d.event_name}の結果を生成しました\n#ヘブバン　#ヘブバンランクボード\nhebuban-rankboard.com`;
+    const tweetText = `ヘブバン ランクボードで${d.event_name}の結果を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n\nhebuban-rankboard.com`;
 
     // dataUrl → Blob → File（Web Share API用）
     const blob = await (await fetch(dataUrl)).blob();
@@ -958,20 +958,43 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     return '#ffffff';
   }
 
+  // ピル（左右が丸い角丸矩形）描画ヘルパー
+  function drawPill(cx, py, pw, ph, color) {
+    const r = ph / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx + r, py);
+    ctx.arcTo(cx + pw, py, cx + pw, py + ph, r);
+    ctx.arcTo(cx + pw, py + ph, cx, py + ph, r);
+    ctx.arcTo(cx, py + ph, cx, py, r);
+    ctx.arcTo(cx, py, cx + pw, py, r);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
   // Header bar
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   ctx.fillRect(0, TITLE_H, canvas.width, HEADER_H);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold 24px ${font}`;
-  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - PAD * 2), PAD + 20, TITLE_H + 28);
+  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width / 2 - PAD), PAD + 20, TITLE_H + 28);
   ctx.fillStyle = '#dddddd';
   ctx.font = `bold 19px ${font}`;
   ctx.fillText(username, PAD + 20, TITLE_H + 66);
-  ctx.fillStyle = rankColor(Number(overallRank));
-  ctx.font = `bold 32px ${font}`;
-  ctx.textAlign = 'right';
-  ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 20, TITLE_H + HEADER_H / 2);
+
+  // 総合順位ピルバッジ（右側・白背景）
+  const rankLabel = `総合 ${overallRank}位`;
+  ctx.font = `bold 26px ${font}`;
+  ctx.textBaseline = 'middle';
+  const rankTextW = ctx.measureText(rankLabel).width;
+  const rPillW = rankTextW + 28, rPillH = 44;
+  const rPillX = canvas.width - PAD - 20 - rPillW;
+  const rPillY = TITLE_H + (HEADER_H - rPillH) / 2;
+  drawPill(rPillX, rPillY, rPillW, rPillH, '#ffffff');
+  ctx.fillStyle = '#0d0d1a';
+  ctx.textAlign = 'center';
+  ctx.fillText(rankLabel, rPillX + rPillW / 2, rPillY + rPillH / 2);
   ctx.textAlign = 'left';
 
   const ATTR_COLORS = { '火':'#e05a3a','氷':'#4db8e8','雷':'#f5d04a','光':'#f0f060','闇':'#a066cc','無':'#aaaaaa' };
@@ -989,7 +1012,6 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     if (r.approved_image_url) {
       try {
         const img = await _loadImage(r.approved_image_url);
-        // object-fit: cover — アスペクト比保持・中央クロップ
         const imgAspect = img.naturalWidth / img.naturalHeight;
         const boxAspect = IMG_W / IMG_H;
         let sx, sy, sw, sh;
@@ -1009,20 +1031,24 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
       } catch { /* 画像なしのまま */ }
     }
 
-    // ランクバッジ（左上）
-    const bW = 82, bH = 58;
-    ctx.fillStyle = 'rgba(0,0,0,0.78)';
-    ctx.fillRect(x, y, bW, bH);
+    // 属性順位ピルバッジ（左上・1行）
     const attrColor = ATTR_COLORS[r.attribute] || '#ffffff';
-    ctx.fillStyle = attrColor;
-    ctx.font = `bold 18px ${font}`;
-    ctx.textAlign = 'center';
+    const rankCol = attrRankColor(Number(r.attr_rank));
+    ctx.font = `bold 17px ${font}`;
     ctx.textBaseline = 'middle';
-    ctx.fillText(r.attribute, x + bW / 2, y + 16);
-    ctx.fillStyle = attrRankColor(Number(r.attr_rank));
-    ctx.font = `bold 28px ${font}`;
-    ctx.fillText(`${r.attr_rank}位`, x + bW / 2, y + 40);
+    const attrW = ctx.measureText(r.attribute).width;
+    const rankStr = ` ${r.attr_rank}位`;
+    const rankW = ctx.measureText(rankStr).width;
+    const aPillW = attrW + rankW + 22, aPillH = 30;
+    const aPillX = x + 8, aPillY = y + 8;
+    drawPill(aPillX, aPillY, aPillW, aPillH, 'rgba(0,0,0,0.78)');
+    const textStartX = aPillX + 11;
+    const textY = aPillY + aPillH / 2;
+    ctx.fillStyle = attrColor;
     ctx.textAlign = 'left';
+    ctx.fillText(r.attribute, textStartX, textY);
+    ctx.fillStyle = rankCol;
+    ctx.fillText(rankStr, textStartX + attrW, textY);
   }
 
   // 外周ふち
