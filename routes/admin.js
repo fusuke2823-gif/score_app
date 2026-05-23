@@ -403,7 +403,7 @@ router.get('/settings', async (req, res) => {
     result.rows.forEach(r => { map[r.key] = r.value; });
     res.json({
       notify_on_submit: map['notify_on_submit'] === 'true',
-      app_version: map['app_version'] || '4.00.65'
+      app_version: map['app_version'] || '4.03.22'
     });
   } catch (err) {
     console.error(err);

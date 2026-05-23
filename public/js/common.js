@@ -881,42 +881,53 @@ async function openResultImageModal() {
 }
 
 async function _generateResultCanvas(results, eventName, username, overallRank) {
-  const IMG_W = 260, IMG_H = 195, PAD = 10, HEADER_H = 74;
+  const COLS = 2, IMG_W = 300, IMG_H = 200, PAD = 12;
+  const TITLE_H = 52, HEADER_H = 96;
   const n = results.length;
+  const ROWS = Math.ceil(n / COLS);
   const canvas = document.createElement('canvas');
-  canvas.width  = PAD + n * (IMG_W + PAD);
-  canvas.height = HEADER_H + IMG_H + PAD;
+  canvas.width  = PAD + COLS * (IMG_W + PAD);
+  canvas.height = TITLE_H + HEADER_H + ROWS * (IMG_H + PAD) + PAD;
   const ctx = canvas.getContext('2d');
+  const font = '"Helvetica Neue", Arial, "Noto Sans JP", sans-serif';
 
   // Background
   ctx.fillStyle = '#0d0d1a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.fillRect(0, 0, canvas.width, HEADER_H);
 
-  // Header text
-  const font = '"Helvetica Neue", Arial, "Noto Sans JP", sans-serif';
-  ctx.textBaseline = 'middle';
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 15px ${font}`;
-  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - 160), PAD + 4, 22);
-  ctx.fillStyle = '#bbbbbb';
-  ctx.font = `13px ${font}`;
-  ctx.fillText(username, PAD + 4, 52);
-
-  ctx.fillStyle = '#f0c040';
+  // Title bar
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillRect(0, 0, canvas.width, TITLE_H);
+  ctx.fillStyle = '#e8d070';
   ctx.font = `bold 22px ${font}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2);
+
+  // Header bar
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(0, TITLE_H, canvas.width, HEADER_H);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold 20px ${font}`;
+  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - PAD * 2), PAD + 4, TITLE_H + 26);
+  ctx.fillStyle = '#bbbbbb';
+  ctx.font = `16px ${font}`;
+  ctx.fillText(username, PAD + 4, TITLE_H + 60);
+  ctx.fillStyle = '#f0c040';
+  ctx.font = `bold 30px ${font}`;
   ctx.textAlign = 'right';
-  ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 4, HEADER_H / 2);
+  ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 4, TITLE_H + HEADER_H / 2);
   ctx.textAlign = 'left';
 
   const ATTR_COLORS = { '火':'#e05a3a','氷':'#4db8e8','雷':'#f5d04a','光':'#f0f060','闇':'#a066cc','無':'#aaaaaa' };
 
   for (let i = 0; i < n; i++) {
     const r = results[i];
-    const x = PAD + i * (IMG_W + PAD);
-    const y = HEADER_H;
+    const col = i % COLS;
+    const row = Math.floor(i / COLS);
+    const x = PAD + col * (IMG_W + PAD);
+    const y = TITLE_H + HEADER_H + PAD + row * (IMG_H + PAD);
 
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(x, y, IMG_W, IMG_H);
@@ -928,15 +939,19 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
       } catch { /* 画像なしのまま */ }
     }
 
-    // ランクバッジ（右上）
-    const badge = `${r.attribute} ${r.attr_rank}位`;
-    const bW = 58, bH = 24;
-    ctx.fillStyle = 'rgba(0,0,0,0.72)';
-    ctx.fillRect(x + IMG_W - bW, y, bW, bH);
-    ctx.fillStyle = ATTR_COLORS[r.attribute] || '#ffffff';
-    ctx.font = `bold 13px ${font}`;
+    // ランクバッジ（左上）
+    const bW = 82, bH = 58;
+    ctx.fillStyle = 'rgba(0,0,0,0.78)';
+    ctx.fillRect(x, y, bW, bH);
+    const attrColor = ATTR_COLORS[r.attribute] || '#ffffff';
+    ctx.fillStyle = attrColor;
+    ctx.font = `bold 18px ${font}`;
     ctx.textAlign = 'center';
-    ctx.fillText(badge, x + IMG_W - bW / 2, y + 14);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(r.attribute, x + bW / 2, y + 16);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 28px ${font}`;
+    ctx.fillText(`${r.attr_rank}位`, x + bW / 2, y + 40);
     ctx.textAlign = 'left';
   }
 
