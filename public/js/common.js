@@ -896,21 +896,23 @@ async function openResultImageModal() {
         <h3>結果画像</h3>
         <img id="result-img-preview" src="${dataUrl}" alt="result">
         <div class="result-img-actions">
-          <a href="${dataUrl}" download="${escHtml(fileName)}" class="btn btn-secondary btn-sm">⬇ ダウンロード</a>
-          ${tweetBtn}
+          <button id="native-share-btn" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px">共有</button>
           <button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button>
         </div>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin:10px 0 0;line-height:1.6">Xにポストする場合は「共有」をタップしてXを選択してください</p>
       </div>`;
 
-    if (canNativeShare) {
-      document.getElementById('native-share-btn').addEventListener('click', async () => {
+    document.getElementById('native-share-btn').addEventListener('click', async () => {
+      if (canNativeShare) {
         try {
           await navigator.share({ files: [shareFile], text: tweetText });
         } catch (e) {
           if (e.name !== 'AbortError') alert('共有に失敗しました: ' + e.message);
         }
-      });
-    }
+      } else {
+        window.open(tweetIntentUrl, '_blank', 'noopener,noreferrer');
+      }
+    });
   } catch (err) {
     modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">${escHtml(err.message)}</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
   }
