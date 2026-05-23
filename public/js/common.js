@@ -904,18 +904,34 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.textBaseline = 'middle';
   ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2);
 
+  // 順位カラー（総合・属性共通）
+  function rankColor(rank) {
+    if (rank === 1) return '#f5d060';
+    if (rank === 2) return '#c8d0dc';
+    if (rank === 3) return '#d4884a';
+    if (rank <= 10) return '#d88ec8';
+    return '#ffffff';
+  }
+  function attrRankColor(rank) {
+    if (rank === 1) return '#f5d060';
+    if (rank === 2) return '#c8d0dc';
+    if (rank === 3) return '#d4884a';
+    if (rank <= 5) return '#d88ec8';
+    return '#ffffff';
+  }
+
   // Header bar
   ctx.fillStyle = 'rgba(255,255,255,0.04)';
   ctx.fillRect(0, TITLE_H, canvas.width, HEADER_H);
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 20px ${font}`;
-  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - PAD * 2), PAD + 4, TITLE_H + 26);
-  ctx.fillStyle = '#bbbbbb';
-  ctx.font = `16px ${font}`;
-  ctx.fillText(username, PAD + 4, TITLE_H + 60);
-  ctx.fillStyle = '#f0c040';
-  ctx.font = `bold 30px ${font}`;
+  ctx.font = `bold 24px ${font}`;
+  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - PAD * 2), PAD + 4, TITLE_H + 28);
+  ctx.fillStyle = '#dddddd';
+  ctx.font = `bold 19px ${font}`;
+  ctx.fillText(username, PAD + 4, TITLE_H + 66);
+  ctx.fillStyle = rankColor(overallRank);
+  ctx.font = `bold 32px ${font}`;
   ctx.textAlign = 'right';
   ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 4, TITLE_H + HEADER_H / 2);
   ctx.textAlign = 'left';
@@ -949,7 +965,7 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(r.attribute, x + bW / 2, y + 16);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = attrRankColor(r.attr_rank);
     ctx.font = `bold 28px ${font}`;
     ctx.fillText(`${r.attr_rank}位`, x + bW / 2, y + 40);
     ctx.textAlign = 'left';
