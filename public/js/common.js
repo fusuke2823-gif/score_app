@@ -962,14 +962,14 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold 24px ${font}`;
-  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - PAD * 2), PAD + 4, TITLE_H + 28);
+  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - PAD * 2), PAD + 20, TITLE_H + 28);
   ctx.fillStyle = '#dddddd';
   ctx.font = `bold 19px ${font}`;
-  ctx.fillText(username, PAD + 4, TITLE_H + 66);
+  ctx.fillText(username, PAD + 20, TITLE_H + 66);
   ctx.fillStyle = rankColor(Number(overallRank));
   ctx.font = `bold 32px ${font}`;
   ctx.textAlign = 'right';
-  ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 4, TITLE_H + HEADER_H / 2);
+  ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 20, TITLE_H + HEADER_H / 2);
   ctx.textAlign = 'left';
 
   const ATTR_COLORS = { '火':'#e05a3a','氷':'#4db8e8','雷':'#f5d04a','光':'#f0f060','闇':'#a066cc','無':'#aaaaaa' };
