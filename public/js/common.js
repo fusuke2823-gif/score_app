@@ -677,8 +677,8 @@ async function initInterimDistributionNotice() {
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
     // 外部ユーザーは外部配布のみ表示
     const scopeFilter = d => isInternalUser || d.type === 'external';
-    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_mid') }));
-    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_final') }));
+    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_mid'), is_final: false }));
+    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_final'), is_final: true }));
     const unseen = [...unseenFinal, ...unseenInterim]
       .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
     if (unseen.length === 0) return;
@@ -705,67 +705,106 @@ async function initInterimDistributionNotice() {
     `;
     document.head.appendChild(style);
 
+    window._distQueue = unseen;
+    window._distQueueIdx = 0;
+    window._distInternalUser = isInternalUser;
+    window._distRankPts = rankPts;
+    window._distExtRankPts = extRankPts;
+
     const modal = document.createElement('div');
     modal.id = 'interim-dist-modal';
-    modal.innerHTML = `
-      <div id="interim-dist-box">
-        <h3>${t('dist.title')}</h3>
-        <div class="interim-sub">${t('dist.sub')}</div>
-        <div id="interim-dist-list">${unseen.map(d => `
-          <div class="interim-dist-item">
-            <div class="interim-dist-name">
-              ${escHtml(d.event_name)}
-              <span class="interim-type-badge">${isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : ''}${d.period}配布</span>
-            </div>
-            <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
-            ${d.awarded_titles?.length ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--accent)">🏆 称号獲得: ${d.awarded_titles.map(n => `「${escHtml(n)}」`).join(' ')}</div>` : ''}
-            <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
-          </div>`).join('')}
-        </div>
-        ${hasInternal && rankPts ? `
-        <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
-        <div id="rank-pts-detail-int" style="display:none;margin-top:8px">
-          <table class="rank-pts-table">
-            <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
-            <tr><td>${t('dist.rank1')}</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
-            <tr><td>${t('dist.rank2')}</td><td>${rankPts.rank_pts_2 ?? 95}pt</td></tr>
-            <tr><td>${t('dist.rank3')}</td><td>${rankPts.rank_pts_3 ?? 95}pt</td></tr>
-            <tr><td>${t('dist.rank4')}</td><td>${rankPts.rank_pts_4 ?? 90}pt</td></tr>
-            <tr><td>${t('dist.rank5')}</td><td>${rankPts.rank_pts_5 ?? 90}pt</td></tr>
-            <tr><td>${t('dist.rank6')}</td><td>${rankPts.rank_pts_6 ?? 80}pt</td></tr>
-            <tr><td>${t('dist.rank7')}</td><td>${rankPts.rank_pts_7 ?? 80}pt</td></tr>
-            <tr><td>${t('dist.rank8')}</td><td>${rankPts.rank_pts_8 ?? 80}pt</td></tr>
-            <tr><td>${t('dist.rank9')}</td><td>${rankPts.rank_pts_9 ?? 80}pt</td></tr>
-            <tr><td>${t('dist.rank10')}</td><td>${rankPts.rank_pts_10 ?? 80}pt</td></tr>
-            <tr><td>${t('dist.rank11_15')}</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
-            <tr><td>${t('dist.rank16_20')}</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
-            <tr><td>${t('dist.rank21_25')}</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
-            <tr><td>${t('dist.rank26_30')}</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
-            <tr><td>${t('dist.rank31plus')}</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
-          </table>
-          <div class="rank-pts-note">${t('dist.note')}</div>
-        </div>` : ''}
-        ${hasExternal && extRankPts ? `
-        <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-ext').style.display=document.getElementById('rank-pts-detail-ext').style.display==='none'?'block':'none'">${isInternalUser ? '外部配布量詳細' : t('dist.detail_btn')}</button>
-        <div id="rank-pts-detail-ext" style="display:none;margin-top:8px">
-          <table class="rank-pts-table">
-            <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
-            <tr><td>1〜5位</td><td>${extRankPts.ext_rank_pts_1_5 ?? 100}pt</td></tr>
-            <tr><td>6〜10位</td><td>${extRankPts.ext_rank_pts_6_10 ?? 80}pt</td></tr>
-            <tr><td>11〜20位</td><td>${extRankPts.ext_rank_pts_11_20 ?? 60}pt</td></tr>
-            <tr><td>21〜30位</td><td>${extRankPts.ext_rank_pts_21_30 ?? 40}pt</td></tr>
-            <tr><td>31〜50位</td><td>${extRankPts.ext_rank_pts_31_50 ?? 20}pt</td></tr>
-            <tr><td>51〜75位</td><td>${extRankPts.ext_rank_pts_51_75 ?? 10}pt</td></tr>
-            <tr><td>76〜100位</td><td>${extRankPts.ext_rank_pts_76_100 ?? 7}pt</td></tr>
-            <tr><td>101位以降</td><td>${extRankPts.ext_rank_pts_101plus ?? 5}pt</td></tr>
-          </table>
-          <div class="rank-pts-note">${t('dist.note')}</div>
-        </div>` : ''}
-        <button class="btn btn-primary" style="margin-top:12px" onclick="closeInterimDistModal()">${t('close')}</button>
-      </div>`;
     document.body.appendChild(modal);
+    renderDistNoticeModal(0);
     modal.classList.add('open');
   } catch {}
+}
+
+function renderDistNoticeModal(idx) {
+  const modal = document.getElementById('interim-dist-modal');
+  if (!modal) return;
+  const unseen = window._distQueue;
+  const d = unseen[idx];
+  const isInternalUser = window._distInternalUser;
+  const rankPts = window._distRankPts;
+  const extRankPts = window._distExtRankPts;
+  const total = unseen.length;
+  const isLast = idx === total - 1;
+  const scopeLabel = isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : '';
+
+  const tweetHtml = d.is_final ? (() => {
+    const tweetText = `【HBR】${d.event_name} 結果\n総合${d.user_rank}位　+${d.user_pts}pt\n#HBR`;
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+    return `<a href="${escHtml(tweetUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>ツイートする</a>`;
+  })() : '';
+
+  const detailIntHtml = (isInternalUser && d.scope === 'internal' && rankPts) ? `
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
+    <div id="rank-pts-detail-int" style="display:none;margin-top:8px">
+      <table class="rank-pts-table">
+        <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
+        <tr><td>${t('dist.rank1')}</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
+        <tr><td>${t('dist.rank2')}</td><td>${rankPts.rank_pts_2 ?? 95}pt</td></tr>
+        <tr><td>${t('dist.rank3')}</td><td>${rankPts.rank_pts_3 ?? 95}pt</td></tr>
+        <tr><td>${t('dist.rank4')}</td><td>${rankPts.rank_pts_4 ?? 90}pt</td></tr>
+        <tr><td>${t('dist.rank5')}</td><td>${rankPts.rank_pts_5 ?? 90}pt</td></tr>
+        <tr><td>${t('dist.rank6')}</td><td>${rankPts.rank_pts_6 ?? 80}pt</td></tr>
+        <tr><td>${t('dist.rank7')}</td><td>${rankPts.rank_pts_7 ?? 80}pt</td></tr>
+        <tr><td>${t('dist.rank8')}</td><td>${rankPts.rank_pts_8 ?? 80}pt</td></tr>
+        <tr><td>${t('dist.rank9')}</td><td>${rankPts.rank_pts_9 ?? 80}pt</td></tr>
+        <tr><td>${t('dist.rank10')}</td><td>${rankPts.rank_pts_10 ?? 80}pt</td></tr>
+        <tr><td>${t('dist.rank11_15')}</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
+        <tr><td>${t('dist.rank16_20')}</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
+        <tr><td>${t('dist.rank21_25')}</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
+        <tr><td>${t('dist.rank26_30')}</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
+        <tr><td>${t('dist.rank31plus')}</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
+      </table>
+      <div class="rank-pts-note">${t('dist.note')}</div>
+    </div>` : '';
+
+  const detailExtHtml = (d.scope === 'external' && extRankPts) ? `
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-ext').style.display=document.getElementById('rank-pts-detail-ext').style.display==='none'?'block':'none'">${isInternalUser ? '外部配布量詳細' : t('dist.detail_btn')}</button>
+    <div id="rank-pts-detail-ext" style="display:none;margin-top:8px">
+      <table class="rank-pts-table">
+        <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
+        <tr><td>1〜5位</td><td>${extRankPts.ext_rank_pts_1_5 ?? 100}pt</td></tr>
+        <tr><td>6〜10位</td><td>${extRankPts.ext_rank_pts_6_10 ?? 80}pt</td></tr>
+        <tr><td>11〜20位</td><td>${extRankPts.ext_rank_pts_11_20 ?? 60}pt</td></tr>
+        <tr><td>21〜30位</td><td>${extRankPts.ext_rank_pts_21_30 ?? 40}pt</td></tr>
+        <tr><td>31〜50位</td><td>${extRankPts.ext_rank_pts_31_50 ?? 20}pt</td></tr>
+        <tr><td>51〜75位</td><td>${extRankPts.ext_rank_pts_51_75 ?? 10}pt</td></tr>
+        <tr><td>76〜100位</td><td>${extRankPts.ext_rank_pts_76_100 ?? 7}pt</td></tr>
+        <tr><td>101位以降</td><td>${extRankPts.ext_rank_pts_101plus ?? 5}pt</td></tr>
+      </table>
+      <div class="rank-pts-note">${t('dist.note')}</div>
+    </div>` : '';
+
+  modal.innerHTML = `
+    <div id="interim-dist-box">
+      <h3>${t('dist.title')}</h3>
+      ${total > 1 ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">${idx + 1} / ${total}</div>` : ''}
+      <div class="interim-sub">${t('dist.sub')}</div>
+      <div class="interim-dist-item">
+        <div class="interim-dist-name">
+          ${escHtml(d.event_name)}
+          <span class="interim-type-badge">${scopeLabel}${d.period}配布</span>
+        </div>
+        <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
+        ${d.awarded_titles?.length ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--accent)">🏆 称号獲得: ${d.awarded_titles.map(n => `「${escHtml(n)}」`).join(' ')}</div>` : ''}
+        <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
+      </div>
+      ${tweetHtml}
+      ${detailIntHtml}
+      ${detailExtHtml}
+      ${isLast
+        ? `<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="closeInterimDistModal()">${t('close')}</button>`
+        : `<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="advanceDistNotice()">次へ →</button>`
+      }
+    </div>`;
+}
+
+function advanceDistNotice() {
+  window._distQueueIdx = (window._distQueueIdx || 0) + 1;
+  renderDistNoticeModal(window._distQueueIdx);
 }
 
 function closeInterimDistModal() {
