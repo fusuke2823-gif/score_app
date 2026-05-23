@@ -930,7 +930,7 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.fillStyle = '#dddddd';
   ctx.font = `bold 19px ${font}`;
   ctx.fillText(username, PAD + 4, TITLE_H + 66);
-  ctx.fillStyle = rankColor(overallRank);
+  ctx.fillStyle = rankColor(Number(overallRank));
   ctx.font = `bold 32px ${font}`;
   ctx.textAlign = 'right';
   ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 4, TITLE_H + HEADER_H / 2);
@@ -965,7 +965,7 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(r.attribute, x + bW / 2, y + 16);
-    ctx.fillStyle = attrRankColor(r.attr_rank);
+    ctx.fillStyle = attrRankColor(Number(r.attr_rank));
     ctx.font = `bold 28px ${font}`;
     ctx.fillText(`${r.attr_rank}位`, x + bW / 2, y + 40);
     ctx.textAlign = 'left';
