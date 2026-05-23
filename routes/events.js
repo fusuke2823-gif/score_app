@@ -174,6 +174,39 @@ router.get('/ext-rank-pts', async (req, res) => {
   }
 });
 
+// 自分のリザルト＋属性別順位（最終配布通知の画像生成用）
+router.get('/:id/my-results', authenticateToken, async (req, res) => {
+  const scope = req.query.scope || 'external';
+  const scopeFilter = scope === 'internal'
+    ? `s.ranking_scope IN ('public','internal','external')`
+    : `s.ranking_scope IN ('public','external')`;
+  try {
+    const result = await pool.query(
+      `WITH attr_best AS (
+         SELECT s.user_id, s.attribute, MAX(s.approved_score) AS best_score
+         FROM scores s
+         WHERE s.event_id = $1 AND s.approved_score IS NOT NULL AND ${scopeFilter}
+         GROUP BY s.user_id, s.attribute
+       ),
+       attr_ranked AS (
+         SELECT user_id, attribute, best_score,
+           RANK() OVER (PARTITION BY attribute ORDER BY best_score DESC) AS attr_rank
+         FROM attr_best
+       )
+       SELECT s.attribute, s.approved_score, s.approved_image_url, ar.attr_rank
+       FROM scores s
+       JOIN attr_ranked ar ON ar.user_id = s.user_id AND ar.attribute = s.attribute
+       WHERE s.event_id = $1 AND s.user_id = $2 AND s.approved_score IS NOT NULL
+       ORDER BY s.attribute`,
+      [req.params.id, req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // イベント詳細（敵情報含む）
 router.get('/:id', optionalAuth, async (req, res) => {
   try {

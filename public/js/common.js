@@ -731,11 +731,9 @@ function renderDistNoticeModal(idx) {
   const isLast = idx === total - 1;
   const scopeLabel = isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : '';
 
-  const tweetHtml = d.is_final ? (() => {
-    const tweetText = `【HBR】${d.event_name} 結果\n総合${d.user_rank}位　+${d.user_pts}pt\n#HBR`;
-    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-    return `<a href="${escHtml(tweetUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>ツイートする</a>`;
-  })() : '';
+  const tweetHtml = d.is_final
+    ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openResultImageModal()">📸 結果画像を作成・ツイート</button>`
+    : '';
 
   const detailIntHtml = (isInternalUser && d.scope === 'internal' && rankPts) ? `
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
@@ -814,6 +812,162 @@ function closeInterimDistModal() {
   if (lbModal && lbModal.classList.contains('open')) {
     lbModal.style.zIndex = '2100';
   }
+}
+
+// ===== 最終配布 結果画像生成 =====
+async function openResultImageModal() {
+  const d = window._distQueue?.[window._distQueueIdx ?? 0];
+  if (!d) return;
+
+  let modal = document.getElementById('result-img-modal');
+  if (!modal) {
+    const style = document.createElement('style');
+    style.textContent = `
+      #result-img-modal { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:2200; display:flex; align-items:center; justify-content:center; padding:16px; }
+      #result-img-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:92vw; width:480px; text-align:center; max-height:90vh; overflow-y:auto; }
+      #result-img-box h3 { margin:0 0 14px; font-size:1rem; }
+      #result-img-preview { max-width:100%; border-radius:8px; margin-bottom:14px; display:block; }
+      .result-img-actions { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    `;
+    document.head.appendChild(style);
+    modal = document.createElement('div');
+    modal.id = 'result-img-modal';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div id="result-img-box">
+      <h3>結果画像を生成中...</h3>
+      <div class="loading"><div class="spinner"></div></div>
+    </div>`;
+  modal.style.display = 'flex';
+
+  try {
+    const me = getUser();
+    const username = me?.username || '';
+    const results = await apiFetch(`/events/${d.event_id}/my-results?scope=${d.scope}`);
+
+    if (!results || results.length === 0) {
+      modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted)">承認済みリザルトがありません</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
+      return;
+    }
+
+    let dataUrl;
+    try {
+      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank);
+    } catch (e) {
+      modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">画像の生成に失敗しました（${escHtml(e.message)}）</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
+      return;
+    }
+
+    const tweetText = `【HBR】${d.event_name} 結果\n総合${d.user_rank}位　+${d.user_pts}pt\n#HBR`;
+    const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+    const fileName = `${d.event_name}_result.png`;
+
+    modal.innerHTML = `
+      <div id="result-img-box">
+        <h3>結果画像</h3>
+        <img id="result-img-preview" src="${dataUrl}" alt="result">
+        <p style="font-size:0.75rem;color:var(--text-muted);margin:0 0 12px">画像をダウンロードしてツイートに添付してください</p>
+        <div class="result-img-actions">
+          <a href="${dataUrl}" download="${escHtml(fileName)}" class="btn btn-secondary btn-sm">⬇ ダウンロード</a>
+          <a href="${escHtml(tweetUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>ツイートへ</a>
+          <button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button>
+        </div>
+      </div>`;
+  } catch (err) {
+    modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">${escHtml(err.message)}</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
+  }
+}
+
+async function _generateResultCanvas(results, eventName, username, overallRank) {
+  const IMG_W = 260, IMG_H = 195, PAD = 10, HEADER_H = 74;
+  const n = results.length;
+  const canvas = document.createElement('canvas');
+  canvas.width  = PAD + n * (IMG_W + PAD);
+  canvas.height = HEADER_H + IMG_H + PAD;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#0d0d1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(0, 0, canvas.width, HEADER_H);
+
+  // Header text
+  const font = '"Helvetica Neue", Arial, "Noto Sans JP", sans-serif';
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold 15px ${font}`;
+  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width - 160), PAD + 4, 22);
+  ctx.fillStyle = '#bbbbbb';
+  ctx.font = `13px ${font}`;
+  ctx.fillText(username, PAD + 4, 52);
+
+  ctx.fillStyle = '#f0c040';
+  ctx.font = `bold 22px ${font}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(`総合 ${overallRank}位`, canvas.width - PAD - 4, HEADER_H / 2);
+  ctx.textAlign = 'left';
+
+  const ATTR_COLORS = { '火':'#e05a3a','氷':'#4db8e8','雷':'#f5d04a','光':'#f0f060','闇':'#a066cc','無':'#aaaaaa' };
+
+  for (let i = 0; i < n; i++) {
+    const r = results[i];
+    const x = PAD + i * (IMG_W + PAD);
+    const y = HEADER_H;
+
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(x, y, IMG_W, IMG_H);
+
+    if (r.approved_image_url) {
+      try {
+        const img = await _loadImage(r.approved_image_url);
+        ctx.drawImage(img, x, y, IMG_W, IMG_H);
+      } catch { /* 画像なしのまま */ }
+    }
+
+    // ランクバッジ（右上）
+    const badge = `${r.attribute} ${r.attr_rank}位`;
+    const bW = 58, bH = 24;
+    ctx.fillStyle = 'rgba(0,0,0,0.72)';
+    ctx.fillRect(x + IMG_W - bW, y, bW, bH);
+    ctx.fillStyle = ATTR_COLORS[r.attribute] || '#ffffff';
+    ctx.font = `bold 13px ${font}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(badge, x + IMG_W - bW / 2, y + 14);
+    ctx.textAlign = 'left';
+  }
+
+  try {
+    return canvas.toDataURL('image/png');
+  } catch {
+    throw new Error('CORS制限により画像を書き出せませんでした');
+  }
+}
+
+function _loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const timer = setTimeout(() => reject(new Error('timeout')), 8000);
+    img.onload  = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); reject(new Error('load error')); };
+    img.src = url;
+  });
+}
+
+function _canvasTrunc(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+
+function closeResultImageModal() {
+  const m = document.getElementById('result-img-modal');
+  if (m) m.style.display = 'none';
 }
 
 // ===== アカウント設定促進モーダル =====
