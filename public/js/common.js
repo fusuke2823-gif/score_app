@@ -864,18 +864,32 @@ async function openResultImageModal() {
 
     // シェアURL生成（Cloudinaryアップ → OGタグ付きページ）
     let sharePageUrl = null;
-    try {
-      modal.querySelector('#result-img-box h3').textContent = '画像をアップロード中...';
-      const shareRes = await apiFetch('/api/share-image', {
-        method: 'POST',
-        body: JSON.stringify({ dataUrl, eventName: d.event_name }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      sharePageUrl = location.origin + shareRes.url;
-    } catch { /* アップ失敗時はダウンロードのみ */ }
-
     const tweetText = `ヘブバン ランクボードで${d.event_name}の結果を生成しました\n#ヘブバン　#ヘブバンランクボード\nhebuban-rankboard.com`;
+
+    // dataUrl → Blob → File（Web Share API用）
+    const blob = await (await fetch(dataUrl)).blob();
+    const shareFile = new File([blob], fileName, { type: 'image/png' });
+    const canNativeShare = navigator.canShare && navigator.canShare({ files: [shareFile] });
+
+    // デスクトップ用フォールバック：Cloudinaryアップ → OGタグ付きシェアページURL
+    if (!canNativeShare) {
+      try {
+        modal.querySelector('#result-img-box h3').textContent = '画像をアップロード中...';
+        const shareRes = await apiFetch('/api/share-image', {
+          method: 'POST',
+          body: JSON.stringify({ dataUrl, eventName: d.event_name }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        sharePageUrl = location.origin + shareRes.url;
+      } catch { /* アップ失敗時はURLなし */ }
+    }
+
     const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}${sharePageUrl ? `&url=${encodeURIComponent(sharePageUrl)}` : ''}`;
+
+    const xSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+    const tweetBtn = canNativeShare
+      ? `<button id="native-share-btn" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px">${xSvg}ツイート</button>`
+      : `<a href="${escHtml(tweetIntentUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px;text-decoration:none">${xSvg}ツイート</a>`;
 
     modal.innerHTML = `
       <div id="result-img-box">
@@ -883,10 +897,20 @@ async function openResultImageModal() {
         <img id="result-img-preview" src="${dataUrl}" alt="result">
         <div class="result-img-actions">
           <a href="${dataUrl}" download="${escHtml(fileName)}" class="btn btn-secondary btn-sm">⬇ ダウンロード</a>
-          <a href="${escHtml(tweetIntentUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px;text-decoration:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>ツイート</a>
+          ${tweetBtn}
           <button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button>
         </div>
       </div>`;
+
+    if (canNativeShare) {
+      document.getElementById('native-share-btn').addEventListener('click', async () => {
+        try {
+          await navigator.share({ files: [shareFile], text: tweetText });
+        } catch (e) {
+          if (e.name !== 'AbortError') alert('共有に失敗しました: ' + e.message);
+        }
+      });
+    }
   } catch (err) {
     modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">${escHtml(err.message)}</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
   }
