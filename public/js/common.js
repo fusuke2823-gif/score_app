@@ -919,7 +919,7 @@ async function openResultImageModal() {
 }
 
 async function _generateResultCanvas(results, eventName, username, overallRank) {
-  const COLS = 2, IMG_W = 300, IMG_H = 200, PAD = 12;
+  const COLS = 2, IMG_W = 272, IMG_H = 182, PAD = 12;
   const TITLE_H = 52, HEADER_H = 96;
   const n = results.length;
   const ROWS = Math.ceil(n / COLS);
@@ -978,10 +978,10 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ffffff';
   ctx.font = `bold 24px ${font}`;
-  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width / 2 - PAD), PAD + 20, TITLE_H + 28);
+  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width / 2 - PAD), PAD + 36, TITLE_H + 28);
   ctx.fillStyle = '#dddddd';
   ctx.font = `bold 19px ${font}`;
-  ctx.fillText(username, PAD + 20, TITLE_H + 66);
+  ctx.fillText(username, PAD + 36, TITLE_H + 66);
 
   // 総合順位ピルバッジ（右側・赤背景）
   const rankLabel = `総合 ${overallRank}位`;
@@ -989,7 +989,7 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.textBaseline = 'middle';
   const rankTextW = ctx.measureText(rankLabel).width;
   const rPillW = rankTextW + 28, rPillH = 44;
-  const rPillX = canvas.width - PAD - 20 - rPillW;
+  const rPillX = canvas.width - PAD - 36 - rPillW;
   const rPillY = TITLE_H + (HEADER_H - rPillH) / 2;
   drawPill(rPillX, rPillY, rPillW, rPillH, '#c0392b');
   ctx.fillStyle = rankColor(Number(overallRank));
@@ -1003,7 +1003,8 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
     const r = results[i];
     const col = i % COLS;
     const row = Math.floor(i / COLS);
-    const x = PAD + col * (IMG_W + PAD);
+    const isLoneLastRow = (n % COLS !== 0) && (i === n - 1);
+    const x = isLoneLastRow ? (canvas.width - IMG_W) / 2 : PAD + col * (IMG_W + PAD);
     const y = TITLE_H + HEADER_H + PAD + row * (IMG_H + PAD);
 
     ctx.fillStyle = '#1a1a2e';
