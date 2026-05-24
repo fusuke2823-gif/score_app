@@ -17,8 +17,8 @@ function convertEncounterScoreToPoints(score) {
   if (score <= 150000) return Math.floor(1500 + (score - 147000) * 3 / 5);
   if (score <= 155000) return Math.floor(3300 + (score - 150000) * 6 / 25);
   if (score <= 156000) return Math.floor(4500 + (score - 155000) * 3 / 5);
-  if (score <= 156300) return Math.floor(5100 + (score - 156000) * 2);
-  return Math.floor(5700 + (score - 156300) * 2);
+  if (score <= 156250) return Math.floor(5100 + (score - 156000) * 2.4);
+  return Math.floor(5700 + (score - 156250) * 2);
 }
 
 // Xレート用pt→rate変換（350万=0, 380万=1500, 以降は緩やかな係数）
