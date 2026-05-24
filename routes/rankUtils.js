@@ -124,6 +124,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
 
         if (newXRate < 0) {
           newRank = 'S';
+          newSRate = sRate;
           newXRate = null;
         } else {
           newRank = newXRate >= 1500 ? 'Ex' : 'X';
