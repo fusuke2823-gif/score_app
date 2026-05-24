@@ -4,7 +4,51 @@
 
 require('dotenv').config();
 const pool = require('../db/index');
-const { updateUserRanks } = require('../routes/rankUtils');
+const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints } = require('../routes/rankUtils');
+
+async function getUserScoreDetail(client, userId, maxEventNumber) {
+  const { rows: recent } = await client.query(
+    `SELECT e.name AS event_name,
+            MAX(s.approved_score)::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
+            e.event_type
+     FROM scores s
+     JOIN events e ON e.id = s.event_id
+     WHERE s.user_id = $1
+       AND s.approved_score IS NOT NULL
+       AND s.ranking_scope IN ('public', 'internal', 'external')
+       AND e.event_type IN ('score_attack', 'seraph')
+       AND e.event_number <= $2
+     GROUP BY e.id, e.name, e.event_number, e.event_type
+     ORDER BY e.event_number DESC
+     LIMIT 3`,
+    [userId, maxEventNumber]
+  );
+
+  const { rows: best } = await client.query(
+    `SELECT e.name AS event_name,
+            s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
+            e.event_type
+     FROM scores s
+     JOIN events e ON e.id = s.event_id
+     WHERE s.user_id = $1
+       AND s.approved_score IS NOT NULL
+       AND s.ranking_scope IN ('public', 'internal', 'external')
+       AND e.event_type IN ('score_attack', 'seraph')
+       AND e.event_number <= $2
+     ORDER BY corrected_score DESC
+     LIMIT 1`,
+    [userId, maxEventNumber]
+  );
+
+  const toPt = (row) => row.event_type === 'seraph'
+    ? convertEncounterScoreToPoints(Math.floor(row.corrected_score))
+    : convertScoreToPoints(Math.floor(row.corrected_score));
+
+  return {
+    recent: recent.map(r => ({ event_name: r.event_name, score: Math.floor(r.corrected_score), pt: toPt(r) })),
+    best: best[0] ? { event_name: best[0].event_name, score: Math.floor(best[0].corrected_score), pt: toPt(best[0]) } : null,
+  };
+}
 
 async function run() {
   const eventNumber = parseInt(process.argv[2]);
@@ -19,7 +63,7 @@ async function run() {
     const { rows } = await client.query('SELECT id, name FROM events WHERE event_number = $1', [eventNumber]);
     if (!rows[0]) { console.error(`イベント番号 ${eventNumber} が見つかりません`); process.exit(1); }
     console.log(`イベント: [${rows[0].id}] ${rows[0].name} (イベント番号 ${eventNumber})`);
-    console.log(`→ イベント番号 ${eventNumber} 以前のスコアで全ユーザーのランク・レートを再計算します`);
+    console.log(`→ イベント番号 ${eventNumber} 以前のスコアで全ユーザーのランク・レートを再計算します\n`);
 
     await client.query('BEGIN');
 
@@ -39,15 +83,25 @@ async function run() {
     let changedCount = 0;
     for (const a of after) {
       const b = beforeMap[a.id];
-      const rankChanged = b.comp_rank !== a.comp_rank;
       const xBefore = b.x_rate != null ? Number(b.x_rate).toFixed(1) : 'null';
       const xAfter  = a.x_rate != null ? Number(a.x_rate).toFixed(1) : 'null';
       const sBefore = b.s_rate != null ? Number(b.s_rate).toFixed(1) : 'null';
       const sAfter  = a.s_rate != null ? Number(a.s_rate).toFixed(1) : 'null';
-      const changed = rankChanged || xBefore !== xAfter || sBefore !== sAfter;
-      if (changed) {
-        changedCount++;
-        console.log(`  ${a.username}: ${b.comp_rank}→${a.comp_rank}  s_rate: ${sBefore}→${sAfter}  x_rate: ${xBefore}→${xAfter}`);
+      const changed = b.comp_rank !== a.comp_rank || xBefore !== xAfter || sBefore !== sAfter;
+      if (!changed) continue;
+
+      changedCount++;
+      console.log(`\n  ${a.username}: ${b.comp_rank}→${a.comp_rank}  s_rate: ${sBefore}→${sAfter}  x_rate: ${xBefore}→${xAfter}`);
+
+      const detail = await getUserScoreDetail(client, a.id, eventNumber);
+      if (detail.best) {
+        console.log(`    [最高] ${detail.best.event_name}  スコア: ${detail.best.score.toLocaleString()}  pt: ${detail.best.pt}`);
+      }
+      if (detail.recent.length > 0) {
+        console.log(`    [直近3回]`);
+        detail.recent.forEach((r, i) => {
+          console.log(`      ${i + 1}. ${r.event_name}  スコア: ${r.score.toLocaleString()}  pt: ${r.pt}`);
+        });
       }
     }
 
