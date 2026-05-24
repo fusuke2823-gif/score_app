@@ -24,7 +24,7 @@ function convertEncounterScoreToPoints(score) {
 // Xレート用pt→rate変換（350万=0, 380万=1500, 以降は緩やかな係数）
 function rateForXPt(pt) {
   if (pt < 3300) return (pt - 1500) * 0.833;
-  return 1500 + (pt - 3300) * 0.209;
+  return 1500 + (pt - 3300) * 0.229;
 }
 
 async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
