@@ -1,41 +1,24 @@
 // 指定イベントまでのスコアでランク・レートを再計算するスクリプト
 // 実行例:
-//   node scripts/recalc-ranks-until-event.js --event-id 42
-//   node scripts/recalc-ranks-until-event.js --event-number 15
+//   node scripts/recalc-ranks-until-event.js 15
 
 require('dotenv').config();
 const pool = require('../db/index');
 const { updateUserRanks } = require('../routes/rankUtils');
 
 async function run() {
-  const args = process.argv.slice(2);
-  const idIdx  = args.indexOf('--event-id');
-  const numIdx = args.indexOf('--event-number');
+  const eventNumber = parseInt(process.argv[2]);
 
-  if (idIdx === -1 && numIdx === -1) {
-    console.error('使い方:');
-    console.error('  node scripts/recalc-ranks-until-event.js --event-id <id>');
-    console.error('  node scripts/recalc-ranks-until-event.js --event-number <number>');
+  if (!eventNumber) {
+    console.error('使い方: node scripts/recalc-ranks-until-event.js <イベント番号>');
     process.exit(1);
   }
 
   const client = await pool.connect();
   try {
-    let eventNumber;
-
-    if (idIdx !== -1) {
-      const eventId = parseInt(args[idIdx + 1]);
-      const { rows } = await client.query('SELECT event_number, name FROM events WHERE id = $1', [eventId]);
-      if (!rows[0]) { console.error(`イベントID ${eventId} が見つかりません`); process.exit(1); }
-      eventNumber = rows[0].event_number;
-      console.log(`イベント: [${eventId}] ${rows[0].name} (イベント番号 ${eventNumber})`);
-    } else {
-      eventNumber = parseInt(args[numIdx + 1]);
-      const { rows } = await client.query('SELECT id, name FROM events WHERE event_number = $1', [eventNumber]);
-      if (!rows[0]) { console.error(`イベント番号 ${eventNumber} が見つかりません`); process.exit(1); }
-      console.log(`イベント: [${rows[0].id}] ${rows[0].name} (イベント番号 ${eventNumber})`);
-    }
-
+    const { rows } = await client.query('SELECT id, name FROM events WHERE event_number = $1', [eventNumber]);
+    if (!rows[0]) { console.error(`イベント番号 ${eventNumber} が見つかりません`); process.exit(1); }
+    console.log(`イベント: [${rows[0].id}] ${rows[0].name} (イベント番号 ${eventNumber})`);
     console.log(`→ イベント番号 ${eventNumber} 以前のスコアで全ユーザーのランク・レートを再計算します`);
 
     await client.query('BEGIN');
