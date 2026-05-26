@@ -8,7 +8,7 @@ const { sendScoreNotification } = require('../utils/mailer');
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 cloudinary.config({
@@ -19,8 +19,24 @@ cloudinary.config({
 
 const VALID_ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 
+// multerエラーをJSONで返す
+router.use((err, req, res, next) => {
+  if (err && err.code === 'LIMIT_FILE_SIZE')
+    return res.status(400).json({ error: '画像ファイルは10MB以内にしてください' });
+  next(err);
+});
+
 // スコア投稿
-router.post('/', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/', authenticateToken, (req, res, next) => {
+  upload.single('image')(req, res, err => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE')
+        return res.status(400).json({ error: '画像ファイルは10MB以内にしてください' });
+      return res.status(400).json({ error: 'ファイルのアップロードに失敗しました' });
+    }
+    next();
+  });
+}, async (req, res) => {
   const { event_id, attribute, score, is_anonymous, ranking_scope, youtube_url } = req.body;
 
   if (!event_id || !attribute || score === undefined)

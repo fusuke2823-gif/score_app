@@ -416,7 +416,8 @@ async function apiFormFetch(path, formData, method = 'POST') {
   const token = getToken();
   const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
   const res = await fetch(API + path, { method, headers, body: formData });
-  const data = await res.json();
+  let data;
+  try { data = await res.json(); } catch { data = {}; }
   if (!res.ok) {
     if (_handleAuthError(res, data)) return;
     throw new Error(data.error || t('error'));
