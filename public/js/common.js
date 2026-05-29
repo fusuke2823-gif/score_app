@@ -732,7 +732,7 @@ function renderDistNoticeModal(idx) {
   const isLast = idx === total - 1;
   const scopeLabel = isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : '';
 
-  const tweetHtml = `<button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openResultImageModal(${d.is_final})">📸 結果画像を作成・ツイート</button>`;
+  const tweetHtml = `<button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openResultImageModal(${d.is_final})">結果画像を作成・ツイート</button>`;
 
   const detailIntHtml = (isInternalUser && d.scope === 'internal' && rankPts) ? `
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
