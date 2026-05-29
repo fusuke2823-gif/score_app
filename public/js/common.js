@@ -863,7 +863,8 @@ async function openResultImageModal(isFinal = true) {
 
     // シェアURL生成（Cloudinaryアップ → OGタグ付きページ）
     let sharePageUrl = null;
-    const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の結果を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n\nhebuban-rankboard.com`;
+    const resultLabel = isFinal ? '最終結果' : '中間結果';
+    const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の${resultLabel}を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n\nhebuban-rankboard.com`;
 
     // dataUrl → Blob → File（Web Share API用）
     const blob = await (await fetch(dataUrl)).blob();
