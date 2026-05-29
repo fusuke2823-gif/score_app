@@ -732,9 +732,7 @@ function renderDistNoticeModal(idx) {
   const isLast = idx === total - 1;
   const scopeLabel = isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : '';
 
-  const tweetHtml = d.is_final
-    ? `<button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openResultImageModal()">📸 結果画像を作成・ツイート</button>`
-    : '';
+  const tweetHtml = `<button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openResultImageModal(${d.is_final})">📸 結果画像を作成・ツイート</button>`;
 
   const detailIntHtml = (isInternalUser && d.scope === 'internal' && rankPts) ? `
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
@@ -815,8 +813,8 @@ function closeInterimDistModal() {
   }
 }
 
-// ===== 最終配布 結果画像生成 =====
-async function openResultImageModal() {
+// ===== 配布 結果画像生成 =====
+async function openResultImageModal(isFinal = true) {
   const d = window._distQueue?.[window._distQueueIdx ?? 0];
   if (!d) return;
 
@@ -855,7 +853,7 @@ async function openResultImageModal() {
 
     let dataUrl;
     try {
-      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank);
+      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank, isFinal ? '' : '中間結果');
     } catch (e) {
       modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">画像の生成に失敗しました（${escHtml(e.message)}）</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
       return;
@@ -919,9 +917,9 @@ async function openResultImageModal() {
   }
 }
 
-async function _generateResultCanvas(results, eventName, username, overallRank) {
+async function _generateResultCanvas(results, eventName, username, overallRank, label = '') {
   const COLS = 2, IMG_W = 272, IMG_H = 182, PAD = 12;
-  const TITLE_H = 52, HEADER_H = 96;
+  const TITLE_H = label ? 68 : 52, HEADER_H = 96;
   const n = results.length;
   const ROWS = Math.ceil(n / COLS);
   const canvas = document.createElement('canvas');
@@ -941,7 +939,14 @@ async function _generateResultCanvas(results, eventName, username, overallRank) 
   ctx.font = `bold 22px ${font}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2);
+  if (label) {
+    ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2 - 10);
+    ctx.fillStyle = '#f0a060';
+    ctx.font = `bold 16px ${font}`;
+    ctx.fillText(label, canvas.width / 2, TITLE_H / 2 + 14);
+  } else {
+    ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2);
+  }
 
   // 順位カラー（総合・属性共通）
   function rankColor(rank) {
