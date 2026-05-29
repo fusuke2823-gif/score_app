@@ -853,7 +853,7 @@ async function openResultImageModal(isFinal = true) {
 
     let dataUrl;
     try {
-      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank, isFinal ? '' : '中間結果');
+      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank, isFinal ? '最終結果' : '中間結果');
     } catch (e) {
       modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">画像の生成に失敗しました（${escHtml(e.message)}）</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
       return;
@@ -919,7 +919,7 @@ async function openResultImageModal(isFinal = true) {
 
 async function _generateResultCanvas(results, eventName, username, overallRank, label = '') {
   const COLS = 2, IMG_W = 272, IMG_H = 182, PAD = 12;
-  const TITLE_H = label ? 68 : 52, HEADER_H = 96;
+  const TITLE_H = 68, HEADER_H = 96;
   const n = results.length;
   const ROWS = Math.ceil(n / COLS);
   const canvas = document.createElement('canvas');
@@ -939,14 +939,10 @@ async function _generateResultCanvas(results, eventName, username, overallRank, 
   ctx.font = `bold 22px ${font}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  if (label) {
-    ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2 - 10);
-    ctx.fillStyle = '#f0a060';
-    ctx.font = `bold 16px ${font}`;
-    ctx.fillText(label, canvas.width / 2, TITLE_H / 2 + 14);
-  } else {
-    ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2);
-  }
+  ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2 - 10);
+  ctx.fillStyle = '#f0a060';
+  ctx.font = `bold 16px ${font}`;
+  ctx.fillText(label, canvas.width / 2, TITLE_H / 2 + 14);
 
   // 順位カラー（総合・属性共通）
   function rankColor(rank) {
