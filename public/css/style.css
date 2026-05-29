@@ -374,6 +374,7 @@ main {
 .rank-1 .rank-num { color: #ffd700; }
 .rank-2 .rank-num { color: #c0c0c0; }
 .rank-3 .rank-num { color: #cd7f32; }
+tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #ffffff; }
 .score-val { font-size: 1.1rem; font-weight: bold; font-variant-numeric: tabular-nums; }
 
 /* ランキング ユーザーアイコン */
