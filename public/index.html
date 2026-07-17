@@ -742,10 +742,10 @@ function renderEvents() {
       const remaining = diffHours < 24
         ? t('event.hours_left', Math.ceil(diffHours))
         : t('event.days_left', Math.ceil(diffHours / 24));
-      statusLabel = `${t('event.active')} ${remaining}`;
+      statusLabel = remaining;
       statusStyle = 'color:#4caf50;font-weight:bold';
     } else {
-      statusLabel = t('event.active');
+      statusLabel = '';
       statusStyle = 'color:#4caf50;font-weight:bold';
     }
     return `
