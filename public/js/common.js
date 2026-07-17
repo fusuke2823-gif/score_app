@@ -1233,7 +1233,8 @@ async function initLoginBonus() {
       apiFetch('/auth/special-bonuses').catch(() => [])
     ]);
 
-    const hasUnclaimed = specials.some(b => b.claimed_count < b.max_claims && b.last_claimed_date !== new Date().toISOString().slice(0, 10));
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const hasUnclaimed = specials.some(b => b.claimed_count < b.max_claims && b.last_claimed_date?.slice(0, 10) !== todayStr);
 
     if (status.already_claimed && !hasUnclaimed) return;
 
@@ -1246,6 +1247,7 @@ async function initLoginBonus() {
 
     if (specials.length > 0) renderSpecialBonuses(specials);
     document.getElementById('login-bonus-modal').classList.add('open');
+    checkAndCloseModal();
   } catch {}
 }
 
