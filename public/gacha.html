@@ -239,6 +239,7 @@
 renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
+['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3'].forEach(_sePreload);
 
 let gSettings = null;
 let isPulling = false;
@@ -592,8 +593,13 @@ async function doPull(type) {
   }
 }
 
+const _seCache = {};
+function _sePreload(src) {
+  if (!_seCache[src]) { const a = new Audio(src); a.load(); _seCache[src] = a; }
+}
 function _sePlay(src) {
-  const a = new Audio(src);
+  _sePreload(src);
+  const a = _seCache[src].cloneNode();
   a.play().catch(() => {});
   return a;
 }
