@@ -703,9 +703,13 @@ async function animatePull(results) {
     setTimeout(() => { fl.style.opacity = '0'; setTimeout(() => fl.remove(), 220); }, 180);
   };
 
-  const stagger = results.length === 1 ? 0 : 180;
+  const stagger = results.length === 1 ? 0 : 300;
+  let lastTurnAudio = null;
   for (let i = 0; i < results.length; i++) {
-    if (i > 0) await new Promise(r => setTimeout(r, skipFlip ? 30 : stagger));
+    if (i > 0) {
+      _seStop(lastTurnAudio);
+      await new Promise(r => setTimeout(r, skipFlip ? 30 : stagger));
+    }
     const actual = results[i].rarity;
     const isFakeout = dispRarities[i] !== actual;
     const card = cardEls[i];
@@ -717,7 +721,7 @@ async function animatePull(results) {
         card.classList.add(`display-rarity-SS`);
       }
       const ssAudio = _sePlay('/sounds/ss_sound.mp3');
-      await new Promise(r => setTimeout(r, 60));
+      await new Promise(r => setTimeout(r, 100));
       card.classList.add('reveal-SS');
       setTimeout(doFlash, 480);
       await new Promise(r => setTimeout(r, 1300));
@@ -731,7 +735,7 @@ async function animatePull(results) {
         card.classList.add(`display-rarity-${actual}`);
       }
       const sAudio = actual === 'S' ? _sePlay('/sounds/s_sound.mp3') : null;
-      await new Promise(r => setTimeout(r, 60));
+      await new Promise(r => setTimeout(r, 100));
       card.classList.add(`reveal-${actual}`);
       await new Promise(r => setTimeout(r, 1000));
       _seStop(sAudio);
@@ -739,8 +743,8 @@ async function animatePull(results) {
       await new Promise(r => setTimeout(r, 40));
     }
 
-    _sePlay('/sounds/turn.mp3');
-    await new Promise(r => setTimeout(r, 60));
+    lastTurnAudio = _sePlay('/sounds/turn.mp3');
+    await new Promise(r => setTimeout(r, 100));
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
 
