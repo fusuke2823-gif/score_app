@@ -556,6 +556,7 @@ async function unequipIcon(el) {
 async function doPull(type) {
   if (isPulling) return;
   isPulling = true;
+  _getAudioCtx(); // ユーザー操作中にAudioContextをアンロック
   const btnS = document.getElementById('btn-single');
   const btnM = document.getElementById('btn-multi');
   btnS.disabled = true;
@@ -593,20 +594,38 @@ async function doPull(type) {
   }
 }
 
-const _seCache = {};
-function _sePreload(src) {
-  if (!_seCache[src]) { const a = new Audio(src); a.load(); _seCache[src] = a; }
+let _audioCtx = null;
+const _audioBuffers = {};
+
+function _getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
 }
+
+async function _sePreload(src) {
+  if (_audioBuffers[src]) return;
+  try {
+    const buf = await fetch(src).then(r => r.arrayBuffer());
+    const ctx = _getAudioCtx();
+    _audioBuffers[src] = await ctx.decodeAudioData(buf);
+  } catch (e) {}
+}
+
 function _sePlay(src) {
-  _sePreload(src);
-  const a = _seCache[src].cloneNode();
-  a.play().catch(() => {});
-  return a;
+  const ctx = _getAudioCtx();
+  const buf = _audioBuffers[src];
+  if (!buf) return null;
+  const src_ = ctx.createBufferSource();
+  src_.buffer = buf;
+  src_.connect(ctx.destination);
+  src_.start(0);
+  return src_;
 }
-function _seStop(a) {
-  if (!a) return;
-  a.pause();
-  a.currentTime = 0;
+
+function _seStop(node) {
+  if (!node) return;
+  try { node.stop(); } catch (e) {}
 }
 
 async function animatePull(results) {
