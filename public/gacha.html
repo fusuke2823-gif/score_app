@@ -249,7 +249,7 @@ let selectedPoolId = null;
 let gPools = [];
 
 async function init() {
-  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3'].forEach(_sePreload);
+  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3','/sounds/putcard.mp3'].forEach(_sePreload);
   try {
     const [settings, myData, pools] = await Promise.all([
       apiFetch('/gacha/settings'),
@@ -691,6 +691,7 @@ async function animatePull(results) {
 
     const showNext = () => {
       if (done) return;
+      _sePlay('/sounds/putcard.mp3');
       cardEls[idx].classList.add('card-visible');
       idx++;
       if (idx >= results.length) {
