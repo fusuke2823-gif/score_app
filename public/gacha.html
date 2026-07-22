@@ -592,6 +592,17 @@ async function doPull(type) {
   }
 }
 
+function _sePlay(src) {
+  const a = new Audio(src);
+  a.play().catch(() => {});
+  return a;
+}
+function _seStop(a) {
+  if (!a) return;
+  a.pause();
+  a.currentTime = 0;
+}
+
 async function animatePull(results) {
   const stage = document.getElementById('gacha-stage');
   stage.innerHTML = '';
@@ -629,8 +640,11 @@ async function animatePull(results) {
     cardEls.push(card);
   });
 
+  // 虹色SSがあれば確定音を再生
+  const hasRainbow = dispRarities.includes('SS');
+  let kakuteiAudio = hasRainbow ? _sePlay('/sounds/kakutei.mp3') : null;
+
   // ===== フェーズ1: カードを1枚ずつ表示 =====
-  // タップで全枚即時表示 → フェーズ2へ
   await new Promise(resolve => {
     let idx = 0;
     let timer = null;
@@ -666,6 +680,9 @@ async function animatePull(results) {
     timer = setTimeout(showNext, 80);
   });
 
+  // 確定音を止める
+  _seStop(kakuteiAudio);
+
   // ===== フェーズ2: 1枚ずつめくる（タップでSS以外スキップ）=====
   let skipFlip = false;
   const onSkipTap = () => { skipFlip = true; stage.removeEventListener('click', onSkipTap); stage.style.cursor = ''; };
@@ -695,7 +712,9 @@ async function animatePull(results) {
       }
       card.classList.add('reveal-SS');
       setTimeout(doFlash, 480);
+      const ssAudio = _sePlay('/sounds/ss_sound.mp3');
       await new Promise(r => setTimeout(r, 1300));
+      _seStop(ssAudio);
       card.classList.remove('reveal-SS');
       await new Promise(r => setTimeout(r, 40));
     } else if (!skipFlip && (isFakeout || actual === 'S')) {
@@ -705,11 +724,14 @@ async function animatePull(results) {
         card.classList.add(`display-rarity-${actual}`);
       }
       card.classList.add(`reveal-${actual}`);
-      await new Promise(r => setTimeout(r, actual === 'S' ? 1000 : 1000));
+      const sAudio = actual === 'S' ? _sePlay('/sounds/s_sound.mp3') : null;
+      await new Promise(r => setTimeout(r, 1000));
+      _seStop(sAudio);
       card.classList.remove(`reveal-${actual}`);
       await new Promise(r => setTimeout(r, 40));
     }
 
+    _sePlay('/sounds/turn.mp3');
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
 
