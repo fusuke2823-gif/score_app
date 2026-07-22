@@ -665,9 +665,13 @@ async function animatePull(results) {
     cardEls.push(card);
   });
 
-  // 虹色SSがあれば確定音を再生
+  // 虹色SSがあれば確定音を再生し少しステイ
   const hasRainbow = dispRarities.includes('SS');
-  let kakuteiAudio = hasRainbow ? _sePlay('/sounds/kakutei.mp3') : null;
+  let kakuteiAudio = null;
+  if (hasRainbow) {
+    kakuteiAudio = _sePlay('/sounds/kakutei.mp3');
+    await new Promise(r => setTimeout(r, 600));
+  }
 
   // ===== フェーズ1: カードを1枚ずつ表示 =====
   await new Promise(resolve => {
