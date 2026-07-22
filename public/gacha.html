@@ -639,8 +639,8 @@ async function animatePull(results) {
   const dispRarities = results.map(icon => {
     if (icon.rarity === 'SS') {
       const r = Math.random();
-      if (r < 0.50) return 'SS';
-      if (r < 0.75) return 'S';
+      if (r < 0.70) return 'SS';
+      if (r < 0.90) return 'S';
       return 'A';
     }
     if (icon.rarity === 'S') return Math.random() < 0.75 ? 'S' : 'A';
