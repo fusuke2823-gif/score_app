@@ -21,6 +21,8 @@
 .gacha-btn-multi { color:#ffd700; }
 .gacha-btn img { width:160px; max-width:38vw; height:auto; display:block; }
 .gacha-btn .gcost { font-size:0.88rem; font-weight:bold; }
+.g-card { opacity:0; transform:scale(0.8); transition:opacity 0.18s, transform 0.18s; }
+.g-card.card-visible { opacity:1; transform:scale(1); }
 
 /* カードステージ */
 .gacha-stage {
@@ -598,10 +600,6 @@ async function animatePull(results) {
   wrap.className = 'gacha-cards';
   stage.appendChild(wrap);
 
-  // めくる前に表示する演出レアリティを決定
-  // SS: 50%→虹, 25%→金, 25%→通常
-  // S:  75%→金, 25%→通常
-  // A:  100%→通常
   const dispRarities = results.map(icon => {
     if (icon.rarity === 'SS') {
       const r = Math.random();
@@ -613,7 +611,8 @@ async function animatePull(results) {
     return 'A';
   });
 
-  // カード生成（裏向き・表示レアリティ付き）
+  // カード生成（opacity:0 で非表示スタート）
+  const cardEls = [];
   results.forEach((icon, i) => {
     const card = document.createElement('div');
     card.className = `g-card rarity-${icon.rarity} display-rarity-${dispRarities[i]}`;
@@ -628,52 +627,95 @@ async function animatePull(results) {
         </div>
       </div>`;
     wrap.appendChild(card);
+    cardEls.push(card);
   });
 
-  // タップするまで待機（文字なし）
-  const cardEls = wrap.querySelectorAll('.g-card');
+  // ===== フェーズ1: カードを1枚ずつ表示 =====
+  // タップで全枚即時表示 → フェーズ2へ
   await new Promise(resolve => {
-    stage.style.cursor = 'pointer';
-    const handler = () => {
-      stage.removeEventListener('click', handler);
+    let idx = 0;
+    let timer = null;
+    let done = false;
+
+    const showAll = () => {
+      if (done) return;
+      done = true;
+      if (timer) clearTimeout(timer);
+      cardEls.forEach(c => c.classList.add('card-visible'));
       stage.style.cursor = '';
-      resolve();
+      stage.removeEventListener('click', onTap);
+      setTimeout(resolve, 200);
     };
-    stage.addEventListener('click', handler);
+
+    const showNext = () => {
+      if (done) return;
+      cardEls[idx].classList.add('card-visible');
+      idx++;
+      if (idx >= results.length) {
+        done = true;
+        stage.style.cursor = '';
+        stage.removeEventListener('click', onTap);
+        setTimeout(resolve, 300);
+      } else {
+        timer = setTimeout(showNext, 220);
+      }
+    };
+
+    const onTap = () => showAll();
+    stage.style.cursor = 'pointer';
+    stage.addEventListener('click', onTap);
+    timer = setTimeout(showNext, 80);
   });
 
-  // 順にめくる（めくる直前にレアリティ変更演出）
+  // ===== フェーズ2: 1枚ずつめくる（タップでSS以外スキップ）=====
+  let skipFlip = false;
+  const onSkipTap = () => { skipFlip = true; stage.removeEventListener('click', onSkipTap); stage.style.cursor = ''; };
+  stage.style.cursor = 'pointer';
+  stage.addEventListener('click', onSkipTap);
+
+  const doFlash = () => {
+    const fl = document.createElement('div');
+    fl.style.cssText = 'position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(255,230,120,0.45) 0%,transparent 70%);pointer-events:none;z-index:1500;opacity:0;transition:opacity 0.18s';
+    document.body.appendChild(fl);
+    requestAnimationFrame(() => { fl.style.opacity = '1'; });
+    setTimeout(() => { fl.style.opacity = '0'; setTimeout(() => fl.remove(), 220); }, 180);
+  };
+
   const stagger = results.length === 1 ? 0 : 180;
   for (let i = 0; i < results.length; i++) {
-    if (i > 0) await new Promise(r => setTimeout(r, stagger));
+    if (i > 0) await new Promise(r => setTimeout(r, skipFlip ? 30 : stagger));
     const actual = results[i].rarity;
     const isFakeout = dispRarities[i] !== actual;
-    if (isFakeout || actual === 'SS' || actual === 'S') {
-      const card = cardEls[i];
+    const card = cardEls[i];
+
+    if (actual === 'SS') {
+      // SSは常に演出あり
+      if (isFakeout) {
+        card.classList.remove(`display-rarity-${dispRarities[i]}`);
+        card.classList.add(`display-rarity-SS`);
+      }
+      card.classList.add('reveal-SS');
+      setTimeout(doFlash, 480);
+      await new Promise(r => setTimeout(r, 1300));
+      card.classList.remove('reveal-SS');
+      await new Promise(r => setTimeout(r, 40));
+    } else if (!skipFlip && (isFakeout || actual === 'S')) {
+      // S以下は未スキップ時のみ演出
       if (isFakeout) {
         card.classList.remove(`display-rarity-${dispRarities[i]}`);
         card.classList.add(`display-rarity-${actual}`);
       }
       card.classList.add(`reveal-${actual}`);
-      // SSはピーク時に画面フラッシュ
-      if (actual === 'SS') {
-        setTimeout(() => {
-          const fl = document.createElement('div');
-          fl.style.cssText = 'position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(255,230,120,0.45) 0%,transparent 70%);pointer-events:none;z-index:1500;opacity:0;transition:opacity 0.18s';
-          document.body.appendChild(fl);
-          requestAnimationFrame(() => { fl.style.opacity = '1'; });
-          setTimeout(() => { fl.style.opacity = '0'; setTimeout(() => fl.remove(), 220); }, 180);
-        }, 480);
-      }
-      const revealDur = actual === 'SS' ? 1300 : 1000;
-      await new Promise(r => setTimeout(r, revealDur));
+      await new Promise(r => setTimeout(r, actual === 'S' ? 1000 : 1000));
       card.classList.remove(`reveal-${actual}`);
       await new Promise(r => setTimeout(r, 40));
     }
+
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
 
-  // 最後のカードのアニメーション完了を待つ
+  stage.removeEventListener('click', onSkipTap);
+  stage.style.cursor = '';
   await new Promise(r => setTimeout(r, 700));
 }
 
