@@ -644,7 +644,7 @@ async function animatePull(results) {
       cardEls.forEach(c => c.classList.add('card-visible'));
       stage.style.cursor = '';
       stage.removeEventListener('click', onTap);
-      setTimeout(resolve, 200);
+      setTimeout(resolve, 1000);
     };
 
     const showNext = () => {
@@ -655,7 +655,7 @@ async function animatePull(results) {
         done = true;
         stage.style.cursor = '';
         stage.removeEventListener('click', onTap);
-        setTimeout(resolve, 300);
+        setTimeout(resolve, 1000);
       } else {
         timer = setTimeout(showNext, 220);
       }
