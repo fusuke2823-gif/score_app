@@ -239,7 +239,6 @@
 renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
-['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3'].forEach(_sePreload);
 
 let gSettings = null;
 let isPulling = false;
@@ -250,6 +249,7 @@ let selectedPoolId = null;
 let gPools = [];
 
 async function init() {
+  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3'].forEach(_sePreload);
   try {
     const [settings, myData, pools] = await Promise.all([
       apiFetch('/gacha/settings'),
