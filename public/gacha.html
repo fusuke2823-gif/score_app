@@ -703,13 +703,9 @@ async function animatePull(results) {
     setTimeout(() => { fl.style.opacity = '0'; setTimeout(() => fl.remove(), 220); }, 180);
   };
 
-  const stagger = results.length === 1 ? 0 : 300;
-  let lastTurnAudio = null;
+  const stagger = results.length === 1 ? 0 : 500;
   for (let i = 0; i < results.length; i++) {
-    if (i > 0) {
-      _seStop(lastTurnAudio);
-      await new Promise(r => setTimeout(r, skipFlip ? 30 : stagger));
-    }
+    if (i > 0) await new Promise(r => setTimeout(r, skipFlip ? 30 : stagger));
     const actual = results[i].rarity;
     const isFakeout = dispRarities[i] !== actual;
     const card = cardEls[i];
@@ -743,7 +739,7 @@ async function animatePull(results) {
       await new Promise(r => setTimeout(r, 40));
     }
 
-    lastTurnAudio = _sePlay('/sounds/turn.mp3');
+    _sePlay('/sounds/turn.mp3');
     await new Promise(r => setTimeout(r, 100));
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
