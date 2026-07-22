@@ -620,7 +620,6 @@ async function animatePull(results) {
       <div class="g-card-inner" id="gc-${i}">
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
         <div class="g-card-back">
-          <span class="g-rarity-tag r-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span>
           <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}">
           <div class="g-name">${escHtml(icon.name)}</div>
           ${icon.is_dup ? `<span class="g-dup">重複+${icon.dup_pts}pt</span>` : ''}
