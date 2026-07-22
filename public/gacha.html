@@ -716,9 +716,10 @@ async function animatePull(results) {
         card.classList.remove(`display-rarity-${dispRarities[i]}`);
         card.classList.add(`display-rarity-SS`);
       }
+      const ssAudio = _sePlay('/sounds/ss_sound.mp3');
+      await new Promise(r => setTimeout(r, 60));
       card.classList.add('reveal-SS');
       setTimeout(doFlash, 480);
-      const ssAudio = _sePlay('/sounds/ss_sound.mp3');
       await new Promise(r => setTimeout(r, 1300));
       _seStop(ssAudio);
       card.classList.remove('reveal-SS');
@@ -729,8 +730,9 @@ async function animatePull(results) {
         card.classList.remove(`display-rarity-${dispRarities[i]}`);
         card.classList.add(`display-rarity-${actual}`);
       }
-      card.classList.add(`reveal-${actual}`);
       const sAudio = actual === 'S' ? _sePlay('/sounds/s_sound.mp3') : null;
+      await new Promise(r => setTimeout(r, 60));
+      card.classList.add(`reveal-${actual}`);
       await new Promise(r => setTimeout(r, 1000));
       _seStop(sAudio);
       card.classList.remove(`reveal-${actual}`);
@@ -738,6 +740,7 @@ async function animatePull(results) {
     }
 
     _sePlay('/sounds/turn.mp3');
+    await new Promise(r => setTimeout(r, 60));
     document.getElementById(`gc-${i}`).classList.add('flipped');
   }
 
