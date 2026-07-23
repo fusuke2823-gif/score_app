@@ -59,42 +59,44 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
       return Math.max(max, pt);
     }, 0);
 
-    // 直近3イベントのスコア（全イベントタイプ）
+    // 直近5イベント（参加不参加関係なく）のスコア
     const recentResult = await client.query(
-      `SELECT
-         MAX(s.approved_score)::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
-         e.event_type
-       FROM scores s
-       JOIN events e ON e.id = s.event_id
-       WHERE s.user_id = $1
+      `SELECT e.event_number, e.event_type, e.score_multiplier,
+              MAX(s.approved_score) AS best_score
+       FROM (
+         SELECT id, event_number, event_type, score_multiplier
+         FROM events
+         WHERE event_type IN ('score_attack', 'seraph')
+         ${maxEventNumber != null ? `AND event_number <= ${maxEventNumber}` : ''}
+         ORDER BY event_number DESC
+         LIMIT 5
+       ) e
+       LEFT JOIN scores s ON s.event_id = e.id
+         AND s.user_id = $1
          AND s.approved_score IS NOT NULL
          AND s.ranking_scope IN ('public', 'internal', 'external')
-         AND e.event_type IN ('score_attack', 'seraph')
-         ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
-       GROUP BY e.id, e.event_number, e.event_type
-       ORDER BY e.event_number DESC
-       LIMIT 3`,
+       GROUP BY e.event_number, e.event_type, e.score_multiplier
+       ORDER BY e.event_number DESC`,
       [userId]
     );
-    const rsPt = recentResult.rows.map(r => {
-      const score = parseFloat(r.corrected_score);
+
+    const recentPts = recentResult.rows.map(r => {
+      if (r.best_score == null) return null;
+      const score = parseFloat(r.best_score) * parseFloat(r.score_multiplier || 1.0);
       return r.event_type === 'seraph'
         ? convertEncounterScoreToPoints(score)
         : convertScoreToPoints(score);
     });
 
-    // recent_avg計算（不足分を補完）
+    // 参加分の平均を計算し、未参加分を avg*0.8 で補完して5枠平均
     let recentPt;
-    if (rsPt.length === 0) {
+    const participated = recentPts.filter(p => p !== null);
+    if (participated.length === 0 || recentResult.rows.length === 0) {
       recentPt = 0;
-    } else if (rsPt.length === 1) {
-      const fill = rsPt[0] * 0.8;
-      recentPt = (rsPt[0] + fill + fill) / 3;
-    } else if (rsPt.length === 2) {
-      const fill = ((rsPt[0] + rsPt[1]) / 2) * 0.8;
-      recentPt = (rsPt[0] + rsPt[1] + fill) / 3;
     } else {
-      recentPt = (rsPt[0] + rsPt[1] + rsPt[2]) / 3;
+      const avg = participated.reduce((a, b) => a + b, 0) / participated.length;
+      const fill = avg * 0.8;
+      recentPt = recentPts.reduce((sum, p) => sum + (p !== null ? p : fill), 0) / recentResult.rows.length;
     }
 
     // ランク進行
