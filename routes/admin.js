@@ -1048,7 +1048,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
         }
       }
 
-    await updateUserRanks(client, rankUpdateUserIdsExt);
+    await updateUserRanks(client, rankUpdateUserIdsExt, { maxEventNumber: event.event_number });
 
     await client.query('UPDATE events SET points_distributed_external=TRUE, points_distributed_external_at=NOW() WHERE id=$1', [req.params.id]);
     await client.query('COMMIT');
