@@ -832,7 +832,8 @@ function setStatsSort(key) {
 
 function renderPoolStats() {
   const data = [..._statsData];
-  if (_statsSort === 'total') data.sort((a, b) => b.total_pulls - a.total_pulls);
+  if (_statsSort === 'order') data.sort((a, b) => b.id - a.id);
+  else if (_statsSort === 'total') data.sort((a, b) => b.total_pulls - a.total_pulls);
   else if (_statsSort === 'single') data.sort((a, b) => b.single_count - a.single_count);
   else if (_statsSort === 'multi') data.sort((a, b) => b.multi_count - a.multi_count);
 
