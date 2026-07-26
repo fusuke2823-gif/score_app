@@ -1500,6 +1500,7 @@ router.get('/gacha/pools/stats', async (req, res) => {
                COUNT(CASE WHEN l.pull_type='multi'  THEN 1 END) * 10)::int AS total_pulls
        FROM gacha_pools gp
        LEFT JOIN gacha_pull_logs l ON l.pool_id = gp.id
+       WHERE gp.id != 2
        GROUP BY gp.id, gp.name
        ORDER BY gp.order_index ASC, gp.id ASC`
     );
