@@ -148,6 +148,7 @@ async function loadEvents() {
         const opt = document.createElement('option');
         opt.value = e.id;
         opt.textContent = e.name;
+        opt.dataset.eventType = e.event_type || 'score_attack';
         sel.appendChild(opt);
       });
     }
@@ -211,7 +212,10 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
   if (!score) return showAlert('#alert', t('submit.err_score'));
 
   const scoreNum = parseInt(score);
-  const needsAnonPrompt = scoreNum <= 139999 || (scoreNum >= 160000 && scoreNum <= 2999999);
+  const selectedOpt = document.getElementById('event-select').selectedOptions[0];
+  const eventType = selectedOpt?.dataset.eventType || 'score_attack';
+  const anonLimit = eventType === 'seraph' ? 139999 : 3399999;
+  const needsAnonPrompt = scoreNum <= anonLimit;
   if (needsAnonPrompt) {
     document.getElementById('anon-modal').style.display = 'flex';
   } else {

@@ -55,10 +55,10 @@ router.post('/', authenticateToken, (req, res, next) => {
 
   try {
     // 投稿期間チェック
-    const eventResult = await pool.query('SELECT name, submission_start, submission_end FROM events WHERE id = $1', [event_id]);
+    const eventResult = await pool.query('SELECT name, submission_start, submission_end, event_type FROM events WHERE id = $1', [event_id]);
     if (eventResult.rows.length === 0)
       return res.status(404).json({ error: 'イベントが見つかりません' });
-    const { submission_start, submission_end } = eventResult.rows[0];
+    const { submission_start, submission_end, event_type } = eventResult.rows[0];
     const now = new Date();
     if (submission_start && now < new Date(submission_start))
       return res.status(403).json({ error: 'まだ投稿期間が始まっていません' });
@@ -95,7 +95,7 @@ router.post('/', authenticateToken, (req, res, next) => {
          pending_youtube_score = $9,
          updated_at = NOW()
        RETURNING *`,
-      [req.user.id, event_id, attribute, scoreNum, imageUrl, is_anonymous === 'true' || is_anonymous === true, scopeVal, ytUrl, ytScore]
+      [req.user.id, event_id, attribute, scoreNum, imageUrl, (event_type === 'seraph' ? scoreNum <= 139999 : scoreNum <= 3399999) && (is_anonymous === 'true' || is_anonymous === true), scopeVal, ytUrl, ytScore]
     );
 
     res.json({ message: 'スコアを投稿しました。管理者の承認をお待ちください。', score: result.rows[0] });
