@@ -19,10 +19,11 @@
     <form id="register-form">
       <div class="form-group">
         <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
-          <span><span data-i18n="register.username">ユーザー名</span> <span style="color:var(--accent)">*</span></span>
-          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="register.username_hint">1〜12文字</span>
+          <span><span data-i18n="register.login_id">ログインID</span> <span style="color:var(--accent)">*</span></span>
+          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="register.login_id_hint">英数字・_で4〜20文字</span>
         </label>
-        <input class="form-input" type="text" id="username" required autofocus minlength="1" maxlength="12">
+        <input class="form-input" type="text" id="user-code" required autofocus minlength="4" maxlength="20" placeholder="例: hbr_player01" autocomplete="username">
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px" data-i18n="register.login_id_desc">ログイン時に使用するIDです。後からプロフィールで変更できます。</p>
       </div>
       <div class="form-group">
         <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
@@ -32,35 +33,6 @@
         <div class="pw-wrap">
           <input class="form-input" type="password" id="password" required minlength="6">
           <button type="button" class="pw-toggle" onclick="togglePw('password')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" data-i18n="register.oshi">推しキャラクター（任意）</label>
-        <select class="form-input" id="oshi">
-          <option value="">選択しない</option>
-        </select>
-      </div>
-      <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-card2);border-radius:8px;padding:8px 12px;margin-bottom:4px">
-        ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。
-      </div>
-      <div class="form-group">
-        <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
-          <span data-i18n="user.x_id_optional">X (Twitter) ID（任意）</span>
-          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.x_hint_short">英数字・アンダースコアのみ</span>
-        </label>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--text-muted);font-size:0.9rem">@</span>
-          <input class="form-input" type="text" id="twitter" maxlength="15" placeholder="username" style="flex:1" autocomplete="off">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
-          <span data-i18n="user.yt_channel_optional">YouTubeチャンネル</span>
-          <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.yt_channel_hint">ハンドルのみ</span>
-        </label>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span style="color:var(--text-muted);font-size:0.9rem">@</span>
-          <input class="form-input" type="text" id="youtube-channel" maxlength="30" placeholder="handle" style="flex:1" autocomplete="off">
         </div>
       </div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="submit-btn" data-i18n="register.btn">登録する</button>
@@ -78,7 +50,35 @@
   </div>
 </div>
 
-<!-- Googleユーザー名設定モーダル -->
+<!-- 登録後ユーザー名設定モーダル（パスワード登録・Google登録共通） -->
+<div id="username-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
+    <h2 style="margin:0 0 6px;font-size:1.1rem" data-i18n="register.setup_title">表示名を設定</h2>
+    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px" data-i18n="register.setup_desc">このアプリで表示されるユーザー名を設定してください。</p>
+    <div id="setup-login-id-display" style="font-size:0.8rem;background:var(--bg-card2);border-radius:6px;padding:6px 10px;margin-bottom:14px;display:none">
+      <span data-i18n="register.login_id">ログインID</span>: <strong id="setup-login-id-val"></strong><span data-i18n="register.setup_id_memo">（メモしておいてください）</span>
+    </div>
+    <div id="setup-modal-alert" style="margin-bottom:10px"></div>
+    <input class="form-input" id="setup-username-input" type="text" data-i18n-ph="register.setup_username_ph" placeholder="表示名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
+    <select class="form-input" id="setup-oshi-input" style="margin-bottom:10px">
+      <option value="">推しキャラクター（任意）</option>
+    </select>
+    <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-card2);border-radius:8px;padding:8px 12px;margin-bottom:10px">
+      ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
+      <input class="form-input" id="setup-twitter-input" type="text" placeholder="X (Twitter) ID（任意）" maxlength="15" autocomplete="off" style="flex:1">
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
+      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
+      <input class="form-input" id="setup-youtube-input" type="text" placeholder="YouTubeハンドル（任意）" maxlength="30" autocomplete="off" style="flex:1">
+    </div>
+    <button class="btn btn-primary" style="width:100%" id="setup-submit-btn" onclick="submitUsernameSetup()" data-i18n="register.setup_btn">登録してログイン</button>
+  </div>
+</div>
+
+<!-- Google用（既存フローとの互換性のため残す） -->
 <div id="google-username-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center">
   <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
     <h2 style="margin:0 0 6px;font-size:1.1rem">ユーザー名を設定</h2>
@@ -109,7 +109,7 @@ let _pendingGoogleId = null;
 
 fetch('/api/charts/game-data').then(r => r.json()).then(({ characters }) => {
   const opts = characters.map(c => `<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('');
-  document.getElementById('oshi').innerHTML += opts;
+  document.getElementById('setup-oshi-input').innerHTML += opts;
   document.getElementById('google-oshi-input').innerHTML += opts;
 }).catch(() => {});
 
@@ -151,36 +151,49 @@ async function handleGoogleCredential(response) {
       location.href = '/index.html';
     } else if (data.needs_username) {
       _pendingGoogleId = data.google_id;
-      document.getElementById('google-username-modal').style.display = 'flex';
-      document.getElementById('google-username-input').focus();
+      document.getElementById('username-setup-modal').style.display = 'flex';
+      document.getElementById('setup-username-input').focus();
     }
   } catch (err) {
     showAlert('#alert', err.message);
   }
 }
 
-async function submitGoogleUsername() {
-  const username = document.getElementById('google-username-input').value.trim();
-  if (!username) return;
-  const ref = getParam('ref') || '';
-  const oshi_character = document.getElementById('google-oshi-input').value || undefined;
-  const twitter_username = document.getElementById('google-twitter-input').value.trim() || undefined;
-  const youtube_channel = document.getElementById('google-youtube-input').value.trim() || undefined;
-  try {
-    const data = await apiFetch('/auth/google/register', {
-      method: 'POST',
-      body: JSON.stringify({ google_id: _pendingGoogleId, username, ref, oshi_character, twitter_username, youtube_channel })
-    });
-    setAuth(data.token, data.user);
-    location.href = '/index.html';
-  } catch (err) {
-    document.getElementById('google-modal-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
+function submitGoogleUsername() { submitUsernameSetup(); }
 
 // ?ref= がある場合は内部メンバーバッジを表示
 if (getParam('ref')) {
   document.getElementById('internal-badge').style.display = '';
+}
+
+async function submitUsernameSetup() {
+  const username = document.getElementById('setup-username-input').value.trim();
+  if (!username) { document.getElementById('setup-modal-alert').innerHTML = `<div class="alert alert-error">表示名を入力してください</div>`; return; }
+  const oshi_character = document.getElementById('setup-oshi-input').value || undefined;
+  const twitter_username = document.getElementById('setup-twitter-input').value.trim().replace(/^@/, '') || undefined;
+  const youtube_channel = document.getElementById('setup-youtube-input').value.trim().replace(/^@/, '') || undefined;
+  const btn = document.getElementById('setup-submit-btn');
+  btn.disabled = true;
+  try {
+    if (_pendingGoogleId) {
+      const ref = getParam('ref') || undefined;
+      const data = await apiFetch('/auth/google/register', {
+        method: 'POST',
+        body: JSON.stringify({ google_id: _pendingGoogleId, username, ref, oshi_character, twitter_username, youtube_channel })
+      });
+      setAuth(data.token, data.user);
+    } else {
+      const res = await apiFetch('/auth/me', {
+        method: 'PUT',
+        body: JSON.stringify({ username, oshi_character: oshi_character || null, twitter_username: twitter_username || null, youtube_channel: youtube_channel || null })
+      });
+      setAuth(res.token, res.user);
+    }
+    location.href = '/index.html';
+  } catch (err) {
+    document.getElementById('setup-modal-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+    btn.disabled = false;
+  }
 }
 
 document.getElementById('register-form').addEventListener('submit', async e => {
@@ -191,29 +204,20 @@ document.getElementById('register-form').addEventListener('submit', async e => {
   btn.textContent = t('register.btn_loading');
 
   try {
-    const twitterRaw = document.getElementById('twitter').value.trim().replace(/^@/, '');
-    if (twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
-      showAlert('#alert', t('user.x_err'));
-      btn.disabled = false;
-      btn.textContent = t('register.btn');
-      return;
-    }
-    const ytChannel = document.getElementById('youtube-channel').value.trim().replace(/^@/, '') || undefined;
-    const body = {
-      username: document.getElementById('username').value,
-      password: document.getElementById('password').value,
-      oshi_character: document.getElementById('oshi').value || undefined,
-      twitter_username: twitterRaw || undefined,
-      youtube_channel: ytChannel,
-      ref: getParam('ref') || undefined
-    };
-
     const data = await apiFetch('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        user_code: document.getElementById('user-code').value.trim(),
+        password: document.getElementById('password').value,
+        ref: getParam('ref') || undefined
+      })
     });
     setAuth(data.token, data.user);
-    location.href = '/index.html';
+    // ログインIDを表示してから名前設定モーダルを開く
+    document.getElementById('setup-login-id-val').textContent = data.user.user_code;
+    document.getElementById('setup-login-id-display').style.display = '';
+    document.getElementById('username-setup-modal').style.display = 'flex';
+    document.getElementById('setup-username-input').focus();
   } catch (err) {
     showAlert('#alert', err.message);
     btn.disabled = false;

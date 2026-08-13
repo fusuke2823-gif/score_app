@@ -74,6 +74,7 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp_migrated BOOLEAN NOT NULL DEFAULT FALSE;
     `);
+    await client.query(`ALTER TABLE users ALTER COLUMN user_code TYPE VARCHAR(20)`).catch(() => {});
 
     // tower_usersにデータが残っている場合はusersに復元する
     await client.query(`

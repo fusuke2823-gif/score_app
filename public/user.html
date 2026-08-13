@@ -223,6 +223,14 @@ async function load() {
           <input class="form-input" id="edit-username" type="text" value="${escHtml(data.username)}" maxlength="12">
         </div>
         <div class="form-group">
+          <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
+            <span>${t('register.login_id')}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted)">${t('register.login_id_hint')}</span>
+          </label>
+          <input class="form-input" id="edit-user-code" type="text" value="${escHtml(meData?.user_code || '')}" maxlength="20" placeholder="${t('register.login_id_unset')}" autocomplete="username">
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${t('register.login_id_profile_desc')}</p>
+        </div>
+        <div class="form-group">
           <label class="form-label">${t('user.oshi_field')}</label>
           <select class="form-input" id="edit-oshi">
             <option value="">選択しない</option>
@@ -345,7 +353,8 @@ async function saveProfile() {
     return;
   }
 
-  const body = { username, oshi_character: oshi || null, twitter_username: twitterRaw || null, youtube_channel: ytChannel };
+  const userCode = document.getElementById('edit-user-code')?.value.trim() || undefined;
+  const body = { username, user_code: userCode || undefined, oshi_character: oshi || null, twitter_username: twitterRaw || null, youtube_channel: ytChannel };
   if (newPw) { body.current_password = currentPw; body.new_password = newPw; }
 
   try {

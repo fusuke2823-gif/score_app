@@ -7,45 +7,26 @@ const { authenticateToken } = require('../middleware/auth');
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-function genUserCode() {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
-async function uniqueUserCode() {
-  for (let i = 0; i < 20; i++) {
-    const code = genUserCode();
-    const r = await pool.query('SELECT id FROM users WHERE user_code=$1', [code]);
-    if (!r.rows.length) return code;
-  }
-  throw new Error('Failed to generate unique user code');
-}
-
 router.post('/register', async (req, res) => {
-  const { username, password, oshi_character, ref, twitter_username, youtube_channel } = req.body;
+  const { user_code, password, ref } = req.body;
 
-  if (!username || !password)
-    return res.status(400).json({ error: 'ユーザー名とパスワードは必須です' });
-  if (username.length < 1 || username.length > 12)
-    return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
+  if (!user_code || !password)
+    return res.status(400).json({ error: 'ログインIDとパスワードは必須です' });
+  if (!/^[A-Za-z0-9_]{4,20}$/.test(user_code))
+    return res.status(400).json({ error: 'ログインIDは英数字・アンダースコアで4〜20文字で入力してください' });
   if (password.length < 6)
     return res.status(400).json({ error: 'パスワードは6文字以上で入力してください' });
-  if (twitter_username && !/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
-    return res.status(400).json({ error: 'XユーザーIDは英数字・アンダースコア1〜15文字で入力してください' });
-  if (youtube_channel && !/^[A-Za-z0-9._-]{3,30}$/.test(youtube_channel))
-    return res.status(400).json({ error: 'YouTubeハンドルは英数字・アンダースコア・ハイフン・ドット3〜30文字で入力してください' });
 
-  // 内部登録: URLトークン(ref) が一致する場合のみ
   const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
 
   try {
-    const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+    const existing = await pool.query('SELECT id FROM users WHERE user_code = $1 OR username = $1', [user_code]);
     if (existing.rows.length > 0)
-      return res.status(409).json({ error: 'このユーザー名は既に使用されています [dup]' });
+      return res.status(409).json({ error: 'このIDは既に使用されています' });
     const hash = await bcrypt.hash(password, 10);
-    const user_code = await uniqueUserCode();
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character, twitter_username, youtube_channel, user_code) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, oshi_character, user_code',
-      [username, hash, oshi_character || null, twitter_username || null, youtube_channel || null, user_code]
+      'INSERT INTO users (username, password_hash, user_code) VALUES ($1, $2, $3) RETURNING id, username, role, oshi_character, user_code',
+      [user_code, hash, user_code]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
@@ -59,11 +40,11 @@ router.post('/register', async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
-    res.json({ token, user });
+    res.json({ needs_username: true, token, user });
   } catch (err) {
     console.error('[register error]', err.code, err.message);
     if (err.code === '23505')
-      return res.status(409).json({ error: 'このユーザー名は既に使用されています [unique]' });
+      return res.status(409).json({ error: 'このIDは既に使用されています' });
     res.status(500).json({ error: `サーバーエラー: ${err.message}` });
   }
 });
@@ -71,7 +52,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const result = await pool.query('SELECT * FROM users WHERE username = $1 OR user_code = $1', [username]);
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash)))
       return res.status(401).json({ error: 'ユーザー名またはパスワードが間違っています' });
@@ -105,13 +86,16 @@ router.get('/me', authenticateToken, async (req, res) => {
 });
 
 router.put('/me', authenticateToken, async (req, res) => {
-  const { username, oshi_character, current_password, new_password, twitter_username, youtube_channel } = req.body;
+  const { username, user_code, oshi_character, current_password, new_password, twitter_username, youtube_channel } = req.body;
 
   if (username !== undefined) {
     if (username.length < 1 || username.length > 12)
       return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
   }
-
+  if (user_code !== undefined && user_code !== null && user_code !== '') {
+    if (!/^[A-Za-z0-9_]{4,20}$/.test(user_code))
+      return res.status(400).json({ error: 'ログインIDは英数字・アンダースコアで4〜20文字で入力してください' });
+  }
   if (twitter_username !== undefined && twitter_username !== null && twitter_username !== '') {
     if (!/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
       return res.status(400).json({ error: 'XユーザーIDは英数字・アンダースコア1〜15文字で入力してください' });
@@ -127,7 +111,11 @@ router.put('/me', authenticateToken, async (req, res) => {
       if (existing.rows.length > 0)
         return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
     }
-    // パスワード変更がある場合は現在のパスワードを確認
+    if (user_code) {
+      const existing = await pool.query('SELECT 1 FROM users WHERE user_code = $1 AND id != $2', [user_code, req.user.id]);
+      if (existing.rows.length > 0)
+        return res.status(409).json({ error: 'このログインIDは既に使用されています' });
+    }
     if (new_password) {
       if (new_password.length < 6)
         return res.status(400).json({ error: '新しいパスワードは6文字以上で入力してください' });
@@ -140,22 +128,22 @@ router.put('/me', authenticateToken, async (req, res) => {
 
     const twName = twitter_username === '' ? null : (twitter_username ?? null);
     const ytCh = youtube_channel === '' ? null : (youtube_channel ?? null);
+    const newCode = user_code || null;
     let result;
     if (new_password) {
       const hash = await bcrypt.hash(new_password, 10);
       result = await pool.query(
-        'UPDATE users SET username=COALESCE($1,username), oshi_character=$2, password_hash=$3, twitter_username=$4, youtube_channel=$5 WHERE id=$6 RETURNING id, username, role, oshi_character',
-        [username || null, oshi_character ?? null, hash, twName, ytCh, req.user.id]
+        'UPDATE users SET username=COALESCE($1,username), user_code=COALESCE($2,user_code), oshi_character=$3, password_hash=$4, twitter_username=$5, youtube_channel=$6 WHERE id=$7 RETURNING id, username, role, oshi_character, user_code',
+        [username || null, newCode, oshi_character ?? null, hash, twName, ytCh, req.user.id]
       );
     } else {
       result = await pool.query(
-        'UPDATE users SET username=COALESCE($1,username), oshi_character=$2, twitter_username=$3, youtube_channel=$4 WHERE id=$5 RETURNING id, username, role, oshi_character',
-        [username || null, oshi_character ?? null, twName, ytCh, req.user.id]
+        'UPDATE users SET username=COALESCE($1,username), user_code=COALESCE($2,user_code), oshi_character=$3, twitter_username=$4, youtube_channel=$5 WHERE id=$6 RETURNING id, username, role, oshi_character, user_code',
+        [username || null, newCode, oshi_character ?? null, twName, ytCh, req.user.id]
       );
     }
 
     const updated = result.rows[0];
-    // JWTのusernameも更新
     const token = require('jsonwebtoken').sign(
       { id: updated.id, username: updated.username, role: updated.role },
       process.env.JWT_SECRET,
@@ -164,7 +152,7 @@ router.put('/me', authenticateToken, async (req, res) => {
     res.json({ user: updated, token });
   } catch (err) {
     if (err.code === '23505')
-      return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
+      return res.status(409).json({ error: 'このIDは既に使用されています' });
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
   }
@@ -258,10 +246,9 @@ router.post('/google/register', async (req, res) => {
     if (existing.rows.length > 0)
       return res.status(409).json({ error: 'このユーザー名は既に使用されています' });
 
-    const user_code = await uniqueUserCode();
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, oshi_character, google_id, twitter_username, youtube_channel, user_code) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, username, role, oshi_character, user_code',
-      [username, '', oshi_character || null, google_id, twitter_username || null, youtube_channel || null, user_code]
+      'INSERT INTO users (username, password_hash, oshi_character, google_id, twitter_username, youtube_channel) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, role, oshi_character, user_code',
+      [username, '', oshi_character || null, google_id, twitter_username || null, youtube_channel || null]
     );
     const user = result.rows[0];
     await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
