@@ -95,7 +95,7 @@ router.post('/', authenticateToken, (req, res, next) => {
          pending_youtube_score = $9,
          updated_at = NOW()
        RETURNING *`,
-      [req.user.id, event_id, attribute, scoreNum, imageUrl, (event_type === 'seraph' ? scoreNum <= 139999 : scoreNum <= 3399999) && (is_anonymous === 'true' || is_anonymous === true), scopeVal, ytUrl, ytScore]
+      [req.user.id, event_id, attribute, scoreNum, imageUrl, (event_type === 'seraph' ? scoreNum <= 139999 : scoreNum <= 3299999) && (is_anonymous === 'true' || is_anonymous === true), scopeVal, ytUrl, ytScore]
     );
 
     res.json({ message: 'スコアを投稿しました。管理者の承認をお待ちください。', score: result.rows[0] });
