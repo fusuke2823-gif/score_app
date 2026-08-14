@@ -56,6 +56,15 @@
 </main>
 
 <style>
+#filter-section .btn-primary {
+  background: rgba(230,57,80,0.4);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid var(--border-light);
+}
+#filter-section .btn-primary:hover {
+  background: rgba(230,57,80,0.55);
+}
 .section-toggle-btn {
   display:flex; justify-content:space-between; align-items:center;
   width:100%; background:none; border:none; border-bottom:1px solid var(--border);
@@ -106,13 +115,15 @@
   #col-toggle button {
     padding: 5px 14px;
     font-size: 0.8rem;
-    background: var(--bg-card);
+    background: var(--bg-card2);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
   }
   #col-toggle button.active {
-    background: var(--accent);
+    background: rgba(230,57,80,0.4);
     color: #fff;
     font-weight: bold;
   }
