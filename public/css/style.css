@@ -1,8 +1,8 @@
 :root {
-  --bg-primary: rgba(10,10,22,0.42);
-  --bg-secondary: rgba(20,18,40,0.32);
-  --bg-card: rgba(20,18,40,0.26);
-  --bg-card2: rgba(30,26,56,0.4);
+  --bg-primary: rgba(12,11,24,0.62);
+  --bg-secondary: rgba(20,18,40,0.58);
+  --bg-card: rgba(22,20,42,0.72);
+  --bg-card2: rgba(32,28,58,0.82);
   --border: rgba(255,255,255,0.14);
   --border-light: rgba(255,255,255,0.24);
   --glass-blur: blur(16px) saturate(150%);
@@ -34,21 +34,24 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background:
-    linear-gradient(180deg, rgba(6,6,16,0.62) 0%, rgba(6,6,16,0.42) 35%, rgba(6,6,16,0.72) 100%),
-    url('/img/back.png');
-  background-size: cover;
-  background-position: center 30%;
-  background-attachment: fixed;
-  background-repeat: no-repeat;
   background-color: #060612;
   color: var(--text-primary);
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
   min-height: 100vh;
   line-height: 1.6;
 }
-@media (max-width: 640px) {
-  body { background-attachment: scroll; }
+/* 背景画像は position:fixed の擬似要素で敷く（スマホでも背景が動かないようにするため） */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(6,6,16,0.62) 0%, rgba(6,6,16,0.42) 35%, rgba(6,6,16,0.72) 100%),
+    url('/img/back.png');
+  background-size: cover;
+  background-position: center 30%;
+  background-repeat: no-repeat;
 }
 
 a { color: var(--accent); text-decoration: none; }

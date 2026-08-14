@@ -45,10 +45,11 @@
   align-items:center; justify-content:center; gap:5px;
 }
 .g-card-front {
-  background:var(--bg-card); border:2px solid var(--border);
+  background:var(--bg-card2); border:2px solid var(--border-light);
+  backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
   transition: box-shadow 0.4s;
 }
-.g-card-back { transform:rotateY(180deg); background:var(--bg-card2); padding:4px; overflow:visible; }
+.g-card-back { transform:rotateY(180deg); background:var(--bg-card2); backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%); padding:4px; overflow:visible; }
 .g-card-back img { width:52px; height:52px; border-radius:20%; object-fit:cover; }
 .g-dup { position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.6rem; background:rgba(100,180,255,0.25); color:#7dd3fc; padding:1px 7px; border-radius:3px; }
 .g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
@@ -224,7 +225,7 @@
 
   <!-- 排出対象モーダル -->
   <div id="pool-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:520px;width:100%;margin:auto;position:relative">
+    <div style="background:var(--bg-card2);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:24px;max-width:520px;width:100%;margin:auto;position:relative">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
         <div style="font-size:1rem;font-weight:bold" data-i18n="gacha.pool_modal_title">排出対象アイコン</div>
         <button onclick="closePoolModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>

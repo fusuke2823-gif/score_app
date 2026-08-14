@@ -19,9 +19,9 @@
   <div id="filter-section" style="display:none;position:sticky;top:56px;z-index:50;background:var(--bg-primary);padding:8px 0;margin:0 -24px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--border)">
     <div id="filter-title-row" style="display:none;font-size:0.9rem;font-weight:bold;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
-      <div id="scope-toggle" style="display:none;gap:0;border:1px solid var(--accent);border-radius:8px;overflow:hidden">
-        <button id="scope-btn-internal" onclick="setScope('internal')" style="padding:4px 10px;font-size:0.78rem;background:var(--accent);color:#fff;font-weight:bold;border:none;cursor:pointer" data-i18n="scope.internal">内部</button>
-        <button id="scope-btn-public" onclick="setScope('public')" style="padding:4px 10px;font-size:0.78rem;background:var(--bg-card);color:var(--text-muted);border:none;cursor:pointer" data-i18n="scope.public">外部</button>
+      <div id="scope-toggle" style="display:none;gap:0;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%)">
+        <button id="scope-btn-internal" onclick="setScope('internal')" style="padding:4px 10px;font-size:0.78rem;background:rgba(230,57,80,0.4);color:#fff;font-weight:bold;border:none;cursor:pointer" data-i18n="scope.internal">内部</button>
+        <button id="scope-btn-public" onclick="setScope('public')" style="padding:4px 10px;font-size:0.78rem;background:var(--bg-card2);color:var(--text-muted);border:none;cursor:pointer" data-i18n="scope.public">外部</button>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
@@ -172,10 +172,10 @@ if (isInternal()) {
 
 function setScope(scope) {
   _rankingScope = scope;
-  document.getElementById('scope-btn-internal').style.background = scope === 'internal' ? 'var(--accent)' : 'var(--bg-card)';
+  document.getElementById('scope-btn-internal').style.background = scope === 'internal' ? 'rgba(230,57,80,0.4)' : 'var(--bg-card2)';
   document.getElementById('scope-btn-internal').style.color = scope === 'internal' ? '#fff' : 'var(--text-muted)';
   document.getElementById('scope-btn-internal').style.fontWeight = scope === 'internal' ? 'bold' : 'normal';
-  document.getElementById('scope-btn-public').style.background = scope === 'public' ? 'var(--accent)' : 'var(--bg-card)';
+  document.getElementById('scope-btn-public').style.background = scope === 'public' ? 'rgba(230,57,80,0.4)' : 'var(--bg-card2)';
   document.getElementById('scope-btn-public').style.color = scope === 'public' ? '#fff' : 'var(--text-muted)';
   document.getElementById('scope-btn-public').style.fontWeight = scope === 'public' ? 'bold' : 'normal';
   loadRanking();
