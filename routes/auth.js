@@ -29,8 +29,8 @@ router.post('/register', async (req, res) => {
       [user_code, hash, user_code]
     );
     const user = result.rows[0];
-    await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
-    await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 50, $2)', [user.id, '新規登録ボーナス']);
+    await pool.query('UPDATE users SET points = 300 WHERE id = $1', [user.id]);
+    await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 300, $2)', [user.id, '新規登録ボーナス']);
     if (isInternal) {
       await pool.query('UPDATE users SET is_internal = TRUE WHERE id = $1', [user.id]);
     }
@@ -251,8 +251,8 @@ router.post('/google/register', async (req, res) => {
       [username, '', oshi_character || null, google_id, twitter_username || null, youtube_channel || null]
     );
     const user = result.rows[0];
-    await pool.query('UPDATE users SET points = 50 WHERE id = $1', [user.id]);
-    await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 50, $2)', [user.id, '新規登録ボーナス']);
+    await pool.query('UPDATE users SET points = 300 WHERE id = $1', [user.id]);
+    await pool.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, 300, $2)', [user.id, '新規登録ボーナス']);
     if (isInternal) {
       await pool.query('UPDATE users SET is_internal = TRUE WHERE id = $1', [user.id]);
     }
