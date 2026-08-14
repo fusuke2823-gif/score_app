@@ -20,8 +20,8 @@
     <div id="filter-title-row" style="display:none;font-size:0.9rem;font-weight:bold;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
       <div id="scope-toggle" style="display:none;gap:0;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%)">
-        <button id="scope-btn-internal" onclick="setScope('internal')" style="padding:4px 10px;font-size:0.78rem;background:rgba(230,57,80,0.4);color:#fff;font-weight:bold;border:none;cursor:pointer" data-i18n="scope.internal">内部</button>
-        <button id="scope-btn-public" onclick="setScope('public')" style="padding:4px 10px;font-size:0.78rem;background:var(--bg-card2);color:var(--text-muted);border:none;cursor:pointer" data-i18n="scope.public">外部</button>
+        <button id="scope-btn-internal" onclick="setScope('internal')" style="padding:4px 10px;font-size:0.78rem;background:var(--bg-card2);color:var(--text-muted);border:none;cursor:pointer" data-i18n="scope.internal">内部</button>
+        <button id="scope-btn-public" onclick="setScope('public')" style="padding:4px 10px;font-size:0.78rem;background:rgba(230,57,80,0.4);color:#fff;font-weight:bold;border:none;cursor:pointer" data-i18n="scope.public">外部</button>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
@@ -174,7 +174,7 @@ let _eventNotes = [];
 
 let selectedAttrs = new Set(ATTRIBUTES);
 let _eventData = null;
-let _rankingScope = isInternal() ? 'internal' : 'public';
+let _rankingScope = 'public';
 
 // 内部ユーザーならスコープ切替ボタンを表示
 if (isInternal()) {

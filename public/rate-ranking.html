@@ -77,8 +77,8 @@ function renderScopeToggle(showInternal) {
   if (!showInternal) { area.innerHTML = ''; return; }
   area.innerHTML = `
     <div class="scope-toggle">
-      <button id="scope-ext" onclick="setScope('external')" class="${currentScope === 'external' ? 'active' : ''}">${t('rate.scope_ext')}</button>
       <button id="scope-int" onclick="setScope('internal')" class="${currentScope === 'internal' ? 'active' : ''}">${t('rate.scope_int')}</button>
+      <button id="scope-ext" onclick="setScope('external')" class="${currentScope === 'external' ? 'active' : ''}">${t('rate.scope_ext')}</button>
     </div>`;
 }
 
@@ -174,7 +174,6 @@ async function init() {
       isInternal = !!(meData && meData.is_internal);
     } catch {}
   }
-  if (isInternal) currentScope = 'internal';
   renderScopeToggle(isInternal);
   load();
 }
