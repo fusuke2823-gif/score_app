@@ -307,11 +307,11 @@ function renderMyTitles() {
     const extTitles = myData.titles.filter(ti => _titleScopeFor(ti.scope || 'common'));
     el.innerHTML = `
       <div style="margin-bottom:20px">
-        <div style="font-size:0.82rem;font-weight:bold;color:var(--text-muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">内部用装備枠（内部ランキングに表示）</div>
+        <div style="font-size:0.82rem;font-weight:bold;color:rgba(232,232,240,0.75);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">内部用装備枠（内部ランキングに表示）</div>
         ${_renderTitleSlot(intTitles, myData.equipped_internal_title_id, 'equipTitleInternal', 'equipTitleInternal(null)', '装備できる称号がありません')}
       </div>
       <div>
-        <div style="font-size:0.82rem;font-weight:bold;color:var(--text-muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">外部用装備枠（外部ランキングに表示）</div>
+        <div style="font-size:0.82rem;font-weight:bold;color:rgba(232,232,240,0.75);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)">外部用装備枠（外部ランキングに表示）</div>
         ${_renderTitleSlot(extTitles, myData.equipped_title_id, 'equipTitle', 'equipTitle(null)', '装備できる称号がありません')}
       </div>`;
   } else {
@@ -470,7 +470,7 @@ function renderIconsUnit(icons, equippedId) {
     const group = groups[u];
     if (!group.length) continue;
     group.sort((a, b) => rarityOrder(a.rarity) - rarityOrder(b.rarity));
-    html += `</div><div style="font-size:0.78rem;font-weight:bold;color:var(--text-muted);margin:16px 0 6px">${u || t('shop.no_unit')}</div><div class="equip-icon-grid">`;
+    html += `</div><div style="font-size:0.78rem;font-weight:bold;color:rgba(232,232,240,0.75);margin:16px 0 6px">${u || t('shop.no_unit')}</div><div class="equip-icon-grid">`;
     html += group.map(ic => iconCardHtml(ic, equippedId)).join('');
   }
   return `<div class="equip-icon-grid">${html}</div>`;

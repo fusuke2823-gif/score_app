@@ -594,7 +594,7 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   flex-shrink: 0;
 }
 .user-info h2 { font-size: 1.4rem; margin-bottom: 4px; }
-.user-oshi { font-size: 0.9rem; color: var(--text-secondary); }
+.user-oshi { font-size: 0.9rem; color: rgba(232,232,240,0.75); }
 
 /* 空状態 */
 .empty-state {

@@ -9,7 +9,7 @@
 <body>
 <nav id="nav"></nav>
 <main style="position:relative">
-  <a class="back-link" href="javascript:history.back()" style="color:var(--text-secondary);font-size:.85rem;display:inline-block;margin-bottom:16px" data-i18n="user.back">← 戻る</a>
+  <a class="back-link" href="javascript:history.back()" style="color:rgba(232,232,240,0.75);font-size:.85rem;display:inline-block;margin-bottom:16px" data-i18n="user.back">← 戻る</a>
   <div id="delete-btn-wrap" style="display:none;position:absolute;top:0;right:0;display:none;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
     <div id="google-link-btn-profile" style="display:none"></div>
     <button class="btn btn-sm" onclick="openDeleteModal()" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e57373;font-size:0.78rem" data-i18n="user.delete">アカウント削除</button>
@@ -204,9 +204,9 @@ async function load() {
             ? `<div class="user-oshi">${t('user.oshi')}${escHtml(data.oshi_character)}</div>`
             : ''}
           ${data.equipped_title
-            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:var(--text-muted)">${t('user.title_label')}</span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
+            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:rgba(232,232,240,0.75)">${t('user.title_label')}</span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
             : ''}
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${t('user.joined')}${formatDate(data.created_at)}</div>
+          <div style="font-size:0.8rem;color:rgba(232,232,240,0.75);margin-top:2px">${t('user.joined')}${formatDate(data.created_at)}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
             ${isMe ? `<button class="btn btn-secondary btn-sm" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
             <a class="btn btn-secondary btn-sm" href="/videos.html?name=${encodeURIComponent(data.username)}" style="text-decoration:none">▶ ${escHtml(data.username)}${t('user.video_board') || 'の動画掲示板'}</a>
