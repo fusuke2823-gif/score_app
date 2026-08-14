@@ -1,10 +1,11 @@
 :root {
-  --bg-primary: #0d0d18;
-  --bg-secondary: #13131f;
-  --bg-card: #1a1a2e;
-  --bg-card2: #1f1f35;
-  --border: #2a2a45;
-  --border-light: #3a3a55;
+  --bg-primary: rgba(10,10,22,0.42);
+  --bg-secondary: rgba(20,18,40,0.32);
+  --bg-card: rgba(20,18,40,0.26);
+  --bg-card2: rgba(30,26,56,0.4);
+  --border: rgba(255,255,255,0.14);
+  --border-light: rgba(255,255,255,0.24);
+  --glass-blur: blur(16px) saturate(150%);
   --text-primary: #e8e8f0;
   --text-secondary: #8888aa;
   --text-muted: #555570;
@@ -33,11 +34,21 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  background: var(--bg-primary);
+  background:
+    linear-gradient(180deg, rgba(6,6,16,0.62) 0%, rgba(6,6,16,0.42) 35%, rgba(6,6,16,0.72) 100%),
+    url('/img/back.png');
+  background-size: cover;
+  background-position: center 30%;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-color: #060612;
   color: var(--text-primary);
   font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
   min-height: 100vh;
   line-height: 1.6;
+}
+@media (max-width: 640px) {
+  body { background-attachment: scroll; }
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -46,6 +57,8 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 /* ナビゲーション */
 nav {
   background: var(--bg-secondary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
   position: sticky;
@@ -126,9 +139,12 @@ main {
 /* カード */
 .card {
   background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 20px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
 /* ボタン */
@@ -147,7 +163,7 @@ main {
 }
 .btn-primary { background: var(--accent); color: white; }
 .btn-primary:hover { background: var(--accent-hover); color: white; text-decoration: none; }
-.btn-secondary { background: var(--bg-card2); color: var(--text-primary); border: 1px solid var(--border); }
+.btn-secondary { background: var(--bg-card2); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); color: var(--text-primary); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--border-light); background: var(--border); text-decoration: none; }
 .btn-success { background: var(--success); color: white; }
 .btn-success:hover { background: #27ae60; color: white; text-decoration: none; }
@@ -168,6 +184,8 @@ main {
 .form-input, .form-select, .form-textarea {
   width: 100%;
   background: var(--bg-primary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
   border-radius: 7px;
   padding: 10px 14px;
@@ -261,7 +279,9 @@ main {
   letter-spacing: 0.05em;
   border-bottom: 1px solid var(--border);
   position: sticky;
-  background: var(--bg-card);
+  background: var(--bg-card2);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   z-index: 10;
   /* top は JS で動的に設定 */
 }
@@ -332,6 +352,8 @@ main {
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-card2);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border-light);
   border-radius: 8px;
   padding: 8px 12px;
@@ -406,8 +428,10 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 }
 .event-card {
   background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 20px;
   text-decoration: none;
   color: var(--text-primary);
@@ -443,8 +467,10 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .enemy-cards { display: flex; flex-wrap: wrap; gap: 16px; }
 .enemy-card {
   background: var(--bg-card2);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 16px;
   flex: 1;
   min-width: 240px;
@@ -593,14 +619,22 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 /* 管理画面 */
 .pending-item {
   background: var(--bg-card);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
   align-items: flex-start;
+}
+
+/* イベント詳細ページの属性フィルターバー（インラインで background:var(--bg-primary) 指定） */
+#filter-section {
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 .pending-info { flex: 1; min-width: 200px; }
 .pending-img-wrap img { max-width: 180px; max-height: 120px; border-radius: 6px; border: 1px solid var(--border); }
@@ -630,6 +664,8 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   flex-direction: row;
   flex-wrap: wrap;
   background: var(--bg-secondary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border-top: 1px solid var(--border);
   padding: 10px 12px 14px;
   gap: 6px;
