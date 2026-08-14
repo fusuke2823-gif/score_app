@@ -134,7 +134,7 @@ main {
   color: var(--text-primary);
 }
 .page-subtitle {
-  color: var(--text-secondary);
+  color: rgba(232,232,240,0.75);
   font-size: 0.9rem;
   margin-bottom: 28px;
 }

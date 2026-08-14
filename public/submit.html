@@ -178,7 +178,7 @@ async function loadMyScores() {
     if (scores.length === 0) { container.innerHTML = ''; return; }
 
     container.innerHTML = `
-      <h3 style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">${t('submit.status_title')}</h3>
+      <h3 style="font-size:0.9rem;color:rgba(232,232,240,0.75);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">${t('submit.status_title')}</h3>
       <div class="card">
         <table class="ranking-table">
           <thead><tr><th>${t('submit.th_attr')}</th><th>${t('submit.th_approved')}</th><th>${t('submit.th_pending')}</th><th>${t('submit.th_status')}</th></tr></thead>
