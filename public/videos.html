@@ -137,7 +137,7 @@
   </div>
 
   <div id="filter-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeFilterModal()">
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:460px;padding:20px 20px 24px">
+    <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:12px;width:100%;max-width:460px;padding:20px 20px 24px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
         <span style="font-weight:bold;font-size:1rem" data-i18n="filter.title">フィルター</span>
         <button onclick="closeFilterModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>

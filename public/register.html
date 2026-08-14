@@ -52,7 +52,7 @@
 
 <!-- 登録後ユーザー名設定モーダル（パスワード登録・Google登録共通） -->
 <div id="username-setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
+  <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
     <h2 style="margin:0 0 6px;font-size:1.1rem" data-i18n="register.setup_title">表示名を設定</h2>
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:6px" data-i18n="register.setup_desc">このアプリで表示されるユーザー名を設定してください。</p>
     <div id="setup-login-id-display" style="font-size:0.8rem;background:var(--bg-card2);border-radius:6px;padding:6px 10px;margin-bottom:14px;display:none">
@@ -80,7 +80,7 @@
 
 <!-- Google用（既存フローとの互換性のため残す） -->
 <div id="google-username-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
+  <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
     <h2 style="margin:0 0 6px;font-size:1.1rem">ユーザー名を設定</h2>
     <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">このアプリで使うユーザー名を設定してください。</p>
     <div id="google-modal-alert" style="margin-bottom:10px"></div>

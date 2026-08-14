@@ -703,7 +703,7 @@ async function initInterimDistributionNotice() {
     style.textContent = `
       #interim-dist-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2100; align-items:center; justify-content:center; }
       #interim-dist-modal.open { display:flex; }
-      #interim-dist-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
+      #interim-dist-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
       #interim-dist-box h3 { margin:0 0 6px; font-size:1.1rem; }
       #interim-dist-box .interim-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
       .interim-dist-item { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; text-align:left; }
@@ -835,7 +835,7 @@ async function openResultImageModal(isFinal = true) {
     const style = document.createElement('style');
     style.textContent = `
       #result-img-modal { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:2200; display:flex; align-items:center; justify-content:center; padding:16px; }
-      #result-img-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:20px; max-width:92vw; width:480px; text-align:center; max-height:90vh; overflow-y:auto; }
+      #result-img-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:20px; max-width:92vw; width:480px; text-align:center; max-height:90vh; overflow-y:auto; }
       #result-img-box h3 { margin:0 0 14px; font-size:1rem; }
       #result-img-preview { max-width:100%; border-radius:8px; margin-bottom:14px; display:block; }
       .result-img-actions { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; }
@@ -1132,7 +1132,7 @@ async function initAccountSettingsPrompt() {
     modal.id = 'account-settings-prompt';
     modal.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2050;align-items:center;justify-content:center;padding:16px';
     modal.innerHTML = `
-      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:28px 24px;max-width:340px;width:90%;text-align:center">
+      <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:28px 24px;max-width:340px;width:90%;text-align:center">
         <div style="font-size:1.05rem;font-weight:bold;margin-bottom:8px">${t('acct.title')}</div>
         <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
           ${t('acct.desc')}<br>
@@ -1205,7 +1205,7 @@ async function initLoginBonus() {
   style.textContent = `
     #login-bonus-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
     #login-bonus-modal.open { display:flex; }
-    #login-bonus-box { background:var(--bg-card); border:1px solid var(--border); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
+    #login-bonus-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
     #login-bonus-box h3 { margin:0 0 6px; font-size:1.1rem; }
     #login-bonus-box .bonus-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
     .bonus-days { display:flex; gap:6px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
