@@ -8,22 +8,24 @@
 <style>
 .scope-toggle {
   display: inline-flex;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--border-light);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 16px;
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
 }
 .scope-toggle button {
   padding: 6px 20px;
   font-size: 0.85rem;
-  background: var(--bg-card);
+  background: var(--bg-card2);
   border: none;
   color: var(--text-muted);
   cursor: pointer;
   font-weight: bold;
   transition: background 0.15s, color 0.15s;
 }
-.scope-toggle button.active { background: var(--accent); color: #fff; }
+.scope-toggle button.active { background: rgba(230,57,80,0.4); color: #fff; }
 
 .my-rate-card {
   background: var(--bg-card);
@@ -49,7 +51,7 @@
 <main>
   <a href="/index.html" class="back-link" data-i18n="rate.back">← トップ</a>
   <h2 class="page-title" style="margin-bottom:4px" data-i18n="rate.title">レートランキング</h2>
-  <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:16px" data-i18n="rate.subtitle">X・Exランクユーザーのレート順</p>
+  <p style="font-size:0.8rem;color:rgba(232,232,240,0.75);margin-bottom:16px" data-i18n="rate.subtitle">X・Exランクユーザーのレート順</p>
 
   <div id="scope-area"></div>
   <div id="my-rate-area"></div>

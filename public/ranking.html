@@ -72,9 +72,9 @@
   color:var(--text); text-align:left; gap:8px;
 }
 .section-toggle-btn:hover { color:var(--accent); }
-.toggle-arrow { font-size:0.72rem; color:var(--text-muted); transition:transform 0.2s; }
+.toggle-arrow { font-size:0.72rem; color:rgba(232,232,240,0.75); transition:transform 0.2s; }
 .section-toggle-btn[aria-expanded="true"] .toggle-arrow { transform:rotate(90deg); }
-.back-link { color: var(--text-secondary); font-size:0.85rem; margin-bottom:16px; display:inline-block; }
+.back-link { color: rgba(232,232,240,0.75); font-size:0.85rem; margin-bottom:16px; display:inline-block; }
 .back-link:hover { color: var(--text-primary); }
 .result-thumb { width:40px; height:28px; object-fit:cover; border-radius:3px; cursor:pointer; border:1px solid var(--border); vertical-align:middle; }
 .result-thumb.has-yt { border:2px solid #ff4444; }
@@ -140,13 +140,13 @@
 
 <!-- 特記モーダル -->
 <div id="note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;align-items:center;justify-content:center;padding:24px 16px">
-  <div style="background:var(--bg-card);border-radius:16px;padding:24px;max-width:400px;width:100%;position:relative">
+  <div style="background:var(--bg-card2);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:16px;padding:24px;max-width:400px;width:100%;position:relative">
     <button onclick="closeNoteModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1">×</button>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <img id="note-modal-icon" src="" alt="" style="width:32px;height:32px;object-fit:contain;display:none">
       <h3 id="note-modal-name" style="margin:0;font-size:1rem"></h3>
     </div>
-    <p id="note-modal-desc" style="margin:0;font-size:0.9rem;color:var(--text-secondary);white-space:pre-wrap;line-height:1.6"></p>
+    <p id="note-modal-desc" style="margin:0;font-size:0.9rem;color:rgba(232,232,240,0.75);white-space:pre-wrap;line-height:1.6"></p>
   </div>
 </div>
 
@@ -277,7 +277,7 @@ async function loadEvent() {
                 <li style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer" onclick="openNoteModal(${i})" data-note-idx="${i}">
                   ${n.icon_url ? `<img src="${escHtml(n.icon_url)}" style="width:24px;height:24px;object-fit:contain;flex-shrink:0">` : '<span style="width:24px;flex-shrink:0"></span>'}
                   <span style="font-size:0.9rem;font-weight:bold">${escHtml(n.name)}</span>
-                  ${n.description ? '<span style="font-size:0.75rem;color:var(--text-muted);margin-left:auto">▶</span>' : ''}
+                  ${n.description ? '<span style="font-size:0.75rem;color:rgba(232,232,240,0.6);margin-left:auto">▶</span>' : ''}
                 </li>`).join('')}
             </ul>
           </div>
