@@ -1,8 +1,8 @@
 :root {
-  --bg-primary: rgba(12,11,24,0.62);
-  --bg-secondary: rgba(20,18,40,0.58);
-  --bg-card: rgba(22,20,42,0.72);
-  --bg-card2: rgba(32,28,58,0.82);
+  --bg-primary: rgba(12,11,24,0.5);
+  --bg-secondary: rgba(20,18,40,0.46);
+  --bg-card: rgba(22,20,42,0.58);
+  --bg-card2: rgba(32,28,58,0.68);
   --border: rgba(255,255,255,0.14);
   --border-light: rgba(255,255,255,0.24);
   --glass-blur: blur(16px) saturate(150%);
