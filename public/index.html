@@ -52,6 +52,14 @@
   50%      { filter: drop-shadow(0 0 22px #a855f7) drop-shadow(0 0 10px #f0c040); transform: scale(1.05); }
 }
 #rank-update-card { animation: rankCardIn 0.35s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes eventCardIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.event-card { animation: eventCardIn 0.45s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .event-card { animation: none; }
+}
 .rank-badge-lg {
   display:inline-block; width:90px; height:90px; object-fit:contain;
 }
@@ -732,7 +740,7 @@ function renderEvents() {
     return;
   }
   const now = new Date();
-  el.innerHTML = `<div class="event-grid">${filtered.map(e => {
+  el.innerHTML = `<div class="event-grid">${filtered.map((e, i) => {
     const start = e.submission_start ? new Date(e.submission_start) : null;
     const end = e.submission_end ? new Date(e.submission_end) : null;
     let statusLabel, statusStyle;
@@ -755,7 +763,7 @@ function renderEvents() {
       statusStyle = 'color:#4caf50;font-weight:bold';
     }
     return `
-    <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;animation-delay:${Math.min(i * 35, 350)}ms">
       <div style="flex:1;min-width:0">
         <div class="event-name">${escHtml(e.name)}</div>
         <div class="event-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
