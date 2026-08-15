@@ -56,7 +56,7 @@
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.event-card { animation: eventCardIn 0.45s ease both; }
+.event-card { animation: eventCardIn 0.55s ease both; }
 @media (prefers-reduced-motion: reduce) {
   .event-card { animation: none; }
 }
@@ -763,7 +763,7 @@ function renderEvents() {
       statusStyle = 'color:#4caf50;font-weight:bold';
     }
     return `
-    <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;animation-delay:${Math.min(i * 35, 350)}ms">
+    <a class="event-card" href="/ranking.html?id=${e.id}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;animation-delay:${Math.min(i * 90, 900)}ms">
       <div style="flex:1;min-width:0">
         <div class="event-name">${escHtml(e.name)}</div>
         <div class="event-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
