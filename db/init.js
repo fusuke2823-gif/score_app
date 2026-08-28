@@ -75,6 +75,8 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp_migrated BOOLEAN NOT NULL DEFAULT FALSE;
     `);
     await client.query(`ALTER TABLE users ALTER COLUMN user_code TYPE VARCHAR(20)`).catch(() => {});
+    // comp_rank に 'Legend'（6文字）が入るよう拡張
+    await client.query(`ALTER TABLE users ALTER COLUMN comp_rank TYPE VARCHAR(10)`).catch(() => {});
 
     // tower_usersにデータが残っている場合はusersに復元する
     await client.query(`
@@ -289,7 +291,7 @@ const initDB = async () => {
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external_at TIMESTAMPTZ;
       ALTER TABLE event_interim_distributions ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'internal';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS comp_rank VARCHAR(5) DEFAULT 'C';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS comp_rank VARCHAR(10) DEFAULT 'C';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS rank_points INTEGER DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS s_rate FLOAT DEFAULT NULL;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS x_rate FLOAT DEFAULT NULL;
