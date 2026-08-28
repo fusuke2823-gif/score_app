@@ -40,7 +40,7 @@ function ptForEventType(eventType, score) {
 // Xレート用pt→rate変換（350万=0, 380万=1500, 以降は緩やかな係数）
 function rateForXPt(pt) {
   if (pt < 3300) return (pt - 1500) * 0.833;
-  return 1500 + (pt - 3300) * 0.229;
+  return 1500 + (pt - 3300) * 0.25;
 }
 
 // 種別群（配列）ごとの「直近N回」平均pt（未参加スロットは参加分平均×0.8で補完）
