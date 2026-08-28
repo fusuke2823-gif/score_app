@@ -159,6 +159,46 @@ router.put('/events/:id', async (req, res) => {
   }
 });
 
+// イベント種別ごとの補正係数の基準値（1〜3位平均がこの値になるよう倍率を計算）
+const MULTIPLIER_TARGET_BY_TYPE = {
+  score_attack: 4200000,
+  seraph: 156250,
+  score_attack_ex: 2300000,
+};
+
+// スコア補正係数の自動計算（1〜3位の承認済みスコア平均から算出）
+router.get('/events/:id/suggested-multiplier', async (req, res) => {
+  try {
+    const eventResult = await pool.query('SELECT event_type FROM events WHERE id = $1', [req.params.id]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'イベントが見つかりません' });
+    const eventType = eventResult.rows[0].event_type || 'score_attack';
+    const target = MULTIPLIER_TARGET_BY_TYPE[eventType];
+    if (!target) return res.status(400).json({ error: 'このイベント種別では自動計算できません' });
+
+    const topResult = await pool.query(
+      `WITH best_scores AS (
+        SELECT DISTINCT ON (s.user_id) s.user_id, s.approved_score
+        FROM scores s
+        WHERE s.event_id = $1 AND s.approved_score IS NOT NULL
+        ORDER BY s.user_id, s.approved_score DESC
+      )
+      SELECT approved_score FROM best_scores ORDER BY approved_score DESC LIMIT 3`,
+      [req.params.id]
+    );
+    if (topResult.rows.length === 0)
+      return res.status(400).json({ error: '承認済みスコアがまだありません' });
+
+    const scores = topResult.rows.map(r => Number(r.approved_score));
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const multiplier = Math.round((target / avg) * 10000) / 10000;
+
+    res.json({ multiplier, avg, scores, sampleSize: scores.length, target });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // ===== 特記マスタ =====
 router.get('/event-notes', async (req, res) => {
   const { q } = req.query;
