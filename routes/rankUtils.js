@@ -79,7 +79,7 @@ async function getRecentTypeAvgPt(client, userId, eventType, windowSize, maxEven
 
 // 種別ごとの「直近参加時のpt × 0.9^(その後の未参加回数)」
 // 一度も参加なしの場合は fallbackPt を返す（デフォルト0。例：遭遇戦は開催頻度が低く新規勢が不利にならないよう
-// スコアタ直近3回平均の80%をfallbackPtとして渡す運用）
+// スコアタ直近5回平均の80%をfallbackPtとして渡す運用）
 async function getDecayedModePt(client, userId, eventType, maxEventNumber, fallbackPt = 0) {
   const lastResult = await client.query(
     `SELECT e.event_number, s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score
@@ -131,19 +131,19 @@ async function getBestPtAllTypes(client, userId, maxEventNumber) {
   }, 0);
 }
 
-// Xレート用の合成pt = ベスト30% + スコアタ直近3回40% + 遭遇戦直近(減衰)15% + EX直近(減衰)15%
+// Xレート用の合成pt = ベスト20% + スコアタ直近5回40% + 遭遇戦直近(減衰)20% + EX直近(減衰)20%
 async function getCombinedXPt(client, userId, maxEventNumber) {
-  const [newBestPt, saRecent3] = await Promise.all([
+  const [newBestPt, saRecent5] = await Promise.all([
     getBestPtAllTypes(client, userId, maxEventNumber),
-    getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber),
+    getRecentTypeAvgPt(client, userId, 'score_attack', 5, maxEventNumber),
   ]);
   // 遭遇戦は開催頻度が低いため、一度も参加したことがないユーザーは
-  // スコアタ直近3回平均の80%を代わりに参照する（新規勢が不利にならないように）
+  // スコアタ直近5回平均の80%を代わりに参照する（新規勢が不利にならないように）
   const [seraphDecayed, exDecayed] = await Promise.all([
-    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent3 * 0.8),
+    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent5 * 0.8),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
   ]);
-  return newBestPt * 0.30 + saRecent3 * 0.40 + seraphDecayed * 0.15 + exDecayed * 0.15;
+  return newBestPt * 0.20 + saRecent5 * 0.40 + seraphDecayed * 0.20 + exDecayed * 0.20;
 }
 
 async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
@@ -233,7 +233,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
       // Sレートは従来通り（スコアアタック・遭遇戦のみのベスト/直近5戦ブレンド）
       const sRate = (bestPt - 500) * 0.7 + (recentPt - 500) * 0.3;
 
-      // Xレートは合成pt（ベスト30%+スコアタ直近3回40%+遭遇戦直近減衰15%+EX直近減衰15%）を使用
+      // Xレートは合成pt（ベスト20%+スコアタ直近5回40%+遭遇戦直近減衰20%+EX直近減衰20%）を使用
       const combinedXPt = await getCombinedXPt(client, userId, maxEventNumber);
 
       if (newRank === 'S') {
