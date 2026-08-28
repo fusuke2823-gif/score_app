@@ -43,14 +43,15 @@ function rateForXPt(pt) {
   return 1500 + (pt - 3300) * 0.229;
 }
 
-// 種別ごとの「直近N回」平均pt（未参加スロットは参加分平均×0.8で補完）
-async function getRecentTypeAvgPt(client, userId, eventType, windowSize, maxEventNumber) {
+// 種別群（配列）ごとの「直近N回」平均pt（未参加スロットは参加分平均×0.8で補完）
+// eventTypes は複数種別を混ぜて集計できるよう配列で受け取る（各行のptは行ごとのevent_typeで変換）
+async function getRecentTypesAvgPt(client, userId, eventTypes, windowSize, maxEventNumber) {
   const recentResult = await client.query(
-    `SELECT e.event_number, e.score_multiplier, MAX(s.approved_score) AS best_score
+    `SELECT e.event_number, e.event_type, e.score_multiplier, MAX(s.approved_score) AS best_score
      FROM (
-       SELECT id, event_number, score_multiplier
+       SELECT id, event_number, event_type, score_multiplier
        FROM events
-       WHERE event_type = $1
+       WHERE event_type = ANY($1)
        ${maxEventNumber != null ? `AND event_number <= ${maxEventNumber}` : ''}
        ORDER BY event_number DESC
        LIMIT ${windowSize}
@@ -59,15 +60,15 @@ async function getRecentTypeAvgPt(client, userId, eventType, windowSize, maxEven
        AND s.user_id = $2
        AND s.approved_score IS NOT NULL
        AND s.ranking_scope IN ('public', 'internal', 'external')
-     GROUP BY e.event_number, e.score_multiplier
+     GROUP BY e.event_number, e.event_type, e.score_multiplier
      ORDER BY e.event_number DESC`,
-    [eventType, userId]
+    [eventTypes, userId]
   );
 
   const pts = recentResult.rows.map(r => {
     if (r.best_score == null) return null;
     const score = parseFloat(r.best_score) * parseFloat(r.score_multiplier || 1.0);
-    return ptForEventType(eventType, score);
+    return ptForEventType(r.event_type, score);
   });
 
   const participated = pts.filter(p => p !== null);
@@ -78,8 +79,7 @@ async function getRecentTypeAvgPt(client, userId, eventType, windowSize, maxEven
 }
 
 // 種別ごとの「直近参加時のpt × 0.9^(その後の未参加回数)」
-// 一度も参加なしの場合は fallbackPt を返す（デフォルト0。例：遭遇戦は開催頻度が低く新規勢が不利にならないよう
-// スコアタ直近3回平均の80%をfallbackPtとして渡す運用）
+// 一度も参加なしの場合は fallbackPt を返す（デフォルト0）
 async function getDecayedModePt(client, userId, eventType, maxEventNumber, fallbackPt = 0) {
   const lastResult = await client.query(
     `SELECT e.event_number, s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score
@@ -131,19 +131,14 @@ async function getBestPtAllTypes(client, userId, maxEventNumber) {
   }, 0);
 }
 
-// Xレート用の合成pt = ベスト30% + スコアタ直近3回40% + 遭遇戦直近(減衰)15% + EX直近(減衰)15%
+// Xレート用の合成pt = ベスト30% + スコアタ・遭遇戦混合の直近4回平均50% + EX直近(減衰)20%
 async function getCombinedXPt(client, userId, maxEventNumber) {
-  const [newBestPt, saRecent3] = await Promise.all([
+  const [newBestPt, saSeraphRecent4, exDecayed] = await Promise.all([
     getBestPtAllTypes(client, userId, maxEventNumber),
-    getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber),
-  ]);
-  // 遭遇戦は開催頻度が低いため、一度も参加したことがないユーザーは
-  // スコアタ直近3回平均の80%を代わりに参照する（新規勢が不利にならないように）
-  const [seraphDecayed, exDecayed] = await Promise.all([
-    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent3 * 0.8),
+    getRecentTypesAvgPt(client, userId, ['score_attack', 'seraph'], 4, maxEventNumber),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
   ]);
-  return newBestPt * 0.30 + saRecent3 * 0.40 + seraphDecayed * 0.15 + exDecayed * 0.15;
+  return newBestPt * 0.30 + saSeraphRecent4 * 0.50 + exDecayed * 0.20;
 }
 
 async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
@@ -233,7 +228,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
       // Sレートは従来通り（スコアアタック・遭遇戦のみのベスト/直近5戦ブレンド）
       const sRate = (bestPt - 500) * 0.7 + (recentPt - 500) * 0.3;
 
-      // Xレートは合成pt（ベスト30%+スコアタ直近3回40%+遭遇戦直近減衰15%+EX直近減衰15%）を使用
+      // Xレートは合成pt（ベスト30%+スコアタ・遭遇戦混合の直近4回平均50%+EX直近減衰20%）を使用
       const combinedXPt = await getCombinedXPt(client, userId, maxEventNumber);
 
       if (newRank === 'S') {
@@ -298,7 +293,7 @@ module.exports = {
   convertExScoreToPoints,
   ptForEventType,
   rateForXPt,
-  getRecentTypeAvgPt,
+  getRecentTypesAvgPt,
   getDecayedModePt,
   getBestPtAllTypes,
   getCombinedXPt,
