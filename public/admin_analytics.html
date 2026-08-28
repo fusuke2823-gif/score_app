@@ -8,7 +8,8 @@
 <style>
 .stat-cards { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px; }
 .stat-card {
-  background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
+  background:var(--bg-modal); backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
+  border:1px solid var(--border-light); border-radius:10px;
   padding:14px 20px; min-width:140px; flex:1;
 }
 .stat-card-label { font-size:0.75rem; color:var(--text-muted); margin-bottom:6px; }
@@ -27,15 +28,16 @@
   padding:4px 12px; border-radius:20px; border:1px solid var(--border);
   background:transparent; color:var(--text-muted); font-size:0.78rem; cursor:pointer; white-space:nowrap;
 }
-.page-pill.active { background:var(--bg-secondary); color:var(--text-primary); border-color:var(--accent); }
+.page-pill.active { background:var(--bg-modal); color:var(--text-primary); border-color:var(--accent); }
 
 .analytics-wrap { overflow-x:auto; margin-bottom:24px; }
 .analytics-table { border-collapse:collapse; font-size:0.78rem; min-width:600px; }
 .analytics-table th, .analytics-table td {
   border:1px solid var(--border); padding:5px 8px; white-space:nowrap; text-align:right;
+  background:var(--bg-modal); backdrop-filter:blur(12px) saturate(150%); -webkit-backdrop-filter:blur(12px) saturate(150%);
 }
-.analytics-table th { background:var(--bg-secondary); text-align:center; font-weight:bold; font-size:0.72rem; }
-.analytics-table td.period-cell { text-align:left; font-weight:bold; color:var(--text-primary); background:var(--bg-secondary); }
+.analytics-table th { text-align:center; font-weight:bold; font-size:0.72rem; }
+.analytics-table td.period-cell { text-align:left; font-weight:bold; color:var(--text-primary); }
 .analytics-table td.page-cell { text-align:left; color:var(--text-muted); font-size:0.75rem; padding-left:12px; }
 .col-int { color:#7ecfff; }
 .col-ext { color:#ff9ec4; }
