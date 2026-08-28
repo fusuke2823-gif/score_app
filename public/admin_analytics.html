@@ -231,8 +231,9 @@ function renderTable() {
   const thead = `<thead><tr>
     <th style="text-align:left">期間</th>
     ${pages.length > 1 ? '<th style="text-align:left">ページ</th>' : ''}
-    <th class="col-int">人内</th><th class="col-ext">人外</th><th class="col-tot">人計</th>
-    <th class="col-int">回内</th><th class="col-ext">回外</th><th class="col-tot">回計</th>
+    <th class="col-int">人内</th><th class="col-int">回内</th>
+    <th class="col-ext">人外</th><th class="col-ext">回外</th>
+    <th class="col-tot">人計</th><th class="col-tot">回計</th>
   </tr></thead>`;
 
   let rows = '';
@@ -243,8 +244,9 @@ function renderTable() {
       const m = r.pages[pg] || { iu:0, eu:0, tu:0, ih:0, eh:0, th:0 };
       rows += `<tr>
         <td class="period-cell">${plabel}</td>
-        <td>${fmt(m.iu)}</td><td>${fmt(m.eu)}</td><td>${fmt(m.tu)}</td>
-        <td>${fmt(m.ih)}</td><td>${fmt(m.eh)}</td><td>${fmt(m.th)}</td>
+        <td>${fmt(m.iu)}</td><td>${fmt(m.ih)}</td>
+        <td>${fmt(m.eu)}</td><td>${fmt(m.eh)}</td>
+        <td>${fmt(m.tu)}</td><td>${fmt(m.th)}</td>
       </tr>`;
     } else {
       const visiblePages = pages.filter(p => r.pages[p]);
@@ -254,8 +256,9 @@ function renderTable() {
         rows += `<tr>
           ${i === 0 ? `<td class="period-cell" rowspan="${visiblePages.length}">${plabel}</td>` : ''}
           <td class="page-cell">${escHtml(pageLabel(pg))}</td>
-          <td>${fmt(m.iu)}</td><td>${fmt(m.eu)}</td><td>${fmt(m.tu)}</td>
-          <td>${fmt(m.ih)}</td><td>${fmt(m.eh)}</td><td>${fmt(m.th)}</td>
+          <td>${fmt(m.iu)}</td><td>${fmt(m.ih)}</td>
+          <td>${fmt(m.eu)}</td><td>${fmt(m.eh)}</td>
+          <td>${fmt(m.tu)}</td><td>${fmt(m.th)}</td>
         </tr>`;
       });
     }
