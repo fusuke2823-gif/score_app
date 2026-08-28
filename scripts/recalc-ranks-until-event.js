@@ -117,7 +117,7 @@ async function run() {
         });
       }
       const xb = detail.xBreakdown;
-      console.log(`    [Xレート内訳] ベスト: ${xb.newBestPt.toFixed(1)}pt(30%)  スコアタ・遭遇戦直近4回平均: ${xb.saSeraphRecent4.toFixed(1)}pt(50%)  EX(減衰): ${xb.exDecayed.toFixed(1)}pt(20%)  → 合成pt: ${xb.combinedXPt.toFixed(1)}`);
+      console.log(`    [Xレート内訳] ベスト: ${xb.newBestPt.toFixed(1)}pt(40%)  スコアタ・遭遇戦直近4回平均: ${xb.saSeraphRecent4.toFixed(1)}pt(40%)  EX(減衰): ${xb.exDecayed.toFixed(1)}pt(20%)  → 合成pt: ${xb.combinedXPt.toFixed(1)}`);
     }
 
     await client.query('COMMIT');

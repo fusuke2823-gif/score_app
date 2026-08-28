@@ -131,14 +131,14 @@ async function getBestPtAllTypes(client, userId, maxEventNumber) {
   }, 0);
 }
 
-// Xレート用の合成pt = ベスト30% + スコアタ・遭遇戦混合の直近4回平均50% + EX直近(減衰)20%
+// Xレート用の合成pt = ベスト40% + スコアタ・遭遇戦混合の直近4回平均40% + EX直近(減衰)20%
 async function getCombinedXPt(client, userId, maxEventNumber) {
   const [newBestPt, saSeraphRecent4, exDecayed] = await Promise.all([
     getBestPtAllTypes(client, userId, maxEventNumber),
     getRecentTypesAvgPt(client, userId, ['score_attack', 'seraph'], 4, maxEventNumber),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
   ]);
-  return newBestPt * 0.30 + saSeraphRecent4 * 0.50 + exDecayed * 0.20;
+  return newBestPt * 0.40 + saSeraphRecent4 * 0.40 + exDecayed * 0.20;
 }
 
 async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
@@ -185,7 +185,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
 
     // S/X/Ex/Legendレート計算（SレートもXレートも同じ合成ptから算出）
     if (['S', 'X', 'Ex', 'Legend'].includes(newRank)) {
-      // 合成pt（ベスト30%+スコアタ・遭遇戦混合の直近4回平均50%+EX直近減衰20%）
+      // 合成pt（ベスト40%+スコアタ・遭遇戦混合の直近4回平均40%+EX直近減衰20%）
       const combinedXPt = await getCombinedXPt(client, userId, maxEventNumber);
       const sRate = combinedXPt - 500;
 
