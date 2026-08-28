@@ -534,7 +534,8 @@ function closeVersionModal() {
 
 let allEvents = [];
 
-const ALL_TYPES = ['score', 'seraph'];
+const ALL_TYPES = ['score', 'seraph', 'ex'];
+const TYPE_LABEL_KEY = { score: 'filter.score_attack', seraph: 'filter.seraph', ex: 'filter.score_attack_ex' };
 const ALL_ENEMY_COUNTS = ['single', 'multi'];
 const ATTRS = ['火','氷','雷','光','闇'];
 
@@ -548,6 +549,7 @@ const filterState = {
 };
 
 function getEventType(e) {
+  if (e.event_type === 'score_attack_ex') return 'ex';
   if (e.name.includes('スコアアタック')) return 'score';
   if (e.name.includes('セラフ') || e.name.includes('遭遇戦')) return 'seraph';
   return 'other';
@@ -573,7 +575,7 @@ function renderModal() {
   const scoreOnly = isScoreOnly();
 
   const typePills = ALL_TYPES.map(v => {
-    const label = t(v === 'score' ? 'filter.score_attack' : 'filter.seraph');
+    const label = t(TYPE_LABEL_KEY[v]);
     const cls = filterState.types.has(v) ? 'filter-pill active' : 'filter-pill';
     return `<button class="${cls}" onclick="toggleType('${v}')">${label}</button>`;
   }).join('');

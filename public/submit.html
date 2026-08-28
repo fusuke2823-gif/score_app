@@ -214,7 +214,7 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
   const scoreNum = parseInt(score);
   const selectedOpt = document.getElementById('event-select').selectedOptions[0];
   const eventType = selectedOpt?.dataset.eventType || 'score_attack';
-  const anonLimit = eventType === 'seraph' ? 139999 : 3299999;
+  const anonLimit = eventType === 'seraph' ? 139999 : eventType === 'score_attack_ex' ? 1499999 : 3299999;
   const needsAnonPrompt = scoreNum <= anonLimit;
   if (needsAnonPrompt) {
     document.getElementById('anon-modal').style.display = 'flex';

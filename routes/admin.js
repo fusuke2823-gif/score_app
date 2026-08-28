@@ -4,7 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints } = require('./rankUtils');
+const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints, convertExScoreToPoints } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -968,7 +968,9 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       const correctedScore = row.approved_score * multiplier;
       const rankPtsFromScore = event.event_type === 'seraph'
         ? convertEncounterScoreToPoints(correctedScore)
-        : convertScoreToPoints(correctedScore);
+        : event.event_type === 'score_attack_ex'
+          ? convertExScoreToPoints(correctedScore)
+          : convertScoreToPoints(correctedScore);
       await client.query('UPDATE users SET points = points + $1, rank_points = rank_points + $2 WHERE id = $3', [pts, rankPtsFromScore, row.user_id]);
       await client.query(
         'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',

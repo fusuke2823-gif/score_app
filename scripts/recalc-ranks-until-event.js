@@ -4,7 +4,14 @@
 
 require('dotenv').config();
 const pool = require('../db/index');
-const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints } = require('../routes/rankUtils');
+const {
+  updateUserRanks,
+  ptForEventType,
+  getBestPtAllTypes,
+  getRecentTypeAvgPt,
+  getDecayedModePt,
+  getCombinedXPt,
+} = require('../routes/rankUtils');
 
 async function getUserScoreDetail(client, userId, maxEventNumber) {
   const { rows: recent } = await client.query(
@@ -16,7 +23,7 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
      WHERE s.user_id = $1
        AND s.approved_score IS NOT NULL
        AND s.ranking_scope IN ('public', 'internal', 'external')
-       AND e.event_type IN ('score_attack', 'seraph')
+       AND e.event_type IN ('score_attack', 'seraph', 'score_attack_ex')
        AND e.event_number <= $2
      GROUP BY e.id, e.name, e.event_number, e.event_type
      ORDER BY e.event_number DESC
@@ -33,20 +40,26 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
      WHERE s.user_id = $1
        AND s.approved_score IS NOT NULL
        AND s.ranking_scope IN ('public', 'internal', 'external')
-       AND e.event_type IN ('score_attack', 'seraph')
+       AND e.event_type IN ('score_attack', 'seraph', 'score_attack_ex')
        AND e.event_number <= $2
      ORDER BY corrected_score DESC
      LIMIT 1`,
     [userId, maxEventNumber]
   );
 
-  const toPt = (row) => row.event_type === 'seraph'
-    ? convertEncounterScoreToPoints(Math.floor(row.corrected_score))
-    : convertScoreToPoints(Math.floor(row.corrected_score));
+  const toPt = (row) => ptForEventType(row.event_type, Math.floor(row.corrected_score));
+
+  const [saRecent3, seraphDecayed, exDecayed, combinedXPt] = await Promise.all([
+    getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber),
+    getDecayedModePt(client, userId, 'seraph', maxEventNumber),
+    getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
+    getCombinedXPt(client, userId, maxEventNumber),
+  ]);
 
   return {
     recent: recent.map(r => ({ event_name: r.event_name, score: Math.floor(r.corrected_score), pt: toPt(r) })),
     best: best[0] ? { event_name: best[0].event_name, score: Math.floor(best[0].corrected_score), pt: toPt(best[0]) } : null,
+    xBreakdown: { saRecent3, seraphDecayed, exDecayed, combinedXPt },
   };
 }
 
@@ -103,6 +116,8 @@ async function run() {
           console.log(`      ${i + 1}. ${r.event_name}  スコア: ${r.score.toLocaleString()}  pt: ${r.pt}`);
         });
       }
+      const xb = detail.xBreakdown;
+      console.log(`    [Xレート内訳] スコアタ直近3回平均: ${xb.saRecent3.toFixed(1)}pt(40%)  遭遇戦(減衰): ${xb.seraphDecayed.toFixed(1)}pt(15%)  EX(減衰): ${xb.exDecayed.toFixed(1)}pt(15%)  → 合成pt: ${xb.combinedXPt.toFixed(1)}`);
     }
 
     await client.query('COMMIT');
