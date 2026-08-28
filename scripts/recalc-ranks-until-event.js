@@ -27,7 +27,7 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
        AND e.event_number <= $2
      GROUP BY e.id, e.name, e.event_number, e.event_type
      ORDER BY e.event_number DESC
-     LIMIT 5`,
+     LIMIT 3`,
     [userId, maxEventNumber]
   );
 
@@ -49,9 +49,9 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
 
   const toPt = (row) => ptForEventType(row.event_type, Math.floor(row.corrected_score));
 
-  const saRecent5 = await getRecentTypeAvgPt(client, userId, 'score_attack', 5, maxEventNumber);
+  const saRecent3 = await getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber);
   const [seraphDecayed, exDecayed, combinedXPt] = await Promise.all([
-    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent5 * 0.8),
+    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent3 * 0.8),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
     getCombinedXPt(client, userId, maxEventNumber),
   ]);
@@ -59,7 +59,7 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
   return {
     recent: recent.map(r => ({ event_name: r.event_name, score: Math.floor(r.corrected_score), pt: toPt(r) })),
     best: best[0] ? { event_name: best[0].event_name, score: Math.floor(best[0].corrected_score), pt: toPt(best[0]) } : null,
-    xBreakdown: { saRecent5, seraphDecayed, exDecayed, combinedXPt },
+    xBreakdown: { saRecent3, seraphDecayed, exDecayed, combinedXPt },
   };
 }
 
@@ -117,7 +117,7 @@ async function run() {
         });
       }
       const xb = detail.xBreakdown;
-      console.log(`    [Xレート内訳] スコアタ直近5回平均: ${xb.saRecent5.toFixed(1)}pt(40%)  遭遇戦(減衰): ${xb.seraphDecayed.toFixed(1)}pt(20%)  EX(減衰): ${xb.exDecayed.toFixed(1)}pt(20%)  → 合成pt: ${xb.combinedXPt.toFixed(1)}`);
+      console.log(`    [Xレート内訳] スコアタ直近3回平均: ${xb.saRecent3.toFixed(1)}pt(40%)  遭遇戦(減衰): ${xb.seraphDecayed.toFixed(1)}pt(20%)  EX(減衰): ${xb.exDecayed.toFixed(1)}pt(20%)  → 合成pt: ${xb.combinedXPt.toFixed(1)}`);
     }
 
     await client.query('COMMIT');
