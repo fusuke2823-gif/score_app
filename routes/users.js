@@ -4,17 +4,19 @@ const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
 
-// レートランキング（X/Ex ユーザー）
+// レートランキング（X/Ex/Legend ユーザー、管理者はSランクも閲覧可）
 router.get('/rate-ranking', optionalAuth, async (req, res) => {
   const { scope } = req.query;
   const isInternal = scope === 'internal';
   if (isInternal && (!req.user || !req.user.is_internal)) {
     return res.status(403).json({ error: '内部ユーザーのみ閲覧できます' });
   }
+  const isAdmin = !!(req.user && req.user.role === 'admin');
   try {
     const scopeFilter = isInternal ? 'AND u.is_internal = TRUE' : '';
+    const ranksFilter = isAdmin ? "('S','X','Ex','Legend')" : "('X','Ex','Legend')";
     const result = await pool.query(
-      `SELECT u.id, u.username, u.comp_rank, u.x_rate,
+      `SELECT u.id, u.username, u.comp_rank, u.x_rate, u.s_rate,
               CASE WHEN u.comp_rank = 'Ex' THEN
                 (SELECT COUNT(*)+1 FROM users u2 WHERE u2.comp_rank IN ('Ex','Legend') AND u2.x_rate > u.x_rate)
               ELSE NULL END AS ex_rank,
@@ -27,8 +29,8 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
        FROM users u
        LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
        LEFT JOIN frames f ON u.equipped_frame_id = f.id
-       WHERE u.comp_rank IN ('X','Ex','Legend') ${scopeFilter}
-       ORDER BY u.x_rate DESC NULLS LAST`
+       WHERE u.comp_rank IN ${ranksFilter} ${scopeFilter}
+       ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST`
     );
     res.json(result.rows.map(r => ({ ...r, equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));
   } catch (err) {

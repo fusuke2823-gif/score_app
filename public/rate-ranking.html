@@ -95,7 +95,9 @@ function renderMyCard(rows) {
   if (!me) { area.innerHTML = ''; return; }
   const my = rows.find(r => String(r.id) === String(me.id));
   if (!my) { area.innerHTML = ''; return; }
-  const rateDisp = my.x_rate != null ? Math.floor(my.x_rate) : '-';
+  const rateDisp = my.comp_rank === 'S'
+    ? (my.s_rate != null ? Math.floor(my.s_rate) : '-')
+    : (my.x_rate != null ? Math.floor(my.x_rate) : '-');
   const isLegend = my.comp_rank === 'Legend';
   const badgeImg = isLegend
     ? `<img src="/img/legend${my.legend_rank}.png" style="height:72px;width:auto;object-fit:contain" alt="LEGEND ${my.legend_rank}">`
@@ -123,7 +125,9 @@ function renderTable(rows) {
   const rowsHtml = rows.map((r, i) => {
     const pos = i + 1;
     const isSelf = meId && r.id === meId;
-    const rateDisp = r.x_rate != null ? Math.floor(r.x_rate) : '-';
+    const rateDisp = r.comp_rank === 'S'
+      ? (r.s_rate != null ? Math.floor(r.s_rate) : '-')
+      : (r.x_rate != null ? Math.floor(r.x_rate) : '-');
     const fc = r.equipped_frame || '';
     const fr = fc ? `has-frame ${fc}` : '';
     const rowIsLegend = r.comp_rank === 'Legend';
