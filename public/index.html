@@ -63,6 +63,12 @@
 .rank-badge-lg {
   display:inline-block; width:90px; height:90px; object-fit:contain;
 }
+.rank-badge-lg.legend-badge-lg { width:auto; }
+@keyframes legendGlow {
+  0%,100% { filter: drop-shadow(0 0 4px #ffd700) drop-shadow(0 0 2px #a855f7); }
+  50%      { filter: drop-shadow(0 0 20px #ffd700) drop-shadow(0 0 10px #a855f7); }
+}
+.rank-badge-lg.rank-Legend.glow { animation: legendGlow 1.6s ease-in-out infinite; }
 .rank-badge-lg.glow    { animation: rankGlow 1.8s ease-in-out infinite; }
 .rank-badge-lg.rank-C  { --rank-glow:#aaa; }
 .rank-badge-lg.rank-B  { --rank-glow:#5cb85c; }
@@ -316,18 +322,21 @@ function closeRankModal() {
   }
 }
 
-function rankBadgeLg(rank, glow = false) {
+function rankBadgeLg(rank, glow = false, legendRank = null) {
+  if (rank === 'Legend' && legendRank != null) {
+    return `<img src="/img/legend${legendRank}.png" class="rank-badge-lg legend-badge-lg rank-Legend${glow ? ' glow' : ''}" alt="LEGEND ${legendRank}">`;
+  }
   const r = (rank || 'C').toLowerCase();
   return `<img src="/img/rank_${r}.png" class="rank-badge-lg rank-${rank || 'C'}${glow ? ' glow' : ''}" alt="${rank || 'C'}">`;
 }
 
 function rateLabel(rank, sRate, xRate) {
   if (rank === 'S' && sRate != null) return `レート ${Math.floor(sRate)}`;
-  if ((rank === 'X' || rank === 'Ex') && xRate != null) return `レート ${Math.floor(xRate)}`;
+  if ((rank === 'X' || rank === 'Ex' || rank === 'Legend') && xRate != null) return `レート ${Math.floor(xRate)}`;
   return null;
 }
 
-const RANK_ORDER = ['C','B','A','S','X','Ex'];
+const RANK_ORDER = ['C','B','A','S','X','Ex','Legend'];
 const RANK_BAR_CFG = {
   C: { min:0, max:400,  col:'#aaa',    next:'B' },
   B: { min:0, max:1300, col:'#5cb85c', next:'A' },
@@ -397,14 +406,14 @@ async function checkRankUpdate() {
   if (!user) return;
   try {
     const data = await apiFetch(`/users/${user.id}`);
-    const cur = { rank: data.comp_rank || 'C', rankPoints: data.rank_points || 0, sRate: data.s_rate, xRate: data.x_rate };
+    const cur = { rank: data.comp_rank || 'C', rankPoints: data.rank_points || 0, sRate: data.s_rate, xRate: data.x_rate, legendRank: data.legend_rank };
     const key = `hbr_rank_${user.id}`;
     const stored = JSON.parse(localStorage.getItem(key) || 'null');
 
     if (stored) {
       const rankChanged = stored.rank !== cur.rank;
       const sChanged = cur.rank === 'S' && Math.abs((cur.sRate || 0) - (stored.sRate || 0)) >= 1;
-      const xChanged = (cur.rank === 'X' || cur.rank === 'Ex') && Math.abs((cur.xRate || 0) - (stored.xRate || 0)) >= 1;
+      const xChanged = (cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend') && Math.abs((cur.xRate || 0) - (stored.xRate || 0)) >= 1;
       const barRank = RANK_BAR_CFG[cur.rank] ? cur.rank : null;
       const ptChanged = barRank && !rankChanged && Math.abs((cur.rankPoints || 0) - (stored.rankPoints || 0)) >= 1;
 
@@ -417,11 +426,11 @@ async function checkRankUpdate() {
         if (rankChanged) {
           html = `
             <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0">
-              ${rankBadgeLg(stored.rank)}
+              ${rankBadgeLg(stored.rank, false, stored.legendRank)}
               <span style="font-size:1.4rem;color:var(--text-muted)">→</span>
-              ${rankBadgeLg(cur.rank, isUp)}
+              ${rankBadgeLg(cur.rank, isUp, cur.legendRank)}
             </div>
-            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? 'ランクアップ！' : 'ランク降格'}</div>`;
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? (cur.rank === 'Legend' ? 'LEGEND入り！' : 'ランクアップ！') : 'ランク降格'}</div>`;
           const steps = [];
           if (isUp) {
             const fromIdx = RANK_ORDER.indexOf(stored.rank);
@@ -429,7 +438,7 @@ async function checkRankUpdate() {
             for (let i = fromIdx; i <= lastBarIdx; i++) {
               const rank = RANK_ORDER[i];
               if (!RANK_BAR_CFG[rank]) continue;
-              const isFinalBar = (i === lastBarIdx) && !(cur.rank === 'X' || cur.rank === 'Ex');
+              const isFinalBar = (i === lastBarIdx) && !(cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend');
               const val = isFinalBar
                 ? (rank === 'S' ? (cur.sRate || 0) : (cur.rankPoints || 0))
                 : RANK_BAR_CFG[rank].max;
@@ -443,14 +452,14 @@ async function checkRankUpdate() {
               steps.push({ type: 'bar', rank, val, startPct,
                 targetPct: Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100)) });
             }
-            if (cur.rank === 'X' || cur.rank === 'Ex') {
-              const fromRate = (stored.rank === 'X' || stored.rank === 'Ex') ? Math.floor(stored.xRate || 0) : 0;
+            if (cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend') {
+              const fromRate = (stored.rank === 'X' || stored.rank === 'Ex' || stored.rank === 'Legend') ? Math.floor(stored.xRate || 0) : 0;
               steps.push({ type: 'rate', from: fromRate, to: Math.floor(cur.xRate || 0) });
             }
           } else {
-            if ((stored.rank === 'X' || stored.rank === 'Ex') && cur.rank === 'X') {
+            if ((stored.rank === 'X' || stored.rank === 'Ex' || stored.rank === 'Legend') && (cur.rank === 'X' || cur.rank === 'Ex')) {
               steps.push({ type: 'rate', from: Math.floor(stored.xRate || 0), to: Math.floor(cur.xRate || 0) });
-            } else if ((stored.rank === 'X' || stored.rank === 'Ex') && cur.rank === 'S') {
+            } else if ((stored.rank === 'X' || stored.rank === 'Ex' || stored.rank === 'Legend') && cur.rank === 'S') {
               const sRate = Math.floor(cur.sRate || 0);
               const sPct = Math.min(100, Math.max(0, ((sRate - RANK_BAR_CFG.S.min) / (RANK_BAR_CFG.S.max - RANK_BAR_CFG.S.min)) * 100));
               steps.push({ type: 'rate', from: Math.floor(stored.xRate || 0), to: 0 });
@@ -472,9 +481,9 @@ async function checkRankUpdate() {
           const cfg = RANK_BAR_CFG[cur.rank];
           const fromPct = Math.min(100, Math.max(0, ((prevVal - cfg.min) / (cfg.max - cfg.min)) * 100));
           html = `
-            <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>` +
+            <div style="margin:12px 0">${rankBadgeLg(cur.rank, false, cur.legendRank)}</div>` +
             rankBarHtml(cur.rank, barVal, true, fromPct);
-        } else if ((cur.rank === 'X' || cur.rank === 'Ex') && cur.xRate != null && stored.xRate != null) {
+        } else if ((cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend') && cur.xRate != null && stored.xRate != null) {
           rateFrom = Math.floor(stored.xRate);
           rateTo = Math.floor(cur.xRate);
           const delta = rateTo - rateFrom;
@@ -482,7 +491,7 @@ async function checkRankUpdate() {
           const deltaColor = delta >= 0 ? 'var(--accent)' : '#e05555';
           doRateCounter = true;
           html = `
-            <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>
+            <div style="margin:12px 0">${rankBadgeLg(cur.rank, false, cur.legendRank)}</div>
             <div style="font-size:1.1rem;font-weight:bold;margin-top:8px">
               レート <span id="rate-counter">${rateFrom}</span><span style="font-size:0.9rem;color:${deltaColor};margin-left:6px">(${deltaStr})</span>
             </div>`;
@@ -490,7 +499,7 @@ async function checkRankUpdate() {
           const prev = rateLabel(stored.rank, stored.sRate, stored.xRate) || '-';
           const next = rateLabel(cur.rank, cur.sRate, cur.xRate) || '-';
           html = `
-            <div style="margin:12px 0">${rankBadgeLg(cur.rank)}</div>
+            <div style="margin:12px 0">${rankBadgeLg(cur.rank, false, cur.legendRank)}</div>
             <div style="font-size:1rem;margin-top:8px">
               <span style="color:var(--text-muted)">${prev}</span>
               <span style="margin:0 8px;color:var(--text-muted)">→</span>

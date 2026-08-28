@@ -228,8 +228,8 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
     if (newRank === 'B' && rank_points >= 1000) newRank = 'A';
     if (newRank === 'A' && rank_points >= 2000 && bestPt >= 500) newRank = 'S';
 
-    // S/X/Exレート計算
-    if (['S', 'X', 'Ex'].includes(newRank)) {
+    // S/X/Ex/Legendレート計算
+    if (['S', 'X', 'Ex', 'Legend'].includes(newRank)) {
       // Sレートは従来通り（スコアアタック・遭遇戦のみのベスト/直近5戦ブレンド）
       const sRate = (bestPt - 500) * 0.7 + (recentPt - 500) * 0.3;
 
@@ -247,7 +247,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
           }
         }
       } else {
-        // X or Ex
+        // X or Ex or Legend（一旦X/Exまで戻し、Legendへの再昇格はsyncLegendRanksでまとめて判定する）
         newXRate = rateForXPt(combinedXPt);
         newSRate = Math.min(sRate, 1000);
 
@@ -266,6 +266,30 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
       [newRank, newSRate !== undefined ? newSRate : null, newXRate !== undefined ? newXRate : null, userId]
     );
   }
+
+  await syncLegendRanks(client);
+}
+
+// Legendランクの基準
+const LEGEND_MIN_RATE = 2000;
+const LEGEND_TOP_N = 10;
+
+// Xレート2000以上のユーザーを対象に、上位10人をLegendへ昇格・それ以外(元Legend含む)はExへ差し戻す
+async function syncLegendRanks(client) {
+  const { rows } = await client.query(
+    `SELECT id, comp_rank, x_rate FROM users
+     WHERE x_rate >= $1 OR comp_rank = 'Legend'
+     ORDER BY x_rate DESC NULLS LAST`,
+    [LEGEND_MIN_RATE]
+  );
+  for (let i = 0; i < rows.length; i++) {
+    const u = rows[i];
+    const shouldBeLegend = i < LEGEND_TOP_N && u.x_rate >= LEGEND_MIN_RATE;
+    const newRank = shouldBeLegend ? 'Legend' : (u.comp_rank === 'Legend' ? 'Ex' : u.comp_rank);
+    if (newRank !== u.comp_rank) {
+      await client.query('UPDATE users SET comp_rank=$1 WHERE id=$2', [newRank, u.id]);
+    }
+  }
 }
 
 module.exports = {
@@ -279,4 +303,5 @@ module.exports = {
   getBestPtAllTypes,
   getCombinedXPt,
   updateUserRanks,
+  syncLegendRanks,
 };

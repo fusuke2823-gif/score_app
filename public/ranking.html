@@ -382,7 +382,7 @@ async function loadRanking() {
                   : ''}
               </td>
               <td class="col-title ${fc ? 'frame-title' : ''}" style="font-size:0.8rem;color:#fff">${r.equipped_title ? `<span class="title-tooltip-wrap">「${escHtml(r.equipped_title)}」${r.equipped_title_desc ? `<span class="title-tooltip">${escHtml(r.equipped_title_desc)}</span>` : ''}</span>` : '-'}</td>
-              <td class="col-rank ${fc ? 'frame-title' : ''}" style="text-align:center">${renderCompRank(r.comp_rank, r.s_rate, r.x_rate, r.ex_rank)}</td>
+              <td class="col-rank ${fc ? 'frame-title' : ''}" style="text-align:center">${renderCompRank(r.comp_rank, r.s_rate, r.x_rate, r.ex_rank, r.legend_rank)}</td>
             </tr>`;
           }).join(''); })()}
         </tbody>
@@ -438,9 +438,12 @@ function setColMode(mode) {
   });
 }
 
-function renderCompRank(rank, sRate, xRate, exRank) {
+function renderCompRank(rank, sRate, xRate, exRank, legendRank) {
+  const isLegend = rank === 'Legend';
   const r = (rank || 'C').toLowerCase();
-  const img = `<img src="/img/rank_${r}.png" style="width:28px;height:28px;object-fit:contain;vertical-align:middle" alt="${rank || 'C'}">`;
+  const img = isLegend
+    ? `<img src="/img/legend${legendRank}.png" style="height:28px;width:auto;object-fit:contain;vertical-align:middle" alt="LEGEND ${legendRank}">`
+    : `<img src="/img/rank_${r}.png" style="width:28px;height:28px;object-fit:contain;vertical-align:middle" alt="${rank || 'C'}">`;
   if (!rank || rank === 'C' || rank === 'B' || rank === 'A') return img;
   const rate = rank === 'S' ? sRate : xRate;
   const rateStr = rate != null ? `<span style="font-size:0.8rem;font-weight:bold;margin-left:4px;vertical-align:middle">${Math.floor(rate)}</span>` : '';
