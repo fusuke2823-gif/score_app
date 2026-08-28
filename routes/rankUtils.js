@@ -151,7 +151,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
 
     const { rank_points } = userRow;
 
-    // ベストスコア（Sレート・A→S昇格判定用：スコアアタック・遭遇戦のみ、複数敵は/1.05補正）
+    // ベストスコア（A→S昇格判定用：スコアアタック・遭遇戦のみ、複数敵は/1.05補正）
     const bestResult = await client.query(
       `SELECT
          s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
@@ -173,46 +173,6 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
       return Math.max(max, pt);
     }, 0);
 
-    // 直近5イベント（参加不参加関係なく、Sレート用：スコアアタック・遭遇戦のみ）のスコア
-    const recentResult = await client.query(
-      `SELECT e.event_number, e.event_type, e.score_multiplier,
-              MAX(s.approved_score) AS best_score
-       FROM (
-         SELECT id, event_number, event_type, score_multiplier
-         FROM events
-         WHERE event_type IN ('score_attack', 'seraph')
-         ${maxEventNumber != null ? `AND event_number <= ${maxEventNumber}` : ''}
-         ORDER BY event_number DESC
-         LIMIT 5
-       ) e
-       LEFT JOIN scores s ON s.event_id = e.id
-         AND s.user_id = $1
-         AND s.approved_score IS NOT NULL
-         AND s.ranking_scope IN ('public', 'internal', 'external')
-       GROUP BY e.event_number, e.event_type, e.score_multiplier
-       ORDER BY e.event_number DESC`,
-      [userId]
-    );
-
-    const recentPts = recentResult.rows.map(r => {
-      if (r.best_score == null) return null;
-      const score = parseFloat(r.best_score) * parseFloat(r.score_multiplier || 1.0);
-      return r.event_type === 'seraph'
-        ? convertEncounterScoreToPoints(score)
-        : convertScoreToPoints(score);
-    });
-
-    // 参加分の平均を計算し、未参加分を avg*0.8 で補完して5枠平均
-    let recentPt;
-    const participated = recentPts.filter(p => p !== null);
-    if (participated.length === 0 || recentResult.rows.length === 0) {
-      recentPt = 0;
-    } else {
-      const avg = participated.reduce((a, b) => a + b, 0) / participated.length;
-      const fill = avg * 0.8;
-      recentPt = recentPts.reduce((sum, p) => sum + (p !== null ? p : fill), 0) / recentResult.rows.length;
-    }
-
     // ランク進行
     let newRank = userRow.comp_rank || 'C';
     let newSRate = userRow.s_rate;
@@ -223,13 +183,11 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
     if (newRank === 'B' && rank_points >= 1000) newRank = 'A';
     if (newRank === 'A' && rank_points >= 2000 && bestPt >= 500) newRank = 'S';
 
-    // S/X/Ex/Legendレート計算
+    // S/X/Ex/Legendレート計算（SレートもXレートも同じ合成ptから算出）
     if (['S', 'X', 'Ex', 'Legend'].includes(newRank)) {
-      // Sレートは従来通り（スコアアタック・遭遇戦のみのベスト/直近5戦ブレンド）
-      const sRate = (bestPt - 500) * 0.7 + (recentPt - 500) * 0.3;
-
-      // Xレートは合成pt（ベスト30%+スコアタ・遭遇戦混合の直近4回平均50%+EX直近減衰20%）を使用
+      // 合成pt（ベスト30%+スコアタ・遭遇戦混合の直近4回平均50%+EX直近減衰20%）
       const combinedXPt = await getCombinedXPt(client, userId, maxEventNumber);
+      const sRate = combinedXPt - 500;
 
       if (newRank === 'S') {
         newSRate = sRate;
