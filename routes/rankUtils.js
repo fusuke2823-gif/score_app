@@ -77,8 +77,10 @@ async function getRecentTypeAvgPt(client, userId, eventType, windowSize, maxEven
   return pts.reduce((sum, p) => sum + (p !== null ? p : fill), 0) / recentResult.rows.length;
 }
 
-// 種別ごとの「直近参加時のpt × 0.9^(その後の未参加回数)」（一度も参加なしなら0）
-async function getDecayedModePt(client, userId, eventType, maxEventNumber) {
+// 種別ごとの「直近参加時のpt × 0.9^(その後の未参加回数)」
+// 一度も参加なしの場合は fallbackPt を返す（デフォルト0。例：遭遇戦は開催頻度が低く新規勢が不利にならないよう
+// スコアタ直近3回平均の80%をfallbackPtとして渡す運用）
+async function getDecayedModePt(client, userId, eventType, maxEventNumber, fallbackPt = 0) {
   const lastResult = await client.query(
     `SELECT e.event_number, s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score
      FROM scores s
@@ -92,7 +94,7 @@ async function getDecayedModePt(client, userId, eventType, maxEventNumber) {
      LIMIT 1`,
     [userId, eventType]
   );
-  if (lastResult.rows.length === 0) return 0;
+  if (lastResult.rows.length === 0) return fallbackPt;
 
   const { event_number, corrected_score } = lastResult.rows[0];
   const pt = ptForEventType(eventType, parseFloat(corrected_score));
@@ -131,10 +133,14 @@ async function getBestPtAllTypes(client, userId, maxEventNumber) {
 
 // Xレート用の合成pt = ベスト30% + スコアタ直近3回40% + 遭遇戦直近(減衰)15% + EX直近(減衰)15%
 async function getCombinedXPt(client, userId, maxEventNumber) {
-  const [newBestPt, saRecent3, seraphDecayed, exDecayed] = await Promise.all([
+  const [newBestPt, saRecent3] = await Promise.all([
     getBestPtAllTypes(client, userId, maxEventNumber),
     getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber),
-    getDecayedModePt(client, userId, 'seraph', maxEventNumber),
+  ]);
+  // 遭遇戦は開催頻度が低いため、一度も参加したことがないユーザーは
+  // スコアタ直近3回平均の80%を代わりに参照する（新規勢が不利にならないように）
+  const [seraphDecayed, exDecayed] = await Promise.all([
+    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent3 * 0.8),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
   ]);
   return newBestPt * 0.30 + saRecent3 * 0.40 + seraphDecayed * 0.15 + exDecayed * 0.15;

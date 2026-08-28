@@ -49,9 +49,9 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
 
   const toPt = (row) => ptForEventType(row.event_type, Math.floor(row.corrected_score));
 
-  const [saRecent3, seraphDecayed, exDecayed, combinedXPt] = await Promise.all([
-    getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber),
-    getDecayedModePt(client, userId, 'seraph', maxEventNumber),
+  const saRecent3 = await getRecentTypeAvgPt(client, userId, 'score_attack', 3, maxEventNumber);
+  const [seraphDecayed, exDecayed, combinedXPt] = await Promise.all([
+    getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent3 * 0.8),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
     getCombinedXPt(client, userId, maxEventNumber),
   ]);
