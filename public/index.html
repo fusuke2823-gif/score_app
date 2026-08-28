@@ -430,7 +430,7 @@ async function checkRankUpdate() {
               <span style="font-size:1.4rem;color:var(--text-muted)">→</span>
               ${rankBadgeLg(cur.rank, isUp, cur.legendRank)}
             </div>
-            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? (cur.rank === 'Legend' ? 'LEGEND入り！' : 'ランクアップ！') : 'ランク降格'}</div>`;
+            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? (cur.rank === 'Legend' ? 'LEGEND昇格！' : 'ランクアップ！') : 'ランク降格'}</div>`;
           const steps = [];
           if (isUp) {
             const fromIdx = RANK_ORDER.indexOf(stored.rank);
