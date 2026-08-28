@@ -70,8 +70,27 @@ function merge(pvRows, newRows) {
 router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    // 期間指定（?start=YYYY-MM-DD&end=YYYY-MM-DD、start=all で全範囲）。省略時は直近3か月。
+    let start;
+    if (req.query.start === 'all') {
+      start = new Date('2000-01-01');
+    } else if (req.query.start) {
+      start = new Date(req.query.start);
+    } else {
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      start.setMonth(start.getMonth() - 3);
+    }
+    let end;
+    if (req.query.end) {
+      end = new Date(req.query.end);
+      end.setDate(end.getDate() + 1); // 指定日を含めるため終端は翌日（exclusive）
+    } else {
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    }
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
+      return res.status(400).json({ error: '不正な期間です' });
+    }
 
     const [users, dpv, dn, wpv, wn, mpv, mn] = await Promise.all([
       pool.query(`
@@ -89,8 +108,10 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
       getNewUsers('month', start, end),
     ]);
 
+    const displayEnd = new Date(end);
+    displayEnd.setDate(displayEnd.getDate() - 1);
     res.json({
-      period: { start: start.toISOString().split('T')[0], end: now.toISOString().split('T')[0] },
+      period: { start: start.toISOString().split('T')[0], end: displayEnd.toISOString().split('T')[0] },
       users: users.rows[0],
       daily:   merge(dpv.rows, dn.rows),
       weekly:  merge(wpv.rows, wn.rows),

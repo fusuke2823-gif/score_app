@@ -61,6 +61,18 @@
       <span class="btn btn-sm btn-primary" style="cursor:default">集計</span>
     </div>
   </div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+    <div class="view-tabs" id="range-presets" style="margin-bottom:0">
+      <button class="view-tab active" onclick="setRangePreset('3m')">3ヶ月</button>
+      <button class="view-tab" onclick="setRangePreset('6m')">6ヶ月</button>
+      <button class="view-tab" onclick="setRangePreset('1y')">1年</button>
+      <button class="view-tab" onclick="setRangePreset('all')">全期間</button>
+    </div>
+    <input type="date" id="range-start" class="form-input" style="width:auto;padding:5px 8px;font-size:0.85rem">
+    <span style="color:var(--text-muted)">〜</span>
+    <input type="date" id="range-end" class="form-input" style="width:auto;padding:5px 8px;font-size:0.85rem">
+    <button class="btn btn-sm btn-primary" onclick="applyCustomRange()">適用</button>
+  </div>
   <div style="margin-bottom:12px"><span id="period-label" style="font-size:0.8rem;color:var(--text-muted)"></span></div>
 
   <div class="stat-cards" id="stat-cards">
@@ -101,11 +113,45 @@ const PAGE_LABELS = {
 };
 function pageLabel(p) { return PAGE_LABELS[p] || p.replace(/^\//, '').replace(/\.html$/, ''); }
 
-async function load() {
+function isoDate(d) { return d.toISOString().split('T')[0]; }
+
+function setRangePreset(preset) {
+  document.querySelectorAll('#range-presets .view-tab').forEach((b, i) => {
+    b.classList.toggle('active', ['3m', '6m', '1y', 'all'][i] === preset);
+  });
+  const end = isoDate(new Date());
+  let start;
+  if (preset === 'all') {
+    start = 'all';
+  } else {
+    const d = new Date();
+    if (preset === '3m') d.setMonth(d.getMonth() - 3);
+    else if (preset === '6m') d.setMonth(d.getMonth() - 6);
+    else if (preset === '1y') d.setFullYear(d.getFullYear() - 1);
+    start = isoDate(d);
+  }
+  document.getElementById('range-start').value = start === 'all' ? '' : start;
+  document.getElementById('range-end').value = end;
+  load(start, end);
+}
+
+function applyCustomRange() {
+  document.querySelectorAll('#range-presets .view-tab').forEach(b => b.classList.remove('active'));
+  const start = document.getElementById('range-start').value || undefined;
+  const end = document.getElementById('range-end').value || undefined;
+  load(start, end);
+}
+
+async function load(start, end) {
   try {
-    data = await apiFetch('/analytics/summary');
+    const qs = [];
+    if (start) qs.push(`start=${encodeURIComponent(start)}`);
+    if (end) qs.push(`end=${encodeURIComponent(end)}`);
+    data = await apiFetch(`/analytics/summary${qs.length ? '?' + qs.join('&') : ''}`);
     document.getElementById('period-label').textContent =
       `${data.period.start} 〜 ${data.period.end}`;
+    document.getElementById('range-start').value = data.period.start;
+    document.getElementById('range-end').value = data.period.end;
 
     const u = data.users;
     document.getElementById('stat-cards').innerHTML = `
