@@ -74,6 +74,10 @@
     <span style="color:var(--text-muted)">〜</span>
     <input type="date" id="range-end" class="form-input" style="width:auto;padding:5px 8px;font-size:0.85rem">
     <button class="btn btn-sm btn-primary" onclick="applyCustomRange()">適用</button>
+    <label style="display:flex;align-items:center;gap:5px;font-size:0.85rem;color:var(--text-muted);cursor:pointer;margin-left:4px">
+      <input type="checkbox" id="exclude-admin-toggle" onchange="toggleExcludeAdmin()">
+      管理者を除外
+    </label>
   </div>
   <div style="margin-bottom:12px"><span id="period-label" style="font-size:0.8rem;color:var(--text-muted)"></span></div>
 
@@ -117,6 +121,8 @@ function pageLabel(p) { return PAGE_LABELS[p] || p.replace(/^\//, '').replace(/\
 
 function isoDate(d) { return d.toISOString().split('T')[0]; }
 
+let currentStart, currentEnd;
+
 function setRangePreset(preset) {
   document.querySelectorAll('#range-presets .view-tab').forEach((b, i) => {
     b.classList.toggle('active', ['3m', '6m', '1y', 'all'][i] === preset);
@@ -144,11 +150,19 @@ function applyCustomRange() {
   load(start, end);
 }
 
+function toggleExcludeAdmin() {
+  load(currentStart, currentEnd);
+}
+
 async function load(start, end) {
+  currentStart = start;
+  currentEnd = end;
   try {
+    const excludeAdmin = document.getElementById('exclude-admin-toggle').checked;
     const qs = [];
     if (start) qs.push(`start=${encodeURIComponent(start)}`);
     if (end) qs.push(`end=${encodeURIComponent(end)}`);
+    if (excludeAdmin) qs.push('excludeAdmin=1');
     data = await apiFetch(`/analytics/summary${qs.length ? '?' + qs.join('&') : ''}`);
     document.getElementById('period-label').textContent =
       `${data.period.start} 〜 ${data.period.end}`;

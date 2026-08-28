@@ -17,22 +17,23 @@ router.post('/pageview', optionalAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
-async function getPVData(trunc, start, end) {
+async function getPVData(trunc, start, end, excludeAdmin) {
   return pool.query(`
     SELECT
-      DATE_TRUNC($1, created_at) AS period,
-      CASE WHEN page = '/' THEN '/index.html' ELSE page END AS page,
-      is_internal,
-      COUNT(DISTINCT user_id) AS u,
+      DATE_TRUNC($1, pv.created_at) AS period,
+      CASE WHEN pv.page = '/' THEN '/index.html' ELSE pv.page END AS page,
+      pv.is_internal,
+      COUNT(DISTINCT pv.user_id) AS u,
       COUNT(*) AS h
-    FROM page_views
-    WHERE created_at >= $2 AND created_at < $3
-      AND page NOT LIKE '/admin%'
+    FROM page_views pv
+    ${excludeAdmin ? "JOIN users u ON u.id = pv.user_id AND u.role != 'admin'" : ''}
+    WHERE pv.created_at >= $2 AND pv.created_at < $3
+      AND pv.page NOT LIKE '/admin%'
     GROUP BY 1, 2, 3 ORDER BY 1, 2
   `, [trunc, start, end]);
 }
 
-async function getNewUsers(trunc, start, end) {
+async function getNewUsers(trunc, start, end, excludeAdmin) {
   return pool.query(`
     SELECT
       DATE_TRUNC($1, created_at) AS period,
@@ -41,6 +42,7 @@ async function getNewUsers(trunc, start, end) {
       COUNT(*) AS tot_n
     FROM users
     WHERE created_at >= $2 AND created_at < $3
+    ${excludeAdmin ? "AND role != 'admin'" : ''}
     GROUP BY 1 ORDER BY 1
   `, [trunc, start, end]);
 }
@@ -92,6 +94,8 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ error: '不正な期間です' });
     }
 
+    const excludeAdmin = req.query.excludeAdmin === '1';
+
     const [users, dpv, dn, wpv, wn, mpv, mn] = await Promise.all([
       pool.query(`
         SELECT
@@ -99,19 +103,21 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
           COUNT(*) FILTER (WHERE is_internal = FALSE) AS ext_n,
           COUNT(*) AS tot_n
         FROM users
+        ${excludeAdmin ? "WHERE role != 'admin'" : ''}
       `),
-      getPVData('day',   start, end),
-      getNewUsers('day',   start, end),
-      getPVData('week',  start, end),
-      getNewUsers('week',  start, end),
-      getPVData('month', start, end),
-      getNewUsers('month', start, end),
+      getPVData('day',   start, end, excludeAdmin),
+      getNewUsers('day',   start, end, excludeAdmin),
+      getPVData('week',  start, end, excludeAdmin),
+      getNewUsers('week',  start, end, excludeAdmin),
+      getPVData('month', start, end, excludeAdmin),
+      getNewUsers('month', start, end, excludeAdmin),
     ]);
 
     const displayEnd = new Date(end);
     displayEnd.setDate(displayEnd.getDate() - 1);
     res.json({
       period: { start: start.toISOString().split('T')[0], end: displayEnd.toISOString().split('T')[0] },
+      excludeAdmin,
       users: users.rows[0],
       daily:   merge(dpv.rows, dn.rows),
       weekly:  merge(wpv.rows, wn.rows),
