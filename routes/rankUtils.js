@@ -131,7 +131,7 @@ async function getBestPtAllTypes(client, userId, maxEventNumber) {
   }, 0);
 }
 
-// Xレート用の合成pt = ベスト20% + スコアタ直近3回40% + 遭遇戦直近(減衰)20% + EX直近(減衰)20%
+// Xレート用の合成pt = ベスト30% + スコアタ直近3回40% + 遭遇戦直近(減衰)15% + EX直近(減衰)15%
 async function getCombinedXPt(client, userId, maxEventNumber) {
   const [newBestPt, saRecent3] = await Promise.all([
     getBestPtAllTypes(client, userId, maxEventNumber),
@@ -143,7 +143,7 @@ async function getCombinedXPt(client, userId, maxEventNumber) {
     getDecayedModePt(client, userId, 'seraph', maxEventNumber, saRecent3 * 0.8),
     getDecayedModePt(client, userId, 'score_attack_ex', maxEventNumber),
   ]);
-  return newBestPt * 0.20 + saRecent3 * 0.40 + seraphDecayed * 0.20 + exDecayed * 0.20;
+  return newBestPt * 0.30 + saRecent3 * 0.40 + seraphDecayed * 0.15 + exDecayed * 0.15;
 }
 
 async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
@@ -233,7 +233,7 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
       // Sレートは従来通り（スコアアタック・遭遇戦のみのベスト/直近5戦ブレンド）
       const sRate = (bestPt - 500) * 0.7 + (recentPt - 500) * 0.3;
 
-      // Xレートは合成pt（ベスト20%+スコアタ直近3回40%+遭遇戦直近減衰20%+EX直近減衰20%）を使用
+      // Xレートは合成pt（ベスト30%+スコアタ直近3回40%+遭遇戦直近減衰15%+EX直近減衰15%）を使用
       const combinedXPt = await getCombinedXPt(client, userId, maxEventNumber);
 
       if (newRank === 'S') {
