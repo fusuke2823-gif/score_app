@@ -108,7 +108,7 @@ const _i18n = {
     'shop.title':'ショップ','shop.equip_title':'装備','shop.tab_oshi':'推し称号',
     'shop.my_points':'所持ポイント','shop.points_hint':'※ポイントはランキングに応じて配布されます',
     'shop.tab_titles':'称号','shop.tab_frames':'フレーム','shop.tab_icons':'アイコン',
-    'shop.buy':'購入する','shop.equip_btn':'装備する','shop.unequip':'外す',
+    'shop.buy':'購入する','shop.equip_btn':'装備する','shop.equip_short':'装備','shop.unequip':'外す',
     'shop.owned':'所持済み','shop.equipped_badge':'装備中',
     'shop.no_titles':'購入できる称号がありません',
     'shop.no_frames':'購入できるフレームがありません',
@@ -283,7 +283,7 @@ const _i18n = {
     'shop.title':'商店','shop.equip_title':'裝備','shop.tab_oshi':'推し稱號',
     'shop.my_points':'擁有點數','shop.points_hint':'※點數依排名發放',
     'shop.tab_titles':'稱號','shop.tab_frames':'外框','shop.tab_icons':'圖示',
-    'shop.buy':'購買','shop.equip_btn':'裝備','shop.unequip':'卸除',
+    'shop.buy':'購買','shop.equip_btn':'裝備','shop.equip_short':'裝備','shop.unequip':'卸除',
     'shop.owned':'已擁有','shop.equipped_badge':'裝備中',
     'shop.no_titles':'沒有可購買的稱號',
     'shop.no_frames':'沒有可購買的外框',
@@ -600,6 +600,17 @@ async function initAnnouncementCheck() {
   } catch {}
 }
 
+// ===== モーダル表示中の背景スクロールロック（多重開閉に対応するカウンタ方式） =====
+let _scrollLockCount = 0;
+function lockBodyScroll() {
+  _scrollLockCount++;
+  document.body.style.overflow = 'hidden';
+}
+function unlockBodyScroll() {
+  _scrollLockCount = Math.max(0, _scrollLockCount - 1);
+  if (_scrollLockCount === 0) document.body.style.overflow = '';
+}
+
 function showAnnouncementModal(a) {
   if (document.getElementById('announcement-modal')) return;
   const style = document.createElement('style');
@@ -625,13 +636,13 @@ function showAnnouncementModal(a) {
       <button class="btn btn-secondary" style="width:100%;justify-content:center;box-sizing:border-box" onclick="closeAnnouncementModal(${a.id})">${escHtml(t('ann.close'))}</button>
     </div>`;
   document.body.appendChild(modal);
-  document.body.style.overflow = 'hidden';
+  lockBodyScroll();
 }
 
 function closeAnnouncementModal(id) {
   localStorage.setItem('hbr_seen_announcement_id', String(id));
   document.getElementById('announcement-modal')?.remove();
-  document.body.style.overflow = '';
+  unlockBodyScroll();
 }
 
 function _trackPageView() {
@@ -785,6 +796,7 @@ async function initInterimDistributionNotice() {
     document.body.appendChild(modal);
     renderDistNoticeModal(0);
     modal.classList.add('open');
+    lockBodyScroll();
   } catch {}
 }
 
@@ -875,6 +887,7 @@ function advanceDistNotice() {
 function closeInterimDistModal() {
   localStorage.setItem('interim_dist_seen_at', new Date().toISOString());
   document.getElementById('interim-dist-modal')?.classList.remove('open');
+  unlockBodyScroll();
   const lbModal = document.getElementById('login-bonus-modal');
   if (lbModal && lbModal.classList.contains('open')) {
     lbModal.style.zIndex = '2100';
@@ -907,6 +920,7 @@ async function openResultImageModal(isFinal = true) {
       <h3>結果画像を生成中...</h3>
       <div class="loading"><div class="spinner"></div></div>
     </div>`;
+  if (modal.style.display !== 'flex') lockBodyScroll();
   modal.style.display = 'flex';
 
   try {
@@ -1155,7 +1169,10 @@ function _canvasTrunc(ctx, text, maxW) {
 
 function closeResultImageModal() {
   const m = document.getElementById('result-img-modal');
-  if (m) m.style.display = 'none';
+  if (m && m.style.display !== 'none') {
+    m.style.display = 'none';
+    unlockBodyScroll();
+  }
 }
 
 // ===== アカウント設定促進モーダル =====
@@ -1215,10 +1232,12 @@ async function initAccountSettingsPrompt() {
         </div>
       </div>`;
     document.body.appendChild(modal);
+    lockBodyScroll();
 
     window.closeAccountPrompt = function() {
       localStorage.setItem('account_prompt_seen', new Date().toISOString());
       document.getElementById('account-settings-prompt')?.remove();
+      unlockBodyScroll();
     };
 
     window.submitAccountPrompt = async function() {
@@ -1315,6 +1334,7 @@ async function initLoginBonus() {
 
     if (specials.length > 0) renderSpecialBonuses(specials);
     document.getElementById('login-bonus-modal').classList.add('open');
+    lockBodyScroll();
     checkAndCloseModal();
   } catch {}
 }
@@ -1362,7 +1382,10 @@ function checkAndCloseModal() {
   const loginDone = !loginBtn || loginBtn.style.display === 'none' || loginBtn.disabled || loginBtn.textContent === closedText;
   const anySpecialLeft = [...document.querySelectorAll('.special-bonus-btn')].some(b => !b.disabled);
   if (loginDone && !anySpecialLeft) {
-    setTimeout(() => document.getElementById('login-bonus-modal')?.classList.remove('open'), 800);
+    setTimeout(() => {
+      document.getElementById('login-bonus-modal')?.classList.remove('open');
+      unlockBodyScroll();
+    }, 800);
   }
 }
 
@@ -1393,7 +1416,7 @@ async function claimLoginBonus() {
     document.getElementById('login-bonus-pts').textContent = `+${res.points_earned}pt`;
     document.getElementById('login-bonus-msg').textContent = t('bonus.streak', res.streak) + (res.streak === 7 ? t('bonus.streak7') : '');
     btn.textContent = t('close');
-    btn.onclick = () => document.getElementById('login-bonus-modal').classList.remove('open');
+    btn.onclick = () => { document.getElementById('login-bonus-modal').classList.remove('open'); unlockBodyScroll(); };
     btn.disabled = false;
     checkAndCloseModal();
   } catch (err) {
