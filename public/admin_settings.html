@@ -9,10 +9,6 @@
 .section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
-.scope-badge { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:4px; }
-.scope-common { background:#4fc3f7; color:#000; }
-.scope-internal { background:var(--accent); color:#fff; }
-.scope-external { background:#66bb6a; color:#000; }
 </style>
 </head>
 <body>
@@ -37,9 +33,8 @@
   <div class="tabs" style="margin-bottom:0">
     <button class="tab-btn active" onclick="switchTab('general')">一般設定</button>
     <button class="tab-btn" onclick="switchTab('loginbonus')">ログインボーナス</button>
-    <button class="tab-btn" onclick="switchTab('titles')">称号スコープ</button>
     <button class="tab-btn" onclick="switchTab('feedback')">お便り箱</button>
-    <button class="tab-btn" onclick="switchTab('cloudinary')">Cloudinary</button>
+    <button class="tab-btn" onclick="switchTab('announcements')">お知らせ</button>
   </div>
 
   <!-- 一般設定タブ -->
@@ -80,7 +75,7 @@
         トップページのタイトル下に表示されるバージョン番号を設定します。
       </p>
     </div>
-    <div class="card">
+    <div class="card" style="margin-bottom:16px">
       <div class="section-title">通知設定</div>
       <div id="settings-alert" style="margin-bottom:12px"></div>
       <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
@@ -91,6 +86,27 @@
         送信先: <code id="notify-email-display"></code><br>
         環境変数 <code>ADMIN_NOTIFY_EMAIL</code> / <code>GMAIL_USER</code> / <code>GMAIL_APP_PASSWORD</code> が設定されている場合のみ機能します。
       </p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">Cloudinary 使用量（月次）</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadCloudinaryUsage(true)">更新</button>
+      </div>
+      <div id="cld-usage-body"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="section-title">帯域制限（ユーザー画像アップロード）</div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">
+        帯域幅の使用率がこの値を超えると、ユーザーの画像アップロードを自動停止します。空欄で無効。
+      </div>
+      <div id="cld-limit-alert" style="margin-bottom:10px"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <input id="cld-limit-input" type="number" min="1" max="200" step="1" class="form-control" style="width:100px" placeholder="例: 95">
+        <span style="color:var(--text-muted)">%</span>
+        <button class="btn btn-primary btn-sm" onclick="saveCloudinaryLimit()">保存</button>
+        <button class="btn btn-secondary btn-sm" onclick="clearCloudinaryLimit()">制限を解除</button>
+      </div>
     </div>
   </div>
 
@@ -126,18 +142,6 @@
     </div>
   </div>
 
-  <!-- 称号スコープタブ -->
-  <div class="tab-content" id="tab-titles">
-    <div class="card">
-      <div class="section-title">称号スコープ設定</div>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-        <b>common</b>=全員表示 / <b>internal</b>=内部ランキングのみ / <b>external</b>=外部ランキングのみ
-      </p>
-      <div id="titles-alert" style="margin-bottom:12px"></div>
-      <div id="titles-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
-    </div>
-  </div>
-
   <!-- お便り箱タブ -->
   <div class="tab-content" id="tab-feedback">
     <div class="card">
@@ -149,27 +153,38 @@
     </div>
   </div>
 
-  <!-- Cloudinaryタブ -->
-  <div class="tab-content" id="tab-cloudinary">
-    <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="section-title" style="margin:0">使用量（月次）</div>
-        <button class="btn btn-secondary btn-sm" onclick="loadCloudinaryUsage(true)">更新</button>
+  <!-- お知らせタブ -->
+  <div class="tab-content" id="tab-announcements">
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title" id="ann-form-title">お知らせを作成</div>
+      <input type="hidden" id="ann-edit-id">
+      <div id="ann-form-alert" style="margin-bottom:12px"></div>
+      <div class="form-group">
+        <label class="form-label">タイトル</label>
+        <input class="form-input" type="text" id="ann-title" placeholder="例: メンテナンスのお知らせ">
       </div>
-      <div id="cld-usage-body"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="form-group">
+        <label class="form-label">本文</label>
+        <textarea class="form-textarea" id="ann-body" rows="4"></textarea>
+      </div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">リンクURL（任意）</label>
+          <input class="form-input" type="url" id="ann-link" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">画像（任意）</label>
+          <input class="form-input" type="file" id="ann-image" accept="image/*" style="padding:8px">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" id="ann-submit-btn" onclick="submitAnnouncement()">作成する</button>
+        <button class="btn btn-secondary" id="ann-cancel-btn" onclick="cancelEditAnnouncement()" style="display:none">編集をキャンセル</button>
+      </div>
     </div>
     <div class="card">
-      <div class="section-title">帯域制限（ユーザー画像アップロード）</div>
-      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">
-        帯域幅の使用率がこの値を超えると、ユーザーの画像アップロードを自動停止します。空欄で無効。
-      </div>
-      <div id="cld-limit-alert" style="margin-bottom:10px"></div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <input id="cld-limit-input" type="number" min="1" max="200" step="1" class="form-control" style="width:100px" placeholder="例: 95">
-        <span style="color:var(--text-muted)">%</span>
-        <button class="btn btn-primary btn-sm" onclick="saveCloudinaryLimit()">保存</button>
-        <button class="btn btn-secondary btn-sm" onclick="clearCloudinaryLimit()">制限を解除</button>
-      </div>
+      <div class="section-title">お知らせ一覧</div>
+      <div id="ann-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 </main>
@@ -181,15 +196,14 @@ if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['general','loginbonus','titles','feedback','cloudinary'][i] === name);
+    b.classList.toggle('active', ['general','loginbonus','feedback','announcements'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'general') loadSettings();
+  if (name === 'general') { loadSettings(); loadCloudinaryUsage(); loadCloudinaryLimit(); }
   if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
-  if (name === 'titles') loadTitles();
   if (name === 'feedback') loadFeedback();
-  if (name === 'cloudinary') { loadCloudinaryUsage(); loadCloudinaryLimit(); }
+  if (name === 'announcements') loadAnnouncements();
 }
 
 // ===== 一般設定 =====
@@ -343,61 +357,6 @@ async function deleteSB(id, btn) {
     await apiFetch(`/admin/special-bonuses/${id}`, { method: 'DELETE' });
     loadSpecialBonuses();
   } catch (err) { showAlert('#sb-alert', err.message); btn.disabled = false; }
-}
-
-// ===== 称号スコープ =====
-async function loadTitles() {
-  try {
-    const titles = await apiFetch('/admin/titles');
-    renderTitles(titles);
-  } catch (err) {
-    document.getElementById('titles-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-function renderTitles(titles) {
-  if (titles.length === 0) {
-    document.getElementById('titles-list').innerHTML = '<p style="color:var(--text-muted)">称号がありません</p>';
-    return;
-  }
-  document.getElementById('titles-list').innerHTML = `
-    <table class="ranking-table" style="table-layout:fixed;width:100%">
-      <thead><tr>
-        <th style="width:35%">称号名</th>
-        <th style="width:35%">説明</th>
-        <th style="width:10%">現在</th>
-        <th style="width:20%">変更</th>
-      </tr></thead>
-      <tbody>
-        ${titles.map(t => `
-          <tr>
-            <td style="font-weight:bold;word-break:break-all">${escHtml(t.name)}</td>
-            <td style="font-size:0.8rem;color:var(--text-muted);word-break:break-all">${escHtml(t.description || '')}</td>
-            <td><span class="scope-badge scope-${t.scope || 'common'}">${t.scope || 'common'}</span></td>
-            <td>
-              <select class="form-input" style="padding:4px 8px;font-size:0.8rem;width:100%" onchange="setTitleScope(${t.id}, this.value)">
-                <option value="common" ${(t.scope||'common')==='common'?'selected':''}>common</option>
-                <option value="internal" ${t.scope==='internal'?'selected':''}>internal</option>
-                <option value="external" ${t.scope==='external'?'selected':''}>external</option>
-              </select>
-            </td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
-}
-
-async function setTitleScope(titleId, scope) {
-  try {
-    await apiFetch(`/admin/titles/${titleId}/scope`, {
-      method: 'PATCH',
-      body: JSON.stringify({ scope })
-    });
-    const el = document.getElementById('titles-alert');
-    el.innerHTML = '<div class="alert alert-success">更新しました</div>';
-    setTimeout(() => { el.innerHTML = ''; }, 2000);
-  } catch (err) {
-    document.getElementById('titles-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
 }
 
 // ===== お便り箱 =====
@@ -587,8 +546,110 @@ function showCldAlert(msg, isErr) {
   setTimeout(() => { el.innerHTML = ''; }, 3000);
 }
 
+// ===== お知らせ =====
+async function loadAnnouncements() {
+  const el = document.getElementById('ann-list');
+  try {
+    const list = await apiFetch('/admin/announcements');
+    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem">お知らせはまだありません</div>'; return; }
+    el.innerHTML = list.map(a => `
+      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${a.is_active ? '1' : '0.55'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <div style="font-weight:bold">${escHtml(a.title)}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(a.created_at).toLocaleString('ja-JP')}</span>
+            <span class="status-badge ${a.is_active ? 'status-approved' : 'status-rejected'}">${a.is_active ? '公開中' : '非公開'}</span>
+          </div>
+        </div>
+        ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="max-width:200px;max-height:120px;border-radius:6px;display:block;margin-bottom:8px">` : ''}
+        <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(a.body)}</div>
+        ${a.link_url ? `<div style="font-size:0.8rem;margin-top:6px"><a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.link_url)}</a></div>` : ''}
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-secondary btn-sm" onclick='editAnnouncement(${JSON.stringify(a).replace(/'/g, "&#39;")})'>編集</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncementActive(${a.id}, ${!a.is_active})">${a.is_active ? '非公開にする' : '公開する'}</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.id})">削除</button>
+        </div>
+      </div>`).join('');
+  } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
+}
+
+function editAnnouncement(a) {
+  document.getElementById('ann-edit-id').value = a.id;
+  document.getElementById('ann-title').value = a.title;
+  document.getElementById('ann-body').value = a.body;
+  document.getElementById('ann-link').value = a.link_url || '';
+  document.getElementById('ann-form-title').textContent = 'お知らせを編集';
+  document.getElementById('ann-submit-btn').textContent = '更新する';
+  document.getElementById('ann-cancel-btn').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEditAnnouncement() {
+  document.getElementById('ann-edit-id').value = '';
+  document.getElementById('ann-title').value = '';
+  document.getElementById('ann-body').value = '';
+  document.getElementById('ann-link').value = '';
+  document.getElementById('ann-image').value = '';
+  document.getElementById('ann-form-title').textContent = 'お知らせを作成';
+  document.getElementById('ann-submit-btn').textContent = '作成する';
+  document.getElementById('ann-cancel-btn').style.display = 'none';
+}
+
+async function submitAnnouncement() {
+  const id = document.getElementById('ann-edit-id').value;
+  const title = document.getElementById('ann-title').value.trim();
+  const body = document.getElementById('ann-body').value.trim();
+  const link = document.getElementById('ann-link').value.trim();
+  const imageFile = document.getElementById('ann-image').files[0];
+  if (!title) return showAlert('#ann-form-alert', 'タイトルを入力してください');
+  if (!body) return showAlert('#ann-form-alert', '本文を入力してください');
+
+  const formData = new FormData();
+  formData.append('title', title);
+  formData.append('body', body);
+  if (link) formData.append('link_url', link);
+  if (imageFile) formData.append('image', imageFile);
+
+  try {
+    if (id) {
+      formData.append('is_active', 'true');
+      await apiFormFetch(`/admin/announcements/${id}`, formData, 'PUT');
+      showAlert('#ann-form-alert', '更新しました', 'success');
+    } else {
+      await apiFormFetch('/admin/announcements', formData);
+      showAlert('#ann-form-alert', '作成しました', 'success');
+    }
+    cancelEditAnnouncement();
+    loadAnnouncements();
+  } catch (err) { showAlert('#ann-form-alert', err.message); }
+}
+
+async function toggleAnnouncementActive(id, newActive) {
+  try {
+    const cur = (await apiFetch('/admin/announcements')).find(a => a.id === id);
+    if (!cur) return;
+    const formData = new FormData();
+    formData.append('title', cur.title);
+    formData.append('body', cur.body);
+    if (cur.link_url) formData.append('link_url', cur.link_url);
+    formData.append('is_active', String(newActive));
+    await apiFormFetch(`/admin/announcements/${id}`, formData, 'PUT');
+    loadAnnouncements();
+  } catch (err) { showAlert('#ann-form-alert', err.message); }
+}
+
+async function deleteAnnouncement(id) {
+  if (!confirm('削除しますか？')) return;
+  try {
+    await apiFetch(`/admin/announcements/${id}`, { method: 'DELETE' });
+    loadAnnouncements();
+  } catch (err) { showAlert('#ann-form-alert', err.message); }
+}
+
 // 初期ロード
 loadSettings();
+loadCloudinaryUsage();
+loadCloudinaryLimit();
 </script>
 </body>
 </html>

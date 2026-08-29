@@ -2140,4 +2140,81 @@ router.delete('/chart-data/characters', async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
+// ===== お知らせ =====
+router.get('/announcements', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM announcements ORDER BY created_at DESC');
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/announcements', upload.single('image'), async (req, res) => {
+  const { title, body, link_url } = req.body;
+  if (!title || !title.trim()) return res.status(400).json({ error: 'タイトルは必須です' });
+  if (!body || !body.trim()) return res.status(400).json({ error: '本文は必須です' });
+  try {
+    let imageUrl = null;
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: 'hbr-ranking/announcements', resource_type: 'image' }, (err, r) => {
+            if (err) reject(err); else resolve(r);
+          })
+          .end(req.file.buffer);
+      });
+      imageUrl = result.secure_url;
+    }
+    const r = await pool.query(
+      `INSERT INTO announcements (title, body, link_url, image_url) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [title.trim(), body.trim(), link_url || null, imageUrl]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/announcements/:id', upload.single('image'), async (req, res) => {
+  const { title, body, link_url, is_active } = req.body;
+  if (!title || !title.trim()) return res.status(400).json({ error: 'タイトルは必須です' });
+  if (!body || !body.trim()) return res.status(400).json({ error: '本文は必須です' });
+  try {
+    const existing = await pool.query('SELECT image_url FROM announcements WHERE id=$1', [req.params.id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
+    let imageUrl = existing.rows[0].image_url;
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: 'hbr-ranking/announcements', resource_type: 'image' }, (err, r) => {
+            if (err) reject(err); else resolve(r);
+          })
+          .end(req.file.buffer);
+      });
+      imageUrl = result.secure_url;
+    }
+    const r = await pool.query(
+      `UPDATE announcements SET title=$1, body=$2, link_url=$3, image_url=$4, is_active=$5, updated_at=NOW() WHERE id=$6 RETURNING *`,
+      [title.trim(), body.trim(), link_url || null, imageUrl, is_active !== 'false' && is_active !== false, req.params.id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/announcements/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM announcements WHERE id=$1', [req.params.id]);
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;

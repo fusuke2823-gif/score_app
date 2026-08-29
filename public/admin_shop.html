@@ -9,6 +9,10 @@
 .section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
+.scope-badge { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:4px; }
+.scope-common { background:#4fc3f7; color:#000; }
+.scope-internal { background:var(--accent); color:#fff; }
+.scope-external { background:#66bb6a; color:#000; }
 .event-list-item {
   display:flex; justify-content:space-between; align-items:center;
   padding:12px 16px; border-bottom:1px solid var(--border);
@@ -208,9 +212,17 @@
       </div>
       <button class="btn btn-primary" onclick="grantTitleToUser()">付与する</button>
     </div>
-    <div class="card">
+    <div class="card" style="margin-bottom:24px">
       <div class="section-title">称号一覧</div>
       <div id="title-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="section-title">称号スコープ設定</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
+        <b>common</b>=全員表示 / <b>internal</b>=内部ランキングのみ / <b>external</b>=外部ランキングのみ
+      </p>
+      <div id="title-scope-alert" style="margin-bottom:12px"></div>
+      <div id="title-scope-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
     </div>
   </div>
 
@@ -419,7 +431,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); }
+  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadTitleScopes(); }
   if (name === 'frames') loadFrames();
   if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
 }
@@ -1295,9 +1307,65 @@ async function deleteGachaIcon(id) {
   } catch (err) { showAlert('#alert', err.message); }
 }
 
+// ===== 称号スコープ =====
+async function loadTitleScopes() {
+  try {
+    const titles = await apiFetch('/admin/titles');
+    renderTitleScopes(titles);
+  } catch (err) {
+    document.getElementById('title-scope-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderTitleScopes(titles) {
+  if (titles.length === 0) {
+    document.getElementById('title-scope-list').innerHTML = '<p style="color:var(--text-muted)">称号がありません</p>';
+    return;
+  }
+  document.getElementById('title-scope-list').innerHTML = `
+    <table class="ranking-table" style="table-layout:fixed;width:100%">
+      <thead><tr>
+        <th style="width:35%">称号名</th>
+        <th style="width:35%">説明</th>
+        <th style="width:10%">現在</th>
+        <th style="width:20%">変更</th>
+      </tr></thead>
+      <tbody>
+        ${titles.map(t => `
+          <tr>
+            <td style="font-weight:bold;word-break:break-all">${escHtml(t.name)}</td>
+            <td style="font-size:0.8rem;color:var(--text-muted);word-break:break-all">${escHtml(t.description || '')}</td>
+            <td><span class="scope-badge scope-${t.scope || 'common'}">${t.scope || 'common'}</span></td>
+            <td>
+              <select class="form-input" style="padding:4px 8px;font-size:0.8rem;width:100%" onchange="setTitleScope(${t.id}, this.value)">
+                <option value="common" ${(t.scope||'common')==='common'?'selected':''}>common</option>
+                <option value="internal" ${t.scope==='internal'?'selected':''}>internal</option>
+                <option value="external" ${t.scope==='external'?'selected':''}>external</option>
+              </select>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function setTitleScope(titleId, scope) {
+  try {
+    await apiFetch(`/admin/titles/${titleId}/scope`, {
+      method: 'PATCH',
+      body: JSON.stringify({ scope })
+    });
+    const el = document.getElementById('title-scope-alert');
+    el.innerHTML = '<div class="alert alert-success">更新しました</div>';
+    setTimeout(() => { el.innerHTML = ''; }, 2000);
+  } catch (err) {
+    document.getElementById('title-scope-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
 // 初期ロード
 loadTitles();
 loadGrantTitleSelectors();
+loadTitleScopes();
 </script>
 </body>
 </html>

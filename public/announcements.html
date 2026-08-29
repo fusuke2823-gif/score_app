@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>お知らせ - HBR</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.ann-item { margin-bottom: 16px; }
+.ann-item-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.ann-item-title { font-size: 1.05rem; font-weight: bold; margin-bottom: 10px; }
+.ann-item-img { width: 100%; max-width: 480px; border-radius: 8px; margin-bottom: 10px; display: block; }
+.ann-item-body { font-size: 0.92rem; white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); line-height: 1.7; }
+.ann-item-link { display: inline-block; margin-top: 10px; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<main>
+  <h1 class="page-title" data-i18n="nav.announcements">お知らせ</h1>
+  <div id="alert"></div>
+  <div id="ann-list">
+    <div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div>
+  </div>
+</main>
+<script src="/js/common.js"></script>
+<script>
+renderNav();
+applyI18n();
+
+async function load() {
+  const el = document.getElementById('ann-list');
+  try {
+    const list = await apiFetch('/announcements');
+    if (list.length === 0) {
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📢</div><p>${t('ann.empty')}</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(a => `
+      <div class="card ann-item">
+        <div class="ann-item-date">${new Date(a.created_at).toLocaleDateString(getLangLocale())}</div>
+        <div class="ann-item-title">${escHtml(a.title)}</div>
+        ${a.image_url ? `<img class="ann-item-img" src="${escHtml(a.image_url)}" alt="">` : ''}
+        <div class="ann-item-body">${escHtml(a.body)}</div>
+        ${a.link_url ? `<a class="btn btn-primary btn-sm ann-item-link" href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(t('ann.detail'))}</a>` : ''}
+      </div>`).join('');
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
+
+load();
+</script>
+</body>
+</html>

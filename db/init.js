@@ -520,6 +520,20 @@ const initDB = async () => {
       );
     `);
 
+    // お知らせ
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        body TEXT NOT NULL,
+        link_url TEXT,
+        image_url TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();

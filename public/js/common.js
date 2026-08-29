@@ -6,7 +6,8 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 const _i18n = {
   ja: {
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
-    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート',
+    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート','nav.announcements':'お知らせ',
+    'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.empty':'お知らせはまだありません',
     'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
     'chart.board':'チャート掲示板','chart.all_events':'全イベント',
     'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索',
@@ -180,7 +181,8 @@ const _i18n = {
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
-    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表',
+    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表','nav.announcements':'公告',
+    'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.empty':'目前沒有公告',
     'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
     'chart.board':'攻略圖表看板','chart.all_events':'全部活動',
     'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名',
@@ -492,6 +494,7 @@ const NAV_ICONS = {
   submit:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V4M5 7l3-3 3 3"/><line x1="3" y1="13" x2="13" y2="13"/></svg>`,
   gacha:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5z"/></svg>`,
   charts:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="10" x2="14" y2="10"/><line x1="7" y1="2" x2="7" y2="14"/></svg>`,
+  announcements: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6v4l2 .5V13a1 1 0 0 0 1 1h1v-3.2"/><path d="M2 6l9-3v10l-9-3V6z"/><path d="M11 5.5c1.2.6 2 1.6 2 2.5s-.8 1.9-2 2.5"/></svg>`,
   videos:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="12" height="9" rx="1.5"/><path d="M6.5 7.5l3 1.5-3 1.5V7.5z" fill="currentColor" stroke="none"/></svg>`,
   shop:     `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h10l-1.5 7.5h-7z"/><path d="M6 5c0-1.1.9-2 2-2s2 .9 2 2"/></svg>`,
   equip:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2c0 1.1-.9 2-2 2L2 5.5l1.5 2L5 7v7h6V7l1.5.5L14 5.5 12 4c-1.1 0-2-.9-2-2"/><line x1="6" y1="2" x2="10" y2="2"/></svg>`,
@@ -521,7 +524,7 @@ function renderNav() {
       <div class="nav-links">
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         <span id="nav-gacha-desktop" style="display:contents"></span>
-        ${user ? `<a href="/charts.html" class="${currentPath === '/charts.html' || currentPath.startsWith('/chart') ? 'active' : ''}">${t('nav.charts')}</a>` : ''}
+        ${user ? `<a href="/announcements.html" class="${currentPath === '/announcements.html' ? 'active' : ''}">${t('nav.announcements')}</a>` : ''}
         ${user ? `<a href="/videos.html" class="${currentPath === '/videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
         ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
@@ -545,7 +548,7 @@ function renderNav() {
     <div class="nav-mobile" id="nav-mobile">
       <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user ? `<a href="/charts.html">${ni('charts')}<span>${t('nav.charts')}</span></a>` : ''}
+      ${user ? `<a href="/announcements.html">${ni('announcements')}<span>${t('nav.announcements')}</span></a>` : ''}
       ${user ? `<a href="/videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
       ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}
@@ -575,8 +578,52 @@ renderNav = function() {
   updateFeedbackBadge();
   checkGoogleLink();
   initAccountSettingsPrompt();
+  if (!document.getElementById('announcement-modal')) initAnnouncementCheck();
   _trackPageView();
 };
+
+// ===== お知らせモーダル（1人1回だけ表示） =====
+async function initAnnouncementCheck() {
+  try {
+    const list = await fetch(API + '/announcements').then(r => r.json());
+    if (!Array.isArray(list) || list.length === 0) return;
+    const latest = list[0];
+    const seenId = parseInt(localStorage.getItem('hbr_seen_announcement_id') || '0', 10);
+    if (latest.id <= seenId) return;
+    showAnnouncementModal(latest);
+  } catch {}
+}
+
+function showAnnouncementModal(a) {
+  if (document.getElementById('announcement-modal')) return;
+  const style = document.createElement('style');
+  style.textContent = `
+    #announcement-modal { display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2500; align-items:center; justify-content:center; padding:16px; }
+    #announcement-box {
+      background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%);
+      border:1px solid var(--border-light); border-radius:14px; padding:24px;
+      max-width:420px; width:100%; text-align:left; max-height:85vh; overflow-y:auto;
+    }
+  `;
+  document.head.appendChild(style);
+  const modal = document.createElement('div');
+  modal.id = 'announcement-modal';
+  modal.innerHTML = `
+    <div id="announcement-box">
+      <div style="font-size:0.72rem;color:var(--accent);font-weight:bold;letter-spacing:0.05em;margin-bottom:6px">${escHtml(t('ann.badge'))}</div>
+      <div style="font-size:1.1rem;font-weight:bold;margin-bottom:10px">${escHtml(a.title)}</div>
+      ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="width:100%;border-radius:8px;margin-bottom:10px;display:block">` : ''}
+      <div style="font-size:0.9rem;white-space:pre-wrap;word-break:break-all;color:var(--text-secondary);margin-bottom:16px">${escHtml(a.body)}</div>
+      ${a.link_url ? `<a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;text-decoration:none;box-sizing:border-box">${escHtml(t('ann.detail'))}</a>` : ''}
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;box-sizing:border-box" onclick="closeAnnouncementModal(${a.id})">${escHtml(t('ann.close'))}</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function closeAnnouncementModal(id) {
+  localStorage.setItem('hbr_seen_announcement_id', String(id));
+  document.getElementById('announcement-modal')?.remove();
+}
 
 function _trackPageView() {
   const token = getToken();
