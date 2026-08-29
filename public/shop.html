@@ -51,6 +51,45 @@
   align-self: flex-start;
 }
 
+/* 装備タブの称号リスト（スリム表示） */
+.title-row-list { display: flex; flex-direction: column; gap: 6px; }
+.title-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px 7px 10px;
+  background: var(--bg-card2);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-light);
+  border-radius: 7px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.title-row.equipped {
+  border-left-color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  box-shadow: 0 0 10px -2px var(--accent);
+}
+.title-row-name {
+  font-size: 0.9rem; font-weight: bold; letter-spacing: 0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 42%; flex-shrink: 0;
+}
+.title-row.equipped .title-row-name { color: var(--accent); }
+.title-row-desc {
+  font-size: 0.74rem; color: var(--text-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; min-width: 0;
+}
+.title-row-btn {
+  flex-shrink: 0; padding: 4px 12px; font-size: 0.76rem; font-weight: bold;
+  border-radius: 20px; border: 1px solid var(--border-light);
+  background: transparent; color: var(--text-secondary); cursor: pointer;
+  transition: all 0.15s;
+}
+.title-row-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+.title-row-btn.equipped { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 /* フレームプレビュー */
 .frame-preview {
   height: 6px;
@@ -279,17 +318,15 @@ function renderShopOshiTitles(titles) {
 
 function _renderTitleSlot(titles, equippedId, equipFn, unequipFn, emptyMsg) {
   if (!titles.length) return `<div class="empty-state" style="padding:12px 0"><p style="font-size:0.85rem">${emptyMsg}</p></div>`;
-  return `<div class="title-grid">${titles.map(ti => {
+  return `<div class="title-row-list">${titles.map(ti => {
     const equipped = equippedId === ti.id;
     return `
-      <div class="title-card ${equipped ? 'equipped' : ''}">
-        <div class="title-name">「${escHtml(ti.name)}」</div>
-        ${ti.description ? `<div class="title-desc">${escHtml(ti.description)}</div>` : ''}
-        ${ti.point_cost ? `<div class="title-cost">${ti.point_cost}pt</div>` : `<span class="title-badge">${t('shop.title_award')}</span>`}
+      <div class="title-row ${equipped ? 'equipped' : ''}">
+        <span class="title-row-name">「${escHtml(ti.name)}」</span>
+        ${ti.description ? `<span class="title-row-desc">${escHtml(ti.description)}</span>` : '<span class="title-row-desc"></span>'}
         ${equipped
-          ? `<span class="title-badge">${t('shop.equipped_badge')}</span>
-             <button class="btn btn-secondary btn-sm" onclick="${unequipFn}">${t('shop.unequip')}</button>`
-          : `<button class="btn btn-primary btn-sm" onclick="${equipFn}(${ti.id})">${t('shop.equip_btn')}</button>`
+          ? `<button class="title-row-btn equipped" onclick="${unequipFn}">${t('shop.unequip')}</button>`
+          : `<button class="title-row-btn" onclick="${equipFn}(${ti.id})">${t('shop.equip_btn')}</button>`
         }
       </div>`;
   }).join('')}</div>`;
