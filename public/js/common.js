@@ -614,6 +614,7 @@ function showAnnouncementModal(a) {
   document.head.appendChild(style);
   const modal = document.createElement('div');
   modal.id = 'announcement-modal';
+  modal.addEventListener('click', e => { if (e.target === modal) closeAnnouncementModal(a.id); });
   modal.innerHTML = `
     <div id="announcement-box">
       <div style="font-size:0.72rem;color:var(--accent);font-weight:bold;letter-spacing:0.05em;margin-bottom:6px">${escHtml(t('ann.badge'))}</div>
@@ -624,11 +625,13 @@ function showAnnouncementModal(a) {
       <button class="btn btn-secondary" style="width:100%;justify-content:center;box-sizing:border-box" onclick="closeAnnouncementModal(${a.id})">${escHtml(t('ann.close'))}</button>
     </div>`;
   document.body.appendChild(modal);
+  document.body.style.overflow = 'hidden';
 }
 
 function closeAnnouncementModal(id) {
   localStorage.setItem('hbr_seen_announcement_id', String(id));
   document.getElementById('announcement-modal')?.remove();
+  document.body.style.overflow = '';
 }
 
 function _trackPageView() {
