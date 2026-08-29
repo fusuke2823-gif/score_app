@@ -72,8 +72,11 @@
 }
 .title-row-name {
   font-size: 0.9rem; font-weight: bold; letter-spacing: 0.01em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   flex: 1; min-width: 0; cursor: pointer;
+}
+.title-row-name-text {
+  display: block;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .title-row.equipped .title-row-name { color: var(--accent); }
 .title-row-btn {
@@ -317,7 +320,10 @@ function _renderTitleSlot(titles, equippedId, equipFn, unequipFn, emptyMsg) {
     const equipped = equippedId === ti.id;
     return `
       <div class="title-row ${equipped ? 'equipped' : ''}">
-        <span class="title-row-name title-tooltip-wrap">${escHtml(ti.name)}${ti.description ? `<span class="title-tooltip">${escHtml(ti.description)}</span>` : ''}</span>
+        <span class="title-row-name title-tooltip-wrap">
+          <span class="title-row-name-text">${escHtml(ti.name)}</span>
+          ${ti.description ? `<span class="title-tooltip">${escHtml(ti.description)}</span>` : ''}
+        </span>
         ${equipped
           ? `<button class="title-row-btn equipped" onclick="${unequipFn}">${t('shop.unequip')}</button>`
           : `<button class="title-row-btn" onclick="${equipFn}(${ti.id})">${t('shop.equip_short')}</button>`
