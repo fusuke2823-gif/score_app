@@ -2152,7 +2152,7 @@ router.get('/announcements', async (req, res) => {
 });
 
 router.post('/announcements', upload.single('image'), async (req, res) => {
-  const { title, body, link_url } = req.body;
+  const { title, body, link_url, modal_start, modal_end } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: 'タイトルは必須です' });
   if (!body || !body.trim()) return res.status(400).json({ error: '本文は必須です' });
   try {
@@ -2168,8 +2168,8 @@ router.post('/announcements', upload.single('image'), async (req, res) => {
       imageUrl = result.secure_url;
     }
     const r = await pool.query(
-      `INSERT INTO announcements (title, body, link_url, image_url) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [title.trim(), body.trim(), link_url || null, imageUrl]
+      `INSERT INTO announcements (title, body, link_url, image_url, modal_start, modal_end) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [title.trim(), body.trim(), link_url || null, imageUrl, modal_start || null, modal_end || null]
     );
     res.json(r.rows[0]);
   } catch (err) {
@@ -2179,7 +2179,7 @@ router.post('/announcements', upload.single('image'), async (req, res) => {
 });
 
 router.put('/announcements/:id', upload.single('image'), async (req, res) => {
-  const { title, body, link_url, is_active } = req.body;
+  const { title, body, link_url, is_active, modal_start, modal_end } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: 'タイトルは必須です' });
   if (!body || !body.trim()) return res.status(400).json({ error: '本文は必須です' });
   try {
@@ -2197,8 +2197,8 @@ router.put('/announcements/:id', upload.single('image'), async (req, res) => {
       imageUrl = result.secure_url;
     }
     const r = await pool.query(
-      `UPDATE announcements SET title=$1, body=$2, link_url=$3, image_url=$4, is_active=$5, updated_at=NOW() WHERE id=$6 RETURNING *`,
-      [title.trim(), body.trim(), link_url || null, imageUrl, is_active !== 'false' && is_active !== false, req.params.id]
+      `UPDATE announcements SET title=$1, body=$2, link_url=$3, image_url=$4, is_active=$5, modal_start=$6, modal_end=$7, updated_at=NOW() WHERE id=$8 RETURNING *`,
+      [title.trim(), body.trim(), link_url || null, imageUrl, is_active !== 'false' && is_active !== false, modal_start || null, modal_end || null, req.params.id]
     );
     res.json(r.rows[0]);
   } catch (err) {

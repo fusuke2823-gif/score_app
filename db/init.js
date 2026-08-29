@@ -529,9 +529,13 @@ const initDB = async () => {
         link_url TEXT,
         image_url TEXT,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        modal_start TIMESTAMPTZ,
+        modal_end TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE announcements ADD COLUMN IF NOT EXISTS modal_start TIMESTAMPTZ;
+      ALTER TABLE announcements ADD COLUMN IF NOT EXISTS modal_end TIMESTAMPTZ;
     `);
 
     console.log('データベース初期化完了');

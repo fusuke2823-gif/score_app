@@ -177,6 +177,19 @@
           <input class="form-input" type="file" id="ann-image" accept="image/*" style="padding:8px">
         </div>
       </div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">モーダル表示開始（任意・空欄なら即時）</label>
+          <input class="form-input" type="datetime-local" id="ann-modal-start">
+        </div>
+        <div class="form-group">
+          <label class="form-label">モーダル表示終了（任意・空欄なら無期限）</label>
+          <input class="form-input" type="datetime-local" id="ann-modal-end">
+        </div>
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin:-8px 0 12px">
+        この期間中に初めて訪れたユーザーにだけポップアップ表示されます（一覧ページには期間に関係なく常に表示）。
+      </p>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" id="ann-submit-btn" onclick="submitAnnouncement()">作成する</button>
         <button class="btn btn-secondary" id="ann-cancel-btn" onclick="cancelEditAnnouncement()" style="display:none">編集をキャンセル</button>
@@ -547,6 +560,21 @@ function showCldAlert(msg, isErr) {
 }
 
 // ===== お知らせ =====
+function toLocalDatetime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function toISO(v) { return v ? new Date(v).toISOString() : null; }
+
+function modalPeriodLabel(a) {
+  if (!a.modal_start && !a.modal_end) return 'モーダル: 無期限';
+  const s = a.modal_start ? new Date(a.modal_start).toLocaleString('ja-JP') : '（開始未設定）';
+  const e = a.modal_end ? new Date(a.modal_end).toLocaleString('ja-JP') : '（終了未設定）';
+  return `モーダル: ${s} 〜 ${e}`;
+}
+
 async function loadAnnouncements() {
   const el = document.getElementById('ann-list');
   try {
@@ -564,6 +592,7 @@ async function loadAnnouncements() {
         ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="max-width:200px;max-height:120px;border-radius:6px;display:block;margin-bottom:8px">` : ''}
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(a.body)}</div>
         ${a.link_url ? `<div style="font-size:0.8rem;margin-top:6px"><a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.link_url)}</a></div>` : ''}
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">${modalPeriodLabel(a)}</div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-secondary btn-sm" onclick='editAnnouncement(${JSON.stringify(a).replace(/'/g, "&#39;")})'>編集</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncementActive(${a.id}, ${!a.is_active})">${a.is_active ? '非公開にする' : '公開する'}</button>
@@ -578,6 +607,8 @@ function editAnnouncement(a) {
   document.getElementById('ann-title').value = a.title;
   document.getElementById('ann-body').value = a.body;
   document.getElementById('ann-link').value = a.link_url || '';
+  document.getElementById('ann-modal-start').value = toLocalDatetime(a.modal_start);
+  document.getElementById('ann-modal-end').value = toLocalDatetime(a.modal_end);
   document.getElementById('ann-form-title').textContent = 'お知らせを編集';
   document.getElementById('ann-submit-btn').textContent = '更新する';
   document.getElementById('ann-cancel-btn').style.display = '';
@@ -590,6 +621,8 @@ function cancelEditAnnouncement() {
   document.getElementById('ann-body').value = '';
   document.getElementById('ann-link').value = '';
   document.getElementById('ann-image').value = '';
+  document.getElementById('ann-modal-start').value = '';
+  document.getElementById('ann-modal-end').value = '';
   document.getElementById('ann-form-title').textContent = 'お知らせを作成';
   document.getElementById('ann-submit-btn').textContent = '作成する';
   document.getElementById('ann-cancel-btn').style.display = 'none';
@@ -601,6 +634,8 @@ async function submitAnnouncement() {
   const body = document.getElementById('ann-body').value.trim();
   const link = document.getElementById('ann-link').value.trim();
   const imageFile = document.getElementById('ann-image').files[0];
+  const modalStart = toISO(document.getElementById('ann-modal-start').value);
+  const modalEnd = toISO(document.getElementById('ann-modal-end').value);
   if (!title) return showAlert('#ann-form-alert', 'タイトルを入力してください');
   if (!body) return showAlert('#ann-form-alert', '本文を入力してください');
 
@@ -609,6 +644,8 @@ async function submitAnnouncement() {
   formData.append('body', body);
   if (link) formData.append('link_url', link);
   if (imageFile) formData.append('image', imageFile);
+  if (modalStart) formData.append('modal_start', modalStart);
+  if (modalEnd) formData.append('modal_end', modalEnd);
 
   try {
     if (id) {
@@ -632,6 +669,8 @@ async function toggleAnnouncementActive(id, newActive) {
     formData.append('title', cur.title);
     formData.append('body', cur.body);
     if (cur.link_url) formData.append('link_url', cur.link_url);
+    if (cur.modal_start) formData.append('modal_start', cur.modal_start);
+    if (cur.modal_end) formData.append('modal_end', cur.modal_end);
     formData.append('is_active', String(newActive));
     await apiFormFetch(`/admin/announcements/${id}`, formData, 'PUT');
     loadAnnouncements();

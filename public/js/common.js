@@ -587,10 +587,16 @@ async function initAnnouncementCheck() {
   try {
     const list = await fetch(API + '/announcements').then(r => r.json());
     if (!Array.isArray(list) || list.length === 0) return;
-    const latest = list[0];
     const seenId = parseInt(localStorage.getItem('hbr_seen_announcement_id') || '0', 10);
-    if (latest.id <= seenId) return;
-    showAnnouncementModal(latest);
+    const now = new Date();
+    // 未読のうち、モーダル表示期間内（未設定なら常時）の最新のものを表示
+    const target = list.find(a =>
+      a.id > seenId &&
+      (!a.modal_start || new Date(a.modal_start) <= now) &&
+      (!a.modal_end || new Date(a.modal_end) >= now)
+    );
+    if (!target) return;
+    showAnnouncementModal(target);
   } catch {}
 }
 
