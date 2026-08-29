@@ -173,6 +173,12 @@
           <input class="form-input" type="url" id="ann-link" placeholder="https://...">
         </div>
         <div class="form-group">
+          <label class="form-label">リンクボタンの文言（任意・空欄なら「詳しく見る」）</label>
+          <input class="form-input" type="text" id="ann-link-label" placeholder="例: くわしくはこちら" maxlength="50">
+        </div>
+      </div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
           <label class="form-label">画像（任意）</label>
           <input class="form-input" type="file" id="ann-image" accept="image/*" style="padding:8px">
         </div>
@@ -591,7 +597,7 @@ async function loadAnnouncements() {
         </div>
         ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="max-width:200px;max-height:120px;border-radius:6px;display:block;margin-bottom:8px">` : ''}
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(a.body)}</div>
-        ${a.link_url ? `<div style="font-size:0.8rem;margin-top:6px"><a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.link_url)}</a></div>` : ''}
+        ${a.link_url ? `<div style="font-size:0.8rem;margin-top:6px">「${escHtml(a.link_label || t('ann.detail'))}」→ <a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.link_url)}</a></div>` : ''}
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">${modalPeriodLabel(a)}</div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-secondary btn-sm" onclick='editAnnouncement(${JSON.stringify(a).replace(/'/g, "&#39;")})'>編集</button>
@@ -607,6 +613,7 @@ function editAnnouncement(a) {
   document.getElementById('ann-title').value = a.title;
   document.getElementById('ann-body').value = a.body;
   document.getElementById('ann-link').value = a.link_url || '';
+  document.getElementById('ann-link-label').value = a.link_label || '';
   document.getElementById('ann-modal-start').value = toLocalDatetime(a.modal_start);
   document.getElementById('ann-modal-end').value = toLocalDatetime(a.modal_end);
   document.getElementById('ann-form-title').textContent = 'お知らせを編集';
@@ -620,6 +627,7 @@ function cancelEditAnnouncement() {
   document.getElementById('ann-title').value = '';
   document.getElementById('ann-body').value = '';
   document.getElementById('ann-link').value = '';
+  document.getElementById('ann-link-label').value = '';
   document.getElementById('ann-image').value = '';
   document.getElementById('ann-modal-start').value = '';
   document.getElementById('ann-modal-end').value = '';
@@ -633,6 +641,7 @@ async function submitAnnouncement() {
   const title = document.getElementById('ann-title').value.trim();
   const body = document.getElementById('ann-body').value.trim();
   const link = document.getElementById('ann-link').value.trim();
+  const linkLabel = document.getElementById('ann-link-label').value.trim();
   const imageFile = document.getElementById('ann-image').files[0];
   const modalStart = toISO(document.getElementById('ann-modal-start').value);
   const modalEnd = toISO(document.getElementById('ann-modal-end').value);
@@ -643,6 +652,7 @@ async function submitAnnouncement() {
   formData.append('title', title);
   formData.append('body', body);
   if (link) formData.append('link_url', link);
+  if (linkLabel) formData.append('link_label', linkLabel);
   if (imageFile) formData.append('image', imageFile);
   if (modalStart) formData.append('modal_start', modalStart);
   if (modalEnd) formData.append('modal_end', modalEnd);
@@ -669,6 +679,7 @@ async function toggleAnnouncementActive(id, newActive) {
     formData.append('title', cur.title);
     formData.append('body', cur.body);
     if (cur.link_url) formData.append('link_url', cur.link_url);
+    if (cur.link_label) formData.append('link_label', cur.link_label);
     if (cur.modal_start) formData.append('modal_start', cur.modal_start);
     if (cur.modal_end) formData.append('modal_end', cur.modal_end);
     formData.append('is_active', String(newActive));

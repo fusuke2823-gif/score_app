@@ -6,7 +6,7 @@ const pool = require('../db/index');
 router.get('/', async (req, res) => {
   try {
     const r = await pool.query(
-      'SELECT id, title, body, link_url, image_url, modal_start, modal_end, created_at FROM announcements WHERE is_active = TRUE ORDER BY created_at DESC'
+      'SELECT id, title, body, link_url, link_label, image_url, modal_start, modal_end, created_at FROM announcements WHERE is_active = TRUE ORDER BY created_at DESC'
     );
     res.json(r.rows);
   } catch (err) {

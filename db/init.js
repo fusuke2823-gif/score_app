@@ -527,6 +527,7 @@ const initDB = async () => {
         title VARCHAR(200) NOT NULL,
         body TEXT NOT NULL,
         link_url TEXT,
+        link_label VARCHAR(50),
         image_url TEXT,
         is_active BOOLEAN NOT NULL DEFAULT TRUE,
         modal_start TIMESTAMPTZ,
@@ -536,6 +537,7 @@ const initDB = async () => {
       );
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS modal_start TIMESTAMPTZ;
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS modal_end TIMESTAMPTZ;
+      ALTER TABLE announcements ADD COLUMN IF NOT EXISTS link_label VARCHAR(50);
     `);
 
     console.log('データベース初期化完了');

@@ -619,8 +619,8 @@ function showAnnouncementModal(a) {
       <div style="font-size:0.72rem;color:var(--accent);font-weight:bold;letter-spacing:0.05em;margin-bottom:6px">${escHtml(t('ann.badge'))}</div>
       <div style="font-size:1.1rem;font-weight:bold;margin-bottom:10px">${escHtml(a.title)}</div>
       ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="width:100%;border-radius:8px;margin-bottom:10px;display:block">` : ''}
-      <div style="font-size:0.9rem;white-space:pre-wrap;word-break:break-all;color:var(--text-secondary);margin-bottom:16px">${escHtml(a.body)}</div>
-      ${a.link_url ? `<a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;text-decoration:none;box-sizing:border-box">${escHtml(t('ann.detail'))}</a>` : ''}
+      <div style="font-size:0.9rem;white-space:pre-wrap;word-break:break-all;color:var(--text-primary);margin-bottom:16px">${escHtml(a.body)}</div>
+      ${a.link_url ? `<a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;text-decoration:none;box-sizing:border-box">${escHtml(a.link_label || t('ann.detail'))}</a>` : ''}
       <button class="btn btn-secondary" style="width:100%;justify-content:center;box-sizing:border-box" onclick="closeAnnouncementModal(${a.id})">${escHtml(t('ann.close'))}</button>
     </div>`;
   document.body.appendChild(modal);
