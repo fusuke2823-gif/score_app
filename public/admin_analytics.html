@@ -103,6 +103,10 @@
       <button class="active" onclick="setUnit('u')">人数</button>
       <button onclick="setUnit('h')">回数</button>
     </div>
+    <div id="cumulative-toggle" class="unit-toggle" style="display:none">
+      <button class="active" onclick="setCumulative(false)">期間ごと</button>
+      <button onclick="setCumulative(true)">累計</button>
+    </div>
   </div>
 
   <div id="metric-area">
@@ -118,6 +122,7 @@ let data = null;
 let currentView = 'daily';
 let selectedMetric = '';
 let selectedUnit = 'u';
+let selectedCumulative = false;
 let allPages = [];
 
 const SERIES_DEFS = [
@@ -234,7 +239,17 @@ function renderMetricOptions() {
 
 function onMetricChange() {
   selectedMetric = document.getElementById('metric-select').value;
-  document.getElementById('unit-toggle').style.display = (selectedMetric && selectedMetric !== '__newusers__') ? 'flex' : 'none';
+  const isNewUsers = selectedMetric === '__newusers__';
+  document.getElementById('unit-toggle').style.display = (selectedMetric && !isNewUsers) ? 'flex' : 'none';
+  document.getElementById('cumulative-toggle').style.display = isNewUsers ? 'flex' : 'none';
+  renderMetric();
+}
+
+function setCumulative(v) {
+  selectedCumulative = v;
+  document.querySelectorAll('#cumulative-toggle button').forEach((b, i) => {
+    b.classList.toggle('active', [false, true][i] === v);
+  });
   renderMetric();
 }
 
@@ -299,6 +314,19 @@ function buildMetricSeries() {
 
   if (selectedMetric === '__newusers__') {
     const get = (p, k) => (rowMap.get(periodKey(p.toISOString())) || {})[k] || 0;
+    if (selectedCumulative) {
+      const baseline = data.baselineUsers || { int_n: 0, ext_n: 0, tot_n: 0 };
+      return {
+        labels,
+        series: SERIES_DEFS.map(sd => {
+          let running = Number(baseline[`${sd.key}_n`]) || 0;
+          return {
+            ...sd,
+            values: periods.map(p => (running += get(p, `new_${sd.key}`))),
+          };
+        }),
+      };
+    }
     return {
       labels,
       series: SERIES_DEFS.map(sd => ({

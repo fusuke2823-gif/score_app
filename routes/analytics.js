@@ -96,7 +96,7 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
 
     const excludeAdmin = req.query.excludeAdmin === '1';
 
-    const [users, dpv, dn, wpv, wn, mpv, mn] = await Promise.all([
+    const [users, baseline, dpv, dn, wpv, wn, mpv, mn] = await Promise.all([
       pool.query(`
         SELECT
           COUNT(*) FILTER (WHERE is_internal = TRUE)  AS int_n,
@@ -105,6 +105,16 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
         FROM users
         ${excludeAdmin ? "WHERE role != 'admin'" : ''}
       `),
+      // 期間開始時点までの累計登録者数（累計グラフのベースライン）
+      pool.query(`
+        SELECT
+          COUNT(*) FILTER (WHERE is_internal = TRUE)  AS int_n,
+          COUNT(*) FILTER (WHERE is_internal = FALSE) AS ext_n,
+          COUNT(*) AS tot_n
+        FROM users
+        WHERE created_at < $1
+        ${excludeAdmin ? "AND role != 'admin'" : ''}
+      `, [start]),
       getPVData('day',   start, end, excludeAdmin),
       getNewUsers('day',   start, end, excludeAdmin),
       getPVData('week',  start, end, excludeAdmin),
@@ -119,6 +129,7 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
       period: { start: start.toISOString().split('T')[0], end: displayEnd.toISOString().split('T')[0] },
       excludeAdmin,
       users: users.rows[0],
+      baselineUsers: baseline.rows[0],
       daily:   merge(dpv.rows, dn.rows),
       weekly:  merge(wpv.rows, wn.rows),
       monthly: merge(mpv.rows, mn.rows),
