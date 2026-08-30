@@ -20,9 +20,9 @@
     <div id="filter-title-row" style="display:none;font-size:0.9rem;font-weight:bold;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
       <div id="col-toggle">
-        <button class="active" onclick="setColMode('score')" data-i18n="ranking.col_score">スコア</button>
-        <button onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
-        <button onclick="setColMode('rank')">ランク</button>
+        <button class="btn btn-sm active" onclick="setColMode('score')" data-i18n="ranking.col_score">スコア</button>
+        <button class="btn btn-sm" onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
+        <button class="btn btn-sm" onclick="setColMode('rank')">ランク</button>
       </div>
       <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
@@ -113,17 +113,11 @@
     width: fit-content;
   }
   #col-toggle button {
-    display: inline-flex;
-    align-items: center;
-    line-height: 1;
-    padding: 5px 12px;
-    font-size: 0.8rem;
+    border-radius: 0;
     background: var(--bg-card2);
     backdrop-filter: blur(16px) saturate(150%);
     -webkit-backdrop-filter: blur(16px) saturate(150%);
-    border: none;
     color: var(--text-secondary);
-    cursor: pointer;
   }
   #col-toggle button.active {
     background: rgba(230,57,80,0.4);
