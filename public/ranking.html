@@ -24,7 +24,7 @@
         <button class="btn btn-sm" onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
         <button class="btn btn-sm" onclick="setColMode('rank')">ランク</button>
       </div>
-      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
+      <button id="submit-btn" class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
       <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
@@ -118,6 +118,12 @@
     backdrop-filter: blur(16px) saturate(150%);
     -webkit-backdrop-filter: blur(16px) saturate(150%);
     color: var(--text-secondary);
+    height: 30px;
+    box-sizing: border-box;
+  }
+  #submit-btn {
+    height: 30px;
+    box-sizing: border-box;
   }
   #col-toggle button.active {
     background: rgba(230,57,80,0.4);
