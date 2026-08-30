@@ -123,6 +123,12 @@ let currentView = 'daily';
 let selectedMetric = '';
 let selectedUnit = 'u';
 let selectedCumulative = false;
+let visibleSeries = { int: true, ext: true, tot: true };
+
+function toggleSeriesVisibility(key) {
+  visibleSeries[key] = !visibleSeries[key];
+  renderMetric();
+}
 let allPages = [];
 
 const SERIES_DEFS = [
@@ -394,10 +400,27 @@ function renderMetric() {
 }
 
 function renderLineChart(container, labels, series) {
+  const legendHtml = series.map(s => {
+    const on = !!visibleSeries[s.key];
+    return `
+    <button onclick="toggleSeriesVisibility('${s.key}')" style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;margin-bottom:4px;background:none;border:none;cursor:pointer;padding:2px 0;opacity:${on ? '1' : '0.4'}">
+      <span style="width:9px;height:9px;border-radius:50%;background:${s.color};display:inline-block"></span>
+      <span style="font-size:0.78rem;color:var(--text-secondary);${on ? '' : 'text-decoration:line-through'}">${escHtml(s.label)}</span>
+    </button>`;
+  }).join('');
+
+  const visible = series.filter(s => visibleSeries[s.key]);
+  if (visible.length === 0) {
+    container.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;margin-bottom:6px">${legendHtml}</div>
+      <div class="empty-state" style="padding:32px"><p>表示する項目を選んでください</p></div>`;
+    return;
+  }
+
   const W = 760, H = 260, padL = 46, padR = 16, padT = 16, padB = 30;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const n = labels.length;
-  const maxV = niceCeil(Math.max(1, ...series.flatMap(s => s.values)));
+  const maxV = niceCeil(Math.max(1, ...visible.flatMap(s => s.values)));
   const x = i => n <= 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
   const y = v => padT + plotH - (v / maxV) * plotH;
 
@@ -418,19 +441,13 @@ function renderLineChart(container, labels, series) {
   });
 
   let linesSvg = '', pointsSvg = '';
-  series.forEach(s => {
+  visible.forEach(s => {
     const d = s.values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
     linesSvg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     s.values.forEach((v, i) => {
-      pointsSvg += `<circle class="chart-pt" data-idx="${i}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${s.color}" opacity="0"/>`;
+      pointsSvg += `<circle class="chart-pt" data-key="${s.key}" data-idx="${i}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${s.color}" opacity="0"/>`;
     });
   });
-
-  const legendHtml = series.map(s => `
-    <span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px">
-      <span style="width:9px;height:9px;border-radius:50%;background:${s.color};display:inline-block"></span>
-      <span style="font-size:0.78rem;color:var(--text-secondary)">${escHtml(s.label)}</span>
-    </span>`).join('');
 
   container.innerHTML = `
     <div style="display:flex;flex-wrap:wrap;margin-bottom:6px">${legendHtml}</div>
@@ -467,7 +484,7 @@ function renderLineChart(container, labels, series) {
     container.querySelectorAll('.chart-pt').forEach(c => {
       c.setAttribute('opacity', c.dataset.idx == idx ? '1' : '0');
     });
-    const rows = series.map(s => `
+    const rows = visible.map(s => `
       <div style="display:flex;justify-content:space-between;gap:14px">
         <span style="color:${s.color}">${escHtml(s.label)}</span>
         <span style="font-variant-numeric:tabular-nums">${s.values[idx].toLocaleString()}</span>
