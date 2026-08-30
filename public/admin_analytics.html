@@ -361,7 +361,9 @@ function niceCeil(v) {
   if (v <= 0) return 1;
   const mag = Math.pow(10, Math.floor(Math.log10(v)));
   const norm = v / mag;
-  const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  // 1,2,5,10刻みだけだと最大値のすぐ上が2倍近く跳ね上がることがあるため、もう少し細かい刻みにする
+  const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+  const nice = steps.find(s => s >= norm) ?? 10;
   return nice * mag;
 }
 
