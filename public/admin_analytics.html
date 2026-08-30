@@ -23,12 +23,16 @@
 }
 .view-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:bold; }
 
-.page-filter { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
-.page-pill {
-  padding:4px 12px; border-radius:20px; border:1px solid var(--border);
-  background:transparent; color:var(--text-muted); font-size:0.78rem; cursor:pointer; white-space:nowrap;
+.metric-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+.unit-toggle { display:flex; gap:0; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+.unit-toggle button {
+  padding:6px 14px; border:none; background:transparent; color:var(--text-muted); font-size:0.82rem; cursor:pointer;
 }
-.page-pill.active { background:var(--bg-modal); color:var(--text-primary); border-color:var(--accent); }
+.unit-toggle button.active { background:var(--accent); color:#fff; font-weight:bold; }
+.chart-card {
+  background:var(--bg-modal); backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
+  border:1px solid var(--border-light); border-radius:10px; padding:16px; margin-bottom:20px;
+}
 
 .analytics-wrap { overflow-x:auto; margin-bottom:24px; }
 .analytics-table { border-collapse:collapse; font-size:0.78rem; min-width:600px; }
@@ -91,10 +95,19 @@
     <button class="view-tab" onclick="switchView('monthly')">月間</button>
   </div>
 
-  <div id="page-filter" class="page-filter"></div>
-  <div id="table-area"><div class="loading"><div class="spinner"></div></div></div>
-  <div class="section-title">新規登録</div>
-  <div id="new-users-area"></div>
+  <div class="metric-row">
+    <select id="metric-select" class="form-input" style="width:auto;min-width:200px" onchange="onMetricChange()">
+      <option value="">集計項目を選択してください</option>
+    </select>
+    <div id="unit-toggle" class="unit-toggle" style="display:none">
+      <button class="active" onclick="setUnit('u')">人数</button>
+      <button onclick="setUnit('h')">回数</button>
+    </div>
+  </div>
+
+  <div id="metric-area">
+    <div class="empty-state"><p>集計項目を選択すると、ここに折れ線グラフが表示されます</p></div>
+  </div>
 </main>
 <script src="/js/common.js"></script>
 <script>
@@ -103,8 +116,15 @@ if (!requireAdmin()) throw new Error('redirect');
 
 let data = null;
 let currentView = 'daily';
-let selectedPage = '__all__';
+let selectedMetric = '';
+let selectedUnit = 'u';
 let allPages = [];
+
+const SERIES_DEFS = [
+  { key: 'int', label: '内部', color: '#7ecfff' },
+  { key: 'ext', label: '外部', color: '#ff9ec4' },
+  { key: 'tot', label: '合計', color: '#e8e8f0' },
+];
 
 const PAGE_LABELS = {
   '/index.html': 'トップ', '/': 'トップ',
@@ -192,26 +212,38 @@ async function load(start, end) {
       return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
     });
 
-    renderPageFilter();
-    renderTable();
-    renderNewUsers();
+    renderMetricOptions();
+    renderMetric();
   } catch (e) {
     document.getElementById('stat-cards').innerHTML =
       `<div class="alert alert-error">${escHtml(e.message)}</div>`;
   }
 }
 
-function renderPageFilter() {
-  const pills = [['__all__', '全ページ'], ...allPages.map(p => [p, pageLabel(p)])];
-  document.getElementById('page-filter').innerHTML = pills.map(([val, label]) =>
-    `<button class="page-pill${selectedPage === val ? ' active' : ''}" onclick="selectPage('${escHtml(val)}')">${escHtml(label)}</button>`
-  ).join('');
+function renderMetricOptions() {
+  const sel = document.getElementById('metric-select');
+  const keepSelection = selectedMetric && (selectedMetric === '__newusers__' || allPages.includes(selectedMetric));
+  sel.innerHTML = `
+    <option value="">集計項目を選択してください</option>
+    <option value="__newusers__">新規登録</option>
+    ${allPages.map(p => `<option value="${escHtml(p)}">${escHtml(pageLabel(p))}のページビュー</option>`).join('')}
+  `;
+  sel.value = keepSelection ? selectedMetric : '';
+  if (!keepSelection) selectedMetric = '';
 }
 
-function selectPage(p) {
-  selectedPage = p;
-  renderPageFilter();
-  renderTable();
+function onMetricChange() {
+  selectedMetric = document.getElementById('metric-select').value;
+  document.getElementById('unit-toggle').style.display = (selectedMetric && selectedMetric !== '__newusers__') ? 'flex' : 'none';
+  renderMetric();
+}
+
+function setUnit(u) {
+  selectedUnit = u;
+  document.querySelectorAll('#unit-toggle button').forEach((b, i) => {
+    b.classList.toggle('active', ['u', 'h'][i] === u);
+  });
+  renderMetric();
 }
 
 function switchView(view) {
@@ -219,8 +251,7 @@ function switchView(view) {
   document.querySelectorAll('.view-tab').forEach((b, i) => {
     b.classList.toggle('active', ['daily','weekly','monthly'][i] === view);
   });
-  renderTable();
-  renderNewUsers();
+  renderMetric();
 }
 
 function fmt(n) {
@@ -234,99 +265,203 @@ function periodLabel(period) {
     const e = new Date(d); e.setUTCDate(e.getUTCDate() + 6);
     return `${d.getUTCMonth()+1}/${d.getUTCDate()}〜${e.getUTCMonth()+1}/${e.getUTCDate()}`;
   }
-  return `${d.getUTCMonth()+1}月`;
+  return `${d.getUTCFullYear()}/${d.getUTCMonth()+1}月`;
 }
 
-function renderTable() {
-  if (!data) return;
-  const list = data[currentView];
-  const pages = selectedPage === '__all__' ? allPages : [selectedPage];
-
-  const thead = `<thead><tr>
-    <th style="text-align:left">期間</th>
-    ${pages.length > 1 ? '<th style="text-align:left">ページ</th>' : ''}
-    <th class="col-int">人内</th><th class="col-int">回内</th>
-    <th class="col-ext">人外</th><th class="col-ext">回外</th>
-    <th class="col-tot">人計</th><th class="col-tot">回計</th>
-  </tr></thead>`;
-
-  let rows = '';
-  for (const r of list) {
-    const plabel = periodLabel(r.period);
-    if (pages.length === 1) {
-      const pg = pages[0];
-      const m = r.pages[pg] || { iu:0, eu:0, tu:0, ih:0, eh:0, th:0 };
-      rows += `<tr>
-        <td class="period-cell">${plabel}</td>
-        <td>${fmt(m.iu)}</td><td>${fmt(m.ih)}</td>
-        <td>${fmt(m.eu)}</td><td>${fmt(m.eh)}</td>
-        <td>${fmt(m.tu)}</td><td>${fmt(m.th)}</td>
-      </tr>`;
-    } else {
-      const visiblePages = pages.filter(p => r.pages[p]);
-      if (!visiblePages.length) continue;
-      visiblePages.forEach((pg, i) => {
-        const m = r.pages[pg];
-        rows += `<tr>
-          ${i === 0 ? `<td class="period-cell" rowspan="${visiblePages.length}">${plabel}</td>` : ''}
-          <td class="page-cell">${escHtml(pageLabel(pg))}</td>
-          <td>${fmt(m.iu)}</td><td>${fmt(m.ih)}</td>
-          <td>${fmt(m.eu)}</td><td>${fmt(m.eh)}</td>
-          <td>${fmt(m.tu)}</td><td>${fmt(m.th)}</td>
-        </tr>`;
-      });
-    }
-  }
-
-  const tbody = rows
-    ? `<tbody>${rows}</tbody>`
-    : `<tbody><tr><td colspan="${pages.length > 1 ? 8 : 7}" style="text-align:center;color:var(--text-muted);padding:16px">データなし</td></tr></tbody>`;
-
-  document.getElementById('table-area').innerHTML = `
-    <div class="analytics-wrap">
-      <table class="analytics-table">${thead}${tbody}</table>
-    </div>`;
+// 期間キー（表示ラベルではなく一意なISO日付。月表示は年をまたぐと表示ラベルが重複するため）
+function periodKey(period) {
+  return new Date(period).toISOString().slice(0, 10);
 }
 
-function renderNewUsers() {
-  if (!data) return;
-  // 全日付を生成して登録者がいない日も表示
+// 表示範囲内の全期間（データが無い期間も0で埋めるために生成）
+function getAllPeriods() {
+  if (!data) return [];
   const start = new Date(data.period.start);
   const end = new Date(data.period.end);
-  const newMap = new Map(data[currentView].map(r => [periodLabel(r.period), r]));
-
-  const allPeriods = [];
+  const periods = [];
   if (currentView === 'daily') {
-    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1))
-      allPeriods.push(new Date(d));
+    for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) periods.push(new Date(d));
   } else if (currentView === 'weekly') {
     const d = new Date(start);
     d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
-    for (; d <= end; d.setUTCDate(d.getUTCDate() + 7)) allPeriods.push(new Date(d));
+    for (; d <= end; d.setUTCDate(d.getUTCDate() + 7)) periods.push(new Date(d));
   } else {
     for (let d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1)); d <= end; d.setUTCMonth(d.getUTCMonth() + 1))
-      allPeriods.push(new Date(d));
+      periods.push(new Date(d));
+  }
+  return periods;
+}
+
+function buildMetricSeries() {
+  const periods = getAllPeriods();
+  const rowMap = new Map(data[currentView].map(r => [periodKey(r.period), r]));
+  const labels = periods.map(p => periodLabel(p.toISOString()));
+
+  if (selectedMetric === '__newusers__') {
+    const get = (p, k) => (rowMap.get(periodKey(p.toISOString())) || {})[k] || 0;
+    return {
+      labels,
+      series: SERIES_DEFS.map(sd => ({
+        ...sd,
+        values: periods.map(p => get(p, `new_${sd.key}`)),
+      })),
+    };
   }
 
-  let rows = allPeriods.map(period => {
-    const label = periodLabel(period.toISOString());
-    const r = newMap.get(label) || { new_int: 0, new_ext: 0, new_tot: 0 };
-    return `<tr>
-      <td class="period-cell">${label}</td>
-      <td>${fmt(r.new_int)}</td><td>${fmt(r.new_ext)}</td><td>${fmt(r.new_tot)}</td>
-    </tr>`;
-  }).join('');
+  const unitKeys = selectedUnit === 'u' ? { int: 'iu', ext: 'eu', tot: 'tu' } : { int: 'ih', ext: 'eh', tot: 'th' };
+  const get = (p, seriesKey) => {
+    const row = rowMap.get(periodKey(p.toISOString()));
+    const m = row ? row.pages[selectedMetric] : null;
+    return m ? (m[unitKeys[seriesKey]] || 0) : 0;
+  };
+  return {
+    labels,
+    series: SERIES_DEFS.map(sd => ({
+      ...sd,
+      values: periods.map(p => get(p, sd.key)),
+    })),
+  };
+}
 
-  document.getElementById('new-users-area').innerHTML = `
+function niceCeil(v) {
+  if (v <= 0) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  const norm = v / mag;
+  const nice = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  return nice * mag;
+}
+
+function renderMetric() {
+  const area = document.getElementById('metric-area');
+  if (!data || !selectedMetric) {
+    area.innerHTML = `<div class="empty-state"><p>集計項目を選択すると、ここに折れ線グラフが表示されます</p></div>`;
+    return;
+  }
+  const { labels, series } = buildMetricSeries();
+  const hasData = series.some(s => s.values.some(v => v > 0));
+
+  area.innerHTML = `
+    <div class="chart-card"><div id="chart-container"></div></div>
     <div class="analytics-wrap">
       <table class="analytics-table">
         <thead><tr>
           <th style="text-align:left">期間</th>
           <th class="col-int">内部</th><th class="col-ext">外部</th><th class="col-tot">合計</th>
         </tr></thead>
-        <tbody>${rows || '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px">登録なし</td></tr>'}</tbody>
+        <tbody>${labels.map((lb, i) => `
+          <tr>
+            <td class="period-cell">${escHtml(lb)}</td>
+            <td>${fmt(series[0].values[i])}</td><td>${fmt(series[1].values[i])}</td><td>${fmt(series[2].values[i])}</td>
+          </tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:12px">データなし</td></tr>`}
+        </tbody>
       </table>
     </div>`;
+
+  if (hasData) {
+    renderLineChart(document.getElementById('chart-container'), labels, series);
+  } else {
+    document.getElementById('chart-container').innerHTML =
+      `<div class="empty-state" style="padding:32px"><p>この期間はデータがありません</p></div>`;
+  }
+}
+
+function renderLineChart(container, labels, series) {
+  const W = 760, H = 260, padL = 46, padR = 16, padT = 16, padB = 30;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = labels.length;
+  const maxV = niceCeil(Math.max(1, ...series.flatMap(s => s.values)));
+  const x = i => n <= 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+  const y = v => padT + plotH - (v / maxV) * plotH;
+
+  let gridSvg = '', axisSvg = '';
+  const steps = 4;
+  for (let s = 0; s <= steps; s++) {
+    const v = maxV * s / steps;
+    const yy = y(v);
+    gridSvg += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+    axisSvg += `<text x="${padL - 8}" y="${(yy + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#8888aa">${Math.round(v).toLocaleString()}</text>`;
+  }
+
+  const labelStep = Math.max(1, Math.ceil(n / 9));
+  let xLabelsSvg = '';
+  labels.forEach((lb, i) => {
+    if (i % labelStep !== 0 && i !== n - 1) return;
+    xLabelsSvg += `<text x="${x(i).toFixed(1)}" y="${H - padB + 16}" text-anchor="middle" font-size="10" fill="#8888aa">${escHtml(lb)}</text>`;
+  });
+
+  let linesSvg = '', pointsSvg = '';
+  series.forEach(s => {
+    const d = s.values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+    linesSvg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    s.values.forEach((v, i) => {
+      pointsSvg += `<circle class="chart-pt" data-idx="${i}" cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${s.color}" opacity="0"/>`;
+    });
+  });
+
+  const legendHtml = series.map(s => `
+    <span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px">
+      <span style="width:9px;height:9px;border-radius:50%;background:${s.color};display:inline-block"></span>
+      <span style="font-size:0.78rem;color:var(--text-secondary)">${escHtml(s.label)}</span>
+    </span>`).join('');
+
+  container.innerHTML = `
+    <div style="display:flex;flex-wrap:wrap;margin-bottom:6px">${legendHtml}</div>
+    <div style="position:relative">
+      <svg id="chart-svg" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" preserveAspectRatio="none">
+        ${gridSvg}
+        <line x1="${padL}" y1="${(padT + plotH).toFixed(1)}" x2="${W - padR}" y2="${(padT + plotH).toFixed(1)}" stroke="var(--border-light)" stroke-width="1"/>
+        ${axisSvg}
+        ${xLabelsSvg}
+        ${linesSvg}
+        <line id="chart-guide" x1="0" y1="${padT}" x2="0" y2="${padT + plotH}" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3,3" style="display:none"/>
+        ${pointsSvg}
+        <rect id="chart-hit" x="${padL}" y="${padT}" width="${plotW}" height="${plotH}" fill="transparent"/>
+      </svg>
+      <div id="chart-tooltip" style="position:absolute;display:none;pointer-events:none;background:var(--bg-modal);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border:1px solid var(--border-light);border-radius:8px;padding:8px 10px;font-size:0.76rem;color:var(--text-primary);white-space:nowrap;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,0.4)"></div>
+    </div>`;
+
+  const svg = container.querySelector('#chart-svg');
+  const hit = container.querySelector('#chart-hit');
+  const guide = container.querySelector('#chart-guide');
+  const tooltip = container.querySelector('#chart-tooltip');
+
+  function handleMove(evt) {
+    const rect = svg.getBoundingClientRect();
+    const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    if (clientX == null) return;
+    const relX = ((clientX - rect.left) / rect.width) * W;
+    let idx = n <= 1 ? 0 : Math.round(((relX - padL) / plotW) * (n - 1));
+    idx = Math.max(0, Math.min(n - 1, idx));
+    const xi = x(idx);
+    guide.style.display = '';
+    guide.setAttribute('x1', xi.toFixed(1));
+    guide.setAttribute('x2', xi.toFixed(1));
+    container.querySelectorAll('.chart-pt').forEach(c => {
+      c.setAttribute('opacity', c.dataset.idx == idx ? '1' : '0');
+    });
+    const rows = series.map(s => `
+      <div style="display:flex;justify-content:space-between;gap:14px">
+        <span style="color:${s.color}">${escHtml(s.label)}</span>
+        <span style="font-variant-numeric:tabular-nums">${s.values[idx].toLocaleString()}</span>
+      </div>`).join('');
+    tooltip.innerHTML = `<div style="font-weight:bold;margin-bottom:4px;color:var(--text-primary)">${escHtml(labels[idx])}</div>${rows}`;
+    tooltip.style.display = 'block';
+    const scale = rect.width / W;
+    let left = xi * scale + 10;
+    if (left + 140 > rect.width) left = xi * scale - 150;
+    tooltip.style.left = Math.max(0, left) + 'px';
+    tooltip.style.top = '2px';
+  }
+  function handleLeave() {
+    guide.style.display = 'none';
+    container.querySelectorAll('.chart-pt').forEach(c => c.setAttribute('opacity', '0'));
+    tooltip.style.display = 'none';
+  }
+  hit.addEventListener('mousemove', handleMove);
+  hit.addEventListener('mouseleave', handleLeave);
+  hit.addEventListener('touchstart', handleMove, { passive: true });
+  hit.addEventListener('touchmove', handleMove, { passive: true });
+  hit.addEventListener('touchend', handleLeave);
 }
 
 load();
