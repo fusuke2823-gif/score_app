@@ -5,10 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>スコア投稿 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.back-link { color:rgba(232,232,240,0.75); font-size:0.85rem; display:inline-block; margin-bottom:16px; text-decoration:none; }
+.back-link:hover { color:var(--text-primary); }
+</style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main>
+  <a id="back-to-ranking-link" class="back-link" style="display:none" data-i18n="submit.back_to_ranking">← ランキングに戻る</a>
   <h1 class="page-title" data-i18n="submit.title">スコア投稿</h1>
   <p class="page-subtitle" data-i18n="submit.subtitle">リザルト画像とともにスコアを投稿してください</p>
 
@@ -156,6 +161,9 @@ async function loadEvents() {
     if (preselect) {
       sel.value = preselect;
       if (!sel.value) sel.value = '';
+      const backLink = document.getElementById('back-to-ranking-link');
+      backLink.href = `/ranking.html?id=${encodeURIComponent(preselect)}`;
+      backLink.style.display = 'inline-block';
     }
     sel.addEventListener('change', loadMyScores);
     loadMyScores();
@@ -218,6 +226,7 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
   const needsAnonPrompt = scoreNum <= anonLimit;
   if (needsAnonPrompt) {
     document.getElementById('anon-modal').style.display = 'flex';
+    lockBodyScroll();
   } else {
     _pendingIsAnon = false;
     await doSubmit(_pendingIsAnon);
@@ -226,6 +235,7 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
 
 function closeAnonModal() {
   document.getElementById('anon-modal').style.display = 'none';
+  unlockBodyScroll();
 }
 
 async function submitWithAnon(isAnon) {
