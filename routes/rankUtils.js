@@ -43,7 +43,7 @@ function rateForXPt(pt) {
   return 1500 + (pt - 3300) * 0.25;
 }
 
-// 種別群（配列）ごとの「直近N回」平均pt（未参加スロットは参加分平均×0.8で補完）
+// 種別群（配列）ごとの「直近N回」平均pt（参加分のみの平均を、未参加1回につき-10%で減衰）
 // eventTypes は複数種別を混ぜて集計できるよう配列で受け取る（各行のptは行ごとのevent_typeで変換）
 async function getRecentTypesAvgPt(client, userId, eventTypes, windowSize, maxEventNumber) {
   const recentResult = await client.query(
@@ -74,8 +74,9 @@ async function getRecentTypesAvgPt(client, userId, eventTypes, windowSize, maxEv
   const participated = pts.filter(p => p !== null);
   if (participated.length === 0 || recentResult.rows.length === 0) return 0;
   const avg = participated.reduce((a, b) => a + b, 0) / participated.length;
-  const fill = avg * 0.8;
-  return pts.reduce((sum, p) => sum + (p !== null ? p : fill), 0) / recentResult.rows.length;
+  const missed = recentResult.rows.length - participated.length;
+  const penalty = Math.max(0, 1 - missed * 0.1); // 未参加1回→×0.9, 2回→×0.8, 3回→×0.7
+  return avg * penalty;
 }
 
 // 種別ごとの「直近参加時のpt × 0.9^(その後の未参加回数)」
