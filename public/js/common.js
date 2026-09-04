@@ -81,7 +81,8 @@ const _i18n = {
     'feedback.err_empty':'内容を入力してください','feedback.admin':'管理者','feedback.you':'あなた',
     'feedback.has_reply':'返信あり','feedback.reply_btn':'返信する',
     'feedback.reply_ph':'返信を入力（1000文字以内）',
-    'dist.title':'ポイント配布のお知らせ','dist.sub':'以下のイベントでポイントが配布されました',
+    'dist.title_final':'最終結果のお知らせ','dist.sub_final':'以下のイベントの最終結果です',
+    'dist.title_interim':'中間結果のお知らせ','dist.sub_interim':'以下のイベントの中間結果です',
     'dist.type_mid':'中間','dist.type_final':'最終','dist.detail_btn':'配布量詳細を見る',
     'dist.th_rank':'順位','dist.th_pts':'配布pt',
     'dist.rank1':'1位','dist.rank2':'2位','dist.rank3':'3位','dist.rank4':'4位','dist.rank5':'5位',
@@ -256,7 +257,8 @@ const _i18n = {
     'feedback.err_empty':'請填寫內容','feedback.admin':'管理員','feedback.you':'你',
     'feedback.has_reply':'有回覆','feedback.reply_btn':'回覆',
     'feedback.reply_ph':'請輸入回覆（1000字以內）',
-    'dist.title':'點數發放通知','dist.sub':'以下活動已發放點數',
+    'dist.title_final':'最終結果通知','dist.sub_final':'以下活動的最終結果',
+    'dist.title_interim':'中間結果通知','dist.sub_interim':'以下活動的中間結果',
     'dist.type_mid':'中間','dist.type_final':'最終','dist.detail_btn':'查看發放量詳情',
     'dist.th_rank':'排名','dist.th_pts':'發放pt',
     'dist.rank1':'第1名','dist.rank2':'第2名','dist.rank3':'第3名','dist.rank4':'第4名','dist.rank5':'第5名',
@@ -857,11 +859,11 @@ function renderDistNoticeModal(idx) {
 
   modal.innerHTML = `
     <div id="interim-dist-box">
-      <h3>${t('dist.title')}</h3>
+      <h3>${d.is_final ? t('dist.title_final') : t('dist.title_interim')}</h3>
       ${total > 1 ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">${idx + 1} / ${total}</div>` : ''}
-      <div class="interim-sub">${t('dist.sub')}</div>
+      <div class="interim-sub">${d.is_final ? t('dist.sub_final') : t('dist.sub_interim')}</div>
       <div class="dist-summary">
-        <div class="dist-summary-eyebrow">${scopeLabel}${d.period}配布</div>
+        <div class="dist-summary-eyebrow">${scopeLabel}${d.period}結果</div>
         <div class="dist-summary-event">${escHtml(d.event_name)}</div>
         <div class="dist-summary-pts">+${d.user_pts}<span>pt</span></div>
         ${d.awarded_titles?.length ? `<div class="dist-summary-titles">${d.awarded_titles.map(n => `<span class="dist-summary-title-chip">🏆 ${escHtml(n)}</span>`).join('')}</div>` : ''}
