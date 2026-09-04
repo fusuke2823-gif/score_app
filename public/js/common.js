@@ -812,8 +812,6 @@ function renderDistNoticeModal(idx) {
   const isLast = idx === total - 1;
   const scopeLabel = isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : '';
 
-  const tweetHtml = `<button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px" onclick="openResultImageModal(${d.is_final})">結果画像を作成・ツイート</button>`;
-
   const detailIntHtml = (isInternalUser && d.scope === 'internal' && rankPts) ? `
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
     <div id="rank-pts-detail-int" style="display:none;margin-top:8px">
@@ -869,7 +867,7 @@ function renderDistNoticeModal(idx) {
         ${d.awarded_titles?.length ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--accent)">🏆 称号獲得: ${d.awarded_titles.map(n => `「${escHtml(n)}」`).join(' ')}</div>` : ''}
         <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
       </div>
-      ${tweetHtml}
+      <div id="dist-result-image"></div>
       ${detailIntHtml}
       ${detailExtHtml}
       ${isLast
@@ -877,6 +875,8 @@ function renderDistNoticeModal(idx) {
         : `<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="advanceDistNotice()">次へ →</button>`
       }
     </div>`;
+
+  renderDistResultImage(d, true);
 }
 
 function advanceDistNotice() {
@@ -894,34 +894,37 @@ function closeInterimDistModal() {
   }
 }
 
-// ===== 配布 結果画像生成 =====
-async function openResultImageModal(isFinal = true) {
-  const d = window._distQueue?.[window._distQueueIdx ?? 0];
-  if (!d) return;
+// ===== 配布通知：結果画像（自動生成・インライン表示） =====
+const ALL_RESULT_ATTRS = ['火', '氷', '雷', '光', '闇', '無'];
+const RESULT_ATTR_COLORS = { '火':'#ff6a45','氷':'#54c2ff','雷':'#ffd84a','光':'#fff29a','闇':'#c085ff','無':'#a8a3c2' };
 
-  let modal = document.getElementById('result-img-modal');
-  if (!modal) {
-    const style = document.createElement('style');
-    style.textContent = `
-      #result-img-modal { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:2200; display:flex; align-items:center; justify-content:center; padding:16px; }
-      #result-img-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:20px; max-width:92vw; width:480px; text-align:center; max-height:90vh; overflow-y:auto; }
-      #result-img-box h3 { margin:0 0 14px; font-size:1rem; }
-      #result-img-preview { max-width:100%; border-radius:8px; margin-bottom:14px; display:block; }
-      .result-img-actions { display:flex; gap:24px; justify-content:center; flex-wrap:wrap; }
-    `;
-    document.head.appendChild(style);
-    modal = document.createElement('div');
-    modal.id = 'result-img-modal';
-    document.body.appendChild(modal);
-  }
+let _resultFontsReady = null;
+function _ensureResultFonts() {
+  if (_resultFontsReady) return _resultFontsReady;
+  _resultFontsReady = new Promise(resolve => {
+    if (document.getElementById('result-medal-fonts')) { resolve(); return; }
+    const link = document.createElement('link');
+    link.id = 'result-medal-fonts';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Bebas+Neue&display=swap';
+    link.onload = resolve;
+    link.onerror = resolve; // 取得失敗でもフォールバックフォントで続行
+    document.head.appendChild(link);
+  }).then(() => Promise.all([
+    document.fonts.load('800 32px "Shippori Mincho B1"'),
+    document.fonts.load('700 18px "Shippori Mincho B1"'),
+    document.fonts.load('400 46px "Bebas Neue"'),
+    document.fonts.load('700 16px "Zen Kaku Gothic New"'),
+    document.fonts.load('900 20px "Zen Kaku Gothic New"'),
+    document.fonts.load('500 12px "Zen Kaku Gothic New"'),
+  ]).catch(() => {}));
+  return _resultFontsReady;
+}
 
-  modal.innerHTML = `
-    <div id="result-img-box">
-      <h3>結果画像を生成中...</h3>
-      <div class="loading"><div class="spinner"></div></div>
-    </div>`;
-  if (modal.style.display !== 'flex') lockBodyScroll();
-  modal.style.display = 'flex';
+async function renderDistResultImage(d, includeUnsubmitted = true) {
+  const box = document.getElementById('dist-result-image');
+  if (!box || !d) return;
+  box.innerHTML = `<div class="loading" style="padding:16px 0"><div class="spinner"></div></div>`;
 
   try {
     const me = getUser();
@@ -929,175 +932,343 @@ async function openResultImageModal(isFinal = true) {
     const results = await apiFetch(`/events/${d.event_id}/my-results?scope=${d.scope}`);
 
     if (!results || results.length === 0) {
-      modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted)">承認済みリザルトがありません</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
+      box.innerHTML = `<p style="color:var(--text-muted);font-size:0.82rem;margin-top:8px">承認済みリザルトがありません</p>`;
       return;
     }
 
     let dataUrl;
     try {
-      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank, isFinal ? '最終結果' : '中間結果');
+      dataUrl = await _generateResultCanvas(results, d.event_name, username, d.user_rank, d.is_final ? '最終結果' : '中間結果', includeUnsubmitted);
     } catch (e) {
-      modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">画像の生成に失敗しました（${escHtml(e.message)}）</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
+      box.innerHTML = `<p style="color:var(--text-muted);font-size:0.82rem;margin-top:8px">画像の生成に失敗しました（${escHtml(e.message)}）</p>`;
       return;
     }
 
-    const fileName = `${d.event_name}_result.png`;
+    const xSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+    box.innerHTML = `
+      <img src="${dataUrl}" style="max-width:100%;border-radius:10px;display:block;margin-top:10px" alt="result">
+      <label style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;font-size:0.78rem;color:var(--text-muted);cursor:pointer">
+        <input type="checkbox" id="dist-include-unsub" ${includeUnsubmitted ? 'checked' : ''}>
+        未提出の属性も表示する
+      </label>
+      <button id="dist-share-btn" class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px">${xSvg}共有</button>
+    `;
+    document.getElementById('dist-include-unsub').addEventListener('change', e => {
+      renderDistResultImage(d, e.target.checked);
+    });
+    document.getElementById('dist-share-btn').addEventListener('click', () => shareResultImage(dataUrl, d));
+  } catch (err) {
+    box.innerHTML = `<p style="color:var(--text-muted);font-size:0.82rem;margin-top:8px">${escHtml(err.message)}</p>`;
+  }
+}
 
-    // シェアURL生成（Cloudinaryアップ → OGタグ付きページ）
-    let sharePageUrl = null;
-    const resultLabel = isFinal ? '最終結果' : '中間結果';
-    const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の${resultLabel}を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n\nhebuban-rankboard.com`;
+async function shareResultImage(dataUrl, d) {
+  const fileName = `${d.event_name}_result.png`;
+  const resultLabel = d.is_final ? '最終結果' : '中間結果';
+  const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の${resultLabel}を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n\nhebuban-rankboard.com`;
+  const btn = document.getElementById('dist-share-btn');
+  const xSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
 
-    // dataUrl → Blob → File（Web Share API用）
+  try {
     const blob = await (await fetch(dataUrl)).blob();
     const shareFile = new File([blob], fileName, { type: 'image/png' });
     const canNativeShare = navigator.canShare && navigator.canShare({ files: [shareFile] });
 
-    // デスクトップ用フォールバック：Cloudinaryアップ → OGタグ付きシェアページURL
-    if (!canNativeShare) {
+    if (canNativeShare) {
       try {
-        modal.querySelector('#result-img-box h3').textContent = '画像をアップロード中...';
-        const shareRes = await apiFetch('/api/share-image', {
-          method: 'POST',
-          body: JSON.stringify({ dataUrl, eventName: d.event_name }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        sharePageUrl = location.origin + shareRes.url;
-      } catch { /* アップ失敗時はURLなし */ }
+        await navigator.share({ files: [shareFile], text: tweetText });
+      } catch (e) {
+        if (e.name !== 'AbortError') alert('共有に失敗しました: ' + e.message);
+      }
+      return;
     }
 
+    // デスクトップ用フォールバック：Cloudinaryアップ → OGタグ付きシェアページURL
+    if (btn) btn.textContent = 'アップロード中...';
+    let sharePageUrl = null;
+    try {
+      const shareRes = await apiFetch('/api/share-image', {
+        method: 'POST',
+        body: JSON.stringify({ dataUrl, eventName: d.event_name }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      sharePageUrl = location.origin + shareRes.url;
+    } catch { /* アップ失敗時はURLなし */ }
     const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}${sharePageUrl ? `&url=${encodeURIComponent(sharePageUrl)}` : ''}`;
-
-    const xSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
-    const tweetBtn = canNativeShare
-      ? `<button id="native-share-btn" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px">${xSvg}ツイート</button>`
-      : `<a href="${escHtml(tweetIntentUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px;text-decoration:none">${xSvg}ツイート</a>`;
-
-    modal.innerHTML = `
-      <div id="result-img-box">
-        <h3>結果画像</h3>
-        <img id="result-img-preview" src="${dataUrl}" alt="result">
-        <div class="result-img-actions">
-          <button id="native-share-btn" class="btn btn-secondary btn-sm" style="display:flex;align-items:center;gap:5px">共有</button>
-          <button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button>
-        </div>
-        <p style="font-size:0.75rem;color:var(--text-muted);margin:10px 0 0;line-height:1.6">Xにポストする場合は「共有」をタップしてXを選択してください</p>
-      </div>`;
-
-    document.getElementById('native-share-btn').addEventListener('click', async () => {
-      if (canNativeShare) {
-        try {
-          await navigator.share({ files: [shareFile], text: tweetText });
-        } catch (e) {
-          if (e.name !== 'AbortError') alert('共有に失敗しました: ' + e.message);
-        }
-      } else {
-        window.open(tweetIntentUrl, '_blank', 'noopener,noreferrer');
-      }
-    });
-  } catch (err) {
-    modal.innerHTML = `<div id="result-img-box"><p style="color:var(--text-muted);font-size:0.85rem">${escHtml(err.message)}</p><button class="btn btn-primary btn-sm" onclick="closeResultImageModal()">閉じる</button></div>`;
+    window.open(tweetIntentUrl, '_blank', 'noopener,noreferrer');
+  } finally {
+    if (btn) btn.innerHTML = `${xSvg}共有`;
   }
 }
 
-async function _generateResultCanvas(results, eventName, username, overallRank, label = '') {
-  const COLS = 2, IMG_W = 272, IMG_H = 182, PAD = 12;
-  const TITLE_H = 68, HEADER_H = 96;
-  const n = results.length;
-  const ROWS = Math.ceil(n / COLS);
-  const canvas = document.createElement('canvas');
-  canvas.width  = PAD + COLS * (IMG_W + PAD);
-  canvas.height = TITLE_H + HEADER_H + ROWS * (IMG_H + PAD) + PAD;
-  const ctx = canvas.getContext('2d');
-  const font = '"Helvetica Neue", Arial, "Noto Sans JP", sans-serif';
+// tierColor: 順位に応じた階級カラー（総合・属性ミニメダル共通。金/銀/銅/上位/それ以外）
+function _resultTierColor(rank, top) {
+  if (rank === 1) return '#e8c874';
+  if (rank === 2) return '#cfd0da';
+  if (rank === 3) return '#d99a63';
+  if (rank <= top) return '#ff7a8c';
+  return '#f2eee6';
+}
 
-  // Background
-  ctx.fillStyle = '#0d0d1a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+function _hankoAngle(seed) {
+  const x = Math.sin(seed * 999.7) * 10000;
+  const frac = x - Math.floor(x);
+  return (frac - 0.5) * 22; // -11〜11度
+}
 
-  // Title bar
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
-  ctx.fillRect(0, 0, canvas.width, TITLE_H);
-  ctx.fillStyle = '#e8d070';
-  ctx.font = `bold 22px ${font}`;
+function _hankoOffset(seed) {
+  const hx = Math.sin(seed * 12.9898) * 10000;
+  const hy = Math.sin(seed * 78.2330) * 10000;
+  const fx = hx - Math.floor(hx);
+  const fy = hy - Math.floor(hy);
+  return { dx: (fx - 0.5) * 16, dy: (fy - 0.5) * 16 }; // ±8px
+}
+
+function _seededRand(seed) {
+  let s = seed;
+  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+}
+
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// 属性順位のミニメダル（総合順位バッジと同じ意匠のミニ版）
+function _drawMiniMedal(ctx, cx, cy, r, rank, top, numeral, gothic, angleDeg = 0) {
+  const tc = _resultTierColor(rank, top);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angleDeg * Math.PI / 180);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 2;
+  const grad = ctx.createRadialGradient(0, -r * 0.3, r * 0.1, 0, 0, r);
+  grad.addColorStop(0, 'rgba(36,26,48,0.48)');
+  grad.addColorStop(1, 'rgba(15,12,25,0.48)');
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = tc;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.stroke();
+
+  ctx.fillStyle = tc;
+  ctx.textAlign = 'center';
+  ctx.font = `400 ${Math.round(r * 0.78)}px ${numeral}`;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(String(rank), 0, r * 0.08);
+
+  ctx.fillStyle = '#f2eee6';
+  ctx.font = `700 ${Math.max(8, Math.round(r * 0.34))}px ${gothic}`;
+  ctx.fillText('位', 0, r * 0.62);
+
+  ctx.restore();
+}
+
+// 未提出の属性カードに押す丸ハンコ「未」。カードいっぱい、はみ出す勢いのサイズで、
+// 呼び出し側でカードの角丸矩形にクリップしてから描くこと。
+function _drawUnsubmittedStamp(ctx, cardX, cardY, w, h, seed, gothic) {
+  const cx = cardX + w / 2, cy = cardY + h / 2;
+  const r = Math.min(w, h) * 0.62;
+  const ink = 'rgba(210,60,80,0.62)';
+  const angle = _hankoAngle(seed * 3.1);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle * Math.PI / 180);
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.lineWidth = r * 0.055;
+  ctx.strokeStyle = ink;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2);
+  ctx.lineWidth = r * 0.025;
+  ctx.stroke();
+
+  ctx.fillStyle = ink;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('ヘブバン ランクボード', canvas.width / 2, TITLE_H / 2 - 10);
-  ctx.fillStyle = '#f0a060';
-  ctx.font = `bold 16px ${font}`;
-  ctx.fillText(label, canvas.width / 2, TITLE_H / 2 + 14);
+  ctx.font = `900 ${Math.round(r * 1.08)}px ${gothic}`;
+  ctx.fillText('未', 0, r * 0.04);
 
-  // 順位カラー（総合・属性共通）
-  function rankColor(rank) {
-    if (rank === 1) return '#f5d060';
-    if (rank === 2) return '#c8d0dc';
-    if (rank === 3) return '#d4884a';
-    if (rank <= 10) return '#d88ec8';
-    return '#ffffff';
-  }
-  function attrRankColor(rank) {
-    if (rank === 1) return '#f5d060';
-    if (rank === 2) return '#c8d0dc';
-    if (rank === 3) return '#d4884a';
-    if (rank <= 5) return '#d88ec8';
-    return '#ffffff';
-  }
-
-  // ピル（左右が丸い角丸矩形）描画ヘルパー
-  function drawPill(cx, py, pw, ph, color) {
-    const r = ph / 2;
+  // かすれ表現の斑点
+  const rand = _seededRand(seed * 41 + 3);
+  ctx.fillStyle = ink;
+  for (let i = 0; i < 16; i++) {
+    const ang = rand() * Math.PI * 2, rad = rand() * r;
+    ctx.globalAlpha = rand() * 0.25 + 0.05;
     ctx.beginPath();
-    ctx.moveTo(cx + r, py);
-    ctx.arcTo(cx + pw, py, cx + pw, py + ph, r);
-    ctx.arcTo(cx + pw, py + ph, cx, py + ph, r);
-    ctx.arcTo(cx, py + ph, cx, py, r);
-    ctx.arcTo(cx, py, cx + pw, py, r);
-    ctx.closePath();
-    ctx.fillStyle = color;
+    ctx.arc(Math.cos(ang) * rad, Math.sin(ang) * rad, rand() * 1.7 + 0.4, 0, Math.PI * 2);
     ctx.fill();
   }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
 
-  // Header bar
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  ctx.fillRect(0, TITLE_H, canvas.width, HEADER_H);
+async function _generateResultCanvas(results, eventName, username, overallRank, label = '', includeUnsubmitted = true) {
+  await _ensureResultFonts();
+
+  const resultByAttr = {};
+  results.forEach(r => { resultByAttr[r.attribute] = r; });
+  const attrs = includeUnsubmitted ? ALL_RESULT_ATTRS : ALL_RESULT_ATTRS.filter(a => resultByAttr[a]);
+
+  const PAD = 18, COLS = 2, IMG_W = 300, IMG_H = 200;
+  const HEADER_H = 190, FOOTER_H = 56;
+  const genSeed = Date.now() % 100000; // 生成のたびにハンコの表情を変える種
+  const n = attrs.length;
+  const ROWS = Math.max(1, Math.ceil(n / COLS));
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = PAD + COLS * (IMG_W + PAD);
+  canvas.height = HEADER_H + PAD + ROWS * (IMG_H + PAD) + FOOTER_H;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const serif = '"Shippori Mincho B1", serif';
+  const gothic = '"Zen Kaku Gothic New", sans-serif';
+  const numeral = '"Bebas Neue", sans-serif';
+
+  // ---- 背景（濃紺〜紫のグラデーション＋星） ----
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#171129');
+  bg.addColorStop(0.5, '#0d0a1a');
+  bg.addColorStop(1, '#0a0812');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  const starRand = _seededRand(7);
+  for (let i = 0; i < 70; i++) {
+    const x = starRand() * W, y = starRand() * H;
+    const r = starRand() * 1.1 + 0.3;
+    ctx.globalAlpha = starRand() * 0.35 + 0.08;
+    ctx.fillStyle = i % 6 === 0 ? '#d4af6a' : '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- ヘッダー ----
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#9a92b8';
+  ctx.font = `500 11px ${gothic}`;
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold 24px ${font}`;
-  ctx.fillText(_canvasTrunc(ctx, eventName, canvas.width / 2 - PAD), PAD + 36, TITLE_H + 28);
-  ctx.fillStyle = '#dddddd';
-  ctx.font = `bold 19px ${font}`;
-  ctx.fillText(username, PAD + 36, TITLE_H + 66);
+  const brand = 'HEAVEN BURNS RED RANKBOARD';
+  let bx = PAD;
+  for (const ch of brand) { ctx.fillText(ch, bx, 30); bx += ctx.measureText(ch).width + 1.6; }
 
-  // 総合順位ピルバッジ（右側・赤背景）
-  const rankLabel = `総合 ${overallRank}位`;
-  ctx.font = `bold 26px ${font}`;
-  ctx.textBaseline = 'middle';
-  const rankTextW = ctx.measureText(rankLabel).width;
-  const rPillW = rankTextW + 28, rPillH = 44;
-  const rPillX = canvas.width - PAD - 36 - rPillW;
-  const rPillY = TITLE_H + (HEADER_H - rPillH) / 2;
-  drawPill(rPillX, rPillY, rPillW, rPillH, '#c0392b');
-  ctx.fillStyle = rankColor(Number(overallRank));
+  ctx.strokeStyle = 'rgba(212,175,106,0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, 42);
+  ctx.lineTo(W - PAD, 42);
+  ctx.stroke();
+
+  const medalCX = W - PAD - 78, medalCY = 118, medalR = 62;
+  const textRightLimit = medalCX - medalR - 20;
+
+  ctx.fillStyle = '#f2eee6';
+  ctx.font = `800 27px ${serif}`;
+  ctx.textAlign = 'left';
+  ctx.fillText(_canvasTrunc(ctx, eventName, textRightLimit - PAD), PAD, 84);
+
+  // 中間/最終 ラベルピル
+  ctx.font = `700 12px ${gothic}`;
+  const labelW = ctx.measureText(label).width + 20;
+  _roundRect(ctx, PAD, 96, labelW, 24, 12);
+  ctx.strokeStyle = 'rgba(212,175,106,0.55)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#d4af6a';
   ctx.textAlign = 'center';
-  ctx.fillText(rankLabel, rPillX + rPillW / 2, rPillY + rPillH / 2);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, PAD + labelW / 2, 96 + 12);
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.fillStyle = '#8b87a0';
+  ctx.font = `500 16px ${gothic}`;
   ctx.textAlign = 'left';
+  ctx.fillText('✦ ' + _canvasTrunc(ctx, username, textRightLimit - PAD), PAD, 148);
 
-  const ATTR_COLORS = { '火':'#e05a3a','氷':'#4db8e8','雷':'#f5d04a','光':'#f0f060','闇':'#a066cc','無':'#aaaaaa' };
+  // メダル
+  const medalGrad = ctx.createRadialGradient(medalCX, medalCY - 10, 4, medalCX, medalCY, medalR);
+  medalGrad.addColorStop(0, '#5c2230');
+  medalGrad.addColorStop(1, '#1c1638');
+  ctx.beginPath();
+  ctx.arc(medalCX, medalCY, medalR, 0, Math.PI * 2);
+  ctx.fillStyle = medalGrad;
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#d4af6a';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(medalCX, medalCY, medalR - 7, 0, Math.PI * 2);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(212,175,106,0.45)';
+  ctx.stroke();
 
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#d4af6a';
+  ctx.font = `500 10px ${gothic}`;
+  ctx.fillText('総合順位', medalCX, medalCY - 30);
+
+  ctx.fillStyle = _resultTierColor(Number(overallRank), 10);
+  ctx.font = `400 46px ${numeral}`;
+  ctx.fillText(String(overallRank), medalCX, medalCY + 16);
+
+  ctx.fillStyle = '#f2eee6';
+  ctx.font = `700 13px ${gothic}`;
+  ctx.fillText('位', medalCX, medalCY + 38);
+
+  // ---- 属性カード ----
   for (let i = 0; i < n; i++) {
-    const r = results[i];
-    const col = i % COLS;
-    const row = Math.floor(i / COLS);
+    const attrKey = attrs[i];
+    const rObj = resultByAttr[attrKey];
+    const submitted = !!rObj;
+    const col = i % COLS, row = Math.floor(i / COLS);
     const isLoneLastRow = (n % COLS !== 0) && (i === n - 1);
-    const x = isLoneLastRow ? (canvas.width - IMG_W) / 2 : PAD + col * (IMG_W + PAD);
-    const y = TITLE_H + HEADER_H + PAD + row * (IMG_H + PAD);
+    const x = isLoneLastRow ? (W - IMG_W) / 2 : PAD + col * (IMG_W + PAD);
+    const y = HEADER_H + PAD + row * (IMG_H + PAD);
+    const color = RESULT_ATTR_COLORS[attrKey] || '#ffffff';
 
-    ctx.fillStyle = '#1a1a2e';
+    ctx.save();
+    _roundRect(ctx, x, y, IMG_W, IMG_H, 12);
+    ctx.clip();
+
+    // 土台のグラデーション（未提出はスクショが無いのでこれがそのまま背景になる）
+    const cardGrad = ctx.createLinearGradient(x, y, x, y + IMG_H);
+    cardGrad.addColorStop(0, '#211c33');
+    cardGrad.addColorStop(1, '#15101f');
+    ctx.fillStyle = cardGrad;
     ctx.fillRect(x, y, IMG_W, IMG_H);
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x + IMG_W * 0.72, y + IMG_H * 0.5, IMG_H * 0.65, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
 
-    if (r.approved_image_url) {
+    if (submitted && rObj.approved_image_url) {
       try {
-        const img = await _loadImage(r.approved_image_url);
+        const img = await _loadImage(rObj.approved_image_url);
         const imgAspect = img.naturalWidth / img.naturalHeight;
         const boxAspect = IMG_W / IMG_H;
         let sx, sy, sw, sh;
@@ -1108,39 +1279,68 @@ async function _generateResultCanvas(results, eventName, username, overallRank, 
           sw = img.naturalWidth; sh = sw / boxAspect;
           sx = 0; sy = (img.naturalHeight - sh) / 2;
         }
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, IMG_W, IMG_H);
-        ctx.clip();
         ctx.drawImage(img, sx, sy, sw, sh, x, y, IMG_W, IMG_H);
-        ctx.restore();
-      } catch { /* 画像なしのまま */ }
+      } catch { /* 画像なしのまま土台グラデーションを表示 */ }
     }
 
-    // 属性順位ピルバッジ（左上・1行）
-    const attrColor = ATTR_COLORS[r.attribute] || '#ffffff';
-    const rankCol = attrRankColor(Number(r.attr_rank));
-    ctx.font = `bold 20px ${font}`;
+    // 上端の属性カラーストライプ
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, IMG_W, 3);
+    ctx.restore();
+
+    if (!submitted) {
+      // カードの角丸にクリップしてから押す＝はみ出す勢いのサイズでもカード外は描かれない
+      ctx.save();
+      _roundRect(ctx, x, y, IMG_W, IMG_H, 12);
+      ctx.clip();
+      _drawUnsubmittedStamp(ctx, x, y, IMG_W, IMG_H, (i + 1) * 137 + genSeed, gothic);
+      // ハンコが上端の属性カラーストライプに被るので、ストライプを上から描き直す
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, IMG_W, 3);
+      ctx.restore();
+    }
+
+    // 属性紋章バッジ（左上の角に重ねる）
+    const bR = 22, bCX = x + 12, bCY = y;
+    ctx.beginPath();
+    ctx.arc(bCX, bCY, bR, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f0c19';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.font = `900 17px ${gothic}`;
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const attrW = ctx.measureText(r.attribute).width;
-    const rankStr = ` ${r.attr_rank}位`;
-    const rankW = ctx.measureText(rankStr).width;
-    const aPillW = attrW + rankW + 24, aPillH = 34;
-    const aPillX = x + 8, aPillY = y + 8;
-    drawPill(aPillX, aPillY, aPillW, aPillH, 'rgba(0,0,0,0.78)');
-    const textStartX = aPillX + 11;
-    const textY = aPillY + aPillH / 2;
-    ctx.fillStyle = attrColor;
-    ctx.textAlign = 'left';
-    ctx.fillText(r.attribute, textStartX, textY);
-    ctx.fillStyle = rankCol;
-    ctx.fillText(rankStr, textStartX + attrW, textY);
+    ctx.fillText(attrKey, bCX, bCY + 1);
+    ctx.textBaseline = 'alphabetic';
+
+    // 属性順位ミニメダル（提出済みのみ・右上少し下げた位置）
+    if (submitted) {
+      const off = _hankoOffset(i + 1);
+      _drawMiniMedal(ctx, x + IMG_W - 66 + off.dx, y + 60 + off.dy, 37, Number(rObj.attr_rank), 5, numeral, gothic, _hankoAngle(i + 1));
+    }
   }
 
-  // 外周ふち
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+  // ---- フッター ----
+  const footY = HEADER_H + PAD + ROWS * (IMG_H + PAD);
+  ctx.strokeStyle = 'rgba(212,175,106,0.3)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD, footY + 18);
+  ctx.lineTo(W - PAD, footY + 18);
+  ctx.stroke();
+
+  ctx.fillStyle = '#948da8';
+  ctx.font = `500 11px ${gothic}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('✦  hebuban-rankboard.com  ✦', W / 2, footY + 40);
+
+  // 外周
+  ctx.strokeStyle = 'rgba(212,175,106,0.28)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
 
   try {
     return canvas.toDataURL('image/png');
@@ -1165,14 +1365,6 @@ function _canvasTrunc(ctx, text, maxW) {
   let t = text;
   while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
   return t + '…';
-}
-
-function closeResultImageModal() {
-  const m = document.getElementById('result-img-modal');
-  if (m && m.style.display !== 'none') {
-    m.style.display = 'none';
-    unlockBodyScroll();
-  }
 }
 
 // ===== アカウント設定促進モーダル =====
