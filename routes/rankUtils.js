@@ -153,27 +153,8 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
 
     const { rank_points } = userRow;
 
-    // ベストスコア（A→S昇格判定用：スコアアタック・遭遇戦のみ、複数敵は/1.05補正）
-    const bestResult = await client.query(
-      `SELECT
-         s.approved_score::float * COALESCE(e.score_multiplier, 1.0) AS corrected_score,
-         e.event_type
-       FROM scores s
-       JOIN events e ON e.id = s.event_id
-       WHERE s.user_id = $1
-         AND s.approved_score IS NOT NULL
-         AND s.ranking_scope IN ('public', 'internal', 'external')
-         AND e.event_type IN ('score_attack', 'seraph')
-         ${maxEventNumber != null ? `AND e.event_number <= ${maxEventNumber}` : ''}
-       ORDER BY corrected_score DESC`,
-      [userId]
-    );
-    const bestPt = bestResult.rows.reduce((max, r) => {
-      const pt = r.event_type === 'seraph'
-        ? convertEncounterScoreToPoints(parseFloat(r.corrected_score))
-        : convertScoreToPoints(parseFloat(r.corrected_score));
-      return Math.max(max, pt);
-    }, 0);
+    // ベストpt（A→S昇格判定用：スコアタ・遭遇戦・EXのいずれかで300万点相当=500pt以上あればOK）
+    const bestPt = await getBestPtAllTypes(client, userId, maxEventNumber);
 
     // ランク進行
     let newRank = userRow.comp_rank || 'C';
