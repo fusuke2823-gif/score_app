@@ -45,11 +45,10 @@
   align-items:center; justify-content:center; gap:5px;
 }
 .g-card-front {
-  background:var(--bg-card2); border:2px solid var(--border-light);
-  backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
+  background:#201c3a; border:2px solid var(--border-light);
   transition: box-shadow 0.4s;
 }
-.g-card-back { transform:rotateY(180deg); background:var(--bg-card2); backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%); padding:4px; overflow:visible; }
+.g-card-back { transform:rotateY(180deg); background:#201c3a; padding:4px; overflow:visible; }
 .g-card-back img { width:52px; height:52px; border-radius:20%; object-fit:cover; }
 .g-dup { position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.6rem; background:rgba(100,180,255,0.25); color:#7dd3fc; padding:1px 7px; border-radius:3px; }
 .g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
@@ -58,7 +57,7 @@
 /* レアリティ枠 */
 .rarity-SS .g-card-back {
   border:2px solid transparent;
-  background:linear-gradient(var(--bg-card2),var(--bg-card2)) padding-box,
+  background:linear-gradient(#201c3a,#201c3a) padding-box,
              linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
   animation:ssGlow 1.8s linear infinite;
 }
@@ -109,7 +108,7 @@
 /* めくる前カード裏面の表示レアリティ演出 */
 .display-rarity-SS .g-card-front {
   border:2px solid transparent;
-  background:linear-gradient(var(--bg-card2),var(--bg-card2)) padding-box,
+  background:linear-gradient(#201c3a,#201c3a) padding-box,
              linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
   animation:ssGlow 1.8s linear infinite;
 }
@@ -797,6 +796,7 @@ init();
 let _lastPoolModalPoolId = null;
 async function openPoolModal() {
   const modal = document.getElementById('pool-modal');
+  if (modal.style.display !== 'flex') lockBodyScroll();
   modal.style.display = 'flex';
   if (_lastPoolModalPoolId === selectedPoolId) return;
   _lastPoolModalPoolId = selectedPoolId;
@@ -834,7 +834,9 @@ async function openPoolModal() {
   }
 }
 function closePoolModal() {
-  document.getElementById('pool-modal').style.display = 'none';
+  const modal = document.getElementById('pool-modal');
+  if (modal.style.display !== 'none') unlockBodyScroll();
+  modal.style.display = 'none';
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closePoolModal(); });
 </script>
