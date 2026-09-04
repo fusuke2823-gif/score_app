@@ -232,6 +232,19 @@
       <div id="pool-list"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
     </div>
   </div>
+
+  <!-- GP交換確認モーダル -->
+  <div id="exchange-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:24px;max-width:320px;width:100%;text-align:center">
+      <img id="exchange-modal-img" src="" alt="" style="width:72px;height:72px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 10px">
+      <div id="exchange-modal-name" style="font-size:0.95rem;font-weight:bold;color:#ffd700;margin-bottom:4px"></div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px" data-i18n="gacha.exchange_confirm">200GPで交換しますか？</div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeExchangeModal()" data-i18n="cancel">キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" onclick="confirmExchange()" data-i18n="gacha.exchange_do">交換する</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -443,7 +456,7 @@ async function loadExchangeList(pickupIds = null) {
     }
     if (ss.length === 0) { container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem">${t('gacha.no_exchange')}</div>`; return; }
     container.innerHTML = ss.map(i => `
-      <div style="text-align:center;cursor:pointer" onclick="doExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}')">
+      <div style="text-align:center;cursor:pointer" onclick="askExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}', '${escHtml(thumbUrl(i.image_url)).replace(/'/g, "\\'")}')">
         <img src="${escHtml(thumbUrl(i.image_url))}" style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:2px solid #ffd700;display:block;margin:0 auto 4px">
         <div style="font-size:0.7rem;color:#ffd700;word-break:break-all">${escHtml(i.name)}</div>
       </div>
@@ -453,13 +466,33 @@ async function loadExchangeList(pickupIds = null) {
   }
 }
 
-async function doExchange(iconId, iconName) {
+let _pendingExchange = null;
+
+function askExchange(iconId, iconName, iconImg) {
   if (isPulling) return;
   if (currentGp < 200) {
     showGpToast(t('gacha.gp_short', currentGp, 200), true);
     return;
   }
-  if (!confirm(`【SS】${iconName} を200GPで交換しますか？`)) return;
+  _pendingExchange = { iconId, iconName };
+  document.getElementById('exchange-modal-img').src = iconImg;
+  document.getElementById('exchange-modal-name').textContent = `【SS】${iconName}`;
+  const modal = document.getElementById('exchange-modal');
+  if (modal.style.display !== 'flex') lockBodyScroll();
+  modal.style.display = 'flex';
+}
+
+function closeExchangeModal() {
+  const modal = document.getElementById('exchange-modal');
+  if (modal.style.display !== 'none') unlockBodyScroll();
+  modal.style.display = 'none';
+  _pendingExchange = null;
+}
+
+async function confirmExchange() {
+  if (!_pendingExchange) return;
+  const { iconId } = _pendingExchange;
+  closeExchangeModal();
   isPulling = true;
   updateGpDisplay(currentGp);
   try {

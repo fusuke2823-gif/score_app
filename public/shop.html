@@ -179,6 +179,20 @@
       <div id="my-icons"><div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div></div>
     </div>
   </div>
+
+  <!-- 購入確認モーダル -->
+  <div id="buy-confirm-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:24px;max-width:320px;width:100%;text-align:center">
+      <div id="buy-modal-name" style="font-size:0.95rem;font-weight:bold;color:var(--text-primary);margin-bottom:4px"></div>
+      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px">
+        <span id="buy-modal-cost" style="color:var(--accent);font-weight:bold"></span> <span data-i18n="shop.buy_confirm">で購入しますか？</span>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-secondary" style="flex:1" onclick="closeBuyModal()" data-i18n="cancel">キャンセル</button>
+        <button class="btn btn-primary" style="flex:1" onclick="confirmBuy()" data-i18n="shop.buy">購入する</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -277,7 +291,7 @@ function renderShopTitles(titles) {
           : owned
             ? `<span class="title-badge">${t('shop.owned')}</span>`
             : user
-              ? `<button class="btn btn-primary btn-sm" onclick="buyTitle(${ti.id},'${escHtml(ti.name)}',${ti.point_cost})">${t('shop.buy')}</button>`
+              ? `<button class="btn btn-primary btn-sm" onclick="askBuy('title',${ti.id},'${escHtml(ti.name).replace(/'/g, "\\'")}',${ti.point_cost})">${t('shop.buy')}</button>`
               : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
         }
       </div>`;
@@ -307,7 +321,7 @@ function renderShopOshiTitles(titles) {
           : owned
             ? `<span class="title-badge">${t('shop.owned')}</span>`
             : user
-              ? `<button class="btn btn-primary btn-sm" onclick="buyTitle(${ti.id},'${escHtml(ti.name)}',${ti.point_cost})">${t('shop.buy')}</button>`
+              ? `<button class="btn btn-primary btn-sm" onclick="askBuy('title',${ti.id},'${escHtml(ti.name).replace(/'/g, "\\'")}',${ti.point_cost})">${t('shop.buy')}</button>`
               : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
         }
       </div>`;
@@ -358,8 +372,33 @@ function renderMyTitles() {
   }
 }
 
-async function buyTitle(id, name, cost) {
-  if (!confirm(`「${name}」を ${cost}pt で購入しますか？`)) return;
+let _pendingBuy = null;
+
+function askBuy(kind, id, name, cost) {
+  _pendingBuy = { kind, id };
+  document.getElementById('buy-modal-name').textContent = name;
+  document.getElementById('buy-modal-cost').textContent = `${cost}pt`;
+  const modal = document.getElementById('buy-confirm-modal');
+  if (modal.style.display !== 'flex') lockBodyScroll();
+  modal.style.display = 'flex';
+}
+
+function closeBuyModal() {
+  const modal = document.getElementById('buy-confirm-modal');
+  if (modal.style.display !== 'none') unlockBodyScroll();
+  modal.style.display = 'none';
+  _pendingBuy = null;
+}
+
+function confirmBuy() {
+  if (!_pendingBuy) return;
+  const { kind, id } = _pendingBuy;
+  closeBuyModal();
+  if (kind === 'title') buyTitle(id);
+  if (kind === 'frame') buyFrame(id);
+}
+
+async function buyTitle(id) {
   try {
     const res = await apiFetch(`/shop/buy/${id}`, { method: 'POST' });
     showAlert('#alert', res.message, 'success');
@@ -413,7 +452,7 @@ function renderShopFrames(frames) {
           : owned
             ? `<span class="title-badge">${t('shop.owned')}</span>`
             : user
-              ? `<button class="btn btn-primary btn-sm" onclick="buyFrame(${f.id},'${escHtml(f.name)}',${f.point_cost})">${t('shop.buy')}</button>`
+              ? `<button class="btn btn-primary btn-sm" onclick="askBuy('frame',${f.id},'${escHtml(f.name).replace(/'/g, "\\'")}',${f.point_cost})">${t('shop.buy')}</button>`
               : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
         }
       </div>`;
@@ -443,8 +482,7 @@ function renderMyFrames() {
   }).join('')}</div>`;
 }
 
-async function buyFrame(id, name, cost) {
-  if (!confirm(`「${name}」を ${cost}pt で購入しますか？`)) return;
+async function buyFrame(id) {
   try {
     const res = await apiFetch(`/shop/frames/buy/${id}`, { method: 'POST' });
     showAlert('#alert', res.message, 'success');
