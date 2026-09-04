@@ -773,11 +773,13 @@ async function initInterimDistributionNotice() {
       #interim-dist-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
       #interim-dist-box h3 { margin:0 0 6px; font-size:1.1rem; }
       #interim-dist-box .interim-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
-      .interim-dist-item { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; text-align:left; }
-      .interim-dist-name { font-size:0.88rem; font-weight:bold; margin-bottom:2px; }
-      .interim-dist-rank { font-size:1.1rem; font-weight:bold; color:var(--accent); margin:4px 0 2px; }
-      .interim-dist-meta { font-size:0.72rem; color:var(--text-muted); }
-      .interim-type-badge { font-size:0.7rem; padding:1px 6px; border-radius:4px; margin-left:6px; background:var(--accent-dim); color:var(--accent); }
+      .dist-summary { position:relative; text-align:center; padding:14px 10px 16px; margin-bottom:8px; border-radius:10px; background:linear-gradient(180deg, rgba(212,175,106,0.08), rgba(212,175,106,0.02)); border:1px solid rgba(212,175,106,0.25); }
+      .dist-summary-eyebrow { font-size:0.66rem; letter-spacing:0.08em; color:#d4af6a; font-weight:bold; margin-bottom:4px; }
+      .dist-summary-event { font-size:0.92rem; font-weight:bold; color:var(--text-primary); line-height:1.4; }
+      .dist-summary-pts { font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:2.1rem; line-height:1; color:#d4af6a; margin-top:8px; letter-spacing:0.02em; }
+      .dist-summary-pts span { font-size:1rem; font-family:inherit; opacity:0.75; margin-left:3px; }
+      .dist-summary-titles { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; margin-top:10px; }
+      .dist-summary-title-chip { font-size:0.7rem; padding:3px 10px; border-radius:99px; background:rgba(212,175,106,0.12); border:1px solid rgba(212,175,106,0.4); color:#d4af6a; }
       .rank-pts-table { width:100%; border-collapse:collapse; font-size:0.78rem; margin-top:8px; }
       .rank-pts-table th, .rank-pts-table td { padding:4px 8px; border:1px solid var(--border); text-align:center; }
       .rank-pts-table th { background:var(--bg-primary); color:var(--text-muted); }
@@ -858,14 +860,11 @@ function renderDistNoticeModal(idx) {
       <h3>${t('dist.title')}</h3>
       ${total > 1 ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">${idx + 1} / ${total}</div>` : ''}
       <div class="interim-sub">${t('dist.sub')}</div>
-      <div class="interim-dist-item">
-        <div class="interim-dist-name">
-          ${escHtml(d.event_name)}
-          <span class="interim-type-badge">${scopeLabel}${d.period}配布</span>
-        </div>
-        <div class="interim-dist-rank">${d.user_rank}位　<span style="font-size:0.9rem">+${d.user_pts}pt</span></div>
-        ${d.awarded_titles?.length ? `<div style="margin-top:4px;font-size:0.78rem;color:var(--accent)">🏆 称号獲得: ${d.awarded_titles.map(n => `「${escHtml(n)}」`).join(' ')}</div>` : ''}
-        <div class="interim-dist-meta">${new Date(d.distributed_at).toLocaleString(getLangLocale())}</div>
+      <div class="dist-summary">
+        <div class="dist-summary-eyebrow">${scopeLabel}${d.period}配布</div>
+        <div class="dist-summary-event">${escHtml(d.event_name)}</div>
+        <div class="dist-summary-pts">+${d.user_pts}<span>pt</span></div>
+        ${d.awarded_titles?.length ? `<div class="dist-summary-titles">${d.awarded_titles.map(n => `<span class="dist-summary-title-chip">🏆 ${escHtml(n)}</span>`).join('')}</div>` : ''}
       </div>
       <div id="dist-result-image"></div>
       ${detailIntHtml}
