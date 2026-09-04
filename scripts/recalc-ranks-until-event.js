@@ -23,7 +23,7 @@ async function getUserScoreDetail(client, userId, maxEventNumber) {
      WHERE s.user_id = $1
        AND s.approved_score IS NOT NULL
        AND s.ranking_scope IN ('public', 'internal', 'external')
-       AND e.event_type IN ('score_attack', 'seraph', 'score_attack_ex')
+       AND e.event_type IN ('score_attack', 'seraph')
        AND e.event_number <= $2
      GROUP BY e.id, e.name, e.event_number, e.event_type
      ORDER BY e.event_number DESC
