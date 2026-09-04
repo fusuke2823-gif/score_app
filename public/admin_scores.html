@@ -139,11 +139,27 @@ async function loadPending() {
             第${item.event_number}回 ${escHtml(item.event_name)}
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-            ${attrBadge(item.attribute)}
+            <span id="attr-display-${item.id}" style="display:inline-flex;align-items:center;gap:4px">
+              ${attrBadge(item.attribute)}
+              <button class="btn btn-secondary btn-sm" style="padding:2px 6px;font-size:0.72rem" onclick="startEditAttr(${item.id})" title="属性を修正">✎</button>
+            </span>
+            <span id="attr-edit-${item.id}" style="display:none;align-items:center;gap:4px">
+              <select class="form-select" id="attr-input-${item.id}" style="width:auto;padding:2px 6px;font-size:0.85rem">
+                ${ATTRIBUTES.map(a => `<option value="${a}" ${a === item.attribute ? 'selected' : ''}>${t('attr.' + a) || a}</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="cancelEditAttr(${item.id})">キャンセル</button>
+            </span>
             <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
             ${item.dup_image_url ? `<button onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')" style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em;border:none;cursor:pointer">⚠ 既存スコアと一致</button>` : ''}
           </div>
-          <div class="pending-score">${formatScore(item.pending_score)}</div>
+          <div id="score-display-${item.id}" style="display:flex;align-items:center;gap:6px">
+            <span class="pending-score">${formatScore(item.pending_score)}</span>
+            <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="startEditScore(${item.id})" title="スコアを修正">✎ 修正</button>
+          </div>
+          <div id="score-edit-${item.id}" style="display:none;align-items:center;gap:6px;margin-top:2px">
+            <input type="number" class="form-input" id="score-input-${item.id}" style="width:160px" value="${item.pending_score}">
+            <button class="btn btn-secondary btn-sm" onclick="cancelEditScore(${item.id})">キャンセル</button>
+          </div>
           ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}
           ${item.pending_youtube_url ? `<div style="margin-top:4px"><a href="${escHtml(item.pending_youtube_url)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#ff4444;display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>YouTube動画を見る</a></div>` : ''}
           <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${formatDate(item.updated_at)}</div>
@@ -166,11 +182,46 @@ async function loadPending() {
   }
 }
 
+function startEditScore(id) {
+  document.getElementById(`score-display-${id}`).style.display = 'none';
+  const editEl = document.getElementById(`score-edit-${id}`);
+  editEl.style.display = 'flex';
+  const input = document.getElementById(`score-input-${id}`);
+  input.focus();
+  input.select();
+}
+
+function cancelEditScore(id) {
+  document.getElementById(`score-edit-${id}`).style.display = 'none';
+  document.getElementById(`score-display-${id}`).style.display = 'flex';
+}
+
+function startEditAttr(id) {
+  document.getElementById(`attr-display-${id}`).style.display = 'none';
+  document.getElementById(`attr-edit-${id}`).style.display = 'inline-flex';
+}
+
+function cancelEditAttr(id) {
+  document.getElementById(`attr-edit-${id}`).style.display = 'none';
+  document.getElementById(`attr-display-${id}`).style.display = 'inline-flex';
+}
+
 async function approveScore(id, clearYoutube = false) {
+  const body = { clear_youtube: clearYoutube };
+  const editEl = document.getElementById(`score-edit-${id}`);
+  if (editEl && editEl.style.display !== 'none') {
+    const val = parseInt(document.getElementById(`score-input-${id}`).value, 10);
+    if (!Number.isFinite(val) || val < 0) return showAlert('#alert', 'スコアが不正です');
+    body.score = val;
+  }
+  const attrEditEl = document.getElementById(`attr-edit-${id}`);
+  if (attrEditEl && attrEditEl.style.display !== 'none') {
+    body.attribute = document.getElementById(`attr-input-${id}`).value;
+  }
   try {
     const res = await apiFetch(`/admin/scores/${id}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ clear_youtube: clearYoutube })
+      body: JSON.stringify(body)
     });
     document.getElementById(`pending-${id}`)?.remove();
     showAlert('#alert', res.message, 'success');
