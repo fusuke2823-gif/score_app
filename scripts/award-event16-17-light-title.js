@@ -93,7 +93,7 @@ async function run() {
       const annRes = await client.query(
         `INSERT INTO announcements (title, body, link_url, link_label, is_active)
          VALUES ($1, $2, $3, $4, TRUE) RETURNING id`,
-        [annTitle, annBody, '/shop.html', '称号を確認する']
+        [annTitle, annBody, '/shop.html?tab=equip', '称号を確認する']
       );
       console.log(`\nお知らせを発行: [${annRes.rows[0].id}] ${annTitle}`);
     }
