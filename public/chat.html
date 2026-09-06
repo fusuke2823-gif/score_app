@@ -7,14 +7,6 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
 #room-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
-/* 未選択でも各属性の色は見せつつ、選択中だけ塗りつぶしで確実に区別する */
-#room-tabs .attr-btn { opacity:1; }
-#room-tabs .attr-btn.active.attr-火 { background:var(--fire); color:#fff; }
-#room-tabs .attr-btn.active.attr-氷 { background:var(--ice); color:#fff; }
-#room-tabs .attr-btn.active.attr-雷 { background:var(--thunder); color:#000; }
-#room-tabs .attr-btn.active.attr-光 { background:var(--light); color:#000; }
-#room-tabs .attr-btn.active.attr-闇 { background:var(--dark); color:#000; }
-#room-tabs .attr-btn.active.attr-無 { background:var(--none); color:#000; }
 #chat-box {
   display:flex; flex-direction:column;
   height:min(65vh, 560px);
