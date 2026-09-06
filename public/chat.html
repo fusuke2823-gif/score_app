@@ -7,6 +7,15 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
 #room-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+/* タブは選択中の1つだけ属性色を出し、それ以外は色に関係なく一律グレーにする */
+#room-tabs .attr-btn { opacity:1; border-color:var(--border); color:var(--text-secondary); background:transparent; }
+#room-tabs .attr-btn:hover { border-color:var(--border-light); color:var(--text-primary); }
+#room-tabs .attr-btn.active.attr-火 { border-color:var(--fire); color:var(--fire); background:var(--fire-bg); }
+#room-tabs .attr-btn.active.attr-氷 { border-color:var(--ice); color:var(--ice); background:var(--ice-bg); }
+#room-tabs .attr-btn.active.attr-雷 { border-color:var(--thunder); color:var(--thunder); background:var(--thunder-bg); }
+#room-tabs .attr-btn.active.attr-光 { border-color:var(--light); color:var(--light); background:var(--light-bg); }
+#room-tabs .attr-btn.active.attr-闇 { border-color:var(--dark); color:var(--dark); background:var(--dark-bg); }
+#room-tabs .attr-btn.active.attr-無 { border-color:var(--none); color:var(--none); background:var(--none-bg); }
 #chat-box {
   display:flex; flex-direction:column;
   height:min(65vh, 560px);
