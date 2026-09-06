@@ -255,6 +255,16 @@ document.addEventListener('visibilitychange', () => {
   else { pollNew(); pollTimer = setInterval(pollNew, 4000); }
 });
 
+// 手動スクロール（指でのドラッグ・ホイール）だけ#chat-messagesの外では無効にする。
+// window.scrollTo()やブラウザ自身が入力欄を見せるために動かす分はここでは止めない。
+function blockOutsideScroll(e) {
+  if (!document.getElementById('chat-messages').contains(e.target)) {
+    e.preventDefault();
+  }
+}
+document.addEventListener('wheel', blockOutsideScroll, { passive: false });
+document.addEventListener('touchmove', blockOutsideScroll, { passive: false });
+
 </script>
 </body>
 </html>
