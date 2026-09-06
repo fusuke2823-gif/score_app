@@ -554,7 +554,6 @@ function renderNav() {
     <div class="nav-mobile" id="nav-mobile">
       <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user ? `<a href="/chat.html">${ni('chat')}<span>${t('nav.chat')}</span></a>` : ''}
       ${user ? `<a href="/videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
       ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}
