@@ -27,7 +27,7 @@
 .chat-msg { display:flex; flex-direction:column; max-width:78%; }
 .chat-msg.mine { align-self:flex-end; align-items:flex-end; }
 .chat-msg.theirs { align-self:flex-start; align-items:flex-start; }
-.chat-msg-name { font-size:0.72rem; color:var(--text-muted); margin:0 4px 2px; }
+.chat-msg-name { font-size:0.72rem; color:var(--text-primary); margin:0 4px 2px; }
 .chat-msg-row { display:flex; align-items:flex-end; gap:6px; }
 .chat-msg.mine .chat-msg-row { flex-direction:row-reverse; }
 .chat-msg-content { display:flex; flex-direction:column; gap:6px; max-width:100%; }
@@ -91,6 +91,7 @@
 renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
+lockBodyScroll(); // トーク欄の外（ページ全体）はスクロールさせない。中の#chat-messagesだけ動く
 
 const me = getUser();
 const isAdmin = me?.role === 'admin';
