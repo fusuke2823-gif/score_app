@@ -546,10 +546,15 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         room VARCHAR(10) NOT NULL,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-        body TEXT NOT NULL,
+        body TEXT,
+        image_url TEXT,
+        image_public_id TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
       CREATE INDEX IF NOT EXISTS idx_chat_messages_room_id ON chat_messages(room, id);
+      ALTER TABLE chat_messages ALTER COLUMN body DROP NOT NULL;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_url TEXT;
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS image_public_id TEXT;
     `);
 
     console.log('データベース初期化完了');

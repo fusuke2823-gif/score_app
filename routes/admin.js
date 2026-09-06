@@ -2272,7 +2272,11 @@ router.delete('/announcements/:id', async (req, res) => {
 // 掲示板：投稿削除
 router.delete('/chat/:id', async (req, res) => {
   try {
-    await pool.query('DELETE FROM chat_messages WHERE id=$1', [req.params.id]);
+    const result = await pool.query('DELETE FROM chat_messages WHERE id=$1 RETURNING image_public_id', [req.params.id]);
+    const publicId = result.rows[0]?.image_public_id;
+    if (publicId) {
+      try { await cloudinary.uploader.destroy(publicId, { resource_type: 'image' }); } catch { /* Cloudinary削除失敗はメッセージ削除自体を妨げない */ }
+    }
     res.json({ message: '削除しました' });
   } catch (err) {
     console.error(err);
