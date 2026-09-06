@@ -2269,4 +2269,15 @@ router.delete('/announcements/:id', async (req, res) => {
   }
 });
 
+// 掲示板：投稿削除
+router.delete('/chat/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM chat_messages WHERE id=$1', [req.params.id]);
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 module.exports = router;

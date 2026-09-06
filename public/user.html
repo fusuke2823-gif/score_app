@@ -424,9 +424,11 @@ function openDeleteModal() {
   document.getElementById('delete-pw').value = '';
   document.getElementById('delete-alert').innerHTML = '';
   document.getElementById('delete-modal').style.display = 'flex';
+  lockBodyScroll();
 }
 function closeDeleteModal() {
   document.getElementById('delete-modal').style.display = 'none';
+  unlockBodyScroll();
 }
 async function doDeleteAccount() {
   const pw = document.getElementById('delete-pw').value;
@@ -454,9 +456,11 @@ function openModal(url, ytUrl, ytScore) {
     ytDiv.style.display = 'none';
   }
   document.getElementById('img-modal').classList.add('open');
+  lockBodyScroll();
 }
 function closeModal() {
   document.getElementById('img-modal').classList.remove('open');
+  unlockBodyScroll();
 }
 document.getElementById('img-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();

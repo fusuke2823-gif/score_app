@@ -114,6 +114,9 @@
   <div id="alert"></div>
 
   <div style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <a href="/announcements.html" title="お知らせ" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;flex-shrink:0;border-radius:50%;border:1px solid var(--border);background:var(--bg-card);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);color:var(--accent);text-decoration:none">
+      <svg width="27" height="27" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6v4l2 .5V13a1 1 0 0 0 1 1h1v-3.2"/><path d="M2 6l9-3v10l-9-3V6z"/><path d="M11 5.5c1.2.6 2 1.6 2 2.5s-.8 1.9-2 2.5"/></svg>
+    </a>
     <a href="/rate-ranking.html" title="レートランキング" style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;flex-shrink:0;border-radius:50%;border:1px solid var(--border);background:var(--bg-card);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);font-size:1.68rem;text-decoration:none">
       🏆
     </a>
@@ -320,6 +323,7 @@ apiFetch('/version').then(d => {
 
 function closeRankModal() {
   document.getElementById('rank-update-modal').style.display = 'none';
+  unlockBodyScroll();
   if (window._pendingDistNotice) {
     window._pendingDistNotice = false;
     if (typeof initInterimDistributionNotice === 'function') initInterimDistributionNotice();
@@ -513,6 +517,7 @@ async function checkRankUpdate() {
 
         document.getElementById('rank-update-body').innerHTML = html;
         document.getElementById('rank-update-modal').style.display = 'flex';
+        lockBodyScroll();
         if (animSteps) {
           runAnimSteps(animSteps);
         } else if (doRateCounter) {
@@ -540,9 +545,11 @@ checkRankUpdate().finally(() => { if (window._resolveRankUpdate) window._resolve
 function openVersionModal() {
   const m = document.getElementById('version-modal');
   m.style.display = 'flex';
+  lockBodyScroll();
 }
 function closeVersionModal() {
   document.getElementById('version-modal').style.display = 'none';
+  unlockBodyScroll();
 }
 
 let allEvents = [];
@@ -698,10 +705,12 @@ function toggleAttr(a) {
 function openFilterModal() {
   renderModal();
   document.getElementById('filter-modal').style.display = 'flex';
+  lockBodyScroll();
 }
 
 function closeFilterModal() {
   document.getElementById('filter-modal').style.display = 'none';
+  unlockBodyScroll();
 }
 
 function resetFilters() {

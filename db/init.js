@@ -540,6 +540,18 @@ const initDB = async () => {
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS link_label VARCHAR(50);
     `);
 
+    // 属性ごとの掲示板（チャット）
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id SERIAL PRIMARY KEY,
+        room VARCHAR(10) NOT NULL,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        body TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_room_id ON chat_messages(room, id);
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();

@@ -40,6 +40,7 @@ app.use('/api/my-videos', require('./routes/my-videos'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/charts', require('./routes/charts'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/chat', require('./routes/chat'));
 
 // Google Client ID 公開
 app.get('/api/auth/google/client-id', (req, res) => {

@@ -152,6 +152,7 @@ async function handleGoogleCredential(response) {
     } else if (data.needs_username) {
       _pendingGoogleId = data.google_id;
       document.getElementById('username-setup-modal').style.display = 'flex';
+      lockBodyScroll();
       document.getElementById('setup-username-input').focus();
     }
   } catch (err) {

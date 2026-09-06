@@ -6,7 +6,7 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 const _i18n = {
   ja: {
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
-    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート','nav.announcements':'お知らせ',
+    'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート','nav.announcements':'お知らせ','nav.chat':'掲示板',
     'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.empty':'お知らせはまだありません',
     'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
     'chart.board':'チャート掲示板','chart.all_events':'全イベント',
@@ -72,6 +72,7 @@ const _i18n = {
     'register.setup_btn':'登録してログイン',
     'register.login_id_unset':'未設定','register.login_id_profile_desc':'ログイン・リファラルに使用するIDです。他のユーザーには表示されません。',
     'feedback.title':'お便り箱','feedback.subtitle':'機能要望・バグ報告・その他ご意見をお送りください',
+    'chat.title':'掲示板','chat.subtitle':'属性ごとに雑談できる掲示板です','chat.placeholder':'メッセージを入力','chat.empty':'まだメッセージがありません','chat.delete':'削除',
     'feedback.category':'カテゴリ','feedback.body':'内容',
     'feedback.cat_feature':'機能要望','feedback.cat_bug':'バグ報告','feedback.cat_other':'その他',
     'feedback.body_ph':'ご意見・ご要望をご記入ください（1000文字以内）',
@@ -183,7 +184,7 @@ const _i18n = {
   },
   zh: {
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
-    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表','nav.announcements':'公告',
+    'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表','nav.announcements':'公告','nav.chat':'留言板',
     'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.empty':'目前沒有公告',
     'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
     'chart.board':'攻略圖表看板','chart.all_events':'全部活動',
@@ -249,6 +250,7 @@ const _i18n = {
     'register.setup_btn':'完成註冊並登入',
     'register.login_id_unset':'未設定','register.login_id_profile_desc':'此ID用於登入及邀請，不對其他使用者顯示。',
     'feedback.title':'意見箱','feedback.subtitle':'歡迎提供功能建議・錯誤回報・其他意見',
+    'chat.title':'留言板','chat.subtitle':'依屬性分類的聊天留言板','chat.placeholder':'輸入訊息','chat.empty':'目前還沒有訊息','chat.delete':'刪除',
     'feedback.category':'類別','feedback.body':'內容',
     'feedback.cat_feature':'功能建議','feedback.cat_bug':'錯誤回報','feedback.cat_other':'其他',
     'feedback.body_ph':'請填寫您的意見・要求（1000字以內）',
@@ -503,6 +505,7 @@ const NAV_ICONS = {
   shop:     `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h10l-1.5 7.5h-7z"/><path d="M6 5c0-1.1.9-2 2-2s2 .9 2 2"/></svg>`,
   equip:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2c0 1.1-.9 2-2 2L2 5.5l1.5 2L5 7v7h6V7l1.5.5L14 5.5 12 4c-1.1 0-2-.9-2-2"/><line x1="6" y1="2" x2="10" y2="2"/></svg>`,
   feedback: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="9" rx="1"/><path d="M2 5l6 4 6-4"/></svg>`,
+  chat:     `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12v8H5l-3 3V3z"/></svg>`,
   account:  `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="5.5" r="2.5"/><path d="M3 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/></svg>`,
   admin:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.8 3.8l1 1M11.2 11.2l1 1M12.2 3.8l-1 1M4.8 11.2l-1 1"/></svg>`,
   logout:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3H3v10h3"/><path d="M10 5l3 3-3 3M13 8H7"/></svg>`,
@@ -528,7 +531,7 @@ function renderNav() {
       <div class="nav-links">
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         <span id="nav-gacha-desktop" style="display:contents"></span>
-        ${user ? `<a href="/announcements.html" class="${currentPath === '/announcements.html' ? 'active' : ''}">${t('nav.announcements')}</a>` : ''}
+        ${user ? `<a href="/chat.html" class="${currentPath === '/chat.html' ? 'active' : ''}">${t('nav.chat')}</a>` : ''}
         ${user ? `<a href="/videos.html" class="${currentPath === '/videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
         ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
@@ -552,7 +555,7 @@ function renderNav() {
     <div class="nav-mobile" id="nav-mobile">
       <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user ? `<a href="/announcements.html">${ni('announcements')}<span>${t('nav.announcements')}</span></a>` : ''}
+      ${user ? `<a href="/chat.html">${ni('chat')}<span>${t('nav.chat')}</span></a>` : ''}
       ${user ? `<a href="/videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
       ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}

@@ -178,10 +178,12 @@ function updateFilterBar() {
 function openFilterModal() {
   renderModal();
   document.getElementById('filter-modal').style.display = 'flex';
+  lockBodyScroll();
 }
 
 function closeFilterModal() {
   document.getElementById('filter-modal').style.display = 'none';
+  unlockBodyScroll();
 }
 
 function resetFilters() {
