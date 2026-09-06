@@ -14,7 +14,7 @@ cloudinary.config({
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-const ROOMS = ['火', '氷', '雷', '光', '闇', '無'];
+const ROOMS = ['火', '氷', '雷', '光', '闇', '無', '雑談'];
 
 const postLimiter = rateLimit({
   windowMs: 10 * 1000,

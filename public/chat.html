@@ -16,6 +16,7 @@
 #room-tabs .attr-btn.active.attr-光 { border-color:var(--light); color:var(--light); background:var(--light-bg); }
 #room-tabs .attr-btn.active.attr-闇 { border-color:var(--dark); color:var(--dark); background:var(--dark-bg); }
 #room-tabs .attr-btn.active.attr-無 { border-color:var(--none); color:var(--none); background:var(--none-bg); }
+#room-tabs .attr-btn.active.attr-btn-all { border-color:var(--text-secondary); color:var(--text-primary); background:var(--bg-card2); }
 #chat-box {
   display:flex; flex-direction:column;
   height:min(65vh, 560px);
@@ -67,6 +68,7 @@
     <button class="attr-btn attr-光" data-room="光" data-i18n="attr.光" onclick="switchRoom('光')">光</button>
     <button class="attr-btn attr-闇" data-room="闇" data-i18n="attr.闇" onclick="switchRoom('闇')">闇</button>
     <button class="attr-btn attr-無" data-room="無" data-i18n="attr.無" onclick="switchRoom('無')">無</button>
+    <button class="attr-btn attr-btn-all" data-room="雑談" data-i18n="chat.room_general" onclick="switchRoom('雑談')">雑談</button>
   </div>
 
   <div class="card" id="chat-box">
