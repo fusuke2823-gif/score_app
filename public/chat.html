@@ -241,6 +241,11 @@ document.getElementById('chat-input').addEventListener('keydown', e => {
   }
 });
 
+// キーボードを閉じた（入力欄から離れた）タイミングで、押し上げられたページを一番上に戻す
+document.getElementById('chat-input').addEventListener('blur', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
 loadRoom(currentRoom);
 pollTimer = setInterval(pollNew, 4000);
 document.addEventListener('visibilitychange', () => {
