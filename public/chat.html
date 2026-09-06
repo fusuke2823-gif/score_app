@@ -2,10 +2,22 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>掲示板 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+/* このページ全体をちょうど1画面（100dvh）に収め、はみ出す部分を作らない。
+   キーボード表示時にブラウザが入力欄を見せようとしてページごと押し上げ、
+   上のタイトルが画面外に消えてしまう挙動を防ぐため。 */
+html, body { height:100%; overflow:hidden; }
+body { display:flex; flex-direction:column; height:100dvh; }
+nav#nav { flex-shrink:0; }
+main {
+  flex:1; min-height:0; overflow:hidden;
+  display:flex; flex-direction:column;
+  padding:16px 24px;
+}
+h1.page-title, #alert, #room-tabs { flex-shrink:0; }
 #room-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
 /* 未選択は色に関係なく一律グレー、選択中だけ属性色（うすい色ワッシュ＋枠線、塗りつぶしはしない） */
 #room-tabs .attr-btn { opacity:1; border-color:var(--border); color:var(--text-secondary); background:transparent; }
@@ -19,7 +31,7 @@
 #room-tabs .attr-btn.active.attr-btn-all { border-color:var(--text-secondary); color:var(--text-primary); background:var(--bg-card2); }
 #chat-box {
   display:flex; flex-direction:column;
-  height:min(65vh, 560px);
+  flex:1; min-height:0;
   padding:0; overflow:hidden;
 }
 #chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
@@ -248,6 +260,23 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) { clearInterval(pollTimer); }
   else { pollNew(); pollTimer = setInterval(pollNew, 4000); }
 });
+
+// スマホのソフトキーボード表示時、#chat-boxの高さが元のビューポート基準のままだと
+// キーボードに隠れて下が見えなくなる。visualViewportの実サイズに合わせて高さを追従させる。
+if (window.visualViewport) {
+  const chatBox = document.getElementById('chat-box');
+  const adjustChatBoxHeight = () => {
+    const vv = window.visualViewport;
+    const top = chatBox.getBoundingClientRect().top;
+    const available = vv.height - top;
+    if (available > 200) chatBox.style.height = available + 'px';
+    scrollToBottom();
+  };
+  window.visualViewport.addEventListener('resize', adjustChatBoxHeight);
+  document.getElementById('chat-input').addEventListener('focus', () => {
+    setTimeout(adjustChatBoxHeight, 300); // キーボードのアニメーション後に再計算
+  });
+}
 </script>
 </body>
 </html>
