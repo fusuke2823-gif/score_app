@@ -531,6 +531,7 @@ function renderNav() {
       <div class="nav-links">
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         <span id="nav-gacha-desktop" style="display:contents"></span>
+        ${user ? `<a href="/chat.html" class="${currentPath === '/chat.html' ? 'active' : ''}">${t('nav.chat')}</a>` : ''}
         ${user ? `<a href="/videos.html" class="${currentPath === '/videos.html' ? 'active' : ''}">${t('nav.my_videos')}</a>` : ''}
         ${user ? `<a href="/shop.html" class="${currentPath === '/shop.html' && !location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.shop')}</a>` : ''}
         ${user ? `<a href="/shop.html?tab=equip" class="${currentPath === '/shop.html' && location.search.includes('tab=equip') ? 'active' : ''}">${t('nav.equip')}</a>` : ''}
@@ -554,6 +555,7 @@ function renderNav() {
     <div class="nav-mobile" id="nav-mobile">
       <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
       <span id="nav-gacha-mobile" style="display:contents"></span>
+      ${user ? `<a href="/chat.html">${ni('chat')}<span>${t('nav.chat')}</span></a>` : ''}
       ${user ? `<a href="/videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
       ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
       ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}
