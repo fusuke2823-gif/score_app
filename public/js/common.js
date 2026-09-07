@@ -665,24 +665,50 @@ function _trackPageView() {
   }).catch(() => {});
 }
 
+let _userUnreadReplyCount = 0;
+let _adminUnreadFeedbackCount = 0;
+
+function _refreshHamburgerBadge() {
+  const hbBadge = document.getElementById('nav-hamburger-badge');
+  if (!hbBadge) return;
+  const total = _userUnreadReplyCount + _adminUnreadFeedbackCount;
+  if (total > 0) {
+    hbBadge.textContent = total > 99 ? '99+' : total;
+    hbBadge.style.display = 'block';
+  } else {
+    hbBadge.style.display = 'none';
+  }
+}
+
 async function updateFeedbackBadge() {
   const user = getUser();
   if (!user) return;
   try {
     const data = await apiFetch('/feedback/unread-reply-count');
-    const hbBadge = document.getElementById('nav-hamburger-badge');
-    if (!data.count) {
-      if (hbBadge) hbBadge.style.display = 'none';
-      return;
+    _userUnreadReplyCount = data.count || 0;
+    if (_userUnreadReplyCount > 0) {
+      const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${_userUnreadReplyCount}</span>`;
+      document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
+        a.innerHTML = t('nav.feedback') + badge;
+      });
     }
-    const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
-    document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
-      a.innerHTML = t('nav.feedback') + badge;
-    });
-    if (hbBadge) {
-      hbBadge.textContent = data.count;
-      hbBadge.style.display = 'block';
+    _refreshHamburgerBadge();
+  } catch {}
+}
+
+async function updateAdminFeedbackBadge() {
+  const user = getUser();
+  if (!user || user.role !== 'admin') return;
+  try {
+    const data = await apiFetch('/feedback/admin-unread-count');
+    _adminUnreadFeedbackCount = data.count || 0;
+    if (_adminUnreadFeedbackCount > 0) {
+      const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${_adminUnreadFeedbackCount}</span>`;
+      document.querySelectorAll('a[href="/admin_index.html"]').forEach(a => {
+        a.innerHTML = t('nav.admin') + badge;
+      });
     }
+    _refreshHamburgerBadge();
   } catch {}
 }
 

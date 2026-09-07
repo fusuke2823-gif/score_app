@@ -80,6 +80,17 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// 管理者：未読件数
+router.get('/admin-unread-count', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query('SELECT COUNT(*) FROM feedback WHERE is_read = FALSE');
+    res.json({ count: parseInt(result.rows[0].count) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 管理者：既読
 router.patch('/:id/read', authenticateToken, requireAdmin, async (req, res) => {
   try {
