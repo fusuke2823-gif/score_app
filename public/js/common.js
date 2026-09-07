@@ -550,6 +550,7 @@ function renderNav() {
       </div>
       <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="${t('nav.menu')}">
         <span></span><span></span><span></span>
+        <span id="nav-hamburger-badge" class="nav-hamburger-badge" style="display:none"></span>
       </button>
     </div>
     <div class="nav-mobile" id="nav-mobile">
@@ -583,6 +584,7 @@ renderNav = function() {
   if (!document.getElementById('interim-dist-modal')) initInterimDistributionNotice();
   updateGachaNav();
   updateFeedbackBadge();
+  updateAdminFeedbackBadge();
   checkGoogleLink();
   initAccountSettingsPrompt();
   if (!document.getElementById('announcement-modal')) initAnnouncementCheck();
@@ -668,11 +670,19 @@ async function updateFeedbackBadge() {
   if (!user) return;
   try {
     const data = await apiFetch('/feedback/unread-reply-count');
-    if (!data.count) return;
+    const hbBadge = document.getElementById('nav-hamburger-badge');
+    if (!data.count) {
+      if (hbBadge) hbBadge.style.display = 'none';
+      return;
+    }
     const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
     document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
       a.innerHTML = t('nav.feedback') + badge;
     });
+    if (hbBadge) {
+      hbBadge.textContent = data.count;
+      hbBadge.style.display = 'block';
+    }
   } catch {}
 }
 
