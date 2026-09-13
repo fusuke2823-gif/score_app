@@ -1597,20 +1597,22 @@ async function initLoginBonus() {
     @keyframes lbBoxShakeBig { 0%,100%{transform:translateX(0) rotate(0);} 15%{transform:translateX(-8px) rotate(-0.5deg);} 30%{transform:translateX(7px) rotate(0.5deg);} 45%{transform:translateX(-6px) rotate(0);} 60%{transform:translateX(5px);} 75%{transform:translateX(-3px);} 90%{transform:translateX(2px);} }
 
     .lb-verdict { padding:16px 14px; border-radius:8px; margin-bottom:14px; border:1px solid var(--border); position:relative; overflow:hidden; }
-    .lb-verdict .lb-score-val { font-size:2rem; font-weight:bold; font-variant-numeric:tabular-nums; line-height:1; }
     .lb-verdict .lb-tier { font-size:1.02rem; font-weight:bold; margin-top:4px; }
     .lb-verdict .lb-flavor { font-size:0.78rem; color:var(--text-secondary); margin-top:8px; }
-    .lb-verdict .lb-pt-earned { margin-top:10px; font-size:1.3rem; font-weight:bold; font-variant-numeric:tabular-nums; }
     .lb-verdict.tone-danger { background:rgba(231,76,60,0.14); border-color:var(--danger); }
-    .lb-verdict.tone-danger .lb-score-val, .lb-verdict.tone-danger .lb-tier { color:#ff6b6b; }
+    .lb-verdict.tone-danger .lb-tier { color:#ff6b6b; }
     .lb-verdict.tone-warning { background:rgba(243,156,18,0.14); border-color:var(--warning); }
-    .lb-verdict.tone-warning .lb-score-val, .lb-verdict.tone-warning .lb-tier { color:#f5b041; }
+    .lb-verdict.tone-warning .lb-tier { color:#f5b041; }
     .lb-verdict.tone-neutral { background:var(--bg-card2); border-color:var(--border); }
-    .lb-verdict.tone-neutral .lb-score-val, .lb-verdict.tone-neutral .lb-tier { color:var(--text-secondary); }
+    .lb-verdict.tone-neutral .lb-tier { color:var(--text-secondary); }
     .lb-verdict.tone-success { background:rgba(46,204,113,0.14); border-color:var(--success); }
-    .lb-verdict.tone-success .lb-score-val, .lb-verdict.tone-success .lb-tier { color:#5dde8e; }
+    .lb-verdict.tone-success .lb-tier { color:#5dde8e; }
     .lb-verdict.tone-jackpot { background:linear-gradient(180deg, rgba(255,215,0,0.16), rgba(255,215,0,0.05)); border-color:#ffd700; animation:lbJackpotGlow 1.6s ease-in-out infinite, lbJackpotPop .5s cubic-bezier(.2,.9,.3,1.4) both; }
-    .lb-verdict.tone-jackpot .lb-score-val, .lb-verdict.tone-jackpot .lb-tier, .lb-verdict.tone-jackpot .lb-pt-earned { color:#ffd700; }
+    .lb-verdict.tone-jackpot .lb-tier { color:#ffd700; }
+
+    .lb-pt-standalone { text-align:center; margin-bottom:14px; }
+    .lb-pt-standalone .lb-pt-label { display:block; font-size:0.72rem; color:var(--text-muted); margin-bottom:2px; }
+    .lb-pt-standalone .lb-pt-value { font-size:1.7rem; font-weight:bold; color:#d4af6a; font-variant-numeric:tabular-nums; }
     @keyframes lbJackpotGlow { 0%,100%{box-shadow:0 0 10px 1px rgba(255,215,0,0.25);} 50%{box-shadow:0 0 22px 4px rgba(255,215,0,0.55);} }
     @keyframes lbJackpotPop { 0%{transform:scale(0.82); opacity:0;} 60%{transform:scale(1.04); opacity:1;} 100%{transform:scale(1);} }
     .lb-verdict.tone-jackpot::before { content:''; position:absolute; top:50%; left:50%; width:140%; padding-top:140%; transform:translate(-50%,-50%) scale(0); background:repeating-conic-gradient(from 0deg, rgba(232,200,116,0.35) 0deg 4deg, transparent 4deg 20deg); border-radius:50%; pointer-events:none; animation:lbRayBurst .6s ease-out both; z-index:0; }
@@ -1878,7 +1880,10 @@ function showLbResult(res) {
     <div class="lb-verdict ${tier.tone}">
       <div class="lb-tier">${tier.label}</div>
       <div class="lb-flavor">${tier.flavor}</div>
-      <div class="lb-pt-earned">+${res.points_earned}pt</div>
+    </div>
+    <div class="lb-pt-standalone">
+      <span class="lb-pt-label">獲得ポイント</span>
+      <span class="lb-pt-value">+${res.points_earned}pt</span>
     </div>
     ${forcedNote}
     ${defeatBanner}
