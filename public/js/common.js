@@ -1857,7 +1857,6 @@ function showLbResult(res) {
   });
   renderLbDayTrack(res.streak, res.is_day7);
   window._lbLoginDone = true;
-  checkAndCloseModal();
 }
 
 function renderSpecialBonuses(bonuses) {
