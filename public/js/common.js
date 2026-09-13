@@ -1525,10 +1525,12 @@ async function initLoginBonus() {
     .lb-enemy-art-wrap img, .lb-enemy-art-wrap svg { width:100%; max-width:280px; height:auto; object-fit:contain; }
     .lb-hearts { display:flex; gap:3px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
     .lb-heart { position:relative; width:15px; height:15px; font-size:15px; line-height:1; }
-    .lb-heart-track, .lb-heart-pink, .lb-heart-blue { position:absolute; inset:0; overflow:hidden; white-space:nowrap; }
-    .lb-heart-track { color:rgba(255,255,255,0.15); width:100%; }
-    .lb-heart-pink { color:#e0607a; }
-    .lb-heart-blue { color:#5fd0e6; }
+    .lb-heart::before { content:'♥'; position:absolute; inset:0; color:rgba(255,255,255,0.15); }
+    .lb-heart::after { content:'♥'; position:absolute; inset:0; color:#e0607a; width:100%; overflow:hidden; }
+    .lb-heart.empty::after { width:0%; }
+    .lb-heart.half::after { width:50%; }
+    .lb-heart.full::after { width:100%; }
+    .lb-heart.lb-heart-blue::after { color:#5fd0e6; }
     .lb-damage-note { text-align:center; font-size:0.78rem; color:#ff6b6b; font-weight:bold; margin-top:6px; }
     .lb-defeat-banner { text-align:center; font-size:0.82rem; font-weight:bold; color:#ffd700; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); border-radius:7px; padding:9px 12px; margin-bottom:14px; }
 
@@ -1749,21 +1751,21 @@ function lbEnemyPlaceholderSvg() {
 // 無くなると前半10個(HP1〜20、ピンク)が減り始める＝水色の裏にピンクがある見た目。
 // 1行10個(1個=4HP)。各ハートの中で上半分(2HP)を水色、下半分(2HP)をピンクとし、
 // 水色をピンクの手前に重ねて描画。水色が減って初めて裏のピンクが見える。
+// 1行10個。HPが上半分(21〜40)の間は青10個がHP20相当で減っていき、
+// 20を切った瞬間に色がピンクに切り替わり、また10個フルから減り始める（完全な段階制）。
 function lbHeartsHTML(hp, maxHp = 40) {
   if (hp == null) return '';
+  const half = maxHp / 2; // 20
+  const inUpperPhase = hp > half;
+  const phaseHp = inUpperPhase ? hp - half : hp; // 現在のフェーズでの残りHP(0〜20)
+  const colorClass = inUpperPhase ? 'lb-heart-blue' : '';
   const totalHearts = 10;
-  const perHeart = maxHp / totalHearts; // 4
-  const half = perHeart / 2; // 2
+  const perHeart = half / totalHearts; // 2
   let html = '';
   for (let i = 0; i < totalHearts; i++) {
-    const val = Math.max(0, Math.min(perHeart, hp - i * perHeart));
-    const pinkPct = Math.min(half, val) / half * 100;
-    const bluePct = Math.max(0, val - half) / half * 100;
-    html += `<span class="lb-heart">
-      <span class="lb-heart-track">♥</span>
-      <span class="lb-heart-pink" style="width:${pinkPct}%">♥</span>
-      <span class="lb-heart-blue" style="width:${bluePct}%">♥</span>
-    </span>`;
+    const val = phaseHp - i * perHeart;
+    const state = val >= perHeart ? 'full' : val >= perHeart / 2 ? 'half' : 'empty';
+    html += `<span class="lb-heart ${state} ${colorClass}"></span>`;
   }
   return `<div class="lb-hearts">${html}</div>`;
 }
