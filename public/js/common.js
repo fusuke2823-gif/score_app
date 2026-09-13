@@ -1865,7 +1865,7 @@ function showLbResult(res) {
     : '';
 
   const damage = (res.boss_hp_before != null && res.boss_hp_after != null) ? res.boss_hp_before - res.boss_hp_after : 0;
-  const damageNote = damage > 0 ? `<div class="lb-damage-note">-${damage} ダメージ</div>` : '';
+  const damageNote = damage > 0 ? `<div class="lb-damage-note">${damage} ダメージ</div>` : '';
   const defeatBanner = res.boss_defeated
     ? `<div class="lb-defeat-banner">🏆 「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>`
     : '';
@@ -1876,7 +1876,6 @@ function showLbResult(res) {
   document.getElementById('lb-screen-result').innerHTML = `
     ${enemyCardHtml}
     <div class="lb-verdict ${tier.tone}">
-      <div class="lb-score-val">${res.total > 0 ? '+' : ''}${res.total}</div>
       <div class="lb-tier">${tier.label}</div>
       <div class="lb-flavor">${tier.flavor}</div>
       <div class="lb-pt-earned">+${res.points_earned}pt</div>
