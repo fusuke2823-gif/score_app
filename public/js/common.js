@@ -1530,6 +1530,7 @@ async function initLoginBonus() {
     .lb-heart.empty::after { width:0%; }
     .lb-heart.half::after { width:50%; }
     .lb-heart.full::after { width:100%; }
+    .lb-heart.lb-heart-blue::after { color:#5fd0e6; }
     .lb-damage-note { text-align:center; font-size:0.78rem; color:#ff6b6b; font-weight:bold; margin-top:6px; }
     .lb-defeat-banner { text-align:center; font-size:0.82rem; font-weight:bold; color:#ffd700; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); border-radius:7px; padding:9px 12px; margin-bottom:14px; }
 
@@ -1754,7 +1755,8 @@ function lbHeartsHTML(hp, maxHp = 40) {
   for (let i = 0; i < totalHearts; i++) {
     const val = hp - i * perHeart;
     const state = val >= perHeart ? 'full' : val >= perHeart / 2 ? 'half' : 'empty';
-    html += `<span class="lb-heart ${state}"></span>`;
+    const upper = i >= totalHearts / 2 ? 'lb-heart-blue' : ''; // 上半分(HP上位)は水色。先に削れて下のピンクが見える
+    html += `<span class="lb-heart ${state} ${upper}"></span>`;
   }
   return `<div class="lb-hearts">${html}</div>`;
 }
