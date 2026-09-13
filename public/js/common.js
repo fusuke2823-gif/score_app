@@ -1484,7 +1484,19 @@ async function initAccountSettingsPrompt() {
   } catch {}
 }
 
-// ===== ログインボーナス =====
+// ===== ログインボーナス「討伐チャレンジ」 =====
+const LB_WEAPONS = ['斬', '突', '打'];
+const LB_ELEMENTS = ['火', '氷', '雷', '光', '闇', '無'];
+const LB_TIERS = {
+  '-2': { label: '手痛い反撃', tone: 'tone-danger', flavor: '両方とも耐性…手痛い一撃を受けた。' },
+  '-1': { label: '苦戦', tone: 'tone-warning', flavor: '耐性にひとつ阻まれた。' },
+  '0':  { label: '互角', tone: 'tone-neutral', flavor: '決め手を欠いたが、被害はない。' },
+  '1':  { label: '有効打', tone: 'tone-success', flavor: '弱点をひとつ突くことに成功。' },
+  '2':  { label: '会心の一撃!!', tone: 'tone-jackpot', flavor: '見事、弱点を完全に突いた！' },
+};
+const LB_REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let _lbWeaponPick = null, _lbElementPick = null;
+
 async function initLoginBonus() {
   if (!getToken()) return;
 
@@ -1492,16 +1504,125 @@ async function initLoginBonus() {
   style.textContent = `
     #login-bonus-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
     #login-bonus-modal.open { display:flex; }
-    #login-bonus-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:28px 24px; max-width:360px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; }
-    #login-bonus-box h3 { margin:0 0 6px; font-size:1.1rem; }
+    #login-bonus-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:28px 24px; max-width:400px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; position:relative; }
+    #login-bonus-box h3 { margin:0 0 6px; font-size:1.15rem; }
     #login-bonus-box .bonus-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
-    .bonus-days { display:flex; gap:6px; justify-content:center; margin-bottom:20px; flex-wrap:wrap; }
-    .bonus-day { width:38px; height:48px; border-radius:8px; border:1px solid var(--border); background:var(--bg-primary); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:0.7rem; color:var(--text-muted); gap:2px; }
-    .bonus-day.done { background:var(--accent-dim); border-color:var(--accent); color:var(--accent); }
-    .bonus-day.today { border-color:var(--accent); background:var(--accent); color:#fff; font-weight:bold; }
-    .bonus-day .day-pt { font-size:0.78rem; font-weight:bold; }
-    #login-bonus-pts { font-size:2rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
-    #login-bonus-msg { font-size:0.85rem; color:var(--text-muted); margin-bottom:18px; }
+
+    .lb-day-track { position:relative; margin-bottom:20px; padding:0 3px; }
+    .lb-day-track-line { position:absolute; left:19px; right:19px; top:19px; height:2px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; }
+    .lb-day-track-fill { height:100%; width:0%; background:linear-gradient(90deg,#d4af6a,rgba(212,175,106,0.35)); transition:width .4s ease; }
+    .lb-day-medals { position:relative; z-index:1; display:flex; justify-content:space-between; }
+    .lb-day-medal { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; background:radial-gradient(circle at 35% 30%, rgba(60,48,80,0.9), rgba(15,12,25,0.9)); border:1.5px solid rgba(255,255,255,0.15); font-size:0.9rem; color:var(--text-muted); }
+    .lb-day-medal.done { border-color:rgba(212,175,106,0.5); color:#d4af6a; opacity:0.8; }
+    .lb-day-medal.today { border-color:#d4af6a; color:#d4af6a; box-shadow:0 0 0 1px #d4af6a, 0 0 14px rgba(212,175,106,0.55); }
+    .lb-day-medal.day7 { border-color:rgba(255,122,140,0.5); color:#ff7a8c; }
+    .lb-day-medal.day7.today { border-color:#ff7a8c; color:#ff7a8c; box-shadow:0 0 0 1px #ff7a8c, 0 0 16px rgba(255,122,140,0.6); }
+    .lb-day-medal.day7::after { content:'★'; position:absolute; top:-8px; right:-5px; font-size:0.55rem; color:#ff7a8c; text-shadow:0 0 6px rgba(255,122,140,0.8); }
+
+    .lb-enemy-card { background:var(--bg-card2); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:18px; }
+    .lb-enemy-name { font-size:1rem; font-weight:bold; margin-bottom:10px; }
+    .lb-enemy-art-wrap { display:flex; justify-content:center; margin-bottom:8px; }
+    .lb-enemy-art-wrap img { width:104px; height:104px; object-fit:contain; border-radius:8px; }
+
+    .lb-group { margin-bottom:16px; text-align:left; }
+    .lb-group-label { font-size:0.78rem; color:var(--text-secondary); margin-bottom:8px; font-weight:500; }
+    .lb-pick-row { display:flex; flex-wrap:wrap; gap:8px; padding-left:6px; }
+    .attr-btn.attr-斬 { border-color:#b899e8; color:#b899e8; }
+    .attr-btn.attr-斬.active, .attr-btn.attr-斬:hover { background:rgba(184,153,232,0.15); }
+    .attr-btn.attr-突 { border-color:#f7b733; color:#f7b733; }
+    .attr-btn.attr-突.active, .attr-btn.attr-突:hover { background:rgba(247,183,51,0.15); }
+    .attr-btn.attr-打 { border-color:#8fc93f; color:#8fc93f; }
+    .attr-btn.attr-打.active, .attr-btn.attr-打:hover { background:rgba(143,201,63,0.15); }
+
+    .lb-day7-tip { text-align:left; font-size:0.76rem; padding:9px 12px; border-radius:7px; margin-bottom:16px; background:rgba(255,122,140,0.12); border:1px solid rgba(255,122,140,0.45); color:#ff7a8c; line-height:1.6; }
+
+    .lb-cta { width:100%; padding:14px; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700; font-size:1.02rem; letter-spacing:0.03em; color:#d4af6a; background:linear-gradient(180deg, rgba(64,50,34,0.85), rgba(18,14,10,0.92)); border:1.5px solid #d4af6a; box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 24px -12px rgba(212,175,106,0.6); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:10px; transition:box-shadow .2s ease, transform .2s ease, opacity .2s ease; }
+    .lb-cta::before { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent); transform:skewX(-20deg); animation:lbCtaShimmer 3.4s ease-in-out infinite; }
+    @keyframes lbCtaShimmer { 0%{left:-60%;} 55%{left:120%;} 100%{left:120%;} }
+    .lb-cta:hover:not(:disabled) { box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 12px 28px -10px rgba(212,175,106,0.75); transform:translateY(-1px); }
+    .lb-cta:active:not(:disabled) { transform:translateY(0); }
+    .lb-cta:disabled { opacity:0.4; cursor:not-allowed; }
+    .lb-cta:disabled::before { display:none; }
+    .lb-cta span { font-size:0.7rem; opacity:0.75; }
+    .lb-cta span:nth-child(2) { font-size:1.02rem; opacity:1; }
+    .lb-helper { text-align:center; font-size:0.74rem; color:var(--text-muted); margin-top:8px; }
+
+    #lb-stage { position:relative; }
+    #lb-stage .lb-screen[hidden] { display:none; }
+    #lb-stage .lb-screen:not([hidden]) { animation:lbScreenIn .32s ease both; }
+    @keyframes lbScreenIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;} }
+
+    .lb-battle-overlay { position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; background:radial-gradient(60% 60% at 50% 50%, #161331, #0b0916); border-radius:10px; overflow:hidden; isolation:isolate; }
+    .lb-battle-overlay[hidden] { display:none; }
+    .lb-sword { position:absolute; top:50%; left:50%; width:64px; height:14px; margin-left:-32px; margin-top:-7px; opacity:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
+    .lb-sword svg { width:100%; height:100%; display:block; }
+    .lb-battle-overlay.playing .lb-sword-left { animation:lbSwordInLeft .38s cubic-bezier(.2,.8,.3,1) forwards; }
+    .lb-battle-overlay.playing .lb-sword-right { animation:lbSwordInRight .38s cubic-bezier(.2,.8,.3,1) forwards; }
+    @keyframes lbSwordInLeft { from{transform:translateX(-140px) rotate(-16deg); opacity:0;} 80%{opacity:1;} to{transform:translateX(-14px) rotate(-8deg); opacity:1;} }
+    @keyframes lbSwordInRight { from{transform:translateX(140px) rotate(16deg); opacity:0;} 80%{opacity:1;} to{transform:translateX(14px) rotate(8deg); opacity:1;} }
+    .lb-battle-overlay.clash .lb-sword-left { animation:lbSwordOutLeft .34s ease forwards; }
+    .lb-battle-overlay.clash .lb-sword-right { animation:lbSwordOutRight .34s ease forwards; }
+    @keyframes lbSwordOutLeft { from{transform:translateX(-14px) rotate(-8deg); opacity:1;} to{transform:translateX(-200px) rotate(-34deg); opacity:0;} }
+    @keyframes lbSwordOutRight { from{transform:translateX(14px) rotate(8deg); opacity:1;} to{transform:translateX(200px) rotate(34deg); opacity:0;} }
+
+    .lb-clash-flash { position:absolute; top:50%; left:50%; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(212,175,106,0.65) 42%, transparent 72%); opacity:0; transform:scale(0); }
+    .lb-battle-overlay.clash .lb-clash-flash { animation:lbFlashBurst .36s ease-out forwards; }
+    @keyframes lbFlashBurst { 0%{opacity:0; transform:scale(0);} 18%{opacity:1;} 100%{opacity:0; transform:scale(10);} }
+
+    .lb-sparks { position:absolute; inset:0; pointer-events:none; }
+    .lb-spark-wrap { position:absolute; top:50%; left:50%; width:0; height:0; }
+    .lb-spark { position:absolute; top:0; left:-1px; width:2px; height:0; background:linear-gradient(#d4af6a, transparent); opacity:0; }
+    .lb-battle-overlay.clash .lb-spark { animation:lbSparkOut .34s ease-out forwards; }
+    @keyframes lbSparkOut { 0%{height:0; opacity:1; top:0;} 100%{height:30px; opacity:0; top:-30px;} }
+
+    #login-bonus-box.lb-shake { animation:lbBoxShake .3s ease; }
+    @keyframes lbBoxShake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-5px);} 40%{transform:translateX(4px);} 60%{transform:translateX(-3px);} 80%{transform:translateX(2px);} }
+
+    .lb-battle-overlay.mega .lb-clash-flash { animation:lbFlashBurstMega .5s ease-out forwards; }
+    @keyframes lbFlashBurstMega { 0%{opacity:0; transform:scale(0);} 15%{opacity:1;} 100%{opacity:0; transform:scale(16);} }
+    .lb-battle-overlay.mega.clash::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(232,200,116,0.55), transparent 70%); animation:lbGoldWash .5s ease-out forwards; }
+    @keyframes lbGoldWash { 0%{opacity:0;} 30%{opacity:1;} 100%{opacity:0;} }
+    .lb-battle-overlay.mega.clash .lb-spark { animation:lbSparkOutBig .42s ease-out forwards; }
+    @keyframes lbSparkOutBig { 0%{height:0; opacity:1; top:0;} 100%{height:42px; opacity:0; top:-42px;} }
+    #login-bonus-box.lb-shake-big { animation:lbBoxShakeBig .4s ease; }
+    @keyframes lbBoxShakeBig { 0%,100%{transform:translateX(0) rotate(0);} 15%{transform:translateX(-8px) rotate(-0.5deg);} 30%{transform:translateX(7px) rotate(0.5deg);} 45%{transform:translateX(-6px) rotate(0);} 60%{transform:translateX(5px);} 75%{transform:translateX(-3px);} 90%{transform:translateX(2px);} }
+
+    .lb-verdict { padding:16px 14px; border-radius:8px; margin-bottom:14px; border:1px solid var(--border); position:relative; overflow:hidden; }
+    .lb-verdict .lb-score-val { font-size:2rem; font-weight:bold; font-variant-numeric:tabular-nums; line-height:1; }
+    .lb-verdict .lb-tier { font-size:1.02rem; font-weight:bold; margin-top:4px; }
+    .lb-verdict .lb-flavor { font-size:0.78rem; color:var(--text-secondary); margin-top:8px; }
+    .lb-verdict .lb-pt-earned { margin-top:10px; font-size:1.3rem; font-weight:bold; font-variant-numeric:tabular-nums; }
+    .lb-verdict.tone-danger { background:rgba(231,76,60,0.14); border-color:var(--danger); }
+    .lb-verdict.tone-danger .lb-score-val, .lb-verdict.tone-danger .lb-tier { color:#ff6b6b; }
+    .lb-verdict.tone-warning { background:rgba(243,156,18,0.14); border-color:var(--warning); }
+    .lb-verdict.tone-warning .lb-score-val, .lb-verdict.tone-warning .lb-tier { color:#f5b041; }
+    .lb-verdict.tone-neutral { background:var(--bg-card2); border-color:var(--border); }
+    .lb-verdict.tone-neutral .lb-score-val, .lb-verdict.tone-neutral .lb-tier { color:var(--text-secondary); }
+    .lb-verdict.tone-success { background:rgba(46,204,113,0.14); border-color:var(--success); }
+    .lb-verdict.tone-success .lb-score-val, .lb-verdict.tone-success .lb-tier { color:#5dde8e; }
+    .lb-verdict.tone-jackpot { background:linear-gradient(180deg, rgba(255,215,0,0.16), rgba(255,215,0,0.05)); border-color:#ffd700; animation:lbJackpotGlow 1.6s ease-in-out infinite, lbJackpotPop .5s cubic-bezier(.2,.9,.3,1.4) both; }
+    .lb-verdict.tone-jackpot .lb-score-val, .lb-verdict.tone-jackpot .lb-tier, .lb-verdict.tone-jackpot .lb-pt-earned { color:#ffd700; }
+    @keyframes lbJackpotGlow { 0%,100%{box-shadow:0 0 10px 1px rgba(255,215,0,0.25);} 50%{box-shadow:0 0 22px 4px rgba(255,215,0,0.55);} }
+    @keyframes lbJackpotPop { 0%{transform:scale(0.82); opacity:0;} 60%{transform:scale(1.04); opacity:1;} 100%{transform:scale(1);} }
+    .lb-verdict.tone-jackpot::before { content:''; position:absolute; top:50%; left:50%; width:140%; padding-top:140%; transform:translate(-50%,-50%) scale(0); background:repeating-conic-gradient(from 0deg, rgba(232,200,116,0.35) 0deg 4deg, transparent 4deg 20deg); border-radius:50%; pointer-events:none; animation:lbRayBurst .6s ease-out both; z-index:0; }
+    .lb-verdict.tone-jackpot > * { position:relative; z-index:1; }
+    @keyframes lbRayBurst { 0%{opacity:0.9; transform:translate(-50%,-50%) scale(0);} 100%{opacity:0; transform:translate(-50%,-50%) scale(1);} }
+
+    .lb-forced-note { font-size:0.76rem; color:var(--none); background:var(--none-bg); border:1px solid var(--none); border-radius:7px; padding:8px 10px; margin-bottom:14px; text-align:left; }
+
+    .lb-chart { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+    .lb-group-line { display:flex; align-items:baseline; gap:10px; padding:8px 10px; border-radius:7px; text-align:left; background:var(--bg-primary); border:1px solid transparent; }
+    .lb-group-line .lb-gl-label { flex-shrink:0; font-size:0.7rem; font-weight:bold; padding:3px 8px; border-radius:4px; white-space:nowrap; }
+    .lb-group-line.weak { border-color:rgba(46,204,113,0.3); }
+    .lb-group-line.weak .lb-gl-label { background:rgba(46,204,113,0.2); color:var(--success); }
+    .lb-group-line.resist { border-color:rgba(231,76,60,0.3); }
+    .lb-group-line.resist .lb-gl-label { background:rgba(231,76,60,0.2); color:var(--danger); }
+    .lb-group-line.neutral .lb-gl-label { background:rgba(255,255,255,0.08); color:var(--text-secondary); }
+    .lb-gl-items { flex:1; font-size:0.88rem; line-height:1.7; }
+    .lb-gi { color:var(--text-secondary); }
+    .lb-gi.picked { color:var(--text-primary); font-weight:bold; background:var(--bg-card2); border:1px solid var(--border-light); border-radius:5px; padding:1px 6px; }
+    .lb-gi-sep { color:var(--text-muted); margin:0 1px; }
+
     .special-bonus-list { margin-top:18px; border-top:1px solid var(--border); padding-top:14px; text-align:left; }
     .special-bonus-list h4 { font-size:0.85rem; color:var(--text-muted); margin:0 0 10px; text-align:center; }
     .special-bonus-item { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -1509,6 +1630,12 @@ async function initLoginBonus() {
     .special-bonus-title { font-size:0.88rem; font-weight:bold; margin-bottom:2px; }
     .special-bonus-meta { font-size:0.72rem; color:var(--text-muted); }
     .special-bonus-btn { flex-shrink:0; }
+
+    @media (prefers-reduced-motion:reduce) {
+      #lb-stage .lb-screen, .lb-sword, .lb-clash-flash, .lb-spark, #login-bonus-box.lb-shake, #login-bonus-box.lb-shake-big, .lb-battle-overlay, .lb-battle-overlay.mega.clash::after, .lb-verdict.tone-jackpot, .lb-verdict.tone-jackpot::before, .lb-cta, .lb-cta::before {
+        animation:none !important; transition:none !important;
+      }
+    }
   `;
   document.head.appendChild(style);
 
@@ -1516,12 +1643,48 @@ async function initLoginBonus() {
   modal.id = 'login-bonus-modal';
   modal.innerHTML = `
     <div id="login-bonus-box">
-      <h3>${t('bonus.title')}</h3>
-      <div class="bonus-sub">${t('bonus.sub')}</div>
-      <div class="bonus-days" id="bonus-days"></div>
-      <div id="login-bonus-pts"></div>
-      <div id="login-bonus-msg"></div>
-      <button class="btn btn-primary" id="bonus-claim-btn" onclick="claimLoginBonus()">${t('bonus.claim')}</button>
+      <h3>討伐チャレンジ</h3>
+      <div class="bonus-sub" id="lb-sub">本日の敵の弱点を見抜いて、ポイントを稼ごう</div>
+      <div class="lb-day-track">
+        <div class="lb-day-track-line"><div class="lb-day-track-fill" id="lb-day-track-fill"></div></div>
+        <div class="lb-day-medals" id="lb-day-medals"></div>
+      </div>
+      <div id="lb-stage">
+        <div class="lb-screen" id="lb-screen-picker">
+          <div class="lb-enemy-card" id="lb-enemy-card"></div>
+          <div class="lb-group"><div class="lb-group-label">武器属性</div><div class="lb-pick-row" id="lb-weapon-row"></div></div>
+          <div class="lb-group"><div class="lb-group-label">元素属性</div><div class="lb-pick-row" id="lb-element-row"></div></div>
+          <div class="lb-day7-tip" id="lb-day7-tip" hidden>★ 7日目は耐性のない特別な敵。無属性で安定を取るより、通常属性を狙う方が有利かも。</div>
+          <button type="button" class="lb-cta" id="lb-challenge-btn" disabled><span>✦</span><span>挑戦する</span><span>✦</span></button>
+          <div class="lb-helper" id="lb-helper">武器と属性をひとつずつ選んでください</div>
+        </div>
+        <div class="lb-screen" id="lb-screen-result" hidden></div>
+        <div class="lb-battle-overlay" id="lb-battle-overlay" hidden>
+          <div class="lb-sword lb-sword-left">
+            <svg viewBox="0 0 90 20" aria-hidden="true">
+              <rect x="0" y="7" width="16" height="6" rx="2" fill="#5a4326"/>
+              <rect x="15" y="3" width="4" height="14" rx="1" fill="#d4af6a"/>
+              <polygon points="19,8.5 82,9.3 90,10 82,10.7 19,11.5" fill="#eef0f5"/>
+            </svg>
+          </div>
+          <div class="lb-clash-flash"></div>
+          <div class="lb-sparks">
+            <span class="lb-spark-wrap" style="transform:rotate(0deg)"><span class="lb-spark"></span></span>
+            <span class="lb-spark-wrap" style="transform:rotate(60deg)"><span class="lb-spark"></span></span>
+            <span class="lb-spark-wrap" style="transform:rotate(120deg)"><span class="lb-spark"></span></span>
+            <span class="lb-spark-wrap" style="transform:rotate(180deg)"><span class="lb-spark"></span></span>
+            <span class="lb-spark-wrap" style="transform:rotate(240deg)"><span class="lb-spark"></span></span>
+            <span class="lb-spark-wrap" style="transform:rotate(300deg)"><span class="lb-spark"></span></span>
+          </div>
+          <div class="lb-sword lb-sword-right">
+            <svg viewBox="0 0 90 20" aria-hidden="true">
+              <rect x="74" y="7" width="16" height="6" rx="2" fill="#5a4326"/>
+              <rect x="71" y="3" width="4" height="14" rx="1" fill="#d4af6a"/>
+              <polygon points="71,8.5 8,9.3 0,10 8,10.7 71,11.5" fill="#eef0f5"/>
+            </svg>
+          </div>
+        </div>
+      </div>
       <div id="special-bonus-section"></div>
     </div>`;
   document.body.appendChild(modal);
@@ -1537,11 +1700,17 @@ async function initLoginBonus() {
 
     if (status.already_claimed && !hasUnclaimed) return;
 
+    window._lbLoginDone = status.already_claimed;
+    renderLbEnemyCard(status.boss_enemy);
+
     if (!status.already_claimed) {
-      renderBonusDays(status.streak + 1, status.day_pts || [1,1,1,1,1,1,4]);
+      renderLbDayTrack(status.next_streak, status.is_day7);
+      renderLbPickers(status.is_day7);
+      document.getElementById('lb-challenge-btn').addEventListener('click', lbChallenge);
     } else {
-      document.getElementById('bonus-claim-btn').style.display = 'none';
-      document.getElementById('login-bonus-pts').textContent = t('bonus.claimed');
+      renderLbDayTrack(status.streak, status.streak === 7);
+      document.getElementById('lb-sub').textContent = t('bonus.claimed');
+      document.getElementById('lb-screen-picker').hidden = true;
     }
 
     if (specials.length > 0) renderSpecialBonuses(specials);
@@ -1551,20 +1720,144 @@ async function initLoginBonus() {
   } catch {}
 }
 
-function renderBonusDays(todayDay, pts) {
-  const daysEl = document.getElementById('bonus-days');
-  daysEl.innerHTML = pts.map((p, i) => {
-    const day = i + 1;
-    const done = day < todayDay;
-    const isToday = day === todayDay;
-    return `<div class="bonus-day ${done ? 'done' : isToday ? 'today' : ''}">
-      <span>${t('bonus.day', day)}</span>
-      <span class="day-pt">${p}pt</span>
-    </div>`;
-  }).join('');
-  const todayPt = pts[Math.min(todayDay, 7) - 1];
-  document.getElementById('login-bonus-pts').textContent = `+${todayPt}pt`;
-  document.getElementById('login-bonus-msg').textContent = t('bonus.msg', todayDay);
+function lbEnemyPlaceholderSvg() {
+  return `<svg viewBox="0 0 200 200" width="104" height="104" aria-hidden="true">
+    <defs>
+      <radialGradient id="lb-glow" cx="50%" cy="45%" r="60%">
+        <stop offset="0%" stop-color="#ffd700" stop-opacity="0.3"/>
+        <stop offset="100%" stop-color="#ffd700" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <circle cx="100" cy="100" r="95" fill="url(#lb-glow)"/>
+    <path d="M100 28 C 58 28 36 72 36 122 C 36 154 60 176 100 176 C 140 176 164 154 164 122 C 164 72 142 28 100 28 Z" fill="#12101f" stroke="#8888aa" stroke-width="2" stroke-opacity="0.4"/>
+    <circle cx="78" cy="108" r="7" fill="#ffd700"/>
+    <circle cx="122" cy="108" r="7" fill="#ffd700"/>
+  </svg>`;
+}
+
+function renderLbEnemyCard(boss) {
+  const art = boss.image_url
+    ? `<img src="${boss.image_url}" alt="${escHtml(boss.name)}">`
+    : lbEnemyPlaceholderSvg();
+  document.getElementById('lb-enemy-card').innerHTML = `
+    <div class="lb-enemy-name">${escHtml(boss.name)}</div>
+    <div class="lb-enemy-art-wrap">${art}</div>
+  `;
+}
+
+function renderLbDayTrack(day, isDay7) {
+  const wrap = document.getElementById('lb-day-medals');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= 7; i++) {
+    const d = document.createElement('div');
+    d.className = 'lb-day-medal';
+    if (i === 7) d.classList.add('day7');
+    if (i < day) d.classList.add('done');
+    if (i === day) d.classList.add('today');
+    d.textContent = i;
+    wrap.appendChild(d);
+  }
+  document.getElementById('lb-day-track-fill').style.width = ((Math.max(day, 1) - 1) / 6 * 100) + '%';
+}
+
+function renderLbPickers(isDay7) {
+  _lbWeaponPick = null;
+  _lbElementPick = null;
+  const wRow = document.getElementById('lb-weapon-row');
+  wRow.innerHTML = LB_WEAPONS.map(w => `<button type="button" class="attr-btn attr-${w}" data-kind="weapon" data-key="${w}">${w}</button>`).join('');
+  const eRow = document.getElementById('lb-element-row');
+  eRow.innerHTML = LB_ELEMENTS.map(e => `<button type="button" class="attr-btn attr-${e}" data-kind="element" data-key="${e}">${e}</button>`).join('');
+  [...wRow.children, ...eRow.children].forEach(b => b.addEventListener('click', () => lbPick(b)));
+  document.getElementById('lb-day7-tip').hidden = !isDay7;
+}
+
+function lbPick(btn) {
+  const kind = btn.dataset.kind;
+  const row = kind === 'weapon' ? document.getElementById('lb-weapon-row') : document.getElementById('lb-element-row');
+  [...row.children].forEach(b => b.classList.toggle('active', b === btn));
+  if (kind === 'weapon') _lbWeaponPick = btn.dataset.key; else _lbElementPick = btn.dataset.key;
+  const ready = _lbWeaponPick && _lbElementPick;
+  document.getElementById('lb-challenge-btn').disabled = !ready;
+  document.getElementById('lb-helper').hidden = !!ready;
+}
+
+function playLbBattle(mega, cb) {
+  if (LB_REDUCE_MOTION) { cb(); return; }
+  const overlay = document.getElementById('lb-battle-overlay');
+  const box = document.getElementById('login-bonus-box');
+  const T_IN = 380, T_CLASH = 150, T_OUT = 320;
+  const shakeClass = mega ? 'lb-shake-big' : 'lb-shake';
+  overlay.hidden = false;
+  overlay.classList.add('playing');
+  if (mega) overlay.classList.add('mega');
+  setTimeout(() => {
+    overlay.classList.add('clash');
+    box.classList.add(shakeClass);
+  }, T_IN);
+  setTimeout(() => {
+    box.classList.remove(shakeClass);
+  }, T_IN + (mega ? 400 : 260));
+  setTimeout(() => {
+    overlay.hidden = true;
+    overlay.classList.remove('playing', 'clash', 'mega');
+    cb();
+  }, T_IN + T_CLASH + T_OUT + (mega ? 150 : 0));
+}
+
+async function lbChallenge() {
+  if (!_lbWeaponPick || !_lbElementPick) return;
+  document.getElementById('lb-challenge-btn').disabled = true;
+  try {
+    const res = await apiFetch('/auth/login-bonus', {
+      method: 'POST',
+      body: JSON.stringify({ weapon: _lbWeaponPick, element: _lbElementPick })
+    });
+    playLbBattle(res.total === 2, () => showLbResult(res));
+  } catch (err) {
+    alert(err.message);
+    document.getElementById('lb-challenge-btn').disabled = false;
+  }
+}
+
+function lbJoinItems(items) {
+  return items.map(it => `<span class="lb-gi ${it.picked ? 'picked' : ''}">${it.k}</span>`).join('<span class="lb-gi-sep">・</span>');
+}
+
+function showLbResult(res) {
+  const tier = LB_TIERS[String(res.total)];
+  const groups = { weak: [], neutral: [], resist: [] };
+  LB_WEAPONS.forEach(w => groups[res.weapon_map[w]].push({ k: w, picked: w === res.picked_weapon }));
+  LB_ELEMENTS.filter(e => e !== '無').forEach(e => groups[res.element_map[e]].push({ k: e, picked: e === res.picked_element }));
+
+  const rows = [];
+  if (groups.weak.length) rows.push(`<div class="lb-group-line weak"><span class="lb-gl-label">弱点</span><span class="lb-gl-items">${lbJoinItems(groups.weak)}</span></div>`);
+  if (groups.resist.length) rows.push(`<div class="lb-group-line resist"><span class="lb-gl-label">耐性</span><span class="lb-gl-items">${lbJoinItems(groups.resist)}</span></div>`);
+  if (groups.neutral.length) rows.push(`<div class="lb-group-line neutral"><span class="lb-gl-label">等倍</span><span class="lb-gl-items">${lbJoinItems(groups.neutral)}</span></div>`);
+
+  const forcedNote = res.forced
+    ? `<div class="lb-forced-note">貫通クリティカルには弱点も耐性も関係なかった。</div>`
+    : '';
+
+  document.getElementById('lb-screen-result').innerHTML = `
+    <div class="lb-verdict ${tier.tone}">
+      <div class="lb-score-val">${res.total > 0 ? '+' : ''}${res.total}</div>
+      <div class="lb-tier">${tier.label}</div>
+      <div class="lb-flavor">${tier.flavor}</div>
+      <div class="lb-pt-earned">+${res.points_earned}pt</div>
+    </div>
+    ${forcedNote}
+    <div class="lb-chart">${rows.join('')}</div>
+    <button class="btn btn-primary" style="width:100%" id="lb-close-btn">${t('close')}</button>
+  `;
+  document.getElementById('lb-screen-picker').hidden = true;
+  document.getElementById('lb-screen-result').hidden = false;
+  document.getElementById('lb-close-btn').addEventListener('click', () => {
+    document.getElementById('login-bonus-modal').classList.remove('open');
+    unlockBodyScroll();
+  });
+  renderLbDayTrack(res.streak, res.is_day7);
+  window._lbLoginDone = true;
+  checkAndCloseModal();
 }
 
 function renderSpecialBonuses(bonuses) {
@@ -1589,9 +1882,7 @@ function renderSpecialBonuses(bonuses) {
 }
 
 function checkAndCloseModal() {
-  const loginBtn = document.getElementById('bonus-claim-btn');
-  const closedText = t('close');
-  const loginDone = !loginBtn || loginBtn.style.display === 'none' || loginBtn.disabled || loginBtn.textContent === closedText;
+  const loginDone = window._lbLoginDone === true;
   const anySpecialLeft = [...document.querySelectorAll('.special-bonus-btn')].some(b => !b.disabled);
   if (loginDone && !anySpecialLeft) {
     setTimeout(() => {
@@ -1617,22 +1908,6 @@ async function claimSpecialBonus(bonusId, btn) {
   } catch (err) {
     btn.disabled = false;
     alert(err.message);
-  }
-}
-
-async function claimLoginBonus() {
-  const btn = document.getElementById('bonus-claim-btn');
-  btn.disabled = true;
-  try {
-    const res = await apiFetch('/auth/login-bonus', { method: 'POST' });
-    document.getElementById('login-bonus-pts').textContent = `+${res.points_earned}pt`;
-    document.getElementById('login-bonus-msg').textContent = t('bonus.streak', res.streak) + (res.streak === 7 ? t('bonus.streak7') : '');
-    btn.textContent = t('close');
-    btn.onclick = () => { document.getElementById('login-bonus-modal').classList.remove('open'); unlockBodyScroll(); };
-    btn.disabled = false;
-    checkAndCloseModal();
-  } catch (err) {
-    btn.disabled = false;
   }
 }
 

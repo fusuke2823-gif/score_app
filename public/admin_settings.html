@@ -113,10 +113,27 @@
   <!-- ログインボーナスタブ -->
   <div class="tab-content" id="tab-loginbonus">
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title">通常ログインボーナス設定</div>
+      <div class="section-title">討伐チャレンジ 報酬設定（判定スコア→獲得pt）</div>
       <div id="lb-alert" style="margin-bottom:12px"></div>
-      <div id="lb-day-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px"></div>
+      <div id="lb-score-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px"></div>
       <button class="btn btn-primary" onclick="saveLBSettings()">保存</button>
+    </div>
+
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title">討伐チャレンジ 敵カード設定（複数登録・挑戦のたびにランダム表示）</div>
+      <div id="boss-alert" style="margin-bottom:12px"></div>
+      <form id="boss-add-form" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px">
+          <label class="form-label">名前</label>
+          <input class="form-input" id="boss-name" placeholder="例: 影纏いし者" required>
+        </div>
+        <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px">
+          <label class="form-label">画像</label>
+          <input class="form-input" type="file" id="boss-image" accept="image/*" style="padding:8px" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">追加</button>
+      </form>
+      <div id="boss-list" style="display:flex;flex-wrap:wrap;gap:10px"></div>
     </div>
 
     <div class="card">
@@ -220,7 +237,7 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'general') { loadSettings(); loadCloudinaryUsage(); loadCloudinaryLimit(); }
-  if (name === 'loginbonus') { loadLBSettings(); loadSpecialBonuses(); }
+  if (name === 'loginbonus') { loadLBSettings(); loadBossEnemies(); loadSpecialBonuses(); }
   if (name === 'feedback') loadFeedback();
   if (name === 'announcements') loadAnnouncements();
 }
@@ -290,27 +307,64 @@ async function saveNotifySetting() {
   }
 }
 
-// ===== ログインボーナス設定 =====
+// ===== ログインボーナス（討伐チャレンジ）設定 =====
+const LB_SCORE_KEYS = [
+  { key: 'm2', label: 'スコア -2' }, { key: 'm1', label: 'スコア -1' }, { key: '0', label: 'スコア 0' },
+  { key: 'p1', label: 'スコア +1' }, { key: 'p2', label: 'スコア +2' },
+];
+
 async function loadLBSettings() {
   try {
     const data = await apiFetch('/admin/login-bonus-settings');
-    const days = ['day1','day2','day3','day4','day5','day6','day7'];
-    document.getElementById('lb-day-inputs').innerHTML = days.map(d => `
+    document.getElementById('lb-score-inputs').innerHTML = LB_SCORE_KEYS.map(s => `
       <div>
-        <label class="form-label">${d.replace('day','')}日目</label>
-        <input class="form-input" id="lb-${d}" type="number" min="0" value="${data[d] ?? 1}">
+        <label class="form-label">${s.label}</label>
+        <input class="form-input" id="lb-${s.key}" type="number" min="0" value="${data[s.key] ?? 0}">
       </div>`).join('');
   } catch (err) { showAlert('#lb-alert', err.message); }
 }
 
 async function saveLBSettings() {
-  const days = ['day1','day2','day3','day4','day5','day6','day7'];
   const body = {};
-  for (const d of days) body[d] = document.getElementById(`lb-${d}`)?.value;
+  for (const s of LB_SCORE_KEYS) body[s.key] = document.getElementById(`lb-${s.key}`)?.value;
   try {
     await apiFetch('/admin/login-bonus-settings', { method: 'PUT', body: JSON.stringify(body) });
     showAlert('#lb-alert', '保存しました', 'success');
   } catch (err) { showAlert('#lb-alert', err.message); }
+}
+
+async function loadBossEnemies() {
+  try {
+    const list = await apiFetch('/admin/login-bonus/enemies');
+    document.getElementById('boss-list').innerHTML = list.length ? list.map(e => `
+      <div style="width:110px;text-align:center;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:8px">
+        <img src="${e.image_url}" style="width:100%;height:70px;object-fit:contain;border-radius:4px;margin-bottom:6px">
+        <div style="font-size:0.75rem;margin-bottom:6px;word-break:break-all">${escHtml(e.name)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteBossEnemy(${e.id})">削除</button>
+      </div>`).join('') : '<div class="empty-state"><p>未登録です</p></div>';
+  } catch (err) { showAlert('#boss-alert', err.message); }
+}
+
+document.getElementById('boss-add-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData();
+  fd.append('name', document.getElementById('boss-name').value);
+  const file = document.getElementById('boss-image').files[0];
+  if (file) fd.append('image', file);
+  try {
+    await apiFormFetch('/admin/login-bonus/enemies', fd);
+    e.target.reset();
+    showAlert('#boss-alert', '追加しました', 'success');
+    loadBossEnemies();
+  } catch (err) { showAlert('#boss-alert', err.message); }
+});
+
+async function deleteBossEnemy(id) {
+  if (!confirm('削除しますか？')) return;
+  try {
+    await apiFetch(`/admin/login-bonus/enemies/${id}`, { method: 'DELETE' });
+    loadBossEnemies();
+  } catch (err) { showAlert('#boss-alert', err.message); }
 }
 
 // ===== 特別ログインボーナス =====

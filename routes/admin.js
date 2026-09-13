@@ -1772,14 +1772,14 @@ router.put('/gacha/pools/:id/pickups', async (req, res) => {
   }
 });
 
-// ===== ログインボーナス設定 =====
+// ===== ログインボーナス（討伐チャレンジ）設定 =====
 router.get('/login-bonus-settings', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key LIKE 'login_bonus_day%' ORDER BY key"
+      "SELECT key, value FROM settings WHERE key LIKE 'login_bonus_score_%'"
     );
-    const pts = { day1:1, day2:1, day3:1, day4:1, day5:1, day6:1, day7:4 };
-    result.rows.forEach(r => { pts[r.key.replace('login_bonus_', '')] = parseInt(r.value); });
+    const pts = { m2: 10, m1: 15, '0': 25, p1: 45, p2: 100 };
+    result.rows.forEach(r => { pts[r.key.replace('login_bonus_score_', '')] = parseInt(r.value); });
     res.json(pts);
   } catch (err) {
     console.error(err);
@@ -1788,16 +1788,60 @@ router.get('/login-bonus-settings', async (req, res) => {
 });
 
 router.put('/login-bonus-settings', async (req, res) => {
-  const days = ['day1','day2','day3','day4','day5','day6','day7'];
+  const keys = ['m2', 'm1', '0', 'p1', 'p2'];
   try {
-    for (const d of days) {
-      const v = parseInt(req.body[d]);
+    for (const k of keys) {
+      const v = parseInt(req.body[k]);
       if (isNaN(v) || v < 0) return res.status(400).json({ error: '無効な値です' });
       await pool.query(
         "INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2",
-        [`login_bonus_${d}`, String(v)]
+        [`login_bonus_score_${k}`, String(v)]
       );
     }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 討伐チャレンジ 敵カード（複数登録・ランダム表示）
+router.get('/login-bonus/enemies', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM login_bonus_enemies ORDER BY created_at DESC');
+    res.json(r.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/login-bonus/enemies', upload.single('image'), async (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: '名前は必須です' });
+  if (!req.file) return res.status(400).json({ error: '画像は必須です' });
+  try {
+    const result = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream({ folder: 'hbr-ranking/login-bonus', resource_type: 'image' }, (err, r) => {
+          if (err) reject(err); else resolve(r);
+        })
+        .end(req.file.buffer);
+    });
+    const r = await pool.query(
+      'INSERT INTO login_bonus_enemies (name, image_url) VALUES ($1,$2) RETURNING *',
+      [name.trim(), result.secure_url]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.delete('/login-bonus/enemies/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM login_bonus_enemies WHERE id=$1', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     console.error(err);

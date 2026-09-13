@@ -404,6 +404,11 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_day5', '1') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_day6', '1') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_day7', '4') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_score_m2', '10') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_score_m1', '15') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_score_0',  '25') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_score_p1', '45') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_score_p2', '100') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('ext_rank_pts_1_5',    '100') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('ext_rank_pts_6_10',   '80')  ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('ext_rank_pts_11_20',  '60')  ON CONFLICT (key) DO NOTHING;
@@ -505,6 +510,16 @@ const initDB = async () => {
         order_index INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (event_id, note_id)
       );
+
+      CREATE TABLE IF NOT EXISTS login_bonus_enemies (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        image_url TEXT NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+    await client.query(`
+      SELECT setval('login_bonus_enemies_id_seq', COALESCE((SELECT MAX(id) FROM login_bonus_enemies), 1));
     `);
     await client.query(`
       SELECT setval('event_notes_id_seq', COALESCE((SELECT MAX(id) FROM event_notes), 1));

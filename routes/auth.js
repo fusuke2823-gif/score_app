@@ -271,42 +271,102 @@ router.post('/google/register', async (req, res) => {
   }
 });
 
-// ログインボーナス状態確認
-// ログインボーナス日別pt設定を取得するヘルパー
-async function getLoginBonusPts() {
-  const result = await pool.query(
-    "SELECT key, value FROM settings WHERE key LIKE 'login_bonus_day%'"
-  );
-  const pts = [1,1,1,1,1,1,4];
-  result.rows.forEach(r => {
-    const day = parseInt(r.key.replace('login_bonus_day', ''));
-    if (day >= 1 && day <= 7) pts[day - 1] = parseInt(r.value) || 0;
-  });
-  return pts;
+// ===== ログインボーナス「討伐チャレンジ」 =====
+const WEAPON_ATTRS = ['斬', '突', '打'];
+const ELEMENT_ATTRS = ['火', '氷', '雷', '光', '闇']; // 無は別扱い
+
+function lbShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
+function generateBossEnemyChart(isDay7) {
+  const weaponSlots = isDay7 ? ['weak', 'weak', 'neutral'] : ['weak', 'neutral', 'resist'];
+  lbShuffle(weaponSlots);
+  const weaponMap = {};
+  WEAPON_ATTRS.forEach((w, i) => { weaponMap[w] = weaponSlots[i]; });
+
+  const elementSlots = isDay7
+    ? ['weak', 'weak', 'neutral', 'neutral', 'neutral']
+    : ['weak', 'weak', 'neutral', 'resist', 'resist'];
+  lbShuffle(elementSlots);
+  const elementMap = {};
+  ELEMENT_ATTRS.forEach((e, i) => { elementMap[e] = elementSlots[i]; });
+
+  return { weaponMap, elementMap };
+}
+
+function lbScoreOf(status) { return status === 'weak' ? 1 : status === 'resist' ? -1 : 0; }
+
+async function getLoginBonusScoreTable() {
+  const result = await pool.query("SELECT key, value FROM settings WHERE key LIKE 'login_bonus_score_%'");
+  const table = { '-2': 10, '-1': 15, '0': 25, '1': 45, '2': 100 };
+  const keyMap = { m2: '-2', m1: '-1', '0': '0', p1: '1', p2: '2' };
+  result.rows.forEach(r => {
+    const suffix = r.key.replace('login_bonus_score_', '');
+    if (suffix in keyMap) table[keyMap[suffix]] = parseInt(r.value) || 0;
+  });
+  return table;
+}
+
+async function getRandomBossEnemy() {
+  const result = await pool.query('SELECT name, image_url FROM login_bonus_enemies ORDER BY RANDOM() LIMIT 1');
+  if (result.rows.length === 0) return { name: '謎の魔物', image_url: null };
+  return result.rows[0];
+}
+
+// 討伐チャレンジ状態確認
 router.get('/login-bonus', authenticateToken, async (req, res) => {
   try {
-    const [userResult, pts] = await Promise.all([
+    const [userResult, scoreTable, bossEnemy] = await Promise.all([
       pool.query('SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]),
-      getLoginBonusPts()
+      getLoginBonusScoreTable(),
+      getRandomBossEnemy(),
     ]);
     const { last_login_date, login_streak } = userResult.rows[0];
     const today = new Date().toISOString().slice(0, 10);
     const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
-    res.json({ already_claimed: lastDate === today, streak: login_streak || 0, day_pts: pts });
+    const alreadyClaimed = lastDate === today;
+
+    let nextStreak;
+    if (alreadyClaimed) {
+      nextStreak = login_streak || 0;
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+      nextStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
+    }
+
+    res.json({
+      already_claimed: alreadyClaimed,
+      streak: login_streak || 0,
+      next_streak: nextStreak,
+      is_day7: nextStreak === 7,
+      score_table: scoreTable,
+      boss_enemy: bossEnemy,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 
-// ログインボーナス受け取り
+// 討伐チャレンジ挑戦
 router.post('/login-bonus', authenticateToken, async (req, res) => {
+  const { weapon, element } = req.body;
+  if (!WEAPON_ATTRS.includes(weapon))
+    return res.status(400).json({ error: '無効な武器属性です' });
+  if (![...ELEMENT_ATTRS, '無'].includes(element))
+    return res.status(400).json({ error: '無効な元素属性です' });
+
   try {
-    const [userResult, pts] = await Promise.all([
+    const [userResult, scoreTable] = await Promise.all([
       pool.query('SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]),
-      getLoginBonusPts()
+      getLoginBonusScoreTable(),
     ]);
     const { last_login_date, login_streak } = userResult.rows[0];
     const today = new Date().toISOString().slice(0, 10);
@@ -317,9 +377,21 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    const newStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
+    const isDay7 = newStreak === 7;
 
-    let newStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
-    const points = pts[newStreak - 1] ?? 1;
+    const enemy = generateBossEnemyChart(isDay7);
+    const wStatus = enemy.weaponMap[weapon];
+    let eStatus, forced = false, total;
+    if (element === '無') {
+      forced = true;
+      eStatus = 'void';
+      total = 0;
+    } else {
+      eStatus = enemy.elementMap[element];
+      total = lbScoreOf(wStatus) + lbScoreOf(eStatus);
+    }
+    const points = scoreTable[String(total)] ?? scoreTable['0'];
 
     await pool.query(
       'UPDATE users SET last_login_date=$1, login_streak=$2, points=points+$3, total_login_days=total_login_days+1 WHERE id=$4',
@@ -327,9 +399,20 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
     );
     await pool.query(
       'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
-      [req.user.id, points, `ログインボーナス ${newStreak}日目`]
+      [req.user.id, points, `討伐チャレンジ ${newStreak}日目`]
     );
-    res.json({ streak: newStreak, points_earned: points });
+
+    res.json({
+      streak: newStreak,
+      is_day7: isDay7,
+      points_earned: points,
+      total,
+      forced,
+      picked_weapon: weapon,
+      picked_element: element,
+      weapon_map: enemy.weaponMap,
+      element_map: { ...enemy.elementMap, 無: 'void' },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
