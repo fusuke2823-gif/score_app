@@ -73,6 +73,7 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_icon_id INTEGER;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp_migrated BOOLEAN NOT NULL DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS user_code VARCHAR(20) UNIQUE;
     `);
     await client.query(`ALTER TABLE users ALTER COLUMN user_code TYPE VARCHAR(20)`).catch(() => {});
     // comp_rank に 'Legend'（6文字）が入るよう拡張
@@ -216,7 +217,6 @@ const initDB = async () => {
       );
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS equipped_icon_id INTEGER;
-      ALTER TABLE gacha_icons ADD COLUMN IF NOT EXISTS unit VARCHAR(10);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gp_migrated BOOLEAN NOT NULL DEFAULT FALSE;
 
@@ -236,6 +236,7 @@ const initDB = async () => {
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT NOW()
       );
+      ALTER TABLE gacha_icons ADD COLUMN IF NOT EXISTS unit VARCHAR(10);
 
       CREATE TABLE IF NOT EXISTS user_icons (
         id SERIAL PRIMARY KEY,
@@ -289,7 +290,6 @@ const initDB = async () => {
       ALTER TABLE enemies ADD COLUMN IF NOT EXISTS external_image_url TEXT;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external BOOLEAN DEFAULT FALSE;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_external_at TIMESTAMPTZ;
-      ALTER TABLE event_interim_distributions ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'internal';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS comp_rank VARCHAR(10) DEFAULT 'C';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS rank_points INTEGER DEFAULT 0;
@@ -370,6 +370,7 @@ const initDB = async () => {
         distributed_count INTEGER NOT NULL DEFAULT 0,
         distributed_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE event_interim_distributions ADD COLUMN IF NOT EXISTS type VARCHAR(10) DEFAULT 'internal';
     `);
 
     // 通知・ガチャ設定の初期値
