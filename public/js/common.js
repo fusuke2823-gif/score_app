@@ -1519,10 +1519,10 @@ async function initLoginBonus() {
     .lb-day-medal.day7.today { border-color:#ff7a8c; color:#ff7a8c; box-shadow:0 0 0 1px #ff7a8c, 0 0 16px rgba(255,122,140,0.6); }
     .lb-day-medal.day7::after { content:'★'; position:absolute; top:-8px; right:-5px; font-size:0.55rem; color:#ff7a8c; text-shadow:0 0 6px rgba(255,122,140,0.8); }
 
-    .lb-enemy-card { background:var(--bg-card2); border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:18px; }
-    .lb-enemy-name { font-size:1rem; font-weight:bold; margin-bottom:10px; }
-    .lb-enemy-art-wrap { display:flex; justify-content:center; margin-bottom:8px; }
-    .lb-enemy-art-wrap img { width:104px; height:104px; object-fit:contain; border-radius:8px; }
+    .lb-enemy-card { margin-bottom:18px; }
+    .lb-enemy-name { font-size:1.05rem; font-weight:bold; margin-bottom:10px; text-align:center; }
+    .lb-enemy-art-wrap { display:flex; justify-content:center; }
+    .lb-enemy-art-wrap img { width:200px; height:200px; object-fit:contain; }
 
     .lb-group { margin-bottom:16px; text-align:left; }
     .lb-group-label { font-size:0.78rem; color:var(--text-secondary); margin-bottom:8px; font-weight:500; }
@@ -1721,7 +1721,7 @@ async function initLoginBonus() {
 }
 
 function lbEnemyPlaceholderSvg() {
-  return `<svg viewBox="0 0 200 200" width="104" height="104" aria-hidden="true">
+  return `<svg viewBox="0 0 200 200" width="200" height="200" aria-hidden="true">
     <defs>
       <radialGradient id="lb-glow" cx="50%" cy="45%" r="60%">
         <stop offset="0%" stop-color="#ffd700" stop-opacity="0.3"/>
