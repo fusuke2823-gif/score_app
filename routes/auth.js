@@ -366,6 +366,19 @@ async function getOrCreateDefeatTitle(enemyName) {
   return created.rows[0].id;
 }
 
+// 日付の切り替わりを朝4時(JST)にするための補正。
+// JST=UTC+9なので、朝4時=UTC 19時（前日）。UTC時刻に+5時間してから
+// 日付を切り出すと、UTC 19時（=JST 4時）に日付が繰り上がる。
+const LB_DAY_RESET_OFFSET_HOURS = 5;
+function lbTodayStr() {
+  return new Date(Date.now() + LB_DAY_RESET_OFFSET_HOURS * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+function lbYesterdayStr() {
+  const d = new Date(Date.now() + LB_DAY_RESET_OFFSET_HOURS * 60 * 60 * 1000);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
 // 討伐チャレンジ状態確認
 router.get('/login-bonus', authenticateToken, async (req, res) => {
   try {
@@ -375,7 +388,7 @@ router.get('/login-bonus', authenticateToken, async (req, res) => {
       ensureBossEnemy(req.user.id),
     ]);
     const { last_login_date, login_streak } = userResult.rows[0];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = lbTodayStr();
     const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
     const alreadyClaimed = lastDate === today;
 
@@ -383,10 +396,7 @@ router.get('/login-bonus', authenticateToken, async (req, res) => {
     if (alreadyClaimed) {
       nextStreak = login_streak || 0;
     } else {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().slice(0, 10);
-      nextStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
+      nextStreak = lastDate === lbYesterdayStr() ? (login_streak % 7) + 1 : 1;
     }
 
     res.json({
@@ -419,15 +429,12 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
       getLoginBonusScoreTable(),
     ]);
     const { last_login_date, login_streak } = userResult.rows[0];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = lbTodayStr();
     const lastDate = last_login_date ? last_login_date.toISOString().slice(0, 10) : null;
 
     if (lastDate === today) return res.status(409).json({ error: '本日分はすでに受け取り済みです' });
 
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().slice(0, 10);
-    const newStreak = lastDate === yesterdayStr ? (login_streak % 7) + 1 : 1;
+    const newStreak = lastDate === lbYesterdayStr() ? (login_streak % 7) + 1 : 1;
     const isDay7 = newStreak === 7;
 
     const enemy = generateBossEnemyChart(isDay7);
