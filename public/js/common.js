@@ -1523,9 +1523,8 @@ async function initLoginBonus() {
     .lb-enemy-name { font-size:1.05rem; font-weight:bold; margin-bottom:10px; text-align:center; }
     .lb-enemy-art-wrap { display:flex; justify-content:center; }
     .lb-enemy-art-wrap img, .lb-enemy-art-wrap svg { width:100%; max-width:280px; height:auto; object-fit:contain; }
-    .lb-hearts-wrap { display:flex; flex-direction:column; gap:4px; margin-top:10px; }
-    .lb-hearts { display:flex; gap:3px; justify-content:center; }
-    .lb-heart { position:relative; width:15px; height:15px; font-size:15px; line-height:1; }
+    .lb-hearts { display:flex; gap:2px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+    .lb-heart { position:relative; width:11px; height:11px; font-size:11px; line-height:1; }
     .lb-heart::before { content:'♥'; position:absolute; inset:0; color:rgba(255,255,255,0.15); }
     .lb-heart::after { content:'♥'; position:absolute; inset:0; color:#e0607a; width:100%; overflow:hidden; }
     .lb-heart.empty::after { width:0%; }
@@ -1748,25 +1747,20 @@ function lbEnemyPlaceholderSvg() {
   </svg>`;
 }
 
-function lbHeartRowHTML(hp, rowMaxHp, extraClass) {
-  const totalHearts = 10;
-  const perHeart = rowMaxHp / totalHearts; // 1個のハートが表すHP量
+// 1行・20個のハート(1個=2HP)。後半10個(HP21〜40)が水色で先に減り、
+// 無くなると前半10個(HP1〜20、ピンク)が減り始める＝水色の裏にピンクがある見た目。
+function lbHeartsHTML(hp, maxHp = 40) {
+  if (hp == null) return '';
+  const totalHearts = 20;
+  const perHeart = maxHp / totalHearts; // 2
   let html = '';
   for (let i = 0; i < totalHearts; i++) {
     const val = hp - i * perHeart;
     const state = val >= perHeart ? 'full' : val >= perHeart / 2 ? 'half' : 'empty';
-    html += `<span class="lb-heart ${state} ${extraClass}"></span>`;
+    const blue = i >= totalHearts / 2 ? 'lb-heart-blue' : '';
+    html += `<span class="lb-heart ${state} ${blue}"></span>`;
   }
   return `<div class="lb-hearts">${html}</div>`;
-}
-
-// HPを上半分(水色・先に削れる)と下半分(ピンク・土台)の2行、各10ハート×2HPで表示
-function lbHeartsHTML(hp, maxHp = 40) {
-  if (hp == null) return '';
-  const rowMaxHp = maxHp / 2; // 20
-  const upperHp = Math.max(0, Math.min(rowMaxHp, hp - rowMaxHp));
-  const lowerHp = Math.max(0, Math.min(rowMaxHp, hp));
-  return `<div class="lb-hearts-wrap">${lbHeartRowHTML(upperHp, rowMaxHp, 'lb-heart-blue')}${lbHeartRowHTML(lowerHp, rowMaxHp, '')}</div>`;
 }
 
 function lbEnemyCardHTML(boss, hp, maxHp) {
