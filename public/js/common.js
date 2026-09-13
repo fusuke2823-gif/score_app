@@ -1522,7 +1522,7 @@ async function initLoginBonus() {
     .lb-enemy-card { margin-bottom:18px; }
     .lb-enemy-name { font-size:1.05rem; font-weight:bold; margin-bottom:10px; text-align:center; }
     .lb-enemy-art-wrap { display:flex; justify-content:center; }
-    .lb-enemy-art-wrap img { width:200px; height:200px; object-fit:contain; }
+    .lb-enemy-art-wrap img, .lb-enemy-art-wrap svg { width:100%; max-width:280px; height:auto; object-fit:contain; }
 
     .lb-group { margin-bottom:16px; text-align:left; }
     .lb-group-label { font-size:0.78rem; color:var(--text-secondary); margin-bottom:8px; font-weight:500; }
@@ -1721,7 +1721,7 @@ async function initLoginBonus() {
 }
 
 function lbEnemyPlaceholderSvg() {
-  return `<svg viewBox="0 0 200 200" width="200" height="200" aria-hidden="true">
+  return `<svg viewBox="0 0 200 200" width="280" height="280" aria-hidden="true">
     <defs>
       <radialGradient id="lb-glow" cx="50%" cy="45%" r="60%">
         <stop offset="0%" stop-color="#ffd700" stop-opacity="0.3"/>
