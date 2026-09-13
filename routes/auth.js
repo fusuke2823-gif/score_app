@@ -312,10 +312,58 @@ async function getLoginBonusScoreTable() {
   return table;
 }
 
-async function getRandomBossEnemy() {
-  const result = await pool.query('SELECT name, image_url FROM login_bonus_enemies ORDER BY RANDOM() LIMIT 1');
-  if (result.rows.length === 0) return { name: '謎の魔物', image_url: null };
-  return result.rows[0];
+const BOSS_MAX_HP = 20;
+
+function damageForTotal(total) {
+  return total >= 0 ? total + 1 : 0; // -2,-1→0 / 0→1 / 1→2 / 2→3
+}
+
+// ID昇順で「currentIdより大きい最小のID」を返す。無ければ先頭（最小ID）に周回。プールが空ならnull。
+async function pickNextEnemyId(currentId) {
+  if (currentId != null) {
+    const next = await pool.query('SELECT id FROM login_bonus_enemies WHERE id > $1 ORDER BY id ASC LIMIT 1', [currentId]);
+    if (next.rows.length > 0) return next.rows[0].id;
+  }
+  const first = await pool.query('SELECT id FROM login_bonus_enemies ORDER BY id ASC LIMIT 1');
+  return first.rows.length > 0 ? first.rows[0].id : null;
+}
+
+// ユーザーの現在の討伐対象を取得。未割り当てなら先頭（最小ID）から開始（HP全快）。
+// 割り当て済みの敵がadminによって削除済みだった場合は割り当てをクリアして再割り当て。
+async function ensureBossEnemy(userId) {
+  const u = await pool.query('SELECT current_boss_enemy_id, current_boss_hp FROM users WHERE id=$1', [userId]);
+  let { current_boss_enemy_id, current_boss_hp } = u.rows[0];
+
+  if (!current_boss_enemy_id) {
+    const firstId = await pickNextEnemyId(null);
+    if (firstId === null) return null; // adminが敵を1体も登録していない
+    current_boss_enemy_id = firstId;
+    current_boss_hp = BOSS_MAX_HP;
+    await pool.query(
+      'UPDATE users SET current_boss_enemy_id=$1, current_boss_hp=$2 WHERE id=$3',
+      [current_boss_enemy_id, current_boss_hp, userId]
+    );
+  }
+
+  const info = await pool.query('SELECT name, image_url FROM login_bonus_enemies WHERE id=$1', [current_boss_enemy_id]);
+  if (info.rows.length === 0) {
+    // 割り当て後にadminが削除していた場合：クリアして1回だけ再試行
+    await pool.query('UPDATE users SET current_boss_enemy_id=NULL, current_boss_hp=NULL WHERE id=$1', [userId]);
+    return ensureBossEnemy(userId);
+  }
+  return { id: current_boss_enemy_id, name: info.rows[0].name, image_url: info.rows[0].image_url, hp: current_boss_hp };
+}
+
+// 討伐称号を名前で検索し、無ければ作成してIDを返す
+async function getOrCreateDefeatTitle(enemyName) {
+  const name = `${enemyName}討伐`;
+  const existing = await pool.query('SELECT id FROM titles WHERE name=$1', [name]);
+  if (existing.rows.length > 0) return existing.rows[0].id;
+  const created = await pool.query(
+    'INSERT INTO titles (name, description, is_active) VALUES ($1,$2,TRUE) RETURNING id',
+    [name, `討伐チャレンジで「${enemyName}」を討伐した証`]
+  );
+  return created.rows[0].id;
 }
 
 // 討伐チャレンジ状態確認
@@ -324,7 +372,7 @@ router.get('/login-bonus', authenticateToken, async (req, res) => {
     const [userResult, scoreTable, bossEnemy] = await Promise.all([
       pool.query('SELECT last_login_date, login_streak FROM users WHERE id=$1', [req.user.id]),
       getLoginBonusScoreTable(),
-      getRandomBossEnemy(),
+      ensureBossEnemy(req.user.id),
     ]);
     const { last_login_date, login_streak } = userResult.rows[0];
     const today = new Date().toISOString().slice(0, 10);
@@ -347,7 +395,9 @@ router.get('/login-bonus', authenticateToken, async (req, res) => {
       next_streak: nextStreak,
       is_day7: nextStreak === 7,
       score_table: scoreTable,
-      boss_enemy: bossEnemy,
+      boss_enemy: bossEnemy
+        ? { name: bossEnemy.name, image_url: bossEnemy.image_url, hp: bossEnemy.hp, max_hp: BOSS_MAX_HP }
+        : { name: '謎の魔物', image_url: null, hp: null, max_hp: BOSS_MAX_HP },
     });
   } catch (err) {
     console.error(err);
@@ -402,6 +452,33 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
       [req.user.id, points, `討伐チャレンジ ${newStreak}日目`]
     );
 
+    // 敵HP・ダメージ・討伐称号
+    const boss = await ensureBossEnemy(req.user.id);
+    const damage = damageForTotal(total);
+    let bossHpBefore = boss ? boss.hp : null;
+    let bossHpAfter = bossHpBefore;
+    let bossDefeated = false;
+    let awardedTitle = null;
+
+    if (boss && damage > 0) {
+      bossHpAfter = Math.max(0, bossHpBefore - damage);
+      await pool.query('UPDATE users SET current_boss_hp=$1 WHERE id=$2', [bossHpAfter, req.user.id]);
+      if (bossHpAfter === 0) {
+        bossDefeated = true;
+        const titleId = await getOrCreateDefeatTitle(boss.name);
+        await pool.query(
+          'INSERT INTO user_titles (user_id, title_id) VALUES ($1,$2) ON CONFLICT (user_id, title_id) DO NOTHING',
+          [req.user.id, titleId]
+        );
+        awardedTitle = `${boss.name}討伐`;
+        const nextId = await pickNextEnemyId(boss.id);
+        await pool.query(
+          'UPDATE users SET current_boss_enemy_id=$1, current_boss_hp=$2 WHERE id=$3',
+          [nextId, nextId !== null ? BOSS_MAX_HP : null, req.user.id]
+        );
+      }
+    }
+
     res.json({
       streak: newStreak,
       is_day7: isDay7,
@@ -412,6 +489,12 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
       picked_element: element,
       weapon_map: enemy.weaponMap,
       element_map: { ...enemy.elementMap, 無: 'void' },
+      boss_enemy: boss ? { name: boss.name, image_url: boss.image_url } : { name: '謎の魔物', image_url: null },
+      boss_hp_before: bossHpBefore,
+      boss_hp_after: bossHpAfter,
+      boss_max_hp: BOSS_MAX_HP,
+      boss_defeated: bossDefeated,
+      awarded_title: awardedTitle,
     });
   } catch (err) {
     console.error(err);

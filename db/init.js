@@ -522,6 +522,11 @@ const initDB = async () => {
     await client.query(`
       SELECT setval('login_bonus_enemies_id_seq', COALESCE((SELECT MAX(id) FROM login_bonus_enemies), 1));
     `);
+    // 討伐チャレンジ：ユーザーごとの現在の討伐対象とHP
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS current_boss_enemy_id INTEGER REFERENCES login_bonus_enemies(id) ON DELETE SET NULL;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS current_boss_hp INTEGER;
+    `);
     await client.query(`
       SELECT setval('event_notes_id_seq', COALESCE((SELECT MAX(id) FROM event_notes), 1));
     `);

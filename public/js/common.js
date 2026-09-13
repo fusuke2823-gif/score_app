@@ -1523,6 +1523,15 @@ async function initLoginBonus() {
     .lb-enemy-name { font-size:1.05rem; font-weight:bold; margin-bottom:10px; text-align:center; }
     .lb-enemy-art-wrap { display:flex; justify-content:center; }
     .lb-enemy-art-wrap img, .lb-enemy-art-wrap svg { width:100%; max-width:280px; height:auto; object-fit:contain; }
+    .lb-hearts { display:flex; gap:3px; justify-content:center; margin-top:10px; }
+    .lb-heart { position:relative; width:15px; height:15px; font-size:15px; line-height:1; }
+    .lb-heart::before { content:'♥'; position:absolute; inset:0; color:rgba(255,255,255,0.15); }
+    .lb-heart::after { content:'♥'; position:absolute; inset:0; color:#e0607a; width:100%; overflow:hidden; }
+    .lb-heart.empty::after { width:0%; }
+    .lb-heart.half::after { width:50%; }
+    .lb-heart.full::after { width:100%; }
+    .lb-damage-note { text-align:center; font-size:0.78rem; color:#ff6b6b; font-weight:bold; margin-top:6px; }
+    .lb-defeat-banner { text-align:center; font-size:0.82rem; font-weight:bold; color:#ffd700; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); border-radius:7px; padding:9px 12px; margin-bottom:14px; }
 
     .lb-group { margin-bottom:16px; text-align:left; }
     .lb-group-label { font-size:0.78rem; color:var(--text-secondary); margin-bottom:8px; font-weight:500; }
@@ -1735,14 +1744,31 @@ function lbEnemyPlaceholderSvg() {
   </svg>`;
 }
 
-function renderLbEnemyCard(boss) {
+function lbHeartsHTML(hp, maxHp = 20) {
+  if (hp == null) return '';
+  const count = maxHp / 2;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const val = hp - i * 2;
+    const state = val >= 2 ? 'full' : val === 1 ? 'half' : 'empty';
+    html += `<span class="lb-heart ${state}"></span>`;
+  }
+  return `<div class="lb-hearts">${html}</div>`;
+}
+
+function lbEnemyCardHTML(boss, hp, maxHp) {
   const art = boss.image_url
     ? `<img src="${boss.image_url}" alt="${escHtml(boss.name)}">`
     : lbEnemyPlaceholderSvg();
-  document.getElementById('lb-enemy-card').innerHTML = `
+  return `
     <div class="lb-enemy-name">${escHtml(boss.name)}</div>
     <div class="lb-enemy-art-wrap">${art}</div>
+    ${lbHeartsHTML(hp, maxHp)}
   `;
+}
+
+function renderLbEnemyCard(boss) {
+  document.getElementById('lb-enemy-card').innerHTML = lbEnemyCardHTML(boss, boss.hp, boss.max_hp);
 }
 
 function renderLbDayTrack(day, isDay7) {
@@ -1838,7 +1864,17 @@ function showLbResult(res) {
     ? `<div class="lb-forced-note">貫通クリティカルには弱点も耐性も関係なかった。</div>`
     : '';
 
+  const damage = (res.boss_hp_before != null && res.boss_hp_after != null) ? res.boss_hp_before - res.boss_hp_after : 0;
+  const damageNote = damage > 0 ? `<div class="lb-damage-note">-${damage} ダメージ</div>` : '';
+  const defeatBanner = res.boss_defeated
+    ? `<div class="lb-defeat-banner">🏆 「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>`
+    : '';
+  const enemyCardHtml = res.boss_enemy
+    ? `<div class="lb-enemy-card">${lbEnemyCardHTML(res.boss_enemy, res.boss_hp_after, res.boss_max_hp)}${damageNote}</div>`
+    : '';
+
   document.getElementById('lb-screen-result').innerHTML = `
+    ${enemyCardHtml}
     <div class="lb-verdict ${tier.tone}">
       <div class="lb-score-val">${res.total > 0 ? '+' : ''}${res.total}</div>
       <div class="lb-tier">${tier.label}</div>
@@ -1846,6 +1882,7 @@ function showLbResult(res) {
       <div class="lb-pt-earned">+${res.points_earned}pt</div>
     </div>
     ${forcedNote}
+    ${defeatBanner}
     <div class="lb-chart">${rows.join('')}</div>
     <button class="btn btn-primary" style="width:100%" id="lb-close-btn">${t('close')}</button>
   `;
