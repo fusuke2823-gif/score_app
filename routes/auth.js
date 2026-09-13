@@ -312,10 +312,10 @@ async function getLoginBonusScoreTable() {
   return table;
 }
 
-const BOSS_MAX_HP = 20;
+const BOSS_MAX_HP = 40;
 
 function damageForTotal(total) {
-  return total >= 0 ? total + 1 : 0; // -2,-1→0 / 0→1 / 1→2 / 2→3
+  return { '-2': 0, '-1': 1, '0': 2, '1': 3, '2': 5 }[String(total)] ?? 0;
 }
 
 // ID昇順で「currentIdより大きい最小のID」を返す。無ければ先頭（最小ID）に周回。プールが空ならnull。

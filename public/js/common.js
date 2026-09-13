@@ -1488,11 +1488,11 @@ async function initAccountSettingsPrompt() {
 const LB_WEAPONS = ['斬', '突', '打'];
 const LB_ELEMENTS = ['火', '氷', '雷', '光', '闇', '無'];
 const LB_TIERS = {
-  '-2': { label: '手痛い反撃', tone: 'tone-danger', flavor: '両方とも耐性…手痛い一撃を受けた。' },
-  '-1': { label: '苦戦', tone: 'tone-warning', flavor: '耐性にひとつ阻まれた。' },
-  '0':  { label: '互角', tone: 'tone-neutral', flavor: '決め手を欠いたが、被害はない。' },
-  '1':  { label: '有効打', tone: 'tone-success', flavor: '弱点をひとつ突くことに成功。' },
-  '2':  { label: '会心の一撃!!', tone: 'tone-jackpot', flavor: '見事、弱点を完全に突いた！' },
+  '-2': { label: 'MISS', tone: 'tone-danger', flavor: '相性最悪、攻撃がまったく通じていない……' },
+  '-1': { label: 'BAD', tone: 'tone-warning', flavor: '耐性に阻まれ、十分にダメージを与えられない。' },
+  '0':  { label: 'GOOD', tone: 'tone-neutral', flavor: '決定打には欠けるが、確かに一撃を与えた。' },
+  '1':  { label: 'GREAT', tone: 'tone-success', flavor: '弱点を1つ突き、着実にダメージを与えた。' },
+  '2':  { label: 'PERFECT', tone: 'tone-jackpot', flavor: '弱点を完全にとらえ、大ダメージを与えた。' },
 };
 const LB_REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let _lbWeaponPick = null, _lbElementPick = null;
@@ -1746,13 +1746,14 @@ function lbEnemyPlaceholderSvg() {
   </svg>`;
 }
 
-function lbHeartsHTML(hp, maxHp = 20) {
+function lbHeartsHTML(hp, maxHp = 40) {
   if (hp == null) return '';
-  const count = maxHp / 2;
+  const totalHearts = 10;
+  const perHeart = maxHp / totalHearts; // 1個のハートが表すHP量
   let html = '';
-  for (let i = 0; i < count; i++) {
-    const val = hp - i * 2;
-    const state = val >= 2 ? 'full' : val === 1 ? 'half' : 'empty';
+  for (let i = 0; i < totalHearts; i++) {
+    const val = hp - i * perHeart;
+    const state = val >= perHeart ? 'full' : val >= perHeart / 2 ? 'half' : 'empty';
     html += `<span class="lb-heart ${state}"></span>`;
   }
   return `<div class="lb-hearts">${html}</div>`;
