@@ -284,7 +284,7 @@ function lbShuffle(arr) {
 }
 
 function generateBossEnemyChart(isDay7) {
-  const weaponSlots = isDay7 ? ['weak', 'weak', 'neutral'] : ['weak', 'neutral', 'resist'];
+  const weaponSlots = isDay7 ? ['weak', 'neutral', 'neutral'] : ['weak', 'neutral', 'resist'];
   lbShuffle(weaponSlots);
   const weaponMap = {};
   WEAPON_ATTRS.forEach((w, i) => { weaponMap[w] = weaponSlots[i]; });
@@ -303,7 +303,7 @@ function lbScoreOf(status) { return status === 'weak' ? 1 : status === 'resist' 
 
 async function getLoginBonusScoreTable() {
   const result = await pool.query("SELECT key, value FROM settings WHERE key LIKE 'login_bonus_score_%'");
-  const table = { '-2': 10, '-1': 15, '0': 25, '1': 45, '2': 100 };
+  const table = { '-2': 10, '-1': 15, '0': 25, '1': 40, '2': 100 };
   const keyMap = { m2: '-2', m1: '-1', '0': '0', p1: '1', p2: '2' };
   result.rows.forEach(r => {
     const suffix = r.key.replace('login_bonus_score_', '');

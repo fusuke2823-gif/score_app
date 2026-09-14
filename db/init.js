@@ -408,7 +408,7 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('login_bonus_score_m2', '10') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_score_m1', '15') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_score_0',  '25') ON CONFLICT (key) DO NOTHING;
-      INSERT INTO settings (key, value) VALUES ('login_bonus_score_p1', '45') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('login_bonus_score_p1', '40') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('login_bonus_score_p2', '100') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('ext_rank_pts_1_5',    '100') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('ext_rank_pts_6_10',   '80')  ON CONFLICT (key) DO NOTHING;
