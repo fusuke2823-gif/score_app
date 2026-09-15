@@ -173,34 +173,60 @@ async function loadEvents() {
 }
 
 let myScores = [];
+let myScoresPollTimer = null;
+const MY_SCORES_POLL_MS = 5000;
+
+function renderMyScoresTable(scores, container) {
+  if (scores.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = `
+    <h3 style="font-size:0.9rem;color:rgba(232,232,240,0.75);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">${t('submit.status_title')}</h3>
+    <div class="card">
+      <table class="ranking-table">
+        <thead><tr><th>${t('submit.th_attr')}</th><th>${t('submit.th_approved')}</th><th>${t('submit.th_pending')}</th><th>${t('submit.th_status')}</th></tr></thead>
+        <tbody>
+          ${scores.map(s => `
+            <tr>
+              <td>${attrBadge(s.attribute)}</td>
+              <td>${formatScore(s.approved_score)}</td>
+              <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
+              <td>${statusBadge(s.status)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
 
 // 自分のスコア表示
 async function loadMyScores() {
   const eventId = document.getElementById('event-select').value;
   const container = document.getElementById('my-scores');
+  if (myScoresPollTimer) { clearInterval(myScoresPollTimer); myScoresPollTimer = null; }
   if (!eventId) { container.innerHTML = ''; myScores = []; return; }
 
   try {
     const scores = await apiFetch(`/scores/my/${eventId}`);
     myScores = scores;
-    if (scores.length === 0) { container.innerHTML = ''; return; }
+    renderMyScoresTable(scores, container);
 
-    container.innerHTML = `
-      <h3 style="font-size:0.9rem;color:rgba(232,232,240,0.75);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">${t('submit.status_title')}</h3>
-      <div class="card">
-        <table class="ranking-table">
-          <thead><tr><th>${t('submit.th_attr')}</th><th>${t('submit.th_approved')}</th><th>${t('submit.th_pending')}</th><th>${t('submit.th_status')}</th></tr></thead>
-          <tbody>
-            ${scores.map(s => `
-              <tr>
-                <td>${attrBadge(s.attribute)}</td>
-                <td>${formatScore(s.approved_score)}</td>
-                <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
-                <td>${statusBadge(s.status)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    // 承認待ちがある間だけ、AIによるバックグラウンド承認等を静かにポーリングして反映する
+    if (scores.some(s => s.status === 'pending')) {
+      myScoresPollTimer = setInterval(async () => {
+        if (document.getElementById('event-select').value !== eventId) {
+          clearInterval(myScoresPollTimer);
+          myScoresPollTimer = null;
+          return;
+        }
+        try {
+          const fresh = await apiFetch(`/scores/my/${eventId}`);
+          myScores = fresh;
+          renderMyScoresTable(fresh, container);
+          if (!fresh.some(s => s.status === 'pending')) {
+            clearInterval(myScoresPollTimer);
+            myScoresPollTimer = null;
+          }
+        } catch {}
+      }, MY_SCORES_POLL_MS);
+    }
   } catch {}
 }
 
