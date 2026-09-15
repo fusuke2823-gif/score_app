@@ -152,6 +152,7 @@ async function loadPending() {
             <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
             ${item.dup_image_url ? `<button onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')" style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em;border:none;cursor:pointer">⚠ 既存スコアと一致</button>` : ''}
           </div>
+          ${item.ai_note ? `<div style="background:rgba(231,76,60,0.15);color:#e74c3c;font-size:0.78rem;font-weight:bold;padding:4px 8px;border-radius:4px;margin-bottom:6px;display:inline-block">🤖 ${escHtml(item.ai_note)}</div>` : ''}
           <div id="score-display-${item.id}" style="display:flex;align-items:center;gap:6px">
             <span class="pending-score">${formatScore(item.pending_score)}</span>
             <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="startEditScore(${item.id})" title="スコアを修正">✎ 修正</button>

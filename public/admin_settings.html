@@ -87,6 +87,16 @@
         環境変数 <code>ADMIN_NOTIFY_EMAIL</code> / <code>GMAIL_USER</code> / <code>GMAIL_APP_PASSWORD</code> が設定されている場合のみ機能します。
       </p>
     </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">スコア投稿のAI自動承認</div>
+      <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+        <input type="checkbox" id="ai-check-toggle" onchange="saveAiCheckSetting()" style="width:18px;height:18px">
+        <span>AIでリザルト画像を読み取り、入力値と一致すれば自動承認する</span>
+      </label>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
+        環境変数 <code>GEMINI_API_KEY</code> が設定されている場合のみ機能します。オフにすると常に手動承認になります。
+      </p>
+    </div>
 
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -248,6 +258,7 @@ async function loadSettings() {
     const s = await apiFetch('/admin/settings');
     document.getElementById('notify-toggle').checked = s.notify_on_submit;
     document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
+    document.getElementById('ai-check-toggle').checked = s.ai_score_check_enabled;
     setVersionFields(s.app_version || '4.03.00');
   } catch (err) {
     showAlert('#settings-alert', err.message);
@@ -302,6 +313,19 @@ async function saveNotifySetting() {
       body: JSON.stringify({ notify_on_submit: enabled })
     });
     showAlert('#settings-alert', enabled ? '通知をオンにしました' : '通知をオフにしました', 'success');
+  } catch (err) {
+    showAlert('#settings-alert', err.message);
+  }
+}
+
+async function saveAiCheckSetting() {
+  const enabled = document.getElementById('ai-check-toggle').checked;
+  try {
+    await apiFetch('/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ ai_score_check_enabled: enabled })
+    });
+    showAlert('#settings-alert', enabled ? 'AI自動承認をオンにしました' : 'AI自動承認をオフにしました', 'success');
   } catch (err) {
     showAlert('#settings-alert', err.message);
   }

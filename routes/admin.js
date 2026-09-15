@@ -4,7 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints, convertExScoreToPoints } = require('./rankUtils');
+const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints, convertExScoreToPoints, approveScoreRow } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -69,67 +69,7 @@ router.post('/scores/:id/approve', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-
-    // 属性を変更する場合、変更先に既存スコアがあれば上書き（既存側を削除してからこの行を更新）
-    let overwritten = false;
-    if (overrideAttribute) {
-      const cur = await client.query('SELECT user_id, event_id, attribute FROM scores WHERE id = $1', [req.params.id]);
-      if (cur.rows.length === 0) {
-        await client.query('ROLLBACK');
-        return res.status(404).json({ error: 'スコアが見つかりません' });
-      }
-      const { user_id, event_id, attribute } = cur.rows[0];
-      if (overrideAttribute !== attribute) {
-        const del = await client.query(
-          'DELETE FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3 AND id != $4',
-          [user_id, event_id, overrideAttribute, req.params.id]
-        );
-        overwritten = del.rowCount > 0;
-        // 上書きされた属性の動画掲示板エントリも削除しておく（古いスコアの動画が残らないように）
-        await client.query(
-          'DELETE FROM video_board WHERE user_id = $1 AND event_id = $2 AND attribute = $3',
-          [user_id, event_id, overrideAttribute]
-        );
-      }
-    }
-
-    const result = await client.query(
-      `UPDATE scores SET
-         approved_score = COALESCE($3, pending_score),
-         attribute = COALESCE($4, attribute),
-         approved_image_url = COALESCE(pending_image_url, approved_image_url),
-         pending_score = NULL,
-         pending_image_url = NULL,
-         status = 'approved',
-         admin_note = NULL,
-         youtube_url = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_url, youtube_url) END,
-         youtube_score = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_score, youtube_score) END,
-         video_url = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_url, youtube_url) END,
-         pending_youtube_url = NULL,
-         pending_youtube_score = NULL,
-         updated_at = NOW()
-       WHERE id = $1
-       RETURNING *`,
-      [req.params.id, clearYoutube, overrideScore, overrideAttribute]
-    );
-    if (result.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'スコアが見つかりません' });
-    }
-    const score = result.rows[0];
-    if (!clearYoutube && score.video_url && ['public', 'external'].includes(score.ranking_scope)) {
-      await client.query(
-        `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
-           approved_image_url = EXCLUDED.approved_image_url,
-           approved_score = EXCLUDED.approved_score,
-           is_anonymous = EXCLUDED.is_anonymous`,
-        [score.user_id, score.event_id, score.attribute, score.video_url,
-         score.approved_image_url, score.approved_score, score.is_anonymous, score.ranking_scope]
-      );
-    }
-
+    const { score, overwritten } = await approveScoreRow(client, req.params.id, { overrideScore, overrideAttribute, clearYoutube });
     await client.query('COMMIT');
     res.json({
       message: (clearYoutube ? 'スコアのみ承認しました' : '承認しました') + (overwritten ? '（変更先の既存スコアを上書きしました）' : ''),
@@ -137,6 +77,7 @@ router.post('/scores/:id/approve', async (req, res) => {
     });
   } catch (err) {
     await client.query('ROLLBACK');
+    if (err.code === 'SCORE_NOT_FOUND') return res.status(404).json({ error: 'スコアが見つかりません' });
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
   } finally {
@@ -490,12 +431,13 @@ router.delete('/enemies/:id', async (req, res) => {
 // 通知設定取得
 router.get('/settings', async (req, res) => {
   try {
-    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('notify_on_submit', 'app_version')");
+    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('notify_on_submit', 'app_version', 'ai_score_check_enabled')");
     const map = {};
     result.rows.forEach(r => { map[r.key] = r.value; });
     res.json({
       notify_on_submit: map['notify_on_submit'] === 'true',
-      app_version: map['app_version'] || '4.03.22'
+      app_version: map['app_version'] || '4.03.22',
+      ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false'
     });
   } catch (err) {
     console.error(err);
@@ -505,12 +447,18 @@ router.get('/settings', async (req, res) => {
 
 // 通知設定更新
 router.put('/settings', async (req, res) => {
-  const { notify_on_submit, app_version } = req.body;
+  const { notify_on_submit, app_version, ai_score_check_enabled } = req.body;
   try {
     if (notify_on_submit !== undefined) {
       await pool.query(
         "INSERT INTO settings (key, value) VALUES ('notify_on_submit', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
         [notify_on_submit ? 'true' : 'false']
+      );
+    }
+    if (ai_score_check_enabled !== undefined) {
+      await pool.query(
+        "INSERT INTO settings (key, value) VALUES ('ai_score_check_enabled', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+        [ai_score_check_enabled ? 'true' : 'false']
       );
     }
     if (app_version !== undefined) {

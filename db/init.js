@@ -60,6 +60,13 @@ const initDB = async () => {
       );
     `);
 
+    // スコア投稿のAI自動承認チェック結果
+    await client.query(`
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS ai_extracted_score BIGINT;
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS ai_match BOOLEAN;
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS ai_note TEXT;
+    `);
+
     // usersテーブルに必須カラムが不足している場合は追加（他サービスからのリネーム復元対策）
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS oshi_character VARCHAR(100);
@@ -376,6 +383,7 @@ const initDB = async () => {
     // 通知・ガチャ設定の初期値
     await client.query(`
       INSERT INTO settings (key, value) VALUES ('notify_on_submit', 'false') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('ai_score_check_enabled', 'true') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_ss_rate', '3') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_s_rate', '15') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('gacha_a_rate', '82') ON CONFLICT (key) DO NOTHING;

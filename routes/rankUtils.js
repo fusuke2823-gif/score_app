@@ -228,6 +228,73 @@ async function syncLegendRanks(client) {
   }
 }
 
+// スコアを承認済みにし、video_boardへの反映まで行う共通処理。
+// 呼び出し側でBEGIN済みのclientを渡すこと（エラー時は例外を投げるのでROLLBACKは呼び出し側で行う）。
+// admin.jsの手動承認、scores.jsのAI自動承認の両方から使う。
+async function approveScoreRow(client, scoreId, { overrideScore = null, overrideAttribute = null, clearYoutube = false, adminNote = null } = {}) {
+  let overwritten = false;
+  if (overrideAttribute) {
+    const cur = await client.query('SELECT user_id, event_id, attribute FROM scores WHERE id = $1', [scoreId]);
+    if (cur.rows.length === 0) {
+      const err = new Error('score not found');
+      err.code = 'SCORE_NOT_FOUND';
+      throw err;
+    }
+    const { user_id, event_id, attribute } = cur.rows[0];
+    if (overrideAttribute !== attribute) {
+      const del = await client.query(
+        'DELETE FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3 AND id != $4',
+        [user_id, event_id, overrideAttribute, scoreId]
+      );
+      overwritten = del.rowCount > 0;
+      // 上書きされた属性の動画掲示板エントリも削除しておく（古いスコアの動画が残らないように）
+      await client.query(
+        'DELETE FROM video_board WHERE user_id = $1 AND event_id = $2 AND attribute = $3',
+        [user_id, event_id, overrideAttribute]
+      );
+    }
+  }
+
+  const result = await client.query(
+    `UPDATE scores SET
+       approved_score = COALESCE($3, pending_score),
+       attribute = COALESCE($4, attribute),
+       approved_image_url = COALESCE(pending_image_url, approved_image_url),
+       pending_score = NULL,
+       pending_image_url = NULL,
+       status = 'approved',
+       admin_note = $5,
+       youtube_url = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_url, youtube_url) END,
+       youtube_score = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_score, youtube_score) END,
+       video_url = CASE WHEN $2 THEN NULL ELSE COALESCE(pending_youtube_url, youtube_url) END,
+       pending_youtube_url = NULL,
+       pending_youtube_score = NULL,
+       updated_at = NOW()
+     WHERE id = $1
+     RETURNING *`,
+    [scoreId, clearYoutube, overrideScore, overrideAttribute, adminNote]
+  );
+  if (result.rows.length === 0) {
+    const err = new Error('score not found');
+    err.code = 'SCORE_NOT_FOUND';
+    throw err;
+  }
+  const score = result.rows[0];
+  if (!clearYoutube && score.video_url && ['public', 'external'].includes(score.ranking_scope)) {
+    await client.query(
+      `INSERT INTO video_board (user_id, event_id, attribute, video_url, approved_image_url, approved_score, is_anonymous, ranking_scope)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (user_id, event_id, attribute, video_url) DO UPDATE SET
+         approved_image_url = EXCLUDED.approved_image_url,
+         approved_score = EXCLUDED.approved_score,
+         is_anonymous = EXCLUDED.is_anonymous`,
+      [score.user_id, score.event_id, score.attribute, score.video_url,
+       score.approved_image_url, score.approved_score, score.is_anonymous, score.ranking_scope]
+    );
+  }
+  return { score, overwritten };
+}
+
 module.exports = {
   convertScoreToPoints,
   convertEncounterScoreToPoints,
@@ -240,4 +307,5 @@ module.exports = {
   getCombinedXPt,
   updateUserRanks,
   syncLegendRanks,
+  approveScoreRow,
 };
