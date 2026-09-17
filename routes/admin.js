@@ -1517,7 +1517,7 @@ router.post('/special-gacha/enemies', async (req, res) => {
     await client.query('UPDATE special_gacha_enemies SET is_active=FALSE WHERE is_active=TRUE');
     const result = await client.query(
       'INSERT INTO special_gacha_enemies (name, image_url, max_hp, ssr_icon_id, is_active) VALUES ($1,$2,$3,$4,TRUE) RETURNING *',
-      [name, uploadResult.secure_url, max_hp ? parseInt(max_hp, 10) : 2800, ssr_icon_id]
+      [name, uploadResult.secure_url, max_hp ? parseInt(max_hp, 10) : 28000, ssr_icon_id]
     );
     await client.query('COMMIT');
     res.json(result.rows[0]);

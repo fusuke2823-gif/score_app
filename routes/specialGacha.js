@@ -19,10 +19,10 @@ const CAT = [
   { name: 'destruction', p: 0.10, label: '破壊率アイテム' },
 ];
 const DAMAGE_BASE_TABLE = [
-  { name: 'miss', p: 0.30, dmg: 1, label: '小ダメージ' },
-  { name: 'normal', p: 0.45, dmg: 2, label: '中ダメージ' },
-  { name: 'crit', p: 0.20, dmg: 4, label: '大ダメージ' },
-  { name: 'ultra', p: 0.05, dmg: 9, label: 'クリティカルダメージ' },
+  { name: 'miss', p: 0.30, dmg: 10, label: '小ダメージ' },
+  { name: 'normal', p: 0.45, dmg: 20, label: '中ダメージ' },
+  { name: 'crit', p: 0.20, dmg: 40, label: '大ダメージ' },
+  { name: 'ultra', p: 0.05, dmg: 90, label: 'クリティカルダメージ' },
 ];
 const FAVORABLE = [
   { key: 'ally_small', p: 0.30, label: '攻撃UP(小)', sub: '与ダメ+50%・15連' },
