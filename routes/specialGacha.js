@@ -13,10 +13,16 @@ const DESTRUCTION_MAX = 999.0;
 const DESTRUCTION_INC = { destruction_25: 25.0, destruction_50: 50.0, destruction_100: 100.0 };
 
 const CAT = [
-  { name: 'damage', p: 0.70 },
-  { name: 'favorable', p: 0.10 },
-  { name: 'unfavorable', p: 0.10 },
-  { name: 'destruction', p: 0.10 },
+  { name: 'damage', p: 0.70, label: 'ダメージリソース' },
+  { name: 'favorable', p: 0.10, label: '有利アイテム' },
+  { name: 'unfavorable', p: 0.10, label: '不利アイテム' },
+  { name: 'destruction', p: 0.10, label: '破壊率アイテム' },
+];
+const DAMAGE_BASE_TABLE = [
+  { name: 'miss', p: 0.30, dmg: 1, label: '小攻撃' },
+  { name: 'normal', p: 0.45, dmg: 2, label: '通常攻撃' },
+  { name: 'crit', p: 0.20, dmg: 4, label: '会心の一撃' },
+  { name: 'ultra', p: 0.05, dmg: 9, label: '必殺技' },
 ];
 const FAVORABLE = [
   { key: 'ally_small', p: 0.30, label: '攻撃UP(小)', sub: '与ダメ+50%・15連' },
@@ -55,17 +61,17 @@ function rollOne(state) {
   const cat = pick(CAT);
 
   if (cat.name === 'damage') {
+    const [missBase, normalBase, critBase, ultraBase] = DAMAGE_BASE_TABLE.map(t => t.p);
     const critBoost = 1 + (state.critup_small > 0 ? 0.5 : 0) + (state.critup_large > 0 ? 1.0 : 0);
-    const critBase = 0.20, ultraBase = 0.05, missBase = 0.30, normalBase = 0.45;
     const crit = critBase * critBoost, ultra = ultraBase * critBoost;
     const added = (crit - critBase) + (ultra - ultraBase);
     const missShare = missBase / (missBase + normalBase), normalShare = normalBase / (missBase + normalBase);
     const miss = Math.max(0, missBase - added * missShare), normal = Math.max(0, normalBase - added * normalShare);
     const table = [
-      { name: 'miss', p: miss, dmg: 1, label: '小攻撃' },
-      { name: 'normal', p: normal, dmg: 2, label: '通常攻撃' },
-      { name: 'crit', p: crit, dmg: 4, label: '会心の一撃' },
-      { name: 'ultra', p: ultra, dmg: 9, label: '必殺技' },
+      { ...DAMAGE_BASE_TABLE[0], p: miss },
+      { ...DAMAGE_BASE_TABLE[1], p: normal },
+      { ...DAMAGE_BASE_TABLE[2], p: crit },
+      { ...DAMAGE_BASE_TABLE[3], p: ultra },
     ];
     const roll = pick(table);
     const allyBonus = (state.ally_small > 0 ? 0.5 : 0) + (state.ally_large > 0 ? 2.0 : 0);
@@ -114,6 +120,19 @@ async function getActiveEnemy() {
   );
   return result.rows[0] || null;
 }
+
+// 排出内容・確率・効果の一覧（画面下の展開パネル用）
+router.get('/rates', (req, res) => {
+  res.json({
+    pull_cost: PULL_COST,
+    categories: [
+      { ...CAT[0], items: DAMAGE_BASE_TABLE.map(t => ({ label: t.label, p: t.p, detail: `${t.dmg}ダメージ` })) },
+      { ...CAT[1], items: FAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
+      { ...CAT[2], items: UNFAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
+      { ...CAT[3], items: DESTRUCTION.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
+    ],
+  });
+});
 
 // 現在の敵 + 自分の進行状況 + 所持ptを取得（進行状況が無ければ作成）
 router.get('/current', async (req, res) => {

@@ -179,12 +179,24 @@
   color:var(--text-primary); background:rgba(10,9,20,0.85); border-radius:50%; padding:1.5px;
 }
 .sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; text-align:center; }
-.sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; }
+.sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; font-size:0.56rem; }
+.sg-card-back.cat-damage .sg-card-val .sg-dmg-num { display:block; font-size:1.05rem; }
 .sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.6rem; }
 .sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
 .sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.56rem; }
 
 .sg-battle-log { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:0.78rem; color:var(--text-secondary); text-align:center; margin-bottom:20px; }
+
+.sg-rates-panel { margin-top:10px; overflow:hidden; max-height:0; transition:max-height .35s ease; }
+.sg-rates-panel.open { max-height:2000px; }
+.sg-rates-group { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:10px; }
+.sg-rates-group-title { font-size:0.85rem; font-weight:bold; margin-bottom:4px; }
+.sg-rates-group-p { font-size:0.72rem; color:var(--text-muted); margin-bottom:10px; }
+.sg-rates-row { display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.8rem; }
+.sg-rates-row:last-child { border-bottom:none; }
+.sg-rates-row .rlabel { color:var(--text-primary); }
+.sg-rates-row .rdetail { color:var(--text-muted); font-size:0.72rem; }
+.sg-rates-row .rp { font-weight:bold; white-space:nowrap; }
 
 .sg-overlay { position:fixed; inset:0; background:rgba(6,5,14,0.88); display:flex; align-items:center; justify-content:center; z-index:3000; opacity:0; pointer-events:none; transition:opacity .35s ease; }
 .sg-overlay.show { opacity:1; pointer-events:auto; }
@@ -309,6 +321,11 @@
       <div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">特殊ガチャを引いてください</div>
     </div>
     <div class="sg-battle-log" id="sg-battle-log">10連ガチャを引くと、ここに結果が表示されます</div>
+
+    <button class="btn btn-secondary" id="sg-rates-toggle" onclick="toggleSgRates()" style="width:100%;margin-top:6px">
+      排出内容・確率を見る <span id="sg-rates-arrow">▾</span>
+    </button>
+    <div id="sg-rates-panel" class="sg-rates-panel" hidden></div>
   </div>
 
   <!-- 特殊ガチャ 討伐演出 -->
@@ -995,6 +1012,40 @@ async function loadSpecialGacha() {
   }
 }
 
+let sgRatesLoaded = false;
+async function toggleSgRates() {
+  const panel = document.getElementById('sg-rates-panel');
+  const arrow = document.getElementById('sg-rates-arrow');
+  const opening = !panel.classList.contains('open');
+
+  if (opening && !sgRatesLoaded) {
+    try {
+      const data = await apiFetch('/special-gacha/rates');
+      panel.innerHTML = data.categories.map(cat => `
+        <div class="sg-rates-group">
+          <div class="sg-rates-group-title">${escHtml(cat.label)}</div>
+          <div class="sg-rates-group-p">1段階目の抽選率: ${(cat.p * 100).toFixed(0)}%</div>
+          ${cat.items.map(it => `
+            <div class="sg-rates-row">
+              <span class="rlabel">${escHtml(it.label)}<br><span class="rdetail">${escHtml(it.detail)}</span></span>
+              <span class="rp">${(it.p * 100).toFixed(0)}%</span>
+            </div>`).join('')}
+        </div>`).join('');
+      sgRatesLoaded = true;
+    } catch (err) {
+      panel.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+    }
+  }
+
+  panel.hidden = false;
+  // hiddenを外した直後にopenを付けないとtransitionが効かないので1フレーム遅らせる
+  requestAnimationFrame(() => {
+    panel.classList.toggle('open', opening);
+    arrow.textContent = opening ? '▴' : '▾';
+    if (!opening) setTimeout(() => { panel.hidden = true; }, 350);
+  });
+}
+
 // カードの中身を文字ではなく絵(アイコン)で表現する。key: サーバーから返る効果キー
 const SG_ICON_MAP = {
   ally_small: ['sword', 'up1'], ally_large: ['sword', 'up2'],
@@ -1030,7 +1081,7 @@ function sgBadgeSvg(name) {
 
 function sgCardVisual(r) {
   if (r.category === 'damage') {
-    return { icon: sgSvg('sword'), val: (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg) };
+    return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num">${r.dmg}</span><br>ダメージ` };
   }
   const label = r.label.replace(/[()]/g, '');
   if (r.category === 'destruction') {
