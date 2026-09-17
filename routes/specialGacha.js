@@ -8,7 +8,7 @@ router.use(authenticateToken, requireAdmin);
 
 const PULL_COST = 100;
 const PULLS_PER_TRY = 10;
-const DUR_SMALL = 10, DUR_LARGE = 6;
+const DUR_SMALL = 15, DUR_LARGE = 8;
 const DESTRUCTION_MAX = 999.0;
 const DESTRUCTION_INC = { destruction_25: 25.0, destruction_50: 50.0, destruction_100: 100.0 };
 
@@ -19,16 +19,16 @@ const CAT = [
   { name: 'destruction', p: 0.10 },
 ];
 const FAVORABLE = [
-  { key: 'ally_small', p: 0.30, label: '味方バフ(小)', sub: '与ダメ+20%・10連' },
-  { key: 'ally_large', p: 0.10, label: '味方バフ(大)', sub: '与ダメ+80%・6連' },
-  { key: 'debuff_small', p: 0.30, label: '敵デバフ(小)', sub: '与ダメ+20%・10連' },
-  { key: 'debuff_large', p: 0.10, label: '敵デバフ(大)', sub: '与ダメ+80%・6連' },
-  { key: 'critup_small', p: 0.15, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・10連' },
-  { key: 'critup_large', p: 0.05, label: '会心率UP(大)', sub: '高ダメ確率2倍・6連' },
+  { key: 'ally_small', p: 0.30, label: '味方バフ(小)', sub: '与ダメ+50%・15連' },
+  { key: 'ally_large', p: 0.10, label: '味方バフ(大)', sub: '与ダメ+200%・8連' },
+  { key: 'debuff_small', p: 0.30, label: '敵デバフ(小)', sub: '与ダメ+50%・15連' },
+  { key: 'debuff_large', p: 0.10, label: '敵デバフ(大)', sub: '与ダメ+200%・8連' },
+  { key: 'critup_small', p: 0.15, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・15連' },
+  { key: 'critup_large', p: 0.05, label: '会心率UP(大)', sub: '高ダメ確率2倍・8連' },
 ];
 const UNFAVORABLE = [
-  { key: 'enemybuff_small', p: 0.35, label: '敵バフ(小)', sub: '与ダメ-20%・10連' },
-  { key: 'enemybuff_large', p: 0.15, label: '敵バフ(大)', sub: '与ダメ-50%・6連' },
+  { key: 'enemybuff_small', p: 0.35, label: '敵バフ(小)', sub: '与ダメ-20%・15連' },
+  { key: 'enemybuff_large', p: 0.15, label: '敵バフ(大)', sub: '与ダメ-50%・8連' },
   { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+2' },
   { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+6' },
 ];
@@ -68,8 +68,8 @@ function rollOne(state) {
       { name: 'ultra', p: ultra, dmg: 9, label: '必殺技' },
     ];
     const roll = pick(table);
-    const allyBonus = (state.ally_small > 0 ? 0.2 : 0) + (state.ally_large > 0 ? 0.8 : 0);
-    const debuffBonus = (state.debuff_small > 0 ? 0.2 : 0) + (state.debuff_large > 0 ? 0.8 : 0);
+    const allyBonus = (state.ally_small > 0 ? 0.5 : 0) + (state.ally_large > 0 ? 2.0 : 0);
+    const debuffBonus = (state.debuff_small > 0 ? 0.5 : 0) + (state.debuff_large > 0 ? 2.0 : 0);
     const enemyPenalty = (state.enemybuff_small > 0 ? 0.2 : 0) + (state.enemybuff_large > 0 ? 0.5 : 0);
     const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100);
     const dmg = Math.round(roll.dmg * mult);

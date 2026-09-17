@@ -545,7 +545,7 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         image_url TEXT NOT NULL,
-        max_hp INTEGER NOT NULL DEFAULT 420,
+        max_hp INTEGER NOT NULL DEFAULT 2800,
         ssr_icon_id INTEGER REFERENCES gacha_icons(id),
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMPTZ DEFAULT NOW()
