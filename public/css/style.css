@@ -416,12 +416,28 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 /* アイコンレアリティ枠 */
 .icon-rarity-A  { box-shadow: 0 0 0 1.5px #4fc3f7; }
 .icon-rarity-S  { box-shadow: 0 0 0 1.5px #ffd700; }
-.icon-rarity-SS { animation: iconSsGlow 1.8s linear infinite; }
+.icon-rarity-SS {
+  box-sizing: border-box;
+  border: 1.5px solid transparent;
+  background: linear-gradient(#0a0916,#0a0916) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
+  animation: iconSsGlow 1.8s linear infinite;
+}
+.icon-rarity-SSR {
+  box-sizing: border-box;
+  border: 1.5px solid transparent;
+  background: linear-gradient(#0a0916,#0a0916) padding-box, linear-gradient(135deg,#ff36d6,#ffd700) border-box;
+  animation: iconSsrGlow 1.8s linear infinite;
+}
 @keyframes iconSsGlow {
-  0%   { box-shadow: 0 0 0 1.5px #ffd700; }
-  33%  { box-shadow: 0 0 0 1.5px #ff66cc; }
-  66%  { box-shadow: 0 0 0 1.5px #00eeff; }
-  100% { box-shadow: 0 0 0 1.5px #ffd700; }
+  0%   { box-shadow: 0 0 5px #ffd700; }
+  33%  { box-shadow: 0 0 5px #ff66cc; }
+  66%  { box-shadow: 0 0 5px #00eeff; }
+  100% { box-shadow: 0 0 5px #ffd700; }
+}
+@keyframes iconSsrGlow {
+  0%   { box-shadow: 0 0 6px #ff36d6; }
+  50%  { box-shadow: 0 0 6px #ffd700; }
+  100% { box-shadow: 0 0 6px #ff36d6; }
 }
 
 /* イベントカード */
