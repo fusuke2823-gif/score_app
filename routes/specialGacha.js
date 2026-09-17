@@ -19,18 +19,18 @@ const CAT = [
   { name: 'destruction', p: 0.10 },
 ];
 const FAVORABLE = [
-  { key: 'ally_small', p: 0.30, label: '味方バフ(小)', sub: '与ダメ+50%・15連' },
-  { key: 'ally_large', p: 0.10, label: '味方バフ(大)', sub: '与ダメ+200%・8連' },
-  { key: 'debuff_small', p: 0.30, label: '敵デバフ(小)', sub: '与ダメ+50%・15連' },
-  { key: 'debuff_large', p: 0.10, label: '敵デバフ(大)', sub: '与ダメ+200%・8連' },
-  { key: 'critup_small', p: 0.15, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・15連' },
-  { key: 'critup_large', p: 0.05, label: '会心率UP(大)', sub: '高ダメ確率2倍・8連' },
+  { key: 'ally_small', p: 0.30, label: '攻撃UP(小)', sub: '与ダメ+50%・15連' },
+  { key: 'ally_large', p: 0.10, label: '攻撃UP(大)', sub: '与ダメ+200%・8連' },
+  { key: 'debuff_small', p: 0.30, label: '防御DOWN(小)', sub: '与ダメ+50%・15連' },
+  { key: 'debuff_large', p: 0.10, label: '防御DOWN(大)', sub: '与ダメ+200%・8連' },
+  { key: 'critup_small', p: 0.15, label: 'CRT率UP(小)', sub: '高ダメ確率1.5倍・15連' },
+  { key: 'critup_large', p: 0.05, label: 'CRT率UP(大)', sub: '高ダメ確率2倍・8連' },
 ];
 const UNFAVORABLE = [
-  { key: 'enemybuff_small', p: 0.35, label: '敵バフ(小)', sub: '与ダメ-20%・15連' },
-  { key: 'enemybuff_large', p: 0.15, label: '敵バフ(大)', sub: '与ダメ-50%・8連' },
-  { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+2' },
-  { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+6' },
+  { key: 'enemybuff_small', p: 0.35, label: '防御UP(小)', sub: '与ダメ-20%・15連' },
+  { key: 'enemybuff_large', p: 0.15, label: '防御UP(大)', sub: '与ダメ-50%・8連' },
+  { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+15' },
+  { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+40' },
 ];
 const DESTRUCTION = [
   { key: 'destruction_25', p: 0.50, label: '破壊率上昇+25%', sub: `破壊率+${DESTRUCTION_INC.destruction_25.toFixed(1)}%` },
@@ -93,8 +93,8 @@ function rollOne(state) {
 
   const roll = pick(UNFAVORABLE);
   let dmg = 0;
-  if (roll.key === 'heal_small') dmg = -2;
-  else if (roll.key === 'heal_large') dmg = -6;
+  if (roll.key === 'heal_small') dmg = -15;
+  else if (roll.key === 'heal_large') dmg = -40;
   else state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
   decrementAll(state);
   return { category: 'unfavorable', key: roll.key, label: roll.label, sub: roll.sub, dmg };
