@@ -35,8 +35,8 @@ const FAVORABLE = [
 const UNFAVORABLE = [
   { key: 'enemybuff_small', p: 0.35, label: '防御UP(小)', sub: '与ダメ-20%・15連' },
   { key: 'enemybuff_large', p: 0.15, label: '防御UP(大)', sub: '与ダメ-50%・8連' },
-  { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+15' },
-  { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+40' },
+  { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+300' },
+  { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+800' },
 ];
 const DESTRUCTION = [
   { key: 'destruction_25', p: 0.50, label: '破壊率上昇+25%', sub: `破壊率+${DESTRUCTION_INC.destruction_25.toFixed(1)}%` },
@@ -99,8 +99,8 @@ function rollOne(state) {
 
   const roll = pick(UNFAVORABLE);
   let dmg = 0;
-  if (roll.key === 'heal_small') dmg = -15;
-  else if (roll.key === 'heal_large') dmg = -40;
+  if (roll.key === 'heal_small') dmg = -300;
+  else if (roll.key === 'heal_large') dmg = -800;
   else state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
   decrementAll(state);
   return { category: 'unfavorable', key: roll.key, label: roll.label, sub: roll.sub, dmg };
