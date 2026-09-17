@@ -149,6 +149,9 @@
 .sg-boss-name { font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .sg-hp-bar-outer { width:100%; height:8px; border-radius:5px; background:rgba(0,0,0,0.4); border:1px solid var(--border); overflow:hidden; }
 .sg-hp-bar-inner { height:100%; border-radius:5px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .5s ease; }
+.sg-reward-preview { flex-shrink:0; text-align:center; }
+.sg-reward-preview img { width:36px; height:36px; border-radius:20%; object-fit:cover; border:1px solid rgba(255,214,0,0.5); box-shadow:0 0 8px rgba(255,214,0,0.3); display:block; margin:0 auto 2px; }
+.sg-reward-label { font-size:0.55rem; color:var(--text-muted); max-width:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .sg-effects-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:12px; min-height:22px; }
 .sg-eff-badge { font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:20px; }
 .sg-eff-badge.fav { background:rgba(73,214,168,0.14); color:#49d6a8; border:1px solid rgba(73,214,168,0.4); }
@@ -270,6 +273,10 @@
         <div class="sg-boss-info">
           <div class="sg-boss-name" id="sg-boss-name">-</div>
           <div class="sg-hp-bar-outer"><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
+        </div>
+        <div class="sg-reward-preview">
+          <img id="sg-reward-icon" alt="">
+          <div class="sg-reward-label" id="sg-reward-name"></div>
         </div>
       </div>
       <div class="sg-effects-row" id="sg-effects-row"></div>
@@ -951,6 +958,8 @@ async function loadSpecialGacha() {
     sgCurrentEnemy = data.enemy;
     document.getElementById('sg-boss-name').textContent = data.enemy.name;
     document.getElementById('sg-boss-portrait').src = data.enemy.image_url;
+    document.getElementById('sg-reward-icon').src = data.enemy.ssr_icon_image_url;
+    document.getElementById('sg-reward-name').textContent = data.enemy.ssr_icon_name;
     renderSgHp(data.progress.current_hp, data.enemy.max_hp);
     renderSgEffects(data.progress);
     updatePointsDisplay(data.points);
