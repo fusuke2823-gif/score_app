@@ -277,9 +277,12 @@
       <div class="sg-effects-row" id="sg-effects-row"></div>
     </div>
 
-    <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" style="width:100%;margin:16px 0" disabled>
-      <span style="font-size:0.95rem;font-weight:bold">特殊ガチャ 10連を引く（<span id="sg-pull-cost">100</span>pt）</span>
-    </button>
+    <div class="gacha-pull-btns">
+      <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" disabled>
+        <img src="/img/gacha_10.png" alt="10連ガチャ">
+      </button>
+    </div>
+    <div style="text-align:center;font-size:0.8rem;color:rgba(232,232,240,0.75);margin:-16px 0 20px">10連 <span id="sg-pull-cost">100</span>pt</div>
 
     <div class="section-title">今回の結果</div>
     <div class="sg-results-grid" id="sg-results-grid"></div>
@@ -993,7 +996,12 @@ async function doSpecialPull() {
     const data = await apiFetch('/special-gacha/pull', { method: 'POST' });
     document.getElementById('sg-results-grid').innerHTML = data.results.map((r, i) => sgCardHtml(r, i)).join('');
     data.results.forEach((_, i) => {
-      setTimeout(() => document.getElementById(`sg-card-${i}`)?.querySelector('.g-card-inner').classList.add('flipped'), 120 * i + 150);
+      setTimeout(() => {
+        const el = document.getElementById(`sg-card-${i}`);
+        if (!el) return;
+        el.classList.add('card-visible');
+        el.querySelector('.g-card-inner').classList.add('flipped');
+      }, 120 * i + 150);
     });
 
     const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 ? r.dmg : 0), 0);
