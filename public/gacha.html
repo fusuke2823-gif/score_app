@@ -163,6 +163,14 @@
 .sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); color:#49d6a8; }
 .sg-card-back.cat-unfavorable { border:2px solid #e6494f; box-shadow:0 0 8px rgba(230,73,79,0.35); color:#e6494f; }
 .sg-card-back.cat-destruction { border:2px solid #c9762b; box-shadow:0 0 8px rgba(201,118,43,0.4); color:#c9762b; }
+@keyframes sgGlowPulse {
+  0%, 100% { box-shadow: 0 0 8px currentColor; }
+  50% { box-shadow: 0 0 16px currentColor, 0 0 30px currentColor; }
+}
+.sg-card-back.sg-glow { animation: sgGlowPulse 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .sg-card-back.sg-glow { animation: none; box-shadow: 0 0 16px currentColor; }
+}
 .sg-card-icon { display:flex; align-items:center; justify-content:center; }
 .sg-svg-icon { width:32px; height:32px; }
 .sg-icon-stack { position:relative; display:inline-flex; }
@@ -1043,7 +1051,10 @@ async function animateSpecialPull(results) {
 
   const cardEls = [];
   results.forEach((r, i) => {
-    const cls = r.category === 'damage' ? ('cat-damage' + (r.dmg >= 9 ? ' big' : '')) : `cat-${r.category}`;
+    const isBigDamage = r.category === 'damage' && r.dmg >= 9;
+    const isLargeEffect = (r.key && r.key.endsWith('_large')) || r.key === 'destruction_100';
+    const cls = (r.category === 'damage' ? ('cat-damage' + (isBigDamage ? ' big' : '')) : `cat-${r.category}`)
+      + ((isBigDamage || isLargeEffect) ? ' sg-glow' : '');
     const { icon, val } = sgCardVisual(r);
     const card = document.createElement('div');
     card.className = 'g-card';
