@@ -10,28 +10,32 @@ const PULL_COST = 100;
 const PULLS_PER_TRY = 10;
 const DUR_SMALL = 10, DUR_LARGE = 6;
 const DESTRUCTION_MAX = 999.0;
-const DESTRUCTION_INC = { destruction_small: 15.0, destruction_large: 50.0 };
+const DESTRUCTION_INC = { destruction_25: 25.0, destruction_50: 50.0, destruction_100: 100.0 };
 
 const CAT = [
   { name: 'damage', p: 0.70 },
-  { name: 'favorable', p: 0.20 },
+  { name: 'favorable', p: 0.10 },
   { name: 'unfavorable', p: 0.10 },
+  { name: 'destruction', p: 0.10 },
 ];
 const FAVORABLE = [
-  { key: 'ally_small', p: 0.27, label: '味方バフ(小)', sub: '与ダメ+20%・10連' },
-  { key: 'ally_large', p: 0.09, label: '味方バフ(大)', sub: '与ダメ+80%・6連' },
-  { key: 'debuff_small', p: 0.27, label: '敵デバフ(小)', sub: '与ダメ+20%・10連' },
-  { key: 'debuff_large', p: 0.09, label: '敵デバフ(大)', sub: '与ダメ+80%・6連' },
-  { key: 'critup_small', p: 0.13, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・10連' },
+  { key: 'ally_small', p: 0.30, label: '味方バフ(小)', sub: '与ダメ+20%・10連' },
+  { key: 'ally_large', p: 0.10, label: '味方バフ(大)', sub: '与ダメ+80%・6連' },
+  { key: 'debuff_small', p: 0.30, label: '敵デバフ(小)', sub: '与ダメ+20%・10連' },
+  { key: 'debuff_large', p: 0.10, label: '敵デバフ(大)', sub: '与ダメ+80%・6連' },
+  { key: 'critup_small', p: 0.15, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・10連' },
   { key: 'critup_large', p: 0.05, label: '会心率UP(大)', sub: '高ダメ確率2倍・6連' },
-  { key: 'destruction_small', p: 0.08, label: '破壊率上昇(小)', sub: `破壊率+${DESTRUCTION_INC.destruction_small.toFixed(1)}%` },
-  { key: 'destruction_large', p: 0.02, label: '破壊率上昇(大)', sub: `破壊率+${DESTRUCTION_INC.destruction_large.toFixed(1)}%` },
 ];
 const UNFAVORABLE = [
   { key: 'enemybuff_small', p: 0.35, label: '敵バフ(小)', sub: '与ダメ-20%・10連' },
   { key: 'enemybuff_large', p: 0.15, label: '敵バフ(大)', sub: '与ダメ-50%・6連' },
   { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+2' },
   { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+6' },
+];
+const DESTRUCTION = [
+  { key: 'destruction_25', p: 0.50, label: '破壊率上昇+25%', sub: `破壊率+${DESTRUCTION_INC.destruction_25.toFixed(1)}%` },
+  { key: 'destruction_50', p: 0.35, label: '破壊率上昇+50%', sub: `破壊率+${DESTRUCTION_INC.destruction_50.toFixed(1)}%` },
+  { key: 'destruction_100', p: 0.15, label: '破壊率上昇+100%', sub: `破壊率+${DESTRUCTION_INC.destruction_100.toFixed(1)}%` },
 ];
 const LARGE_KEYS = new Set(['ally_large', 'debuff_large', 'critup_large', 'enemybuff_large']);
 const COUNTER_KEYS = ['ally_small', 'ally_large', 'debuff_small', 'debuff_large', 'enemybuff_small', 'enemybuff_large', 'critup_small', 'critup_large'];
@@ -75,13 +79,16 @@ function rollOne(state) {
 
   if (cat.name === 'favorable') {
     const roll = pick(FAVORABLE);
-    if (roll.key in DESTRUCTION_INC) {
-      state.destruction_rate = Math.min(DESTRUCTION_MAX, state.destruction_rate + DESTRUCTION_INC[roll.key]);
-    } else {
-      state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
-    }
+    state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
     decrementAll(state);
     return { category: 'favorable', label: roll.label, sub: roll.sub, dmg: 0 };
+  }
+
+  if (cat.name === 'destruction') {
+    const roll = pick(DESTRUCTION);
+    state.destruction_rate = Math.min(DESTRUCTION_MAX, state.destruction_rate + DESTRUCTION_INC[roll.key]);
+    decrementAll(state);
+    return { category: 'destruction', label: roll.label, sub: roll.sub, dmg: 0 };
   }
 
   const roll = pick(UNFAVORABLE);
