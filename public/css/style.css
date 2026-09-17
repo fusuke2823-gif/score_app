@@ -416,28 +416,20 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 /* アイコンレアリティ枠 */
 .icon-rarity-A  { box-shadow: 0 0 0 1.5px #4fc3f7; }
 .icon-rarity-S  { box-shadow: 0 0 0 1.5px #ffd700; }
-.icon-rarity-SS {
-  box-sizing: border-box;
-  border: 1.5px solid transparent;
-  background: linear-gradient(#0a0916,#0a0916) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
-  animation: iconSsGlow 1.8s linear infinite;
-}
-.icon-rarity-SSR {
-  box-sizing: border-box;
-  border: 1.5px solid transparent;
-  background: linear-gradient(#0a0916,#0a0916) padding-box, linear-gradient(135deg,#ff36d6,#ffd700) border-box;
-  animation: iconSsrGlow 1.8s linear infinite;
-}
+.icon-rarity-SS { animation: iconSsGlow 1.8s linear infinite; }
+.icon-rarity-SSR { animation: iconSsrGlow 1.8s linear infinite; }
+/* A/Sと同じbox-shadowのみの手法(border-radiusに確実に追従する)。
+   複数色を同時に重ねて常に混ざって見えるようにし、シャープな色だけ巡回させる。 */
 @keyframes iconSsGlow {
-  0%   { box-shadow: 0 0 5px #ffd700; }
-  33%  { box-shadow: 0 0 5px #ff66cc; }
-  66%  { box-shadow: 0 0 5px #00eeff; }
-  100% { box-shadow: 0 0 5px #ffd700; }
+  0%   { box-shadow: 0 0 0 1.5px #ffd700, 0 0 5px 1px #ff66cc, 0 0 8px 2px #00eeff; }
+  33%  { box-shadow: 0 0 0 1.5px #ff66cc, 0 0 5px 1px #00eeff, 0 0 8px 2px #ffd700; }
+  66%  { box-shadow: 0 0 0 1.5px #00eeff, 0 0 5px 1px #ffd700, 0 0 8px 2px #ff66cc; }
+  100% { box-shadow: 0 0 0 1.5px #ffd700, 0 0 5px 1px #ff66cc, 0 0 8px 2px #00eeff; }
 }
 @keyframes iconSsrGlow {
-  0%   { box-shadow: 0 0 6px #ff36d6; }
-  50%  { box-shadow: 0 0 6px #ffd700; }
-  100% { box-shadow: 0 0 6px #ff36d6; }
+  0%   { box-shadow: 0 0 0 1.5px #ff36d6, 0 0 6px 2px #ffd700; }
+  50%  { box-shadow: 0 0 0 1.5px #ffd700, 0 0 6px 2px #ff36d6; }
+  100% { box-shadow: 0 0 0 1.5px #ff36d6, 0 0 6px 2px #ffd700; }
 }
 
 /* イベントカード */
