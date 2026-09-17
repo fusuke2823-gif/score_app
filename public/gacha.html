@@ -159,7 +159,6 @@
 .sg-eff-badge.unfav { background:rgba(230,73,79,0.14); color:#e6494f; border:1px solid rgba(230,73,79,0.4); }
 
 .sg-card-back.cat-damage { border:2px solid #4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.35); color:#4fc3f7; }
-.sg-card-back.cat-damage.big { border-color:#ffd700; box-shadow:0 0 14px rgba(255,215,0,0.55); color:#ffd700; }
 .sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); color:#49d6a8; }
 .sg-card-back.cat-unfavorable { border:2px solid #e6494f; box-shadow:0 0 8px rgba(230,73,79,0.35); color:#e6494f; }
 .sg-card-back.cat-destruction { border:2px solid #c9762b; box-shadow:0 0 8px rgba(201,118,43,0.4); color:#c9762b; }
@@ -178,10 +177,11 @@
   position:absolute; right:-9px; bottom:-6px; width:15px; height:15px;
   color:var(--text-primary); background:rgba(10,9,20,0.85); border-radius:50%; padding:1.5px;
 }
-.sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; }
+.sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; text-align:center; }
 .sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; }
-.sg-card-back.cat-damage.big .sg-card-val { color:#ffd700; }
-.sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.68rem; }
+.sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.6rem; }
+.sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
+.sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.56rem; }
 
 .sg-battle-log { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:0.78rem; color:var(--text-secondary); text-align:center; margin-bottom:20px; }
 
@@ -1011,7 +1011,7 @@ const SG_SVG_BASE = {
   star3: '<g transform="translate(7,7)"><path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"/></g><g transform="translate(17,7)"><path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"/></g><g transform="translate(12,17)"><path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"/></g>',
   heart: '<path d="M12 20.5 C12 20.5 4.5 14.8 4.5 9.3 C4.5 6.3 6.8 4.3 9.3 4.3 C10.7 4.3 11.6 5 12 5.8 C12.4 5 13.3 4.3 14.7 4.3 C17.2 4.3 19.5 6.3 19.5 9.3 C19.5 14.8 12 20.5 12 20.5 Z"/>',
   heart2: '<g transform="translate(-3,1) scale(0.72)"><path d="M12 20.5 C12 20.5 4.5 14.8 4.5 9.3 C4.5 6.3 6.8 4.3 9.3 4.3 C10.7 4.3 11.6 5 12 5.8 C12.4 5 13.3 4.3 14.7 4.3 C17.2 4.3 19.5 6.3 19.5 9.3 C19.5 14.8 12 20.5 12 20.5 Z"/></g><g transform="translate(6,4) scale(0.72)"><path d="M12 20.5 C12 20.5 4.5 14.8 4.5 9.3 C4.5 6.3 6.8 4.3 9.3 4.3 C10.7 4.3 11.6 5 12 5.8 C12.4 5 13.3 4.3 14.7 4.3 C17.2 4.3 19.5 6.3 19.5 9.3 C19.5 14.8 12 20.5 12 20.5 Z"/></g>',
-  burst: '<path d="M13 1.5 L10.5 9 L3 8 L8.5 13.2 L5.5 20.5 L12 16.3 L18.5 20.5 L15.5 13.2 L21 8 L13.5 9 Z"/>',
+  burst: '<path d="M12 1 L14.9 8 L22.5 8.6 L16.8 13.6 L18.5 20.9 L12 17 L5.5 20.9 L7.2 13.6 L1.5 8.6 L9.1 8 Z"/>',
 };
 const SG_SVG_BADGE = {
   up1: '<path d="M4 15 L12 7 L20 15" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -1031,12 +1031,13 @@ function sgCardVisual(r) {
   if (r.category === 'damage') {
     return { icon: sgSvg('sword'), val: (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg) };
   }
+  const label = r.label.replace(/[()]/g, '');
   if (r.category === 'destruction') {
-    return { icon: sgSvg('burst'), val: `+${r.amount}%` };
+    return { icon: sgSvg('burst'), val: label };
   }
   const [base, badge] = SG_ICON_MAP[r.key] || ['star', null];
   const iconHtml = sgSvg(base) + (badge ? sgBadgeSvg(badge) : '');
-  return { icon: `<span class="sg-icon-stack">${iconHtml}</span>`, val: '' };
+  return { icon: `<span class="sg-icon-stack">${iconHtml}</span>`, val: label };
 }
 
 // 通常ガチャのanimatePull()と同じ演出(カード出現→タップでスキップ→めくり音→フリップ)を流用し、
@@ -1051,10 +1052,9 @@ async function animateSpecialPull(results) {
 
   const cardEls = [];
   results.forEach((r, i) => {
-    const isBigDamage = r.category === 'damage' && r.dmg >= 9;
+    const isBigDamage = r.category === 'damage' && r.key === 'ultra';
     const isLargeEffect = (r.key && r.key.endsWith('_large')) || r.key === 'destruction_100';
-    const cls = (r.category === 'damage' ? ('cat-damage' + (isBigDamage ? ' big' : '')) : `cat-${r.category}`)
-      + ((isBigDamage || isLargeEffect) ? ' sg-glow' : '');
+    const cls = `cat-${r.category}` + ((isBigDamage || isLargeEffect) ? ' sg-glow' : '');
     const { icon, val } = sgCardVisual(r);
     const card = document.createElement('div');
     card.className = 'g-card';
