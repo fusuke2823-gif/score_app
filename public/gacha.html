@@ -146,7 +146,8 @@
 .sg-boss-row { display:flex; align-items:center; gap:14px; }
 .sg-boss-portrait { width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; }
 .sg-boss-info { flex:1; min-width:0; }
-.sg-boss-name { font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sg-boss-name { font-size:0.82rem; color:var(--text-secondary); letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sg-destruction-rate { text-align:right; font-size:0.66rem; font-weight:700; color:#ff8fa3; font-variant-numeric:tabular-nums; margin-bottom:3px; }
 .sg-hp-bar-outer { width:100%; height:8px; border-radius:5px; background:rgba(0,0,0,0.4); border:1px solid var(--border); overflow:hidden; }
 .sg-hp-bar-inner { height:100%; border-radius:5px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .5s ease; }
 .sg-reward-preview { flex-shrink:0; text-align:center; }
@@ -272,6 +273,7 @@
         <img class="sg-boss-portrait" id="sg-boss-portrait" alt="">
         <div class="sg-boss-info">
           <div class="sg-boss-name" id="sg-boss-name">-</div>
+          <div class="sg-destruction-rate" id="sg-destruction-rate">-</div>
           <div class="sg-hp-bar-outer"><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
         </div>
         <div class="sg-reward-preview">
@@ -943,6 +945,10 @@ function renderSgEffects(progress) {
     }).join('');
 }
 
+function renderSgDestructionRate(rate) {
+  document.getElementById('sg-destruction-rate').textContent = `${Number(rate).toFixed(1)}/999.0%`;
+}
+
 function renderSgHp(hp, maxHp) {
   document.getElementById('sg-hp-bar').style.width = Math.max(0, hp / maxHp * 100) + '%';
 }
@@ -961,6 +967,7 @@ async function loadSpecialGacha() {
     document.getElementById('sg-reward-icon').src = data.enemy.ssr_icon_image_url;
     document.getElementById('sg-reward-name').textContent = data.enemy.ssr_icon_name;
     renderSgHp(data.progress.current_hp, data.enemy.max_hp);
+    renderSgDestructionRate(data.progress.destruction_rate);
     renderSgEffects(data.progress);
     updatePointsDisplay(data.points);
     currentPoints = data.points;
@@ -1050,7 +1057,10 @@ async function animateSpecialPull(results) {
     await new Promise(r => setTimeout(r, 100));
     document.getElementById(`sg-gc-${i}`).classList.add('flipped');
     renderSgHp(results[i].hp_after, sgCurrentEnemy.max_hp);
-    if (results[i].state_after) renderSgEffects(results[i].state_after);
+    if (results[i].state_after) {
+      renderSgEffects(results[i].state_after);
+      renderSgDestructionRate(results[i].state_after.destruction_rate);
+    }
   }
 
   stage.removeEventListener('click', onSkipTap);
@@ -1069,6 +1079,7 @@ async function doSpecialPull() {
     document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ`;
 
     renderSgHp(data.progress.current_hp, sgCurrentEnemy.max_hp);
+    renderSgDestructionRate(data.progress.destruction_rate);
     renderSgEffects(data.progress);
     currentPoints = data.new_points;
     updatePointsDisplay(currentPoints);

@@ -567,6 +567,10 @@ const initDB = async () => {
         PRIMARY KEY (user_id, enemy_id)
       );
     `);
+    // 破壊率（討伐報酬プレビュー追加より後から発生した仕様追加のため既存テーブルにALTERで足す）
+    await client.query(`
+      ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS destruction_rate NUMERIC(5,1) NOT NULL DEFAULT 100.0;
+    `);
 
     // 結果シェア画像
     await client.query(`

@@ -9,6 +9,8 @@ router.use(authenticateToken, requireAdmin);
 const PULL_COST = 100;
 const PULLS_PER_TRY = 10;
 const DUR_SMALL = 10, DUR_LARGE = 6;
+const DESTRUCTION_MAX = 999.0;
+const DESTRUCTION_INC = { destruction_small: 15.0, destruction_large: 50.0 };
 
 const CAT = [
   { name: 'damage', p: 0.70 },
@@ -16,12 +18,14 @@ const CAT = [
   { name: 'unfavorable', p: 0.10 },
 ];
 const FAVORABLE = [
-  { key: 'ally_small', p: 0.30, label: '味方バフ(小)', sub: '与ダメ+20%・10連' },
-  { key: 'ally_large', p: 0.10, label: '味方バフ(大)', sub: '与ダメ+80%・6連' },
-  { key: 'debuff_small', p: 0.30, label: '敵デバフ(小)', sub: '与ダメ+20%・10連' },
-  { key: 'debuff_large', p: 0.10, label: '敵デバフ(大)', sub: '与ダメ+80%・6連' },
-  { key: 'critup_small', p: 0.15, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・10連' },
+  { key: 'ally_small', p: 0.27, label: '味方バフ(小)', sub: '与ダメ+20%・10連' },
+  { key: 'ally_large', p: 0.09, label: '味方バフ(大)', sub: '与ダメ+80%・6連' },
+  { key: 'debuff_small', p: 0.27, label: '敵デバフ(小)', sub: '与ダメ+20%・10連' },
+  { key: 'debuff_large', p: 0.09, label: '敵デバフ(大)', sub: '与ダメ+80%・6連' },
+  { key: 'critup_small', p: 0.13, label: '会心率UP(小)', sub: '高ダメ確率1.5倍・10連' },
   { key: 'critup_large', p: 0.05, label: '会心率UP(大)', sub: '高ダメ確率2倍・6連' },
+  { key: 'destruction_small', p: 0.08, label: '破壊率上昇(小)', sub: `破壊率+${DESTRUCTION_INC.destruction_small.toFixed(1)}%` },
+  { key: 'destruction_large', p: 0.02, label: '破壊率上昇(大)', sub: `破壊率+${DESTRUCTION_INC.destruction_large.toFixed(1)}%` },
 ];
 const UNFAVORABLE = [
   { key: 'enemybuff_small', p: 0.35, label: '敵バフ(小)', sub: '与ダメ-20%・10連' },
@@ -63,7 +67,7 @@ function rollOne(state) {
     const allyBonus = (state.ally_small > 0 ? 0.2 : 0) + (state.ally_large > 0 ? 0.8 : 0);
     const debuffBonus = (state.debuff_small > 0 ? 0.2 : 0) + (state.debuff_large > 0 ? 0.8 : 0);
     const enemyPenalty = (state.enemybuff_small > 0 ? 0.2 : 0) + (state.enemybuff_large > 0 ? 0.5 : 0);
-    const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty);
+    const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100);
     const dmg = Math.round(roll.dmg * mult);
     decrementAll(state);
     return { category: 'damage', label: roll.label, dmg };
@@ -71,7 +75,11 @@ function rollOne(state) {
 
   if (cat.name === 'favorable') {
     const roll = pick(FAVORABLE);
-    state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
+    if (roll.key in DESTRUCTION_INC) {
+      state.destruction_rate = Math.min(DESTRUCTION_MAX, state.destruction_rate + DESTRUCTION_INC[roll.key]);
+    } else {
+      state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
+    }
     decrementAll(state);
     return { category: 'favorable', label: roll.label, sub: roll.sub, dmg: 0 };
   }
@@ -165,6 +173,7 @@ router.post('/pull', async (req, res) => {
 
     const state = {};
     for (const k of COUNTER_KEYS) state[k] = progress[k];
+    state.destruction_rate = parseFloat(progress.destruction_rate);
     let hp = progress.current_hp;
 
     const results = [];
@@ -189,12 +198,12 @@ router.post('/pull', async (req, res) => {
     const updated = await client.query(
       `UPDATE user_special_gacha_progress SET
          current_hp=$3, ally_small=$4, ally_large=$5, debuff_small=$6, debuff_large=$7,
-         enemybuff_small=$8, enemybuff_large=$9, critup_small=$10, critup_large=$11,
-         defeated_at = CASE WHEN $12 THEN NOW() ELSE defeated_at END
+         enemybuff_small=$8, enemybuff_large=$9, critup_small=$10, critup_large=$11, destruction_rate=$12,
+         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END
        WHERE user_id=$1 AND enemy_id=$2
        RETURNING *`,
       [req.user.id, enemy.id, hp, state.ally_small, state.ally_large, state.debuff_small, state.debuff_large,
-       state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, defeated]
+       state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, state.destruction_rate, defeated]
     );
 
     await client.query('COMMIT');
