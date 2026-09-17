@@ -34,6 +34,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/shop', require('./routes/shop'));
 app.use('/api/gacha', require('./routes/gacha'));
+app.use('/api/special-gacha', require('./routes/specialGacha'));
 app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/videos', require('./routes/videos'));
 app.use('/api/my-videos', require('./routes/my-videos'));

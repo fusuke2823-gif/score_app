@@ -141,6 +141,45 @@
 .rate-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.85rem; }
 .rate-row:last-child { border-bottom:none; }
 
+/* ===== 特殊ガチャ ===== */
+.sg-boss-card { text-align:center; padding:20px 16px; }
+.sg-boss-name { font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px; letter-spacing:.04em; }
+.sg-boss-portrait { width:110px; height:110px; border-radius:50%; object-fit:cover; border:2px solid rgba(230,57,80,0.5); box-shadow:0 0 24px rgba(230,57,80,0.3); margin-bottom:14px; }
+.sg-hp-row { display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:6px; }
+.sg-hp-num { font-size:1.3rem; font-weight:900; font-variant-numeric:tabular-nums; }
+.sg-hp-max { font-size:0.78rem; color:var(--text-muted); }
+.sg-hp-bar-outer { width:100%; height:14px; border-radius:8px; background:rgba(0,0,0,0.45); border:1px solid var(--border); overflow:hidden; }
+.sg-hp-bar-inner { height:100%; border-radius:8px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .5s cubic-bezier(.2,.8,.3,1); }
+.sg-effects-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:14px; min-height:22px; }
+.sg-eff-badge { font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:20px; }
+.sg-eff-badge.fav { background:rgba(73,214,168,0.14); color:#49d6a8; border:1px solid rgba(73,214,168,0.4); }
+.sg-eff-badge.unfav { background:rgba(255,122,69,0.14); color:#ff7a45; border:1px solid rgba(255,122,69,0.4); }
+
+.sg-results-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:10px; }
+@media(max-width:420px) { .sg-results-grid { grid-template-columns:repeat(4,1fr); } }
+.sg-results-grid .g-card { width:auto; aspect-ratio:3/4; height:auto; }
+.sg-card-back.cat-damage { border:2px solid #4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.35); }
+.sg-card-back.cat-damage.big { border-color:#ffd700; box-shadow:0 0 14px rgba(255,215,0,0.55); }
+.sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); }
+.sg-card-back.cat-unfavorable { border:2px solid #ff7a45; box-shadow:0 0 8px rgba(255,122,69,0.35); }
+.sg-card-val { font-size:0.9rem; font-weight:900; }
+.sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; }
+.sg-card-back.cat-damage.big .sg-card-val { color:#ffd700; }
+.sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.6rem; }
+.sg-card-back.cat-unfavorable .sg-card-val { color:#ff7a45; font-size:0.6rem; }
+.sg-card-sub { font-size:0.52rem; color:var(--text-muted); margin-top:2px; text-align:center; padding:0 2px; }
+
+.sg-battle-log { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:0.78rem; color:var(--text-secondary); text-align:center; margin-bottom:20px; }
+
+.sg-overlay { position:fixed; inset:0; background:rgba(6,5,14,0.88); display:flex; align-items:center; justify-content:center; z-index:3000; opacity:0; pointer-events:none; transition:opacity .35s ease; }
+.sg-overlay.show { opacity:1; pointer-events:auto; }
+.sg-defeat-card { width:min(320px,86vw); text-align:center; padding:30px 22px; background:linear-gradient(180deg,rgba(40,20,50,0.97),rgba(20,10,30,0.98)); border:1px solid rgba(255,214,0,0.4); border-radius:20px; box-shadow:0 0 60px rgba(255,54,214,0.3); transform:scale(.85); transition:transform .4s cubic-bezier(.2,.9,.3,1.3); }
+.sg-overlay.show .sg-defeat-card { transform:scale(1); }
+.sg-defeat-title { font-size:0.75rem; color:var(--text-muted); letter-spacing:.1em; margin-bottom:14px; }
+.sg-ssr-icon { width:96px; height:96px; border-radius:16px; object-fit:cover; margin-bottom:12px; border:3px solid; border-image:linear-gradient(135deg,#ff36d6,#ffd700) 1; }
+.sg-ssr-tag { display:inline-block; font-size:0.68rem; font-weight:900; padding:2px 12px; border-radius:20px; background:linear-gradient(90deg,#ff36d6,#ffd700); color:#1a0a1a; margin-bottom:10px; }
+.sg-ssr-name { font-size:0.9rem; font-weight:700; margin-bottom:18px; }
+
 
 @media(max-width:480px) {
   .g-card { width:66px; height:92px; }
@@ -164,6 +203,12 @@
     <div style="font-size:0.9rem;color:rgba(232,232,240,0.75)" id="my-gp">GP: ---</div>
     <div id="dup-indicator" style="font-size:0.82rem;font-weight:bold;color:#4fc3f7;height:1.3em;opacity:0;transition:opacity 0.3s;text-align:center;margin-bottom:2px"></div>
     <div style="font-size:0.8rem;color:rgba(232,232,240,0.75)" id="cost-info" data-i18n="loading">読み込み中...</div>
+  </div>
+
+  <!-- ガチャ種別タブ（特殊ガチャは管理者限定公開中） -->
+  <div id="gacha-type-tabs" style="display:none;justify-content:center;gap:8px;margin-bottom:16px">
+    <button class="btn btn-sm" id="tab-btn-normal" onclick="switchGachaType('normal')"></button>
+    <button class="btn btn-sm btn-secondary" id="tab-btn-special" onclick="switchGachaType('special')" style="display:none">特殊ガチャ</button>
   </div>
 
   <!-- ①プール選択画面 -->
@@ -222,6 +267,36 @@
 
   </div><!-- /#gacha-main -->
 
+  <!-- ③特殊ガチャ画面（管理者限定公開中） -->
+  <div id="special-gacha-screen" style="display:none">
+    <div class="card sg-boss-card">
+      <div class="sg-boss-name" id="sg-boss-name">-</div>
+      <img class="sg-boss-portrait" id="sg-boss-portrait" alt="">
+      <div class="sg-hp-row"><span class="sg-hp-num" id="sg-hp-num">-</span><span class="sg-hp-max" id="sg-hp-max"></span></div>
+      <div class="sg-hp-bar-outer"><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
+      <div class="sg-effects-row" id="sg-effects-row"></div>
+    </div>
+
+    <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" style="width:100%;margin:16px 0" disabled>
+      <span style="font-size:0.95rem;font-weight:bold">特殊ガチャ 10連を引く（<span id="sg-pull-cost">100</span>pt）</span>
+    </button>
+
+    <div class="section-title">今回の結果</div>
+    <div class="sg-results-grid" id="sg-results-grid"></div>
+    <div class="sg-battle-log" id="sg-battle-log">10連ガチャを引くと、ここに結果が表示されます</div>
+  </div>
+
+  <!-- 特殊ガチャ 討伐演出 -->
+  <div id="sg-defeat-overlay" class="sg-overlay">
+    <div class="sg-defeat-card">
+      <div class="sg-defeat-title">討伐完了</div>
+      <img class="sg-ssr-icon" id="sg-ssr-icon-img" alt="">
+      <div class="sg-ssr-tag">SSR</div>
+      <div class="sg-ssr-name" id="sg-ssr-name"></div>
+      <button class="btn btn-secondary" onclick="document.getElementById('sg-defeat-overlay').classList.remove('show')">閉じる</button>
+    </div>
+  </div>
+
   <!-- 排出対象モーダル -->
   <div id="pool-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:2000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
     <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:24px;max-width:520px;width:100%;margin:auto;position:relative">
@@ -252,6 +327,13 @@
 renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
+
+const _sgUser = getUser();
+if (_sgUser && _sgUser.role === 'admin') {
+  document.getElementById('gacha-type-tabs').style.display = 'flex';
+  document.getElementById('tab-btn-special').style.display = '';
+}
+document.getElementById('tab-btn-normal').textContent = '通常ガチャ';
 
 let gSettings = null;
 let isPulling = false;
@@ -825,6 +907,116 @@ function showResultSummary(results) {
 }
 
 init();
+
+// ===== 特殊ガチャ（期間限定・管理者限定公開中） =====
+let sgCurrentEnemy = null;
+let sgLoaded = false;
+
+function switchGachaType(type) {
+  document.getElementById('tab-btn-normal').classList.toggle('btn-secondary', type !== 'normal');
+  document.getElementById('tab-btn-special').classList.toggle('btn-secondary', type !== 'special');
+  document.getElementById('pool-select-screen').style.display = type === 'normal' && !selectedPoolId ? '' : 'none';
+  document.getElementById('gacha-main').style.display = type === 'normal' && selectedPoolId ? '' : 'none';
+  document.getElementById('special-gacha-screen').style.display = type === 'special' ? '' : 'none';
+  if (type === 'special' && !sgLoaded) { sgLoaded = true; loadSpecialGacha(); }
+}
+
+const SG_EFFECT_LABELS = {
+  ally_small: '味方バフ小', ally_large: '味方バフ大',
+  debuff_small: '敵デバフ小', debuff_large: '敵デバフ大',
+  enemybuff_small: '敵バフ小', enemybuff_large: '敵バフ大',
+  critup_small: '会心UP小', critup_large: '会心UP大',
+};
+
+function renderSgEffects(progress) {
+  const row = document.getElementById('sg-effects-row');
+  row.innerHTML = Object.keys(SG_EFFECT_LABELS)
+    .filter(k => progress[k] > 0)
+    .map(k => {
+      const cls = k.startsWith('enemybuff') ? 'unfav' : 'fav';
+      return `<span class="sg-eff-badge ${cls}">${SG_EFFECT_LABELS[k]}<span style="opacity:.75">残り${progress[k]}</span></span>`;
+    }).join('');
+}
+
+function renderSgHp(hp, maxHp) {
+  document.getElementById('sg-hp-num').textContent = Math.max(0, Math.round(hp));
+  document.getElementById('sg-hp-max').textContent = ` / ${maxHp} HP`;
+  document.getElementById('sg-hp-bar').style.width = Math.max(0, hp / maxHp * 100) + '%';
+}
+
+async function loadSpecialGacha() {
+  try {
+    const data = await apiFetch('/special-gacha/current');
+    if (!data.enemy) {
+      document.getElementById('sg-boss-name').textContent = '現在挑戦できる敵はいません';
+      document.getElementById('sg-pull-btn').disabled = true;
+      return;
+    }
+    sgCurrentEnemy = data.enemy;
+    document.getElementById('sg-boss-name').textContent = data.enemy.name;
+    document.getElementById('sg-boss-portrait').src = data.enemy.image_url;
+    document.getElementById('sg-pull-cost').textContent = data.pull_cost;
+    renderSgHp(data.progress.current_hp, data.enemy.max_hp);
+    renderSgEffects(data.progress);
+    updatePointsDisplay(data.points);
+    currentPoints = data.points;
+    document.getElementById('sg-pull-btn').disabled = !!data.progress.defeated_at;
+    if (data.progress.defeated_at) {
+      document.getElementById('sg-battle-log').textContent = 'この敵は既に討伐済みです';
+    }
+  } catch (err) {
+    document.getElementById('sg-boss-name').textContent = '読み込みに失敗しました';
+  }
+}
+
+function sgCardHtml(r, idx) {
+  const cls = r.category === 'damage' ? ('cat-damage' + (r.dmg >= 9 ? ' big' : '')) : `cat-${r.category}`;
+  const val = r.category === 'damage'
+    ? (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg)
+    : r.label;
+  const sub = r.category === 'damage' ? r.label : r.sub;
+  return `<div class="g-card" id="sg-card-${idx}">
+    <div class="g-card-inner">
+      <div class="g-card-front"></div>
+      <div class="g-card-back sg-card-back ${cls}">
+        <div class="sg-card-val">${val}</div>
+        <div class="sg-card-sub">${escHtml(sub)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function doSpecialPull() {
+  const btn = document.getElementById('sg-pull-btn');
+  btn.disabled = true;
+  try {
+    const data = await apiFetch('/special-gacha/pull', { method: 'POST' });
+    document.getElementById('sg-results-grid').innerHTML = data.results.map((r, i) => sgCardHtml(r, i)).join('');
+    data.results.forEach((_, i) => {
+      setTimeout(() => document.getElementById(`sg-card-${i}`)?.querySelector('.g-card-inner').classList.add('flipped'), 120 * i + 150);
+    });
+
+    const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 ? r.dmg : 0), 0);
+    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ`;
+
+    renderSgHp(data.progress.current_hp, sgCurrentEnemy.max_hp);
+    renderSgEffects(data.progress);
+    currentPoints = data.new_points;
+    updatePointsDisplay(currentPoints);
+
+    setTimeout(() => {
+      btn.disabled = !!data.progress.defeated_at;
+      if (data.defeated) {
+        document.getElementById('sg-ssr-icon-img').src = data.awarded_icon.image_url;
+        document.getElementById('sg-ssr-name').textContent = `限定アイコン「${data.awarded_icon.name}」を獲得！`;
+        document.getElementById('sg-defeat-overlay').classList.add('show');
+      }
+    }, 1300 + data.results.length * 120);
+  } catch (err) {
+    showAlert('#alert', err.message);
+    btn.disabled = false;
+  }
+}
 
 let _lastPoolModalPoolId = null;
 async function openPoolModal() {

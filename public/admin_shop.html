@@ -29,6 +29,7 @@
 .admin-icon-card .iname { font-size:0.75rem; margin-top:6px; word-break:break-all; }
 .admin-icon-card .ibtns { display:flex; gap:4px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
 .rarity-badge { font-size:0.68rem; font-weight:bold; padding:2px 7px; border-radius:4px; display:inline-block; margin-bottom:4px; }
+.rarity-badge-SSR{ background:linear-gradient(90deg,#ff36d6,#ffd700); color:#1a0a1a; }
 .rarity-badge-SS { background:#ffd700; color:#000; }
 .rarity-badge-S  { background:#e0c060; color:#000; }
 .rarity-badge-A  { background:#4fc3f7; color:#000; }
@@ -403,6 +404,7 @@
         <div class="form-group">
           <label class="form-label">レアリティ</label>
           <select class="form-input" id="icon-rarity">
+            <option value="SSR">SSR（特殊ガチャ限定・通常ガチャには出現しません）</option>
             <option value="SS">SS</option>
             <option value="S" selected>S</option>
             <option value="A">A</option>
@@ -416,6 +418,42 @@
     <div class="card">
       <div class="section-title">アイコン一覧</div>
       <div id="gacha-icon-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+    <!-- 特殊ガチャ（期間限定ボス）管理 -->
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="section-title" style="margin:0">特殊ガチャ（期間限定・管理者限定公開中）</div>
+        <a href="/gacha.html" target="_blank" class="btn btn-secondary btn-sm">プレイヤー画面を開く</a>
+      </div>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px">
+        新しく敵を作成すると、それまで有効だった敵は自動的に非表示になります（常に1体のみ有効）。SSRアイコンは上の「アイコン追加」で先に作成してから選択してください。
+      </p>
+      <div id="sg-alert" style="margin-bottom:12px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">敵の名前</label>
+          <input class="form-input" type="text" id="sg-enemy-name" placeholder="例: ミス・ヴォイドリーパー">
+        </div>
+        <div class="form-group">
+          <label class="form-label">HP</label>
+          <input class="form-input" type="number" id="sg-enemy-hp" value="420" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">敵の画像</label>
+        <input class="form-input" type="file" id="sg-enemy-file" accept="image/*" style="padding:8px">
+      </div>
+      <div class="form-group">
+        <label class="form-label">討伐報酬のSSRアイコン</label>
+        <select class="form-input" id="sg-ssr-icon"><option value="">読み込み中...</option></select>
+      </div>
+      <button class="btn btn-primary" id="sg-add-btn" onclick="addSpecialGachaEnemy()">敵を作成して有効化</button>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="section-title">特殊ガチャの敵 一覧</div>
+      <div id="sg-enemy-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
 </main>
@@ -433,7 +471,7 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadTitleScopes(); }
   if (name === 'frames') loadFrames();
-  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); }
+  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); loadSpecialGachaEnemies(); loadSsrIconOptions(); }
 }
 
 // ===== 称号付与 =====
@@ -1305,6 +1343,88 @@ async function deleteGachaIcon(id) {
     await apiFetch(`/admin/gacha/icons/${id}`, { method: 'DELETE' });
     loadGachaIcons();
   } catch (err) { showAlert('#alert', err.message); }
+}
+
+// ===== 特殊ガチャ（期間限定ボス）管理 =====
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function loadSsrIconOptions() {
+  const sel = document.getElementById('sg-ssr-icon');
+  try {
+    const icons = await apiFetch('/admin/gacha/icons');
+    const ssrIcons = icons.filter(i => i.rarity === 'SSR');
+    sel.innerHTML = ssrIcons.length === 0
+      ? '<option value="">SSRアイコンがまだありません（上のアイコン追加で先に作成してください）</option>'
+      : ssrIcons.map(i => `<option value="${i.id}">${escHtml(i.name)}</option>`).join('');
+  } catch (err) {
+    sel.innerHTML = '<option value="">読み込みに失敗しました</option>';
+  }
+}
+
+async function addSpecialGachaEnemy() {
+  const name = document.getElementById('sg-enemy-name').value.trim();
+  const maxHp = document.getElementById('sg-enemy-hp').value;
+  const file = document.getElementById('sg-enemy-file').files[0];
+  const ssrIconId = document.getElementById('sg-ssr-icon').value;
+  if (!name || !file || !ssrIconId) {
+    showAlert('#sg-alert', '名前・画像・SSRアイコンは必須です');
+    return;
+  }
+  const btn = document.getElementById('sg-add-btn');
+  btn.disabled = true;
+  try {
+    const image_base64 = await readFileAsDataUrl(file);
+    await apiFetch('/admin/special-gacha/enemies', {
+      method: 'POST',
+      body: JSON.stringify({ name, image_base64, ssr_icon_id: ssrIconId, max_hp: maxHp })
+    });
+    showAlert('#sg-alert', '作成して有効化しました', 'success');
+    document.getElementById('sg-enemy-name').value = '';
+    document.getElementById('sg-enemy-file').value = '';
+    loadSpecialGachaEnemies();
+  } catch (err) {
+    showAlert('#sg-alert', err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadSpecialGachaEnemies() {
+  const el = document.getElementById('sg-enemy-list');
+  try {
+    const enemies = await apiFetch('/admin/special-gacha/enemies');
+    if (enemies.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>敵がまだ作成されていません</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="admin-icon-grid">${enemies.map(e => `
+      <div class="admin-icon-card">
+        ${e.is_active ? '<span class="rarity-badge rarity-badge-SSR">現在有効</span><br>' : ''}
+        <img src="${escHtml(e.image_url)}" alt="${escHtml(e.name)}" ${!e.is_active ? 'style="opacity:0.4"' : ''}>
+        <div class="iname">${escHtml(e.name)}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">HP ${e.max_hp} / 報酬: ${escHtml(e.ssr_icon_name || '-')}</div>
+        <div class="ibtns">
+          <button class="btn btn-danger btn-sm" onclick="deleteSpecialGachaEnemy(${e.id})">削除</button>
+        </div>
+      </div>`).join('')}</div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function deleteSpecialGachaEnemy(id) {
+  if (!confirm('この敵を削除しますか？進行中の討伐データも失われます。')) return;
+  try {
+    await apiFetch(`/admin/special-gacha/enemies/${id}`, { method: 'DELETE' });
+    loadSpecialGachaEnemies();
+  } catch (err) { showAlert('#sg-alert', err.message); }
 }
 
 // ===== 称号スコープ =====

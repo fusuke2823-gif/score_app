@@ -1423,7 +1423,7 @@ router.post('/gacha/icons', async (req, res) => {
   const { name, rarity, image_base64 } = req.body;
   if (!name || !rarity || !image_base64)
     return res.status(400).json({ error: '必須項目が不足しています' });
-  if (!['SS', 'S', 'A'].includes(rarity))
+  if (!['SS', 'S', 'A', 'SSR'].includes(rarity))
     return res.status(400).json({ error: '無効なレアリティです' });
   try {
     const uploadResult = await cloudinary.uploader.upload(image_base64, {
@@ -1480,6 +1480,63 @@ router.delete('/gacha/icons/:id', async (req, res) => {
     res.status(500).json({ error: 'サーバーエラー' });
   } finally {
     client.release();
+  }
+});
+
+// ===== 特殊ガチャ（期間限定ボス）管理 =====
+router.get('/special-gacha/enemies', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.*, gi.name AS ssr_icon_name, gi.image_url AS ssr_icon_image_url
+       FROM special_gacha_enemies e
+       LEFT JOIN gacha_icons gi ON gi.id = e.ssr_icon_id
+       ORDER BY e.id DESC`
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.post('/special-gacha/enemies', async (req, res) => {
+  const { name, image_base64, ssr_icon_id, max_hp } = req.body;
+  if (!name || !image_base64 || !ssr_icon_id)
+    return res.status(400).json({ error: '必須項目が不足しています' });
+  const iconCheck = await pool.query('SELECT id FROM gacha_icons WHERE id=$1', [ssr_icon_id]);
+  if (iconCheck.rows.length === 0)
+    return res.status(400).json({ error: '指定されたアイコンが見つかりません' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const uploadResult = await cloudinary.uploader.upload(image_base64, {
+      folder: 'hbr-ranking/special-gacha-enemies',
+      resource_type: 'image'
+    });
+    await client.query('UPDATE special_gacha_enemies SET is_active=FALSE WHERE is_active=TRUE');
+    const result = await client.query(
+      'INSERT INTO special_gacha_enemies (name, image_url, max_hp, ssr_icon_id, is_active) VALUES ($1,$2,$3,$4,TRUE) RETURNING *',
+      [name, uploadResult.secure_url, max_hp ? parseInt(max_hp, 10) : 420, ssr_icon_id]
+    );
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+router.delete('/special-gacha/enemies/:id', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM special_gacha_enemies WHERE id=$1', [req.params.id]);
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 

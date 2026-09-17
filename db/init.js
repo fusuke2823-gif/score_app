@@ -539,6 +539,35 @@ const initDB = async () => {
       SELECT setval('event_notes_id_seq', COALESCE((SELECT MAX(id) FROM event_notes), 1));
     `);
 
+    // 特殊ガチャ（討伐チャレンジとは別の期間限定ボス。ガチャを引くことでダメージを与え、討伐でSSRアイコンを確定入手）
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS special_gacha_enemies (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        image_url TEXT NOT NULL,
+        max_hp INTEGER NOT NULL DEFAULT 420,
+        ssr_icon_id INTEGER REFERENCES gacha_icons(id),
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_special_gacha_progress (
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        enemy_id INTEGER REFERENCES special_gacha_enemies(id) ON DELETE CASCADE,
+        current_hp INTEGER NOT NULL,
+        ally_small INTEGER NOT NULL DEFAULT 0,
+        ally_large INTEGER NOT NULL DEFAULT 0,
+        debuff_small INTEGER NOT NULL DEFAULT 0,
+        debuff_large INTEGER NOT NULL DEFAULT 0,
+        enemybuff_small INTEGER NOT NULL DEFAULT 0,
+        enemybuff_large INTEGER NOT NULL DEFAULT 0,
+        critup_small INTEGER NOT NULL DEFAULT 0,
+        critup_large INTEGER NOT NULL DEFAULT 0,
+        defeated_at TIMESTAMPTZ,
+        PRIMARY KEY (user_id, enemy_id)
+      );
+    `);
+
     // 結果シェア画像
     await client.query(`
       CREATE TABLE IF NOT EXISTS share_images (
