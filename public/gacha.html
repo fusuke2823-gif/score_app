@@ -1033,7 +1033,7 @@ function sgCardVisual(r) {
   }
   const label = r.label.replace(/[()]/g, '');
   if (r.category === 'destruction') {
-    return { icon: sgSvg('burst'), val: label };
+    return { icon: sgSvg('burst'), val: `破壊率<br>+${r.amount}%` };
   }
   const [base, badge] = SG_ICON_MAP[r.key] || ['star', null];
   const iconHtml = sgSvg(base) + (badge ? sgBadgeSvg(badge) : '');
@@ -1063,7 +1063,7 @@ async function animateSpecialPull(results) {
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
         <div class="g-card-back sg-card-back ${cls}">
           <div class="sg-card-icon">${icon}</div>
-          ${val ? `<div class="sg-card-val">${escHtml(val)}</div>` : ''}
+          ${val ? `<div class="sg-card-val">${val}</div>` : ''}
         </div>
       </div>`;
     wrap.appendChild(card);
