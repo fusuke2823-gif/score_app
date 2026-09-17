@@ -158,18 +158,22 @@
 .sg-eff-badge.fav { background:rgba(73,214,168,0.14); color:#49d6a8; border:1px solid rgba(73,214,168,0.4); }
 .sg-eff-badge.unfav { background:rgba(230,73,79,0.14); color:#e6494f; border:1px solid rgba(230,73,79,0.4); }
 
-.sg-card-back.cat-damage { border:2px solid #4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.35); }
-.sg-card-back.cat-damage.big { border-color:#ffd700; box-shadow:0 0 14px rgba(255,215,0,0.55); }
-.sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); }
-.sg-card-back.cat-unfavorable { border:2px solid #e6494f; box-shadow:0 0 8px rgba(230,73,79,0.35); }
-.sg-card-back.cat-destruction { border:2px solid #c9762b; box-shadow:0 0 8px rgba(201,118,43,0.4); }
-.sg-card-val { font-size:0.9rem; font-weight:900; }
+.sg-card-back.cat-damage { border:2px solid #4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.35); color:#4fc3f7; }
+.sg-card-back.cat-damage.big { border-color:#ffd700; box-shadow:0 0 14px rgba(255,215,0,0.55); color:#ffd700; }
+.sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); color:#49d6a8; }
+.sg-card-back.cat-unfavorable { border:2px solid #e6494f; box-shadow:0 0 8px rgba(230,73,79,0.35); color:#e6494f; }
+.sg-card-back.cat-destruction { border:2px solid #c9762b; box-shadow:0 0 8px rgba(201,118,43,0.4); color:#c9762b; }
+.sg-card-icon { display:flex; align-items:center; justify-content:center; }
+.sg-svg-icon { width:32px; height:32px; }
+.sg-icon-stack { position:relative; display:inline-flex; }
+.sg-icon-stack .sg-svg-badge {
+  position:absolute; right:-9px; bottom:-6px; width:15px; height:15px;
+  color:var(--text-primary); background:rgba(10,9,20,0.85); border-radius:50%; padding:1.5px;
+}
+.sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; }
 .sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; }
 .sg-card-back.cat-damage.big .sg-card-val { color:#ffd700; }
-.sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.6rem; }
-.sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.6rem; }
-.sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.6rem; }
-.sg-card-sub { font-size:0.52rem; color:var(--text-muted); margin-top:2px; text-align:center; padding:0 2px; }
+.sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.68rem; }
 
 .sg-battle-log { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:0.78rem; color:var(--text-secondary); text-align:center; margin-bottom:20px; }
 
@@ -982,6 +986,51 @@ async function loadSpecialGacha() {
   }
 }
 
+// カードの中身を文字ではなく絵(アイコン)で表現する。key: サーバーから返る効果キー
+const SG_ICON_MAP = {
+  ally_small: ['sword', 'up1'], ally_large: ['sword', 'up2'],
+  debuff_small: ['shield', 'down1'], debuff_large: ['shield', 'down2'],
+  enemybuff_small: ['shield', 'up1'], enemybuff_large: ['shield', 'up2'],
+  critup_small: ['star', null], critup_large: ['star3', null],
+  heal_small: ['heart', null], heal_large: ['heart2', null],
+};
+
+// 手描きの線画アイコン(SVG)。currentColorでカテゴリ色を継承する。
+const SG_SVG_BASE = {
+  sword: '<path d="M12 2 L14.2 4.2 L14.2 15 L12 17.2 L9.8 15 L9.8 4.2 Z"/><rect x="6.5" y="14.2" width="11" height="2" rx="0.5"/><rect x="11" y="16.5" width="2" height="5.5" rx="0.6"/><circle cx="12" cy="22.3" r="1.4"/>',
+  shield: '<path d="M12 2 L19.5 5 V11 C19.5 16 16 19.8 12 21.5 C8 19.8 4.5 16 4.5 11 V5 Z"/>',
+  star: '<path d="M12 1.5 L14 9.5 L22 12 L14 14.5 L12 22.5 L10 14.5 L2 12 L10 9.5 Z"/>',
+  star3: '<g transform="translate(7,7)"><path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"/></g><g transform="translate(17,7)"><path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"/></g><g transform="translate(12,17)"><path d="M0 -4 L1.2 -1.2 L4 0 L1.2 1.2 L0 4 L-1.2 1.2 L-4 0 L-1.2 -1.2 Z"/></g>',
+  heart: '<path d="M12 20.5 C12 20.5 4.5 14.8 4.5 9.3 C4.5 6.3 6.8 4.3 9.3 4.3 C10.7 4.3 11.6 5 12 5.8 C12.4 5 13.3 4.3 14.7 4.3 C17.2 4.3 19.5 6.3 19.5 9.3 C19.5 14.8 12 20.5 12 20.5 Z"/>',
+  heart2: '<g transform="translate(-3,1) scale(0.72)"><path d="M12 20.5 C12 20.5 4.5 14.8 4.5 9.3 C4.5 6.3 6.8 4.3 9.3 4.3 C10.7 4.3 11.6 5 12 5.8 C12.4 5 13.3 4.3 14.7 4.3 C17.2 4.3 19.5 6.3 19.5 9.3 C19.5 14.8 12 20.5 12 20.5 Z"/></g><g transform="translate(6,4) scale(0.72)"><path d="M12 20.5 C12 20.5 4.5 14.8 4.5 9.3 C4.5 6.3 6.8 4.3 9.3 4.3 C10.7 4.3 11.6 5 12 5.8 C12.4 5 13.3 4.3 14.7 4.3 C17.2 4.3 19.5 6.3 19.5 9.3 C19.5 14.8 12 20.5 12 20.5 Z"/></g>',
+  burst: '<path d="M13 1.5 L10.5 9 L3 8 L8.5 13.2 L5.5 20.5 L12 16.3 L18.5 20.5 L15.5 13.2 L21 8 L13.5 9 Z"/>',
+};
+const SG_SVG_BADGE = {
+  up1: '<path d="M4 15 L12 7 L20 15" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  up2: '<path d="M4 12 L12 5 L20 12" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20 L12 13 L20 20" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  down1: '<path d="M4 9 L12 17 L20 9" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+  down2: '<path d="M4 4 L12 11 L20 4" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12 L12 19 L20 12" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
+};
+
+function sgSvg(name) {
+  return `<svg viewBox="0 0 24 24" fill="currentColor" class="sg-svg-icon">${SG_SVG_BASE[name]}</svg>`;
+}
+function sgBadgeSvg(name) {
+  return `<svg viewBox="0 0 24 24" class="sg-svg-badge">${SG_SVG_BADGE[name]}</svg>`;
+}
+
+function sgCardVisual(r) {
+  if (r.category === 'damage') {
+    return { icon: sgSvg('sword'), val: (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg) };
+  }
+  if (r.category === 'destruction') {
+    return { icon: sgSvg('burst'), val: `+${r.amount}%` };
+  }
+  const [base, badge] = SG_ICON_MAP[r.key] || ['star', null];
+  const iconHtml = sgSvg(base) + (badge ? sgBadgeSvg(badge) : '');
+  return { icon: `<span class="sg-icon-stack">${iconHtml}</span>`, val: '' };
+}
+
 // 通常ガチャのanimatePull()と同じ演出(カード出現→タップでスキップ→めくり音→フリップ)を流用し、
 // レアリティ判定・フェイクアウト・SS/S演出だけを省いたもの。
 async function animateSpecialPull(results) {
@@ -995,16 +1044,15 @@ async function animateSpecialPull(results) {
   const cardEls = [];
   results.forEach((r, i) => {
     const cls = r.category === 'damage' ? ('cat-damage' + (r.dmg >= 9 ? ' big' : '')) : `cat-${r.category}`;
-    const val = r.category === 'damage' ? (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg) : r.label;
-    const sub = r.category === 'damage' ? r.label : r.sub;
+    const { icon, val } = sgCardVisual(r);
     const card = document.createElement('div');
     card.className = 'g-card';
     card.innerHTML = `
       <div class="g-card-inner" id="sg-gc-${i}">
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
         <div class="g-card-back sg-card-back ${cls}">
-          <div class="sg-card-val">${escHtml(String(val))}</div>
-          <div class="sg-card-sub">${escHtml(sub)}</div>
+          <div class="sg-card-icon">${icon}</div>
+          ${val ? `<div class="sg-card-val">${escHtml(val)}</div>` : ''}
         </div>
       </div>`;
     wrap.appendChild(card);

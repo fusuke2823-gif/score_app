@@ -74,21 +74,21 @@ function rollOne(state) {
     const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100);
     const dmg = Math.round(roll.dmg * mult);
     decrementAll(state);
-    return { category: 'damage', label: roll.label, dmg };
+    return { category: 'damage', key: roll.name, label: roll.label, dmg };
   }
 
   if (cat.name === 'favorable') {
     const roll = pick(FAVORABLE);
     state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
     decrementAll(state);
-    return { category: 'favorable', label: roll.label, sub: roll.sub, dmg: 0 };
+    return { category: 'favorable', key: roll.key, label: roll.label, sub: roll.sub, dmg: 0 };
   }
 
   if (cat.name === 'destruction') {
     const roll = pick(DESTRUCTION);
     state.destruction_rate = Math.min(DESTRUCTION_MAX, state.destruction_rate + DESTRUCTION_INC[roll.key]);
     decrementAll(state);
-    return { category: 'destruction', label: roll.label, sub: roll.sub, dmg: 0 };
+    return { category: 'destruction', key: roll.key, label: roll.label, sub: roll.sub, amount: DESTRUCTION_INC[roll.key], dmg: 0 };
   }
 
   const roll = pick(UNFAVORABLE);
@@ -97,7 +97,7 @@ function rollOne(state) {
   else if (roll.key === 'heal_large') dmg = -6;
   else state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
   decrementAll(state);
-  return { category: 'unfavorable', label: roll.label, sub: roll.sub, dmg };
+  return { category: 'unfavorable', key: roll.key, label: roll.label, sub: roll.sub, dmg };
 }
 
 function decrementAll(state) {
