@@ -178,9 +178,10 @@
   position:absolute; right:-9px; bottom:-6px; width:15px; height:15px;
   color:var(--text-primary); background:rgba(10,9,20,0.85); border-radius:50%; padding:1.5px;
 }
-.sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; text-align:center; }
-.sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; font-size:0.56rem; }
-.sg-card-back.cat-damage .sg-card-val .sg-dmg-num { display:block; font-size:1.05rem; }
+.sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; text-align:center; line-height:1.1; }
+.sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; font-size:0.56rem; margin-top:0; }
+.sg-card-back.cat-damage .sg-card-val .sg-dmg-num { display:block; font-size:1.05rem; line-height:1; margin-bottom:0; }
+.sg-card-back.cat-damage .sg-card-val .sg-dmg-label { display:block; line-height:1; }
 .sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.6rem; }
 .sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
 .sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.56rem; }
@@ -1081,7 +1082,7 @@ function sgBadgeSvg(name) {
 
 function sgCardVisual(r) {
   if (r.category === 'damage') {
-    return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num">${r.dmg}</span><br>ダメージ` };
+    return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num">${r.dmg}</span><span class="sg-dmg-label">ダメージ</span>` };
   }
   const label = r.label.replace(/[()]/g, '');
   if (r.category === 'destruction') {
