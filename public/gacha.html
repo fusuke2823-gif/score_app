@@ -142,14 +142,52 @@
 .rate-row:last-child { border-bottom:none; }
 
 /* ===== 特殊ガチャ ===== */
-.sg-boss-card { text-align:center; padding:20px 16px; }
-.sg-boss-name { font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px; letter-spacing:.04em; }
-.sg-boss-portrait { width:110px; height:110px; border-radius:50%; object-fit:cover; border:2px solid rgba(230,57,80,0.5); box-shadow:0 0 24px rgba(230,57,80,0.3); margin-bottom:14px; }
-.sg-hp-row { display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:6px; }
-.sg-hp-num { font-size:1.3rem; font-weight:900; font-variant-numeric:tabular-nums; }
+.sg-boss-card { text-align:center; padding:26px 16px 22px; position:relative; overflow:hidden; }
+.sg-boss-card::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% -10%, rgba(230,57,80,0.22), transparent 60%);
+  pointer-events:none;
+}
+.sg-boss-eyebrow {
+  position:relative; display:inline-block; font-size:0.62rem; font-weight:900; letter-spacing:.18em;
+  color:#ff8fa3; background:rgba(230,57,80,0.14); border:1px solid rgba(230,57,80,0.4);
+  padding:2px 12px; border-radius:20px; margin-bottom:10px;
+}
+.sg-boss-name { position:relative; font-size:1rem; font-weight:700; color:var(--text-primary); margin-bottom:16px; letter-spacing:.02em; }
+.sg-boss-portrait-wrap { position:relative; width:128px; height:128px; margin:0 auto 16px; }
+.sg-boss-portrait-wrap::before {
+  content:''; position:absolute; inset:-6px; border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(230,57,80,0.05), rgba(230,57,80,0.55), rgba(230,57,80,0.05));
+  animation:sgAuraSpin 6s linear infinite;
+}
+@keyframes sgAuraSpin { to { transform:rotate(360deg); } }
+.sg-boss-portrait {
+  position:relative; width:100%; height:100%; border-radius:50%; object-fit:cover;
+  border:3px solid rgba(10,9,20,0.9); box-shadow:0 0 28px rgba(230,57,80,0.4), inset 0 0 20px rgba(0,0,0,0.4);
+  display:block;
+}
+.sg-hp-row { position:relative; display:flex; align-items:baseline; justify-content:center; gap:6px; margin-bottom:8px; }
+.sg-hp-num { font-size:1.5rem; font-weight:900; font-variant-numeric:tabular-nums; background:linear-gradient(90deg,#ff8fa3,#ff5470); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .sg-hp-max { font-size:0.78rem; color:var(--text-muted); }
-.sg-hp-bar-outer { width:100%; height:14px; border-radius:8px; background:rgba(0,0,0,0.45); border:1px solid var(--border); overflow:hidden; }
-.sg-hp-bar-inner { height:100%; border-radius:8px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .5s cubic-bezier(.2,.8,.3,1); }
+.sg-hp-bar-outer {
+  position:relative; width:100%; height:16px; border-radius:9px;
+  background:rgba(0,0,0,0.5); border:1px solid var(--border); overflow:hidden;
+  box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+}
+.sg-hp-bar-inner {
+  position:relative; height:100%; border-radius:9px;
+  background:linear-gradient(90deg,#ff8fa3,#ff5470,var(--accent));
+  transition:width .5s cubic-bezier(.2,.8,.3,1);
+}
+.sg-hp-bar-inner::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,0.35),transparent 55%);
+}
+.sg-hp-bar-outer::after {
+  content:''; position:absolute; inset:0;
+  background-image:repeating-linear-gradient(90deg,transparent,transparent calc(10% - 1px),rgba(0,0,0,0.35) calc(10% - 1px),rgba(0,0,0,0.35) 10%);
+  pointer-events:none;
+}
 .sg-effects-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:14px; min-height:22px; }
 .sg-eff-badge { font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:20px; }
 .sg-eff-badge.fav { background:rgba(73,214,168,0.14); color:#49d6a8; border:1px solid rgba(73,214,168,0.4); }
@@ -199,7 +237,6 @@
     <div class="gacha-points-display" id="my-points">--- pt</div>
     <div style="font-size:0.9rem;color:rgba(232,232,240,0.75)" id="my-gp">GP: ---</div>
     <div id="dup-indicator" style="font-size:0.82rem;font-weight:bold;color:#4fc3f7;height:1.3em;opacity:0;transition:opacity 0.3s;text-align:center;margin-bottom:2px"></div>
-    <div style="font-size:0.8rem;color:rgba(232,232,240,0.75)" id="cost-info" data-i18n="loading">読み込み中...</div>
   </div>
 
   <!-- ガチャ種別タブ（特殊ガチャは管理者限定公開中） -->
@@ -267,8 +304,11 @@
   <!-- ③特殊ガチャ画面（管理者限定公開中） -->
   <div id="special-gacha-screen" style="display:none">
     <div class="card sg-boss-card">
+      <span class="sg-boss-eyebrow">BOSS</span>
       <div class="sg-boss-name" id="sg-boss-name">-</div>
-      <img class="sg-boss-portrait" id="sg-boss-portrait" alt="">
+      <div class="sg-boss-portrait-wrap">
+        <img class="sg-boss-portrait" id="sg-boss-portrait" alt="">
+      </div>
       <div class="sg-hp-row"><span class="sg-hp-num" id="sg-hp-num">-</span><span class="sg-hp-max" id="sg-hp-max"></span></div>
       <div class="sg-hp-bar-outer"><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
       <div class="sg-effects-row" id="sg-effects-row"></div>
@@ -279,7 +319,6 @@
         <img src="/img/gacha_10.png" alt="10連ガチャ">
       </button>
     </div>
-    <div style="text-align:center;font-size:0.8rem;color:rgba(232,232,240,0.75);margin:-16px 0 20px">10連 <span id="sg-pull-cost">100</span>pt</div>
 
     <div class="gacha-stage" id="sg-stage">
       <div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">特殊ガチャを引いてください</div>
@@ -370,9 +409,6 @@ async function init() {
         showGpToast(t('gacha.gp_migrated', migRes.gp_awarded));
       }
     } catch (_) {}
-
-    document.getElementById('cost-info').textContent =
-      `${t('gacha.single')} ${settings.single_cost}pt ／ ${t('gacha.multi')} ${settings.multi_cost}pt（${t('gacha.multi_hint')}）`;
 
     updateRateInfo(settings, []);
 
@@ -956,7 +992,6 @@ async function loadSpecialGacha() {
     sgCurrentEnemy = data.enemy;
     document.getElementById('sg-boss-name').textContent = data.enemy.name;
     document.getElementById('sg-boss-portrait').src = data.enemy.image_url;
-    document.getElementById('sg-pull-cost').textContent = data.pull_cost;
     renderSgHp(data.progress.current_hp, data.enemy.max_hp);
     renderSgEffects(data.progress);
     updatePointsDisplay(data.points);
@@ -1046,6 +1081,8 @@ async function animateSpecialPull(results) {
     _sePlay('/sounds/turn.mp3');
     await new Promise(r => setTimeout(r, 100));
     document.getElementById(`sg-gc-${i}`).classList.add('flipped');
+    renderSgHp(results[i].hp_after, sgCurrentEnemy.max_hp);
+    if (results[i].state_after) renderSgEffects(results[i].state_after);
   }
 
   stage.removeEventListener('click', onSkipTap);

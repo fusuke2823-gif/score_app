@@ -171,6 +171,7 @@ router.post('/pull', async (req, res) => {
     for (let i = 0; i < PULLS_PER_TRY && hp > 0; i++) {
       const r = rollOne(state);
       hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
+      r.state_after = { ...state };
       results.push({ ...r, hp_after: hp });
     }
 
