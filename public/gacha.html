@@ -155,9 +155,6 @@
 .sg-eff-badge.fav { background:rgba(73,214,168,0.14); color:#49d6a8; border:1px solid rgba(73,214,168,0.4); }
 .sg-eff-badge.unfav { background:rgba(255,122,69,0.14); color:#ff7a45; border:1px solid rgba(255,122,69,0.4); }
 
-.sg-results-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:10px; }
-@media(max-width:420px) { .sg-results-grid { grid-template-columns:repeat(4,1fr); } }
-.sg-results-grid .g-card { width:auto; aspect-ratio:3/4; height:auto; }
 .sg-card-back.cat-damage { border:2px solid #4fc3f7; box-shadow:0 0 8px rgba(79,195,247,0.35); }
 .sg-card-back.cat-damage.big { border-color:#ffd700; box-shadow:0 0 14px rgba(255,215,0,0.55); }
 .sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); }
@@ -284,8 +281,9 @@
     </div>
     <div style="text-align:center;font-size:0.8rem;color:rgba(232,232,240,0.75);margin:-16px 0 20px">10連 <span id="sg-pull-cost">100</span>pt</div>
 
-    <div class="section-title">今回の結果</div>
-    <div class="sg-results-grid" id="sg-results-grid"></div>
+    <div class="gacha-stage" id="sg-stage">
+      <div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">特殊ガチャを引いてください</div>
+    </div>
     <div class="sg-battle-log" id="sg-battle-log">10連ガチャを引くと、ここに結果が表示されます</div>
   </div>
 
@@ -972,21 +970,87 @@ async function loadSpecialGacha() {
   }
 }
 
-function sgCardHtml(r, idx) {
-  const cls = r.category === 'damage' ? ('cat-damage' + (r.dmg >= 9 ? ' big' : '')) : `cat-${r.category}`;
-  const val = r.category === 'damage'
-    ? (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg)
-    : r.label;
-  const sub = r.category === 'damage' ? r.label : r.sub;
-  return `<div class="g-card" id="sg-card-${idx}">
-    <div class="g-card-inner">
-      <div class="g-card-front"></div>
-      <div class="g-card-back sg-card-back ${cls}">
-        <div class="sg-card-val">${val}</div>
-        <div class="sg-card-sub">${escHtml(sub)}</div>
-      </div>
-    </div>
-  </div>`;
+// 通常ガチャのanimatePull()と同じ演出(カード出現→タップでスキップ→めくり音→フリップ)を流用し、
+// レアリティ判定・フェイクアウト・SS/S演出だけを省いたもの。
+async function animateSpecialPull(results) {
+  const stage = document.getElementById('sg-stage');
+  stage.innerHTML = '';
+
+  const wrap = document.createElement('div');
+  wrap.className = 'gacha-cards';
+  stage.appendChild(wrap);
+
+  const cardEls = [];
+  results.forEach((r, i) => {
+    const cls = r.category === 'damage' ? ('cat-damage' + (r.dmg >= 9 ? ' big' : '')) : `cat-${r.category}`;
+    const val = r.category === 'damage' ? (r.dmg >= 0 ? '-' : '+') + Math.abs(r.dmg) : r.label;
+    const sub = r.category === 'damage' ? r.label : r.sub;
+    const card = document.createElement('div');
+    card.className = 'g-card';
+    card.innerHTML = `
+      <div class="g-card-inner" id="sg-gc-${i}">
+        <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
+        <div class="g-card-back sg-card-back ${cls}">
+          <div class="sg-card-val">${escHtml(String(val))}</div>
+          <div class="sg-card-sub">${escHtml(sub)}</div>
+        </div>
+      </div>`;
+    wrap.appendChild(card);
+    cardEls.push(card);
+  });
+
+  // フェーズ1: カードを1枚ずつ表示（タップで即時全表示）
+  await new Promise(resolve => {
+    let idx = 0;
+    let timer = null;
+    let done = false;
+
+    const showAll = () => {
+      if (done) return;
+      done = true;
+      if (timer) clearTimeout(timer);
+      cardEls.forEach(c => c.classList.add('card-visible'));
+      stage.style.cursor = '';
+      stage.removeEventListener('click', onTap);
+      setTimeout(resolve, 1000);
+    };
+    const showNext = () => {
+      if (done) return;
+      _sePlay('/sounds/putcard.mp3');
+      cardEls[idx].classList.add('card-visible');
+      idx++;
+      if (idx >= results.length) {
+        done = true;
+        stage.style.cursor = '';
+        stage.removeEventListener('click', onTap);
+        setTimeout(resolve, 1000);
+      } else {
+        timer = setTimeout(showNext, 220);
+      }
+    };
+    const onTap = () => showAll();
+    stage.style.cursor = 'pointer';
+    stage.addEventListener('click', onTap);
+    timer = setTimeout(showNext, 80);
+  });
+
+  // フェーズ2: 1枚ずつめくる（タップでスキップ＝間隔短縮）
+  let skipFlip = false;
+  const onSkipTap = () => { skipFlip = true; stage.removeEventListener('click', onSkipTap); stage.style.cursor = ''; };
+  stage.style.cursor = 'pointer';
+  stage.addEventListener('click', onSkipTap);
+
+  const stagger = results.length === 1 ? 0 : 500;
+  for (let i = 0; i < results.length; i++) {
+    if (i > 0) await new Promise(r => setTimeout(r, skipFlip ? 30 : stagger));
+    _sePlay('/sounds/turn.mp3');
+    await new Promise(r => setTimeout(r, 100));
+    document.getElementById(`sg-gc-${i}`).classList.add('flipped');
+  }
+
+  stage.removeEventListener('click', onSkipTap);
+  stage.style.cursor = '';
+  await new Promise(r => setTimeout(r, 700));
 }
 
 async function doSpecialPull() {
@@ -994,15 +1058,7 @@ async function doSpecialPull() {
   btn.disabled = true;
   try {
     const data = await apiFetch('/special-gacha/pull', { method: 'POST' });
-    document.getElementById('sg-results-grid').innerHTML = data.results.map((r, i) => sgCardHtml(r, i)).join('');
-    data.results.forEach((_, i) => {
-      setTimeout(() => {
-        const el = document.getElementById(`sg-card-${i}`);
-        if (!el) return;
-        el.classList.add('card-visible');
-        el.querySelector('.g-card-inner').classList.add('flipped');
-      }, 120 * i + 150);
-    });
+    await animateSpecialPull(data.results);
 
     const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 ? r.dmg : 0), 0);
     document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ`;
@@ -1012,14 +1068,14 @@ async function doSpecialPull() {
     currentPoints = data.new_points;
     updatePointsDisplay(currentPoints);
 
-    setTimeout(() => {
+    {
       btn.disabled = !!data.progress.defeated_at;
       if (data.defeated) {
         document.getElementById('sg-ssr-icon-img').src = data.awarded_icon.image_url;
         document.getElementById('sg-ssr-name').textContent = `限定アイコン「${data.awarded_icon.name}」を獲得！`;
         document.getElementById('sg-defeat-overlay').classList.add('show');
       }
-    }, 1300 + data.results.length * 120);
+    }
   } catch (err) {
     showAlert('#alert', err.message);
     btn.disabled = false;
