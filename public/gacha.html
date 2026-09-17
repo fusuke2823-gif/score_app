@@ -143,6 +143,7 @@
 
 /* ===== 特殊ガチャ ===== */
 .sg-boss-card { padding:16px 18px; }
+.sg-defeated-banner { text-align:center; font-size:1.15rem; font-weight:900; letter-spacing:.05em; color:#ffd700; margin-bottom:10px; }
 .sg-boss-row { display:flex; align-items:center; gap:14px; }
 .sg-boss-portrait { width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; }
 .sg-boss-info { flex:1; min-width:0; }
@@ -300,7 +301,9 @@
 
   <!-- ③特殊ガチャ画面（管理者限定公開中） -->
   <div id="special-gacha-screen" style="display:none">
+    <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます</div>
     <div class="card sg-boss-card">
+      <div class="sg-defeated-banner" id="sg-defeated-banner" hidden>討伐済み</div>
       <div class="sg-boss-row">
         <img class="sg-boss-portrait" id="sg-boss-portrait" alt="">
         <div class="sg-boss-info">
@@ -982,6 +985,11 @@ function renderSgEffects(progress) {
     }).join('');
 }
 
+function updateSgDefeatedUi(defeated) {
+  document.getElementById('sg-defeated-banner').hidden = !defeated;
+  if (defeated) document.getElementById('sg-effects-row').innerHTML = '';
+}
+
 function renderSgDestructionRate(rate) {
   document.getElementById('sg-destruction-rate').textContent = `${Number(rate).toFixed(1)}/999.0%`;
 }
@@ -1006,6 +1014,7 @@ async function loadSpecialGacha() {
     renderSgHp(data.progress.current_hp, data.enemy.max_hp);
     renderSgDestructionRate(data.progress.destruction_rate);
     renderSgEffects(data.progress);
+    updateSgDefeatedUi(!!data.progress.defeated_at);
     updatePointsDisplay(data.points);
     currentPoints = data.points;
     document.getElementById('sg-pull-btn').disabled = !!data.progress.defeated_at;
@@ -1199,6 +1208,7 @@ async function doSpecialPull() {
     renderSgHp(data.progress.current_hp, sgCurrentEnemy.max_hp);
     renderSgDestructionRate(data.progress.destruction_rate);
     renderSgEffects(data.progress);
+    updateSgDefeatedUi(!!data.progress.defeated_at);
     currentPoints = data.new_points;
     updatePointsDisplay(currentPoints);
 
