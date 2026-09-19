@@ -9,7 +9,9 @@
 .section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
 .pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
 @media(max-width:600px){ .hide-mobile{display:none;} }
-.user-name-cell{ white-space:nowrap; }
+.user-name-cell{ max-width:6em; white-space:normal; word-break:break-all; }
+.all-scores-table th:first-child, .all-scores-table td:first-child { width:auto; }
+.all-scores-table th:nth-child(2), .all-scores-table td:nth-child(2) { width:auto; }
 .review-group { margin-bottom:28px; }
 .review-group-title { display:flex; align-items:center; gap:8px; font-size:0.95rem; font-weight:bold; margin-bottom:12px; }
 .review-group-count { font-size:0.78rem; color:var(--text-muted); font-weight:normal; }
@@ -309,17 +311,16 @@ async function loadAllScores() {
       return;
     }
     el.innerHTML = `
-      <table class="ranking-table">
-        <thead><tr><th>ユーザー</th><th>イベント</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th>状態</th><th></th></tr></thead>
+      <table class="ranking-table all-scores-table">
+        <thead><tr><th>ユーザー</th><th>回</th><th>属性</th><th>承認済み</th><th>承認待ち</th><th></th></tr></thead>
         <tbody>
           ${scores.map(s => `
             <tr>
               <td class="user-name-cell"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></td>
-              <td style="font-size:0.85rem;white-space:nowrap">第${s.event_number}回<span class="hide-mobile"> ${escHtml(s.event_name)}</span></td>
+              <td style="font-size:0.85rem;white-space:nowrap">${s.event_number}<span class="hide-mobile"> ${escHtml(s.event_name)}</span></td>
               <td>${attrBadge(s.attribute, true)}</td>
               <td>${formatScore(s.approved_score)}</td>
               <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
-              <td>${statusBadge(s.status)}</td>
               <td>${s.youtube_url ? `<a href="${escHtml(s.youtube_url)}" target="_blank" rel="noopener" title="YouTube動画"><svg width="16" height="16" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg></a>` : ''}</td>
             </tr>`).join('')}
         </tbody>
