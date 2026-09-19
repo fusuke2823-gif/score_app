@@ -10,6 +10,16 @@
 .pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
 @media(max-width:600px){ .hide-mobile{display:none;} }
 .user-name-cell{ white-space:nowrap; }
+.review-group { margin-bottom:28px; }
+.review-group-title { display:flex; align-items:center; gap:8px; font-size:0.95rem; font-weight:bold; margin-bottom:12px; }
+.review-group-count { font-size:0.78rem; color:var(--text-muted); font-weight:normal; }
+.review-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:14px; }
+.review-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:10px; }
+.review-card img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:6px; cursor:pointer; display:block; margin-bottom:8px; background:var(--bg-primary); }
+.review-card .rname { font-size:0.8rem; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.review-card .rscore { font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; }
+.review-attr-fix { display:flex; gap:4px; align-items:center; }
+.review-attr-fix select { flex:1; font-size:0.75rem; padding:2px 4px; }
 </style>
 </head>
 <body>
@@ -59,6 +69,7 @@
   <div class="tabs" style="margin-bottom:0">
     <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
     <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
+    <button class="tab-btn" onclick="switchTab('review')">属性チェック</button>
   </div>
 
   <!-- 承認待ち -->
@@ -88,6 +99,25 @@
       </div>
     </div>
   </div>
+
+  <!-- 属性チェック -->
+  <div class="tab-content" id="tab-review">
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">
+      イベントを選ぶと、そのイベントの投稿を属性ごとにまとめて表示します。同じ属性の中で明らかに違うキャラ・エフェクトの画像があれば属性ミスの可能性があります。
+    </p>
+    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <select class="form-select" id="review-event-select" style="max-width:260px" onchange="loadReviewScores()">
+        <option value="">イベントを選択してください</option>
+      </select>
+      <select class="form-select" id="review-status" style="max-width:160px" onchange="loadReviewScores()">
+        <option value="">全ステータス</option>
+        <option value="pending">承認待ち</option>
+        <option value="approved">承認済み</option>
+        <option value="rejected">却下</option>
+      </select>
+    </div>
+    <div id="review-list"></div>
+  </div>
 </main>
 
 <script src="/js/common.js"></script>
@@ -97,12 +127,13 @@ if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['pending','all-scores'][i] === name);
+    b.classList.toggle('active', ['pending','all-scores','review'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'pending') loadPending();
-  if (name === 'all-scores') { loadAllScores(); populateEventFilter(); }
+  if (name === 'all-scores') { loadAllScores(); populateEventFilter('filter-event'); }
+  if (name === 'review') { populateEventFilter('review-event-select'); }
 }
 
 // ===== 承認待ち =====
@@ -246,8 +277,8 @@ async function rejectScore(id) {
 }
 
 // ===== 全スコア一覧 =====
-async function populateEventFilter() {
-  const sel = document.getElementById('filter-event');
+async function populateEventFilter(selectId) {
+  const sel = document.getElementById(selectId);
   if (sel.options.length > 1) return;
   try {
     const events = await apiFetch('/events');
@@ -300,7 +331,68 @@ async function loadAllScores() {
 
 // 初期ロード
 loadPending();
-populateEventFilter();
+populateEventFilter('filter-event');
+
+// ===== 属性チェック =====
+async function loadReviewScores() {
+  const el = document.getElementById('review-list');
+  const eventId = document.getElementById('review-event-select').value;
+  const status = document.getElementById('review-status').value;
+  if (!eventId) { el.innerHTML = ''; return; }
+
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  let url = `/admin/scores?event_id=${eventId}`;
+  if (status) url += `&status=${status}`;
+
+  try {
+    const scores = await apiFetch(url);
+    if (scores.length === 0) {
+      el.innerHTML = '<div class="empty-state"><p>スコアがありません</p></div>';
+      return;
+    }
+    const groups = ATTRIBUTES.map(attr => ({ attr, items: scores.filter(s => s.attribute === attr) }))
+      .filter(g => g.items.length > 0);
+
+    el.innerHTML = groups.map(g => `
+      <div class="review-group">
+        <div class="review-group-title">${attrBadge(g.attr)}<span class="review-group-count">${g.items.length}件</span></div>
+        <div class="review-grid">
+          ${g.items.map(s => {
+            const img = s.approved_image_url || s.pending_image_url;
+            const score = s.status === 'pending' ? s.pending_score : s.approved_score;
+            return `
+            <div class="review-card">
+              ${img ? `<img src="${escHtml(mediumUrl(img))}" alt="" onclick="window.open('${escHtml(img)}','_blank')">` : `<div style="width:100%;aspect-ratio:16/9;border-radius:6px;background:var(--bg-primary);margin-bottom:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.75rem">画像なし</div>`}
+              <div class="rname"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></div>
+              <div class="rscore">${formatScore(score)} ${statusBadge(s.status)}</div>
+              <div class="review-attr-fix">
+                <select id="review-attr-${s.id}">
+                  ${ATTRIBUTES.map(a => `<option value="${a}" ${a === s.attribute ? 'selected' : ''}>${a}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.72rem" onclick="reviewFixAttr(${s.id})">修正</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+async function reviewFixAttr(id) {
+  const newAttr = document.getElementById(`review-attr-${id}`).value;
+  try {
+    await apiFetch(`/admin/scores/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ attribute: newAttr })
+    });
+    showAlert('#alert', '属性を修正しました', 'success');
+    loadReviewScores();
+  } catch (err) {
+    showAlert('#alert', err.message);
+  }
+}
 </script>
 </body>
 </html>
