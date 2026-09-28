@@ -27,6 +27,21 @@
 }
 .admin-icon-card img { width:60px; height:60px; border-radius:20%; object-fit:cover; border:2px solid var(--border); }
 .admin-icon-card .iname { font-size:0.75rem; margin-top:6px; word-break:break-all; }
+/* プール編集のアイコン設定：操作ボタンはスクロールしても上に固定 */
+.pool-icons-toolbar {
+  position:sticky; top:-24px; z-index:5; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  margin:0 -24px 14px; padding:10px 24px; background:rgba(18,16,34,0.97); border-bottom:1px solid var(--border);
+}
+.pool-icons-status { flex:1; min-width:0; text-align:right; font-size:0.78rem; font-weight:bold; }
+.pool-icons-status.ok { color:var(--success); }
+.pool-icons-status.ng { color:var(--danger); }
+/* 特殊ガチャの討伐報酬アイコン選択 */
+.sg-ssr-picker { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; max-height:260px; overflow-y:auto; padding:2px; }
+.sg-ssr-option { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border-radius:10px; border:2px solid var(--border); background:var(--bg-primary); color:var(--text-secondary); font-family:inherit; font-size:0.68rem; line-height:1.3; cursor:pointer; transition:border-color .15s, background .15s; }
+.sg-ssr-option:hover { border-color:var(--border-light); }
+.sg-ssr-option.selected { border-color:#ffd700; background:rgba(255,215,0,0.1); color:var(--text-primary); }
+.sg-ssr-option img { width:52px; height:52px; border-radius:20%; object-fit:cover; }
+.sg-ssr-option span { word-break:break-all; }
 .admin-icon-card .ibtns { display:flex; gap:4px; justify-content:center; margin-top:8px; flex-wrap:wrap; }
 .rarity-badge { font-size:0.68rem; font-weight:bold; padding:2px 7px; border-radius:4px; display:inline-block; margin-bottom:4px; }
 .rarity-badge-SSR{ background:linear-gradient(90deg,#ff36d6,#ffd700); color:#1a0a1a; }
@@ -128,16 +143,14 @@
 
     <!-- アイコン設定タブ -->
     <div id="tab-content-icons" style="display:none">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-        <p style="font-size:0.82rem;color:var(--text-muted);margin:0;flex:1">このガチャに含めるアイコンを選択してください（レアリティ別に表示）</p>
+      <div class="pool-icons-toolbar">
         <button class="btn btn-secondary btn-sm" id="btn-toggle-ss" onclick="toggleAllSS()">SS全選択</button>
         <button class="btn btn-secondary btn-sm" id="btn-toggle-as" onclick="toggleAllAS()">A・S全選択</button>
+        <span class="pool-icons-status" id="pool-icons-status"></span>
+        <button class="btn btn-secondary btn-sm" onclick="closePoolEditModal()">閉じる</button>
+        <button class="btn btn-primary btn-sm" id="btn-save-pool-icons" onclick="savePoolIcons()">保存する</button>
       </div>
       <div id="pool-modal-icons"></div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
-        <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
-        <button class="btn btn-primary" onclick="savePoolIcons()">保存する</button>
-      </div>
     </div>
   </div>
 </div>
@@ -447,8 +460,9 @@
           <input class="form-input" type="text" id="sg-enemy-name" placeholder="例: ミス・ヴォイドリーパー">
         </div>
         <div class="form-group">
-          <label class="form-label">HP</label>
-          <input class="form-input" type="number" id="sg-enemy-hp" value="28000" min="1">
+          <label class="form-label">ギミック</label>
+          <select class="form-input" id="sg-gimmick" onchange="renderSgGimmickHint()"><option value="normal">読み込み中...</option></select>
+          <div class="form-hint" id="sg-gimmick-hint"></div>
         </div>
       </div>
       <div class="form-group">
@@ -457,7 +471,8 @@
       </div>
       <div class="form-group">
         <label class="form-label">討伐報酬のSSRアイコン</label>
-        <select class="form-input" id="sg-ssr-icon"><option value="">読み込み中...</option></select>
+        <input type="hidden" id="sg-ssr-icon" value="">
+        <div class="sg-ssr-picker" id="sg-ssr-picker"><div class="form-hint">読み込み中...</div></div>
       </div>
       <button class="btn btn-primary" id="sg-add-btn" onclick="addSpecialGachaEnemy()">敵を作成して有効化</button>
     </div>
@@ -482,7 +497,7 @@ function switchTab(name) {
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadTitleScopes(); }
   if (name === 'frames') loadFrames();
-  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); loadSpecialGachaEnemies(); loadSsrIconOptions(); }
+  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); loadSgGimmicks().then(loadSpecialGachaEnemies); loadSsrIconOptions(); }
 }
 
 // ===== 称号付与 =====
@@ -1017,6 +1032,7 @@ async function loadIconsTab() {
   document.getElementById('pool-modal-icons').innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   document.getElementById('btn-toggle-ss').textContent = 'SS全選択';
   document.getElementById('btn-toggle-as').textContent = 'A・S全選択';
+  document.getElementById('pool-icons-status').textContent = '';
   try {
     const [allIcons, currentIds, pickupIds] = await Promise.all([
       apiFetch('/admin/gacha/icons'),
@@ -1115,15 +1131,25 @@ async function savePoolIcons() {
   const checkboxes = document.querySelectorAll('#pool-modal-icons input[type=checkbox]');
   const icon_ids = Array.from(checkboxes).filter(cb => cb.checked).map(cb => parseInt(cb.dataset.iconId));
   const pickup_ids = [..._pickupSet].filter(id => icon_ids.includes(id));
+  // 固定バーの中で結果を見せる（上部のアラートはスクロールで見えないことがあるため）
+  const status = document.getElementById('pool-icons-status');
+  const btn = document.getElementById('btn-save-pool-icons');
+  status.className = 'pool-icons-status';
+  status.textContent = '保存中...';
+  btn.disabled = true;
   try {
     await Promise.all([
       apiFetch(`/admin/gacha/pools/${_editPoolId}/icons`, { method: 'PUT', body: JSON.stringify({ icon_ids }) }),
       apiFetch(`/admin/gacha/pools/${_editPoolId}/pickups`, { method: 'PUT', body: JSON.stringify({ icon_ids: pickup_ids }) })
     ]);
-    showAlert('#pool-edit-alert', 'アイコン設定を保存しました', 'success');
+    status.className = 'pool-icons-status ok';
+    status.textContent = '保存しました';
     loadPools();
   } catch (err) {
-    showAlert('#pool-edit-alert', err.message);
+    status.className = 'pool-icons-status ng';
+    status.textContent = err.message;
+  } finally {
+    btn.disabled = false;
   }
 }
 
@@ -1347,6 +1373,10 @@ async function loadGachaIcons() {
              ${!icon.is_active ? 'style="opacity:0.4"' : ''}>
         <div class="iname">${escHtml(icon.name)}</div>
         <select class="form-input" style="font-size:0.75rem;padding:3px 6px;margin-top:6px"
+          data-current="${escHtml(icon.rarity)}" onchange="setIconRarity(${icon.id}, this)">
+          ${['SS', 'S', 'A', 'SSR'].map(r => `<option value="${r}" ${icon.rarity === r ? 'selected' : ''}>${r}</option>`).join('')}
+        </select>
+        <select class="form-input" style="font-size:0.75rem;padding:3px 6px;margin-top:4px"
           onchange="setIconUnit(${icon.id}, this.value)">
           ${UNITS.map(u => `<option value="${u}" ${icon.unit === u || (!icon.unit && u === '') ? 'selected' : ''}>${u || '部隊なし'}</option>`).join('')}
         </select>
@@ -1359,6 +1389,25 @@ async function loadGachaIcons() {
       </div>`).join('')}</div>`;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// レアリティは排出率に関わるので確認してから変更。キャンセル・失敗時は選択を元に戻す
+async function setIconRarity(id, sel) {
+  const from = sel.dataset.current, to = sel.value;
+  const note = from === 'SS' && to !== 'SS' ? '\nピックアップに登録されている場合は解除されます。' : '';
+  if (!await showConfirm(`レアリティを ${from} → ${to} に変更しますか？\n次に引かれたときから新しいレアリティで排出されます。${note}`)) {
+    sel.value = from;
+    return;
+  }
+  try {
+    const res = await apiFetch(`/admin/gacha/icons/${id}/rarity`, { method: 'PATCH', body: JSON.stringify({ rarity: to }) });
+    showAlert('#alert', res.message, 'success');
+    loadGachaIcons();
+    loadSsrIconOptions();
+  } catch (err) {
+    sel.value = from;
+    showAlert('#alert', err.message);
   }
 }
 
@@ -1396,22 +1445,53 @@ function readFileAsDataUrl(file) {
   });
 }
 
+// 討伐報酬のSSRアイコンは画像のタイルから選ぶ（選択値は hidden の #sg-ssr-icon に入れる）
 async function loadSsrIconOptions() {
-  const sel = document.getElementById('sg-ssr-icon');
+  const picker = document.getElementById('sg-ssr-picker');
+  const input = document.getElementById('sg-ssr-icon');
   try {
     const icons = await apiFetch('/admin/gacha/icons');
     const ssrIcons = icons.filter(i => i.rarity === 'SSR');
-    sel.innerHTML = ssrIcons.length === 0
-      ? '<option value="">SSRアイコンがまだありません（上のアイコン追加で先に作成してください）</option>'
-      : ssrIcons.map(i => `<option value="${i.id}">${escHtml(i.name)}</option>`).join('');
+    if (!ssrIcons.some(i => String(i.id) === input.value)) input.value = '';
+    picker.innerHTML = ssrIcons.length === 0
+      ? '<div class="form-hint">SSRアイコンがまだありません（上のアイコン追加で先に作成してください）</div>'
+      : ssrIcons.map(i => `
+        <button type="button" class="sg-ssr-option${String(i.id) === input.value ? ' selected' : ''}" data-id="${i.id}" onclick="selectSsrIcon(this)" title="${escHtml(i.name)}">
+          <img src="${escHtml(thumbUrl(i.image_url))}" alt="" loading="lazy">
+          <span>${escHtml(i.name)}</span>
+        </button>`).join('');
   } catch (err) {
-    sel.innerHTML = '<option value="">読み込みに失敗しました</option>';
+    picker.innerHTML = '<div class="form-hint">読み込みに失敗しました</div>';
   }
+}
+function selectSsrIcon(btn) {
+  document.querySelectorAll('#sg-ssr-picker .sg-ssr-option').forEach(b => b.classList.toggle('selected', b === btn));
+  document.getElementById('sg-ssr-icon').value = btn.dataset.id;
+}
+
+// HPやシールドはギミックごとに固定（utils/specialGachaGimmicks.js）
+let _sgGimmicks = [];
+async function loadSgGimmicks() {
+  const sel = document.getElementById('sg-gimmick');
+  try {
+    _sgGimmicks = await apiFetch('/admin/special-gacha/gimmicks');
+    sel.innerHTML = _sgGimmicks.map(g => `<option value="${g.key}">${escHtml(g.label)}</option>`).join('');
+    renderSgGimmickHint();
+  } catch (err) {
+    sel.innerHTML = '<option value="normal">読み込みに失敗しました</option>';
+  }
+}
+function sgGimmickStatText(g) {
+  return `HP ${g.max_hp.toLocaleString('ja-JP')}` + (g.max_shield ? ` / シールド ${g.max_shield}` : '');
+}
+function renderSgGimmickHint() {
+  const g = _sgGimmicks.find(x => x.key === document.getElementById('sg-gimmick').value);
+  document.getElementById('sg-gimmick-hint').textContent = g ? sgGimmickStatText(g) + (g.description ? `　${g.description}` : '') : '';
 }
 
 async function addSpecialGachaEnemy() {
   const name = document.getElementById('sg-enemy-name').value.trim();
-  const maxHp = document.getElementById('sg-enemy-hp').value;
+  const gimmick = document.getElementById('sg-gimmick').value;
   const file = document.getElementById('sg-enemy-file').files[0];
   const ssrIconId = document.getElementById('sg-ssr-icon').value;
   if (!name || !file || !ssrIconId) {
@@ -1424,7 +1504,7 @@ async function addSpecialGachaEnemy() {
     const image_base64 = await readFileAsDataUrl(file);
     await apiFetch('/admin/special-gacha/enemies', {
       method: 'POST',
-      body: JSON.stringify({ name, image_base64, ssr_icon_id: ssrIconId, max_hp: maxHp })
+      body: JSON.stringify({ name, image_base64, ssr_icon_id: ssrIconId, gimmick })
     });
     showAlert('#sg-alert', '作成して有効化しました', 'success');
     document.getElementById('sg-enemy-name').value = '';
@@ -1450,7 +1530,7 @@ async function loadSpecialGachaEnemies() {
         ${e.is_active ? '<span class="rarity-badge rarity-badge-SSR">現在有効</span><br>' : ''}
         <img src="${escHtml(e.image_url)}" alt="${escHtml(e.name)}" ${!e.is_active ? 'style="opacity:0.4"' : ''}>
         <div class="iname">${escHtml(e.name)}</div>
-        <div style="font-size:0.72rem;color:var(--text-muted)">HP ${e.max_hp} / 報酬: ${escHtml(e.ssr_icon_name || '-')}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted)">${escHtml((_sgGimmicks.find(g => g.key === e.gimmick) || { label: e.gimmick }).label)} / HP ${e.max_hp} / 報酬: ${escHtml(e.ssr_icon_name || '-')}</div>
         <div class="ibtns">
           <button class="btn btn-danger btn-sm" onclick="deleteSpecialGachaEnemy(${e.id})">削除</button>
         </div>

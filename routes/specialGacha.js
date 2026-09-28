@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { getGimmick, gimmickSummary } = require('../utils/specialGachaGimmicks');
 
 // 管理者限定リリース中。一般公開する際はこの1行を削除する。
 router.use(authenticateToken, requireAdmin);
@@ -56,8 +57,8 @@ function pick(list) {
   return list[list.length - 1];
 }
 
-// 1連分の抽選とダメージ計算。state (COUNTER_KEYS を持つオブジェクト) を直接更新する。
-function rollOne(state) {
+// 1連分の抽選とダメージ計算。state (COUNTER_KEYS・destruction_rate・shield を持つオブジェクト) を直接更新する。
+function rollOne(state, gimmick) {
   const cat = pick(CAT);
 
   if (cat.name === 'damage') {
@@ -80,6 +81,11 @@ function rollOne(state) {
     const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100);
     const dmg = Math.round(roll.dmg * mult);
     decrementAll(state);
+    // シールド中はダメージの代わりにシールドを1削る（防がれたダメージ量は演出用に返す）
+    if (state.shield > 0) {
+      state.shield--;
+      return { category: 'damage', key: roll.name, label: roll.label, dmg: 0, blocked: true, blocked_dmg: dmg };
+    }
     return { category: 'damage', key: roll.name, label: roll.label, dmg };
   }
 
@@ -91,6 +97,13 @@ function rollOne(state) {
   }
 
   if (cat.name === 'destruction') {
+    // シールド中は破壊率が上がらず、枠がシールド削りに置き換わる
+    if (gimmick.shieldBreak && state.shield > 0) {
+      const roll = pick(gimmick.shieldBreak);
+      state.shield = Math.max(0, state.shield - roll.amount);
+      decrementAll(state);
+      return { category: 'shield', key: roll.key, label: roll.label, sub: `シールド-${roll.amount}`, amount: roll.amount, dmg: 0 };
+    }
     const roll = pick(DESTRUCTION);
     state.destruction_rate = Math.min(DESTRUCTION_MAX, state.destruction_rate + DESTRUCTION_INC[roll.key]);
     decrementAll(state);
@@ -98,6 +111,12 @@ function rollOne(state) {
   }
 
   const roll = pick(UNFAVORABLE);
+  const regen = gimmick.shieldRegen && gimmick.shieldRegen[roll.key];
+  if (regen) {
+    state.shield = Math.min(gimmick.shield, state.shield + regen.amount);
+    decrementAll(state);
+    return { category: 'unfavorable', key: regen.key, label: regen.label, sub: `シールド+${regen.amount}`, amount: regen.amount, dmg: 0 };
+  }
   let dmg = 0;
   if (roll.key === 'heal_small') dmg = -300;
   else if (roll.key === 'heal_large') dmg = -800;
@@ -122,16 +141,34 @@ async function getActiveEnemy() {
 }
 
 // 排出内容・確率・効果の一覧（画面下の展開パネル用）
-router.get('/rates', (req, res) => {
-  res.json({
-    pull_cost: PULL_COST,
-    categories: [
+router.get('/rates', async (req, res) => {
+  try {
+    const enemy = await getActiveEnemy();
+    const gimmick = getGimmick(enemy && enemy.gimmick);
+    const unfavorableItems = UNFAVORABLE.map(t => {
+      const regen = gimmick.shieldRegen && gimmick.shieldRegen[t.key];
+      return regen
+        ? { label: regen.label, p: t.p, detail: `シールド+${regen.amount}（${t.label}の代わり）` }
+        : { label: t.label, p: t.p, detail: t.sub };
+    });
+    const categories = [
       { ...CAT[0], items: DAMAGE_BASE_TABLE.map(t => ({ label: t.label, p: t.p, detail: `${t.dmg}ダメージ` })) },
       { ...CAT[1], items: FAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
-      { ...CAT[2], items: UNFAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
-      { ...CAT[3], items: DESTRUCTION.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
-    ],
-  });
+      { ...CAT[2], items: unfavorableItems },
+    ];
+    if (gimmick.shieldBreak) {
+      categories.push(
+        { ...CAT[3], label: 'シールド削りアイテム（シールドがある間）', items: gimmick.shieldBreak.map(t => ({ label: t.label, p: t.p, detail: `シールド-${t.amount}` })) },
+        { ...CAT[3], label: '破壊率アイテム（シールドがない間）', items: DESTRUCTION.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
+      );
+    } else {
+      categories.push({ ...CAT[3], items: DESTRUCTION.map(t => ({ label: t.label, p: t.p, detail: t.sub })) });
+    }
+    res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(enemy && enemy.gimmick), categories });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
 });
 
 // 現在の敵 + 自分の進行状況 + 所持ptを取得（進行状況が無ければ作成）
@@ -147,8 +184,8 @@ router.get('/current', async (req, res) => {
 
     if (!progress) {
       progress = (await pool.query(
-        'INSERT INTO user_special_gacha_progress (user_id, enemy_id, current_hp) VALUES ($1,$2,$3) RETURNING *',
-        [req.user.id, enemy.id, enemy.max_hp]
+        'INSERT INTO user_special_gacha_progress (user_id, enemy_id, current_hp, shield) VALUES ($1,$2,$3,$4) RETURNING *',
+        [req.user.id, enemy.id, enemy.max_hp, getGimmick(enemy.gimmick).shield || 0]
       )).rows[0];
     }
 
@@ -156,6 +193,7 @@ router.get('/current', async (req, res) => {
 
     res.json({
       enemy: { id: enemy.id, name: enemy.name, image_url: enemy.image_url, max_hp: enemy.max_hp, ssr_icon_name: enemy.ssr_icon_name, ssr_icon_image_url: enemy.ssr_icon_image_url },
+      gimmick: gimmickSummary(enemy.gimmick),
       progress,
       points: userResult.rows[0].points,
       pull_cost: PULL_COST,
@@ -180,8 +218,8 @@ router.post('/pull', async (req, res) => {
     )).rows[0];
     if (!progress) {
       progress = (await client.query(
-        'INSERT INTO user_special_gacha_progress (user_id, enemy_id, current_hp) VALUES ($1,$2,$3) RETURNING *',
-        [req.user.id, enemy.id, enemy.max_hp]
+        'INSERT INTO user_special_gacha_progress (user_id, enemy_id, current_hp, shield) VALUES ($1,$2,$3,$4) RETURNING *',
+        [req.user.id, enemy.id, enemy.max_hp, getGimmick(enemy.gimmick).shield || 0]
       )).rows[0];
     }
     if (progress.defeated_at) {
@@ -200,11 +238,13 @@ router.post('/pull', async (req, res) => {
     const state = {};
     for (const k of COUNTER_KEYS) state[k] = progress[k];
     state.destruction_rate = parseFloat(progress.destruction_rate);
+    state.shield = progress.shield;
+    const gimmick = getGimmick(enemy.gimmick);
     let hp = progress.current_hp;
 
     const results = [];
     for (let i = 0; i < PULLS_PER_TRY && hp > 0; i++) {
-      const r = rollOne(state);
+      const r = rollOne(state, gimmick);
       hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
       r.state_after = { ...state };
       results.push({ ...r, hp_after: hp });
@@ -225,11 +265,11 @@ router.post('/pull', async (req, res) => {
       `UPDATE user_special_gacha_progress SET
          current_hp=$3, ally_small=$4, ally_large=$5, debuff_small=$6, debuff_large=$7,
          enemybuff_small=$8, enemybuff_large=$9, critup_small=$10, critup_large=$11, destruction_rate=$12,
-         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END
+         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14
        WHERE user_id=$1 AND enemy_id=$2
        RETURNING *`,
       [req.user.id, enemy.id, hp, state.ally_small, state.ally_large, state.debuff_small, state.debuff_large,
-       state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, state.destruction_rate, defeated]
+       state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, state.destruction_rate, defeated, state.shield]
     );
 
     await client.query('COMMIT');

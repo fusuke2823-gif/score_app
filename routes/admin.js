@@ -6,6 +6,7 @@ const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints, convertExScoreToPoints, approveScoreRow } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
+const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
@@ -1454,6 +1455,38 @@ router.patch('/gacha/icons/:id/unit', async (req, res) => {
   }
 });
 
+router.patch('/gacha/icons/:id/rarity', async (req, res) => {
+  const { rarity } = req.body;
+  if (!['SS', 'S', 'A', 'SSR'].includes(rarity)) return res.status(400).json({ error: '無効なレアリティです' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // 特殊ガチャの討伐報酬はSSR前提なので、報酬に使われている間は変更させない
+    if (rarity !== 'SSR') {
+      const used = await client.query('SELECT name FROM special_gacha_enemies WHERE ssr_icon_id=$1', [req.params.id]);
+      if (used.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `特殊ガチャ「${used.rows.map(r => r.name).join('、')}」の討伐報酬に設定されているため変更できません` });
+      }
+    }
+    const result = await client.query('UPDATE gacha_icons SET rarity=$1 WHERE id=$2 RETURNING id', [rarity, req.params.id]);
+    if (!result.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'アイコンが見つかりません' });
+    }
+    // ピックアップはSS専用。SS以外になったらピックアップ登録を外す
+    if (rarity !== 'SS') await client.query('DELETE FROM gacha_pool_pickups WHERE icon_id=$1', [req.params.id]);
+    await client.query('COMMIT');
+    res.json({ message: `レアリティを${rarity}に変更しました` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
 router.patch('/gacha/icons/:id/visibility', async (req, res) => {
   const { is_active } = req.body;
   try {
@@ -1484,6 +1517,10 @@ router.delete('/gacha/icons/:id', async (req, res) => {
 });
 
 // ===== 特殊ガチャ（期間限定ボス）管理 =====
+router.get('/special-gacha/gimmicks', (req, res) => {
+  res.json(Object.keys(GIMMICKS).map(gimmickSummary));
+});
+
 router.get('/special-gacha/enemies', async (req, res) => {
   try {
     const result = await pool.query(
@@ -1500,9 +1537,11 @@ router.get('/special-gacha/enemies', async (req, res) => {
 });
 
 router.post('/special-gacha/enemies', async (req, res) => {
-  const { name, image_base64, ssr_icon_id, max_hp } = req.body;
+  const { name, image_base64, ssr_icon_id, gimmick = 'normal' } = req.body;
   if (!name || !image_base64 || !ssr_icon_id)
     return res.status(400).json({ error: '必須項目が不足しています' });
+  if (!GIMMICKS[gimmick])
+    return res.status(400).json({ error: '無効なギミックです' });
   const iconCheck = await pool.query('SELECT id FROM gacha_icons WHERE id=$1', [ssr_icon_id]);
   if (iconCheck.rows.length === 0)
     return res.status(400).json({ error: '指定されたアイコンが見つかりません' });
@@ -1516,8 +1555,8 @@ router.post('/special-gacha/enemies', async (req, res) => {
     });
     await client.query('UPDATE special_gacha_enemies SET is_active=FALSE WHERE is_active=TRUE');
     const result = await client.query(
-      'INSERT INTO special_gacha_enemies (name, image_url, max_hp, ssr_icon_id, is_active) VALUES ($1,$2,$3,$4,TRUE) RETURNING *',
-      [name, uploadResult.secure_url, max_hp ? parseInt(max_hp, 10) : 28000, ssr_icon_id]
+      'INSERT INTO special_gacha_enemies (name, image_url, max_hp, ssr_icon_id, is_active, gimmick) VALUES ($1,$2,$3,$4,TRUE,$5) RETURNING *',
+      [name, uploadResult.secure_url, GIMMICKS[gimmick].max_hp, ssr_icon_id, gimmick]
     );
     await client.query('COMMIT');
     res.json(result.rows[0]);

@@ -163,6 +163,12 @@
 .sg-card-back.cat-favorable { border:2px solid #49d6a8; box-shadow:0 0 8px rgba(73,214,168,0.35); color:#49d6a8; }
 .sg-card-back.cat-unfavorable { border:2px solid #e6494f; box-shadow:0 0 8px rgba(230,73,79,0.35); color:#e6494f; }
 .sg-card-back.cat-destruction { border:2px solid #c9762b; box-shadow:0 0 8px rgba(201,118,43,0.4); color:#c9762b; }
+.sg-card-back.cat-shield { border:2px solid #a9b4ff; box-shadow:0 0 8px rgba(169,180,255,0.4); color:#a9b4ff; }
+/* シールドに防がれたダメージ：数字は出すが打ち消し線で「入らなかった」ことを見せる */
+.sg-card-back.cat-damage.is-blocked { border-color:#7f88a8; box-shadow:none; color:#7f88a8; }
+.sg-card-back.cat-damage.is-blocked .sg-svg-icon { transform:none; }
+.sg-card-back.cat-damage.is-blocked .sg-card-val { color:#7f88a8; }
+.sg-card-back.cat-damage.is-blocked .sg-dmg-num { text-decoration:line-through; text-decoration-thickness:2px; }
 @keyframes sgGlowPulse {
   0%, 100% { box-shadow: 0 0 8px currentColor; }
   50% { box-shadow: 0 0 16px currentColor, 0 0 30px currentColor; }
@@ -186,6 +192,22 @@
 .sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.6rem; }
 .sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
 .sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.56rem; }
+.sg-card-back.cat-shield .sg-card-val { color:#a9b4ff; font-size:0.56rem; }
+
+/* ギミック表示とシールドバー */
+.sg-gimmick { display:flex; align-items:flex-start; gap:8px; margin-top:12px; padding:8px 10px; border-radius:8px; background:rgba(169,180,255,0.08); border:1px solid rgba(169,180,255,0.25); font-size:0.72rem; color:var(--text-secondary); line-height:1.5; }
+.sg-gimmick-tag { flex-shrink:0; font-size:0.66rem; font-weight:800; letter-spacing:0.08em; padding:1px 8px; border-radius:4px; background:#a9b4ff; color:#14163a; }
+.sg-shield-row { margin-bottom:5px; }
+.sg-shield-label { display:flex; justify-content:space-between; font-size:0.62rem; font-weight:800; letter-spacing:0.1em; color:#a9b4ff; margin-bottom:2px; font-variant-numeric:tabular-nums; }
+.sg-shield-bar-outer { width:100%; height:6px; border-radius:4px; background:rgba(0,0,0,0.4); border:1px solid rgba(169,180,255,0.35); overflow:hidden; }
+.sg-shield-bar-inner { height:100%; border-radius:4px; background:linear-gradient(90deg,#7b8cff,#c9d0ff); transition:width .4s ease; }
+.sg-shield-row.is-broken .sg-shield-label { color:var(--text-muted); }
+.sg-shield-row.is-broken .sg-shield-bar-outer { border-color:var(--border); }
+.sg-boss-card.sg-shield-break { animation:sgShieldBreak 0.6s ease-out; }
+.sg-boss-card.sg-shield-up { animation:sgShieldUp 0.6s ease-out; }
+@keyframes sgShieldBreak { 0% { box-shadow:0 0 0 0 rgba(169,180,255,0.9); transform:translateX(0); } 20% { transform:translateX(-4px); } 40% { transform:translateX(4px); } 60% { transform:translateX(-2px); } 100% { box-shadow:0 0 0 14px rgba(169,180,255,0); transform:translateX(0); } }
+@keyframes sgShieldUp { 0% { box-shadow:inset 0 0 0 2px rgba(169,180,255,0.9); } 100% { box-shadow:inset 0 0 0 2px rgba(169,180,255,0); } }
+@media (prefers-reduced-motion: reduce) { .sg-boss-card.sg-shield-break, .sg-boss-card.sg-shield-up { animation:none; } }
 
 .sg-battle-log { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:0.78rem; color:var(--text-secondary); text-align:center; margin-bottom:20px; }
 
@@ -365,6 +387,10 @@
         <div class="sg-boss-info">
           <div class="sg-boss-name" id="sg-boss-name">-</div>
           <div class="sg-destruction-rate" id="sg-destruction-rate">-</div>
+          <div class="sg-shield-row" id="sg-shield-row" hidden>
+            <div class="sg-shield-label"><span id="sg-shield-state">SHIELD</span><span id="sg-shield-num"></span></div>
+            <div class="sg-shield-bar-outer"><div class="sg-shield-bar-inner" id="sg-shield-bar" style="width:100%"></div></div>
+          </div>
           <div class="sg-hp-bar-outer"><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
         </div>
         <div class="sg-reward-preview">
@@ -372,6 +398,7 @@
           <div class="sg-reward-label" id="sg-reward-name"></div>
         </div>
       </div>
+      <div class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span><span id="sg-gimmick-desc"></span></div>
       <div class="sg-effects-row" id="sg-effects-row"></div>
     </div>
 
@@ -1087,6 +1114,37 @@ function renderSgHp(hp, maxHp) {
   document.getElementById('sg-hp-bar').style.width = Math.max(0, hp / maxHp * 100) + '%';
 }
 
+// シールドギミックの敵だけ表示。0になっても復活しうるので、バーは消さずに「BREAK」表示にする
+let sgMaxShield = 0;
+let sgShieldNow = 0;
+function renderSgShield(shield, animate = false) {
+  const row = document.getElementById('sg-shield-row');
+  row.hidden = !sgMaxShield;
+  if (!sgMaxShield) return;
+  const broken = shield <= 0;
+  row.classList.toggle('is-broken', broken);
+  document.getElementById('sg-shield-state').textContent = broken ? 'SHIELD BREAK' : 'SHIELD';
+  document.getElementById('sg-shield-num').textContent = `${Math.max(0, shield)}/${sgMaxShield}`;
+  document.getElementById('sg-shield-bar').style.width = Math.max(0, shield / sgMaxShield * 100) + '%';
+  if (animate && (sgShieldNow > 0) !== (shield > 0)) {
+    const card = document.querySelector('.sg-boss-card');
+    const cls = broken ? 'sg-shield-break' : 'sg-shield-up';
+    card.classList.remove('sg-shield-break', 'sg-shield-up');
+    void card.offsetWidth; // 連続で発生してもアニメーションをやり直す
+    card.classList.add(cls);
+  }
+  sgShieldNow = shield;
+}
+
+function renderSgGimmick(gimmick) {
+  const el = document.getElementById('sg-gimmick');
+  sgMaxShield = gimmick ? gimmick.max_shield : 0;
+  el.hidden = !gimmick || gimmick.key === 'normal';
+  if (el.hidden) return;
+  document.getElementById('sg-gimmick-tag').textContent = gimmick.label;
+  document.getElementById('sg-gimmick-desc').textContent = gimmick.description;
+}
+
 async function loadSpecialGacha() {
   try {
     const data = await apiFetch('/special-gacha/current');
@@ -1100,7 +1158,9 @@ async function loadSpecialGacha() {
     document.getElementById('sg-boss-portrait').src = data.enemy.image_url;
     document.getElementById('sg-reward-icon').src = data.enemy.ssr_icon_image_url;
     document.getElementById('sg-reward-name').textContent = data.enemy.ssr_icon_name;
+    renderSgGimmick(data.gimmick);
     renderSgHp(data.progress.current_hp, data.enemy.max_hp);
+    renderSgShield(data.progress.shield);
     renderSgDestructionRate(data.progress.destruction_rate);
     renderSgEffects(data.progress);
     updateSgDefeatedUi(!!data.progress.defeated_at);
@@ -1124,7 +1184,10 @@ async function toggleSgRates() {
   if (opening && !sgRatesLoaded) {
     try {
       const data = await apiFetch('/special-gacha/rates');
-      panel.innerHTML = data.categories.map(cat => `
+      const gimmickNote = data.gimmick && data.gimmick.key !== 'normal'
+        ? `<div class="sg-rates-group"><div class="sg-rates-group-title">ギミック: ${escHtml(data.gimmick.label)}</div><div class="sg-rates-group-p">${escHtml(data.gimmick.description)}</div></div>`
+        : '';
+      panel.innerHTML = gimmickNote + data.categories.map(cat => `
         <div class="sg-rates-group">
           <div class="sg-rates-group-title">${escHtml(cat.label)}</div>
           <div class="sg-rates-group-p">1段階目の抽選率: ${(cat.p * 100).toFixed(0)}%</div>
@@ -1156,10 +1219,13 @@ const SG_ICON_MAP = {
   enemybuff_small: ['shield', 'up1'], enemybuff_large: ['shield', 'up2'],
   critup_small: ['star', null], critup_large: ['star3', null],
   heal_small: ['heart', null], heal_large: ['heart2', null],
+  shield_break_small: ['barrier', 'down1'], shield_break_medium: ['barrier', 'down2'], shield_break_large: ['barrier', 'down2'],
+  shield_regen_small: ['barrier', 'up1'], shield_regen_large: ['barrier', 'up2'],
 };
 
 // 手描きの線画アイコン(SVG)。currentColorでカテゴリ色を継承する。
 const SG_SVG_BASE = {
+  barrier: '<path d="M12 2 L20.5 7 V17 L12 22 L3.5 17 V7 Z" fill-opacity="0.35"/><path d="M12 2 L20.5 7 V17 L12 22 L3.5 17 V7 Z M12 4.3 L5.5 8.1 V15.9 L12 19.7 L18.5 15.9 V8.1 Z" fill-rule="evenodd"/>',
   sword: '<path d="M12 2 L14.2 4.2 L14.2 15 L12 17.2 L9.8 15 L9.8 4.2 Z"/><rect x="6.5" y="14.2" width="11" height="2" rx="0.5"/><rect x="11" y="16.5" width="2" height="5.5" rx="0.6"/><circle cx="12" cy="22.3" r="1.4"/>',
   shield: '<path d="M12 2 L19.5 5 V11 C19.5 16 16 19.8 12 21.5 C8 19.8 4.5 16 4.5 11 V5 Z"/>',
   star: '<path d="M12 1.5 L14 9.5 L22 12 L14 14.5 L12 22.5 L10 14.5 L2 12 L10 9.5 Z"/>',
@@ -1183,6 +1249,9 @@ function sgBadgeSvg(name) {
 }
 
 function sgCardVisual(r) {
+  if (r.category === 'damage' && r.blocked) {
+    return { icon: sgSvg('barrier'), val: `<span class="sg-dmg-num">${r.blocked_dmg}</span><span class="sg-dmg-label">防がれた</span>` };
+  }
   if (r.category === 'damage') {
     return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num">${r.dmg}</span><span class="sg-dmg-label">ダメージ</span>` };
   }
@@ -1192,6 +1261,11 @@ function sgCardVisual(r) {
   }
   const [base, badge] = SG_ICON_MAP[r.key] || ['star', null];
   const iconHtml = sgSvg(base) + (badge ? sgBadgeSvg(badge) : '');
+  // シールドの増減は量が大事なので数字で見せる（破壊率カードと同じ形）
+  if (r.key && r.key.startsWith('shield_')) {
+    const sign = r.key.startsWith('shield_regen') ? '+' : '-';
+    return { icon: `<span class="sg-icon-stack">${iconHtml}</span>`, val: `シールド<br>${sign}${r.amount}` };
+  }
   return { icon: `<span class="sg-icon-stack">${iconHtml}</span>`, val: label };
 }
 
@@ -1207,9 +1281,9 @@ async function animateSpecialPull(results) {
 
   const cardEls = [];
   results.forEach((r, i) => {
-    const isBigDamage = r.category === 'damage' && r.key === 'ultra';
+    const isBigDamage = r.category === 'damage' && r.key === 'ultra' && !r.blocked;
     const isLargeEffect = (r.key && r.key.endsWith('_large')) || r.key === 'destruction_100';
-    const cls = `cat-${r.category}` + ((isBigDamage || isLargeEffect) ? ' sg-glow' : '');
+    const cls = `cat-${r.category}` + (r.blocked ? ' is-blocked' : '') + ((isBigDamage || isLargeEffect) ? ' sg-glow' : '');
     const { icon, val } = sgCardVisual(r);
     const card = document.createElement('div');
     card.className = 'g-card';
@@ -1276,6 +1350,7 @@ async function animateSpecialPull(results) {
     if (results[i].state_after) {
       renderSgEffects(results[i].state_after);
       renderSgDestructionRate(results[i].state_after.destruction_rate);
+      renderSgShield(results[i].state_after.shield, true);
     }
   }
 
@@ -1292,9 +1367,11 @@ async function doSpecialPull() {
     await animateSpecialPull(data.results);
 
     const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 ? r.dmg : 0), 0);
-    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ`;
+    const blockedCount = data.results.filter(r => r.blocked).length;
+    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ` + (blockedCount ? `（シールドに ${blockedCount} 回防がれた）` : '');
 
     renderSgHp(data.progress.current_hp, sgCurrentEnemy.max_hp);
+    renderSgShield(data.progress.shield);
     renderSgDestructionRate(data.progress.destruction_rate);
     renderSgEffects(data.progress);
     updateSgDefeatedUi(!!data.progress.defeated_at);

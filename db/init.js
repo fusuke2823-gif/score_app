@@ -571,6 +571,11 @@ const initDB = async () => {
     await client.query(`
       ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS destruction_rate NUMERIC(5,1) NOT NULL DEFAULT 100.0;
     `);
+    // ギミック（utils/specialGachaGimmicks.js のキー）と、シールドギミック用の残りシールド
+    await client.query(`
+      ALTER TABLE special_gacha_enemies ADD COLUMN IF NOT EXISTS gimmick VARCHAR(20) NOT NULL DEFAULT 'normal';
+      ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS shield INTEGER NOT NULL DEFAULT 0;
+    `);
 
     // 結果シェア画像
     await client.query(`
