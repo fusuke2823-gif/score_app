@@ -575,6 +575,8 @@ const initDB = async () => {
     await client.query(`
       ALTER TABLE special_gacha_enemies ADD COLUMN IF NOT EXISTS gimmick VARCHAR(20) NOT NULL DEFAULT 'normal';
       ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS shield INTEGER NOT NULL DEFAULT 0;
+      -- その敵に対して引いた10連の回数（管理画面の統計用。列追加前の分は含まれない）
+      ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS pull_count INTEGER NOT NULL DEFAULT 0;
     `);
 
     // 結果シェア画像

@@ -7,6 +7,7 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { updateUserRanks, convertScoreToPoints, convertEncounterScoreToPoints, convertExScoreToPoints, approveScoreRow } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
 const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
+const { PULL_COST: SPECIAL_GACHA_PULL_COST } = require('./specialGacha');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
@@ -1519,6 +1520,36 @@ router.delete('/gacha/icons/:id', async (req, res) => {
 // ===== 討伐ガチャ（期間限定ボス）管理 =====
 router.get('/special-gacha/gimmicks', (req, res) => {
   res.json(Object.keys(GIMMICKS).map(gimmickSummary));
+});
+
+// 敵ごとの挑戦・討伐状況。画面を開いただけの人（進行状況だけ作られた人）は挑戦者に数えない
+router.get('/special-gacha/stats', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT e.id, e.name, e.gimmick, e.max_hp, e.is_active, e.created_at,
+              COUNT(p.user_id) FILTER (WHERE p.pull_count > 0 OR p.current_hp < e.max_hp OR p.defeated_at IS NOT NULL)::int AS challengers,
+              COUNT(p.user_id) FILTER (WHERE p.defeated_at IS NOT NULL)::int AS defeated,
+              COALESCE(SUM(p.pull_count), 0)::int AS total_pulls,
+              AVG(p.pull_count) FILTER (WHERE p.defeated_at IS NOT NULL AND p.pull_count > 0) AS avg_pulls_to_defeat,
+              AVG(p.current_hp::float / NULLIF(e.max_hp, 0)) FILTER (WHERE p.defeated_at IS NULL AND (p.pull_count > 0 OR p.current_hp < e.max_hp)) AS avg_hp_ratio
+       FROM special_gacha_enemies e
+       LEFT JOIN user_special_gacha_progress p ON p.enemy_id = e.id
+       GROUP BY e.id
+       ORDER BY e.id DESC`
+    );
+    res.json({
+      pull_cost: SPECIAL_GACHA_PULL_COST,
+      enemies: result.rows.map(r => ({
+        ...r,
+        gimmick_label: gimmickSummary(r.gimmick).label,
+        avg_pulls_to_defeat: r.avg_pulls_to_defeat == null ? null : Number(r.avg_pulls_to_defeat),
+        avg_hp_ratio: r.avg_hp_ratio == null ? null : Number(r.avg_hp_ratio),
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
 });
 
 router.get('/special-gacha/enemies', async (req, res) => {

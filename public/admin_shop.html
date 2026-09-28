@@ -35,6 +35,21 @@
 .pool-icons-status { flex:1; min-width:0; text-align:right; font-size:0.78rem; font-weight:bold; }
 .pool-icons-status.ok { color:var(--success); }
 .pool-icons-status.ng { color:var(--danger); }
+/* 討伐ガチャの統計 */
+.sg-stats-enemy { padding:14px; border-radius:10px; border:1px solid var(--border); background:var(--bg-primary); margin-bottom:12px; }
+.sg-stats-enemy.is-active { border-color:rgba(255,215,0,0.45); }
+.sg-stats-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.sg-stats-name { font-weight:bold; font-size:0.95rem; }
+.sg-stats-tag { font-size:0.66rem; font-weight:bold; padding:1px 8px; border-radius:4px; background:var(--bg-card2); color:var(--text-secondary); }
+.sg-stats-tag.active { background:#ffd700; color:#241800; }
+.sg-stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+.sg-stats-tile { padding:8px 10px; border-radius:8px; background:rgba(255,255,255,0.04); }
+.sg-stats-label { font-size:0.7rem; color:var(--text-muted); }
+.sg-stats-value { font-size:1.1rem; font-weight:bold; font-variant-numeric:tabular-nums; }
+.sg-stats-sub { font-size:0.7rem; color:var(--text-secondary); margin-left:4px; font-weight:normal; }
+.sg-stats-bar { height:4px; border-radius:2px; background:var(--border); margin-top:6px; overflow:hidden; }
+.sg-stats-bar > div { height:100%; background:#ffd700; }
+
 /* 討伐ガチャの討伐報酬アイコン選択 */
 .sg-ssr-picker { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; max-height:260px; overflow-y:auto; padding:2px; }
 .sg-ssr-option { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border-radius:10px; border:2px solid var(--border); background:var(--bg-primary); color:var(--text-secondary); font-family:inherit; font-size:0.68rem; line-height:1.3; cursor:pointer; transition:border-color .15s, background .15s; }
@@ -156,6 +171,17 @@
 </div>
 
 <!-- プール統計モーダル -->
+<div id="sg-stats-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px" onclick="if(event.target===this)closeSgStatsModal()">
+  <div style="background:var(--bg-modal);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:620px;width:100%;margin:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-weight:bold;font-size:1rem">討伐ガチャの統計</div>
+      <button onclick="closeSgStatsModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px">×</button>
+    </div>
+    <div class="form-hint" style="margin-bottom:14px">10連の回数・討伐までの平均は、この統計機能の追加後に引かれた分から集計しています</div>
+    <div id="sg-stats-body"></div>
+  </div>
+</div>
+
 <div id="pool-stats-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
   <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:560px;width:100%;margin:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
@@ -448,7 +474,7 @@
     <div class="card" style="margin-top:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div class="section-title" style="margin:0">討伐ガチャ（期間限定・管理者限定公開中）</div>
-        <a href="/gacha.html" target="_blank" class="btn btn-secondary btn-sm">プレイヤー画面を開く</a>
+        <button class="btn btn-secondary btn-sm" onclick="openSgStatsModal()">討伐ガチャの統計</button>
       </div>
       <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px">
         新しく敵を作成すると、それまで有効だった敵は自動的に非表示になります（常に1体のみ有効）。SSRアイコンは上の「アイコン追加」で先に作成してから選択してください。
@@ -1153,7 +1179,7 @@ async function savePoolIcons() {
   }
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePoolEditModal(); closePoolStatsModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePoolEditModal(); closePoolStatsModal(); closeSgStatsModal(); } });
 
 // ===== ガチャ設定 =====
 async function loadGachaSettings() {
@@ -1515,6 +1541,49 @@ async function addSpecialGachaEnemy() {
   } finally {
     btn.disabled = false;
   }
+}
+
+async function openSgStatsModal() {
+  const modal = document.getElementById('sg-stats-modal');
+  const body = document.getElementById('sg-stats-body');
+  modal.style.display = 'flex';
+  body.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const { enemies, pull_cost } = await apiFetch('/admin/special-gacha/stats');
+    if (enemies.length === 0) {
+      body.innerHTML = '<div class="empty-state"><p>敵がまだ作成されていません</p></div>';
+      return;
+    }
+    const n = v => Number(v).toLocaleString('ja-JP');
+    body.innerHTML = enemies.map(e => {
+      const rate = e.challengers ? e.defeated / e.challengers : 0;
+      return `
+      <div class="sg-stats-enemy${e.is_active ? ' is-active' : ''}">
+        <div class="sg-stats-head">
+          <span class="sg-stats-name">${escHtml(e.name)}</span>
+          ${e.is_active ? '<span class="sg-stats-tag active">現在有効</span>' : ''}
+          <span class="sg-stats-tag">${escHtml(e.gimmick_label)}</span>
+          <span class="sg-stats-tag">HP ${n(e.max_hp)}</span>
+        </div>
+        <div class="sg-stats-grid">
+          <div class="sg-stats-tile"><div class="sg-stats-label">挑戦者</div><div class="sg-stats-value">${n(e.challengers)}<span class="sg-stats-sub">人</span></div></div>
+          <div class="sg-stats-tile">
+            <div class="sg-stats-label">討伐者</div>
+            <div class="sg-stats-value">${n(e.defeated)}<span class="sg-stats-sub">人（${Math.round(rate * 100)}%）</span></div>
+            <div class="sg-stats-bar"><div style="width:${Math.round(rate * 100)}%"></div></div>
+          </div>
+          <div class="sg-stats-tile"><div class="sg-stats-label">10連の回数</div><div class="sg-stats-value">${n(e.total_pulls)}<span class="sg-stats-sub">回（${n(e.total_pulls * pull_cost)}pt）</span></div></div>
+          <div class="sg-stats-tile"><div class="sg-stats-label">討伐までの平均</div><div class="sg-stats-value">${e.avg_pulls_to_defeat == null ? '-' : e.avg_pulls_to_defeat.toFixed(1)}<span class="sg-stats-sub">回</span></div></div>
+          <div class="sg-stats-tile"><div class="sg-stats-label">未討伐の平均残りHP</div><div class="sg-stats-value">${e.avg_hp_ratio == null ? '-' : Math.round(e.avg_hp_ratio * 100)}<span class="sg-stats-sub">%</span></div></div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    body.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+function closeSgStatsModal() {
+  document.getElementById('sg-stats-modal').style.display = 'none';
 }
 
 async function loadSpecialGachaEnemies() {

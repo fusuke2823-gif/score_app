@@ -282,7 +282,7 @@ router.post('/pull', async (req, res) => {
       `UPDATE user_special_gacha_progress SET
          current_hp=$3, ally_small=$4, ally_large=$5, debuff_small=$6, debuff_large=$7,
          enemybuff_small=$8, enemybuff_large=$9, critup_small=$10, critup_large=$11, destruction_rate=$12,
-         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14
+         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14, pull_count=pull_count+1
        WHERE user_id=$1 AND enemy_id=$2
        RETURNING *`,
       [req.user.id, enemy.id, hp, state.ally_small, state.ally_large, state.debuff_small, state.debuff_large,
@@ -307,3 +307,4 @@ router.post('/pull', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.PULL_COST = PULL_COST;
