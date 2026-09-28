@@ -530,7 +530,7 @@ const initDB = async () => {
     await client.query(`
       SELECT setval('login_bonus_enemies_id_seq', COALESCE((SELECT MAX(id) FROM login_bonus_enemies), 1));
     `);
-    // 討伐チャレンジ：ユーザーごとの現在の討伐対象とHP
+    // デイリーバトル：ユーザーごとの現在の討伐対象とHP
     await client.query(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS current_boss_enemy_id INTEGER REFERENCES login_bonus_enemies(id) ON DELETE SET NULL;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS current_boss_hp INTEGER;
@@ -539,7 +539,7 @@ const initDB = async () => {
       SELECT setval('event_notes_id_seq', COALESCE((SELECT MAX(id) FROM event_notes), 1));
     `);
 
-    // 特殊ガチャ（討伐チャレンジとは別の期間限定ボス。ガチャを引くことでダメージを与え、討伐でSSRアイコンを確定入手）
+    // 討伐ガチャ（デイリーバトルとは別の期間限定ボス。ガチャを引くことでダメージを与え、討伐でSSRアイコンを確定入手）
     await client.query(`
       CREATE TABLE IF NOT EXISTS special_gacha_enemies (
         id SERIAL PRIMARY KEY,

@@ -1461,12 +1461,12 @@ router.patch('/gacha/icons/:id/rarity', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // 特殊ガチャの討伐報酬はSSR前提なので、報酬に使われている間は変更させない
+    // 討伐ガチャの討伐報酬はSSR前提なので、報酬に使われている間は変更させない
     if (rarity !== 'SSR') {
       const used = await client.query('SELECT name FROM special_gacha_enemies WHERE ssr_icon_id=$1', [req.params.id]);
       if (used.rows.length) {
         await client.query('ROLLBACK');
-        return res.status(400).json({ error: `特殊ガチャ「${used.rows.map(r => r.name).join('、')}」の討伐報酬に設定されているため変更できません` });
+        return res.status(400).json({ error: `討伐ガチャ「${used.rows.map(r => r.name).join('、')}」の討伐報酬に設定されているため変更できません` });
       }
     }
     const result = await client.query('UPDATE gacha_icons SET rarity=$1 WHERE id=$2 RETURNING id', [rarity, req.params.id]);
@@ -1516,7 +1516,7 @@ router.delete('/gacha/icons/:id', async (req, res) => {
   }
 });
 
-// ===== 特殊ガチャ（期間限定ボス）管理 =====
+// ===== 討伐ガチャ（期間限定ボス）管理 =====
 router.get('/special-gacha/gimmicks', (req, res) => {
   res.json(Object.keys(GIMMICKS).map(gimmickSummary));
 });
@@ -1816,7 +1816,7 @@ router.put('/gacha/pools/:id/pickups', async (req, res) => {
   }
 });
 
-// ===== ログインボーナス（討伐チャレンジ）設定 =====
+// ===== ログインボーナス（デイリーバトル）設定 =====
 router.get('/login-bonus-settings', async (req, res) => {
   try {
     const result = await pool.query(
@@ -1849,7 +1849,7 @@ router.put('/login-bonus-settings', async (req, res) => {
   }
 });
 
-// 討伐チャレンジ 敵カード（複数登録・ランダム表示）
+// デイリーバトル 敵カード（複数登録・ランダム表示）
 router.get('/login-bonus/enemies', async (req, res) => {
   try {
     const r = await pool.query('SELECT * FROM login_bonus_enemies ORDER BY created_at DESC');

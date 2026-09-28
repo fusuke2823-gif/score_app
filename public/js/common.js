@@ -1579,7 +1579,7 @@ async function initAccountSettingsPrompt() {
   } catch {}
 }
 
-// ===== ログインボーナス「討伐チャレンジ」 =====
+// ===== ログインボーナス「デイリーバトル」 =====
 const LB_WEAPONS = ['斬', '突', '打'];
 const LB_ELEMENTS = ['火', '氷', '雷', '光', '闇', '無'];
 const LB_TIERS = {
@@ -1748,7 +1748,7 @@ async function initLoginBonus() {
   modal.id = 'login-bonus-modal';
   modal.innerHTML = `
     <div id="login-bonus-box">
-      <h3>討伐チャレンジ</h3>
+      <h3>デイリーバトル</h3>
       <div class="bonus-sub" id="lb-sub">本日の敵の弱点を見抜いて、ポイントを稼ごう</div>
       <div class="lb-day-track">
         <div class="lb-day-track-line"><div class="lb-day-track-fill" id="lb-day-track-fill"></div></div>

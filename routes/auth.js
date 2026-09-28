@@ -271,7 +271,7 @@ router.post('/google/register', async (req, res) => {
   }
 });
 
-// ===== ログインボーナス「討伐チャレンジ」 =====
+// ===== ログインボーナス「デイリーバトル」 =====
 const WEAPON_ATTRS = ['斬', '突', '打'];
 const ELEMENT_ATTRS = ['火', '氷', '雷', '光', '闇']; // 無は別扱い
 
@@ -361,7 +361,7 @@ async function getOrCreateDefeatTitle(enemyName) {
   if (existing.rows.length > 0) return existing.rows[0].id;
   const created = await pool.query(
     'INSERT INTO titles (name, description, is_active) VALUES ($1,$2,TRUE) RETURNING id',
-    [name, `討伐チャレンジで「${enemyName}」を討伐した証`]
+    [name, `デイリーバトルで「${enemyName}」を討伐した証`]
   );
   return created.rows[0].id;
 }
@@ -379,7 +379,7 @@ function lbYesterdayStr() {
   return d.toISOString().slice(0, 10);
 }
 
-// 討伐チャレンジ状態確認
+// デイリーバトル状態確認
 router.get('/login-bonus', authenticateToken, async (req, res) => {
   try {
     const [userResult, scoreTable, bossEnemy] = await Promise.all([
@@ -415,7 +415,7 @@ router.get('/login-bonus', authenticateToken, async (req, res) => {
   }
 });
 
-// 討伐チャレンジ挑戦
+// デイリーバトル挑戦
 router.post('/login-bonus', authenticateToken, async (req, res) => {
   const { weapon, element } = req.body;
   if (!WEAPON_ATTRS.includes(weapon))
@@ -456,7 +456,7 @@ router.post('/login-bonus', authenticateToken, async (req, res) => {
     );
     await pool.query(
       'INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)',
-      [req.user.id, points, `討伐チャレンジ ${newStreak}日目`]
+      [req.user.id, points, `デイリーバトル ${newStreak}日目`]
     );
 
     // 敵HP・ダメージ・討伐称号

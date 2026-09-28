@@ -185,7 +185,7 @@
 .rate-row { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid var(--border); font-size:0.85rem; }
 .rate-row:last-child { border-bottom:none; }
 
-/* ===== 特殊ガチャ ===== */
+/* ===== 討伐ガチャ ===== */
 .sg-boss-card { padding:16px 18px; }
 .sg-defeated-banner { text-align:center; font-size:1.15rem; font-weight:900; letter-spacing:.05em; color:#ffd700; margin-bottom:10px; }
 .sg-boss-row { display:flex; align-items:center; gap:14px; }
@@ -360,7 +360,7 @@
   </div>
   <div class="gacha-top-spacer"></div>
 
-  <!-- ガチャ種別タブ（特殊ガチャは管理者限定公開中） -->
+  <!-- ガチャ種別タブ（討伐ガチャは管理者限定公開中） -->
   <div id="gacha-type-tabs" class="gacha-type-tabs" data-active="normal" style="display:none">
     <span class="gacha-type-indicator" aria-hidden="true"></span>
     <button type="button" class="gacha-type-btn active" id="tab-btn-normal" onclick="switchGachaType('normal')">
@@ -369,7 +369,7 @@
     </button>
     <button type="button" class="gacha-type-btn" id="tab-btn-special" onclick="switchGachaType('special')" style="display:none">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5H20.5V9.5L10 20L4 14Z"/><path d="M13 11l-4 4"/><path d="M4 20l2.5-2.5"/></svg>
-      <span>特殊ガチャ</span>
+      <span>討伐ガチャ</span>
     </button>
   </div>
 
@@ -430,7 +430,7 @@
 
   </div><!-- /#gacha-main -->
 
-  <!-- ③特殊ガチャ画面（管理者限定公開中） -->
+  <!-- ③討伐ガチャ画面（管理者限定公開中） -->
   <div id="special-gacha-screen" style="display:none">
     <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます</div>
     <div class="card sg-boss-card">
@@ -462,7 +462,7 @@
     </div>
 
     <div class="gacha-stage" id="sg-stage">
-      <div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">特殊ガチャを引いてください</div>
+      <div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">討伐ガチャを引いてください</div>
     </div>
     <div class="sg-battle-log" id="sg-battle-log">10連ガチャを引くと、ここに結果が表示されます</div>
 
@@ -472,7 +472,7 @@
     <div id="sg-rates-panel" class="sg-rates-panel" hidden></div>
   </div>
 
-  <!-- 特殊ガチャ 討伐演出 -->
+  <!-- 討伐ガチャ 討伐演出 -->
   <div id="sg-defeat-overlay" class="sg-overlay">
     <div class="sg-defeat-card">
       <div class="sg-defeat-title">討伐完了</div>
@@ -1123,7 +1123,7 @@ function showResultSummary(results) {
 
 init();
 
-// ===== 特殊ガチャ（期間限定・管理者限定公開中） =====
+// ===== 討伐ガチャ（期間限定・管理者限定公開中） =====
 let sgCurrentEnemy = null;
 let sgLoaded = false;
 

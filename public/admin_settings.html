@@ -123,14 +123,14 @@
   <!-- ログインボーナスタブ -->
   <div class="tab-content" id="tab-loginbonus">
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title">討伐チャレンジ 報酬設定（判定スコア→獲得pt）</div>
+      <div class="section-title">デイリーバトル 報酬設定（判定スコア→獲得pt）</div>
       <div id="lb-alert" style="margin-bottom:12px"></div>
       <div id="lb-score-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px"></div>
       <button class="btn btn-primary" onclick="saveLBSettings()">保存</button>
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title">討伐チャレンジ 敵カード設定（複数登録・挑戦のたびにランダム表示）</div>
+      <div class="section-title">デイリーバトル 敵カード設定（複数登録・挑戦のたびにランダム表示）</div>
       <div id="boss-alert" style="margin-bottom:12px"></div>
       <form id="boss-add-form" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
         <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px">
@@ -331,7 +331,7 @@ async function saveAiCheckSetting() {
   }
 }
 
-// ===== ログインボーナス（討伐チャレンジ）設定 =====
+// ===== ログインボーナス（デイリーバトル）設定 =====
 const LB_SCORE_KEYS = [
   { key: 'm2', label: 'スコア -2' }, { key: 'm1', label: 'スコア -1' }, { key: '0', label: 'スコア 0' },
   { key: 'p1', label: 'スコア +1' }, { key: 'p2', label: 'スコア +2' },

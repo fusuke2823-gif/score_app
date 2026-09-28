@@ -35,7 +35,7 @@
 .pool-icons-status { flex:1; min-width:0; text-align:right; font-size:0.78rem; font-weight:bold; }
 .pool-icons-status.ok { color:var(--success); }
 .pool-icons-status.ng { color:var(--danger); }
-/* 特殊ガチャの討伐報酬アイコン選択 */
+/* 討伐ガチャの討伐報酬アイコン選択 */
 .sg-ssr-picker { display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px; max-height:260px; overflow-y:auto; padding:2px; }
 .sg-ssr-option { display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px; border-radius:10px; border:2px solid var(--border); background:var(--bg-primary); color:var(--text-secondary); font-family:inherit; font-size:0.68rem; line-height:1.3; cursor:pointer; transition:border-color .15s, background .15s; }
 .sg-ssr-option:hover { border-color:var(--border-light); }
@@ -426,7 +426,7 @@
         <div class="form-group">
           <label class="form-label">レアリティ</label>
           <select class="form-input" id="icon-rarity">
-            <option value="SSR">SSR（特殊ガチャ限定・通常ガチャには出現しません）</option>
+            <option value="SSR">SSR（討伐ガチャ限定・通常ガチャには出現しません）</option>
             <option value="SS">SS</option>
             <option value="S" selected>S</option>
             <option value="A">A</option>
@@ -444,10 +444,10 @@
       </details>
     </div>
 
-    <!-- 特殊ガチャ（期間限定ボス）管理 -->
+    <!-- 討伐ガチャ（期間限定ボス）管理 -->
     <div class="card" style="margin-top:20px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="section-title" style="margin:0">特殊ガチャ（期間限定・管理者限定公開中）</div>
+        <div class="section-title" style="margin:0">討伐ガチャ（期間限定・管理者限定公開中）</div>
         <a href="/gacha.html" target="_blank" class="btn btn-secondary btn-sm">プレイヤー画面を開く</a>
       </div>
       <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px">
@@ -478,7 +478,7 @@
     </div>
 
     <div class="card" style="margin-top:16px">
-      <div class="section-title">特殊ガチャの敵 一覧</div>
+      <div class="section-title">討伐ガチャの敵 一覧</div>
       <div id="sg-enemy-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
@@ -1435,7 +1435,7 @@ async function deleteGachaIcon(id) {
   } catch (err) { showAlert('#alert', err.message); }
 }
 
-// ===== 特殊ガチャ（期間限定ボス）管理 =====
+// ===== 討伐ガチャ（期間限定ボス）管理 =====
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

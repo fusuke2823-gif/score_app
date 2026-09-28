@@ -249,7 +249,7 @@ router.post('/pull', async (req, res) => {
       return res.status(400).json({ error: `ポイントが不足しています（必要: ${PULL_COST}pt）` });
     }
     await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [PULL_COST, req.user.id]);
-    await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -PULL_COST, '特殊ガチャ（10連）']);
+    await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -PULL_COST, '討伐ガチャ（10連）']);
 
     const state = {};
     for (const k of COUNTER_KEYS) state[k] = progress[k];
