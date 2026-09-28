@@ -90,6 +90,8 @@ async function upload(type, inputId) {
   try {
     const res = await apiFormFetch(`/admin/chart-data/import-${type}`, fd);
     showAlert('#alert', res.message, 'success');
+    // スキップ理由を1行ずつ表示する
+    document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
     loadStats();
   } catch (e) { showAlert('#alert', e.message); }
 }

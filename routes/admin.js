@@ -2123,9 +2123,35 @@ router.post('/pending-videos/:id/reject', async (req, res) => {
 
 // ---- チャートゲームデータ管理 ----
 
+// 戻り値は { line: CSV上の行番号, cols: 列の配列 }（ヘッダ行は除く）
 function parseCSVBuffer(buf) {
-  return buf.toString('utf-8').split('\n').filter(Boolean).slice(1)
-    .map(line => line.split(',').map(s => s.trim()));
+  return buf.toString('utf-8').replace(/^\uFEFF/, '').split('\n')
+    .map((text, i) => ({ line: i + 1, cols: text.split(',').map(s => s.trim()) }))
+    .slice(1)
+    .filter(r => r.cols.some(Boolean));
+}
+
+// スキップ理由は多すぎるとアラートが埋まるので先頭だけ返す
+function importResultMessage(label, count, updated, skips) {
+  let msg = `${label}: ${count}件追加・${updated}件更新・${skips.length}件スキップ`;
+  if (skips.length) msg += `\n` + skips.slice(0, 10).join('\n') + (skips.length > 10 ? `\n…ほか${skips.length - 10}件` : '');
+  return msg;
+}
+
+// CSV取り込みは途中で失敗したら全件ロールバックする
+async function inTransaction(fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 router.get('/chart-data/stats', async (req, res) => {
@@ -2147,16 +2173,22 @@ router.post('/chart-data/import-characters', upload.single('csv'), async (req, r
   if (!req.file) return res.status(400).json({ error: 'ファイルがありません' });
   try {
     const rows = parseCSVBuffer(req.file.buffer);
-    let count = 0;
-    for (const [sort_order, name, abbreviation] of rows) {
-      if (!name) continue;
-      await pool.query(
-        `INSERT INTO chart_characters (name, abbreviation, sort_order) VALUES ($1, $2, $3) ON CONFLICT (name) DO UPDATE SET abbreviation=$2, sort_order=$3`,
-        [name, abbreviation || null, parseInt(sort_order) || 0]
-      );
-      count++;
-    }
-    res.json({ message: `${count}件のキャラクターをインポートしました` });
+    const message = await inTransaction(async client => {
+      let count = 0, updated = 0;
+      const skips = [];
+      for (const { line, cols: [sort_order, name, abbreviation] } of rows) {
+        if (!name) { skips.push(`${line}行目: キャラ名が空です`); continue; }
+        const r = await client.query(
+          `INSERT INTO chart_characters (name, abbreviation, sort_order) VALUES ($1, $2, $3)
+           ON CONFLICT (name) DO UPDATE SET abbreviation=$2, sort_order=$3
+           RETURNING (xmax = 0) AS inserted`,
+          [name, abbreviation || null, parseInt(sort_order) || 0]
+        );
+        if (r.rows[0].inserted) count++; else updated++;
+      }
+      return importResultMessage('キャラクター', count, updated, skips);
+    });
+    res.json({ message });
   } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
@@ -2164,18 +2196,24 @@ router.post('/chart-data/import-styles', upload.single('csv'), async (req, res) 
   if (!req.file) return res.status(400).json({ error: 'ファイルがありません' });
   try {
     const rows = parseCSVBuffer(req.file.buffer);
-    let count = 0, skip = 0;
-    for (const [style_name, abbreviation, character_name, has_special] of rows) {
-      if (!character_name || !style_name) continue;
-      const c = await pool.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
-      if (!c.rows.length) { skip++; continue; }
-      await pool.query(
-        `INSERT INTO chart_styles (character_id, name, abbreviation, has_special_skill) VALUES ($1, $2, $3, $4) ON CONFLICT (character_id, name) DO UPDATE SET abbreviation=$3, has_special_skill=$4`,
-        [c.rows[0].id, style_name, abbreviation || null, has_special === '1']
-      );
-      count++;
-    }
-    res.json({ message: `${count}件のスタイルをインポート（${skip}件スキップ）` });
+    const message = await inTransaction(async client => {
+      let count = 0, updated = 0;
+      const skips = [];
+      for (const { line, cols: [style_name, abbreviation, character_name, has_special] } of rows) {
+        if (!character_name || !style_name) { skips.push(`${line}行目: スタイル名かキャラ名が空です`); continue; }
+        const c = await client.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
+        if (!c.rows.length) { skips.push(`${line}行目: キャラ「${character_name}」が未登録です`); continue; }
+        const r = await client.query(
+          `INSERT INTO chart_styles (character_id, name, abbreviation, has_special_skill) VALUES ($1, $2, $3, $4)
+           ON CONFLICT (character_id, name) DO UPDATE SET abbreviation=$3, has_special_skill=$4
+           RETURNING (xmax = 0) AS inserted`,
+          [c.rows[0].id, style_name, abbreviation || null, has_special === '1']
+        );
+        if (r.rows[0].inserted) count++; else updated++;
+      }
+      return importResultMessage('スタイル', count, updated, skips);
+    });
+    res.json({ message });
   } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
@@ -2183,34 +2221,48 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
   if (!req.file) return res.status(400).json({ error: 'ファイルがありません' });
   try {
     const rows = parseCSVBuffer(req.file.buffer);
-    let count = 0, skip = 0;
-    for (const [skill_name, abbreviation, style_name, character_name, has_target, is_special] of rows) {
-      if (!skill_name) continue;
-      let charId = null;
-      if (character_name) {
-        const c = await pool.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
-        if (!c.rows.length) { skip++; continue; }
-        charId = c.rows[0].id;
+    const message = await inTransaction(async client => {
+      let count = 0, updated = 0;
+      const skips = [];
+      for (const { line, cols: [skill_name, abbreviation, style_name, character_name, has_target, is_special] } of rows) {
+        if (!skill_name) { skips.push(`${line}行目: 技名が空です`); continue; }
+        let charId = null;
+        if (character_name) {
+          const c = await client.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
+          if (!c.rows.length) { skips.push(`${line}行目: キャラ「${character_name}」が未登録です`); continue; }
+          charId = c.rows[0].id;
+        }
+        let styleId = null;
+        if (style_name) {
+          // スタイルが見つからないまま登録するとキャラ共通技に化けるので、登録せずに知らせる
+          if (!charId) { skips.push(`${line}行目: スタイル「${style_name}」にキャラ名がありません`); continue; }
+          const s = await client.query('SELECT id FROM chart_styles WHERE character_id=$1 AND name=$2', [charId, style_name]);
+          if (!s.rows.length) { skips.push(`${line}行目: スタイル「${style_name}」が未登録です`); continue; }
+          styleId = s.rows[0].id;
+        }
+        const exists = await client.query(
+          `SELECT id FROM chart_skills WHERE name=$1
+           AND character_id IS NOT DISTINCT FROM $2::int
+           AND style_id IS NOT DISTINCT FROM $3::int`,
+          [skill_name, charId, styleId]
+        );
+        if (exists.rows.length) {
+          await client.query(
+            'UPDATE chart_skills SET abbreviation=$1, has_target=$2, is_special=$3 WHERE id=$4',
+            [abbreviation || null, has_target === '1', is_special === '1', exists.rows[0].id]
+          );
+          updated++;
+          continue;
+        }
+        await client.query(
+          `INSERT INTO chart_skills (character_id, name, abbreviation, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5, $6)`,
+          [charId, skill_name, abbreviation || null, has_target === '1', styleId, is_special === '1']
+        );
+        count++;
       }
-      let styleId = null;
-      if (style_name && charId) {
-        const s = await pool.query('SELECT id FROM chart_styles WHERE character_id=$1 AND name=$2', [charId, style_name]);
-        if (s.rows.length) styleId = s.rows[0].id;
-      }
-      const exists = await pool.query(
-        `SELECT id FROM chart_skills WHERE name=$1
-         AND (character_id=$2 OR (character_id IS NULL AND $2::int IS NULL))
-         AND (style_id=$3 OR (style_id IS NULL AND $3::int IS NULL))`,
-        [skill_name, charId, styleId]
-      );
-      if (exists.rows.length) { skip++; continue; }
-      await pool.query(
-        `INSERT INTO chart_skills (character_id, name, abbreviation, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [charId, skill_name, abbreviation || null, has_target === '1', styleId, is_special === '1']
-      );
-      count++;
-    }
-    res.json({ message: `${count}件の技をインポート（${skip}件スキップ）` });
+      return importResultMessage('技', count, updated, skips);
+    });
+    res.json({ message });
   } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
