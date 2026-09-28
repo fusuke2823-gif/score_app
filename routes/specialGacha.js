@@ -12,6 +12,7 @@ const PULLS_PER_TRY = 10;
 const DUR_SMALL = 15, DUR_LARGE = 8;
 const DESTRUCTION_MAX = 999.0;
 const DESTRUCTION_INC = { destruction_25: 25.0, destruction_50: 50.0, destruction_100: 100.0 };
+const HEAL_AMOUNT = { heal_small: 300, heal_large: 800 };
 
 const CAT = [
   { name: 'damage', p: 0.70, label: 'ダメージリソース' },
@@ -36,8 +37,8 @@ const FAVORABLE = [
 const UNFAVORABLE = [
   { key: 'enemybuff_small', p: 0.35, label: '防御UP(小)', sub: '与ダメ-20%・15連' },
   { key: 'enemybuff_large', p: 0.15, label: '防御UP(大)', sub: '与ダメ-50%・8連' },
-  { key: 'heal_small', p: 0.35, label: '敵の回復(小)', sub: '敵HP+300' },
-  { key: 'heal_large', p: 0.15, label: '敵の回復(大)', sub: '敵HP+800' },
+  { key: 'heal_small', p: 0.35, label: '敵の回復(小)' },
+  { key: 'heal_large', p: 0.15, label: '敵の回復(大)' },
 ];
 const DESTRUCTION = [
   { key: 'destruction_25', p: 0.50, label: '破壊率上昇+25%', sub: `破壊率+${DESTRUCTION_INC.destruction_25.toFixed(1)}%` },
@@ -46,6 +47,20 @@ const DESTRUCTION = [
 ];
 const LARGE_KEYS = new Set(['ally_large', 'debuff_large', 'critup_large', 'enemybuff_large']);
 const COUNTER_KEYS = ['ally_small', 'ally_large', 'debuff_small', 'debuff_large', 'enemybuff_small', 'enemybuff_large', 'critup_small', 'critup_large'];
+
+// ギミックごとの確率表。ギミックで指定がない項目は通常と同じ値を使う
+function tablesFor(gimmick) {
+  const cat = gimmick.categoryP ? CAT.map(c => ({ ...c, p: gimmick.categoryP[c.name] })) : CAT;
+  const damage = gimmick.damage ? DAMAGE_BASE_TABLE.map(t => ({ ...t, ...gimmick.damage[t.name] })) : DAMAGE_BASE_TABLE;
+  const mult = gimmick.destructionMult || 1;
+  const destruction = DESTRUCTION.map(t => {
+    const amount = DESTRUCTION_INC[t.key] * mult;
+    return { ...t, amount, label: `破壊率上昇+${amount}%`, sub: `破壊率+${amount.toFixed(1)}%` };
+  });
+  const heal = { ...HEAL_AMOUNT, ...gimmick.healAmount };
+  const unfavorable = UNFAVORABLE.map(t => (heal[t.key] ? { ...t, sub: `敵HP+${heal[t.key]}` } : t));
+  return { cat, damage, destruction, heal, unfavorable, destructionMax: gimmick.destructionMax || DESTRUCTION_MAX };
+}
 
 function pick(list) {
   const r = Math.random();
@@ -58,21 +73,21 @@ function pick(list) {
 }
 
 // 1連分の抽選とダメージ計算。state (COUNTER_KEYS・destruction_rate・shield を持つオブジェクト) を直接更新する。
-function rollOne(state, gimmick) {
-  const cat = pick(CAT);
+function rollOne(state, gimmick, tables = tablesFor(gimmick)) {
+  const cat = pick(tables.cat);
 
   if (cat.name === 'damage') {
-    const [missBase, normalBase, critBase, ultraBase] = DAMAGE_BASE_TABLE.map(t => t.p);
+    const [missBase, normalBase, critBase, ultraBase] = tables.damage.map(t => t.p);
     const critBoost = 1 + (state.critup_small > 0 ? 0.5 : 0) + (state.critup_large > 0 ? 1.0 : 0);
     const crit = critBase * critBoost, ultra = ultraBase * critBoost;
     const added = (crit - critBase) + (ultra - ultraBase);
     const missShare = missBase / (missBase + normalBase), normalShare = normalBase / (missBase + normalBase);
     const miss = Math.max(0, missBase - added * missShare), normal = Math.max(0, normalBase - added * normalShare);
     const table = [
-      { ...DAMAGE_BASE_TABLE[0], p: miss },
-      { ...DAMAGE_BASE_TABLE[1], p: normal },
-      { ...DAMAGE_BASE_TABLE[2], p: crit },
-      { ...DAMAGE_BASE_TABLE[3], p: ultra },
+      { ...tables.damage[0], p: miss },
+      { ...tables.damage[1], p: normal },
+      { ...tables.damage[2], p: crit },
+      { ...tables.damage[3], p: ultra },
     ];
     const roll = pick(table);
     const allyBonus = (state.ally_small > 0 ? 0.5 : 0) + (state.ally_large > 0 ? 2.0 : 0);
@@ -104,13 +119,13 @@ function rollOne(state, gimmick) {
       decrementAll(state);
       return { category: 'shield', key: roll.key, label: roll.label, sub: `シールド-${roll.amount}`, amount: roll.amount, dmg: 0 };
     }
-    const roll = pick(DESTRUCTION);
-    state.destruction_rate = Math.min(DESTRUCTION_MAX, state.destruction_rate + DESTRUCTION_INC[roll.key]);
+    const roll = pick(tables.destruction);
+    state.destruction_rate = Math.min(tables.destructionMax, state.destruction_rate + roll.amount);
     decrementAll(state);
-    return { category: 'destruction', key: roll.key, label: roll.label, sub: roll.sub, amount: DESTRUCTION_INC[roll.key], dmg: 0 };
+    return { category: 'destruction', key: roll.key, label: roll.label, sub: roll.sub, amount: roll.amount, dmg: 0 };
   }
 
-  const roll = pick(UNFAVORABLE);
+  const roll = pick(tables.unfavorable);
   const regen = gimmick.shieldRegen && gimmick.shieldRegen[roll.key];
   if (regen) {
     state.shield = Math.min(gimmick.shield, state.shield + regen.amount);
@@ -118,8 +133,7 @@ function rollOne(state, gimmick) {
     return { category: 'unfavorable', key: regen.key, label: regen.label, sub: `シールド+${regen.amount}`, amount: regen.amount, dmg: 0 };
   }
   let dmg = 0;
-  if (roll.key === 'heal_small') dmg = -300;
-  else if (roll.key === 'heal_large') dmg = -800;
+  if (tables.heal[roll.key]) dmg = -tables.heal[roll.key];
   else state[roll.key] = LARGE_KEYS.has(roll.key) ? DUR_LARGE : DUR_SMALL;
   decrementAll(state);
   return { category: 'unfavorable', key: roll.key, label: roll.label, sub: roll.sub, dmg };
@@ -145,24 +159,26 @@ router.get('/rates', async (req, res) => {
   try {
     const enemy = await getActiveEnemy();
     const gimmick = getGimmick(enemy && enemy.gimmick);
-    const unfavorableItems = UNFAVORABLE.map(t => {
+    const tables = tablesFor(gimmick);
+    const [catDamage, catFavorable, catUnfavorable, catDestruction] = tables.cat;
+    const unfavorableItems = tables.unfavorable.map(t => {
       const regen = gimmick.shieldRegen && gimmick.shieldRegen[t.key];
       return regen
         ? { label: regen.label, p: t.p, detail: `シールド+${regen.amount}（${t.label}の代わり）` }
         : { label: t.label, p: t.p, detail: t.sub };
     });
     const categories = [
-      { ...CAT[0], items: DAMAGE_BASE_TABLE.map(t => ({ label: t.label, p: t.p, detail: `${t.dmg}ダメージ` })) },
-      { ...CAT[1], items: FAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
-      { ...CAT[2], items: unfavorableItems },
+      { ...catDamage, items: tables.damage.map(t => ({ label: t.label, p: t.p, detail: `${t.dmg}ダメージ` })) },
+      { ...catFavorable, items: FAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
+      { ...catUnfavorable, items: unfavorableItems },
     ];
     if (gimmick.shieldBreak) {
       categories.push(
-        { ...CAT[3], label: 'シールド削りアイテム（シールドがある間）', items: gimmick.shieldBreak.map(t => ({ label: t.label, p: t.p, detail: `シールド-${t.amount}` })) },
-        { ...CAT[3], label: '破壊率アイテム（シールドがない間）', items: DESTRUCTION.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
+        { ...catDestruction, label: 'シールド削りアイテム（シールドがある間）', items: gimmick.shieldBreak.map(t => ({ label: t.label, p: t.p, detail: `シールド-${t.amount}` })) },
+        { ...catDestruction, label: '破壊率アイテム（シールドがない間）', items: tables.destruction.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
       );
     } else {
-      categories.push({ ...CAT[3], items: DESTRUCTION.map(t => ({ label: t.label, p: t.p, detail: t.sub })) });
+      categories.push({ ...catDestruction, items: tables.destruction.map(t => ({ label: t.label, p: t.p, detail: t.sub })) });
     }
     res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(enemy && enemy.gimmick), categories });
   } catch (err) {
@@ -240,11 +256,12 @@ router.post('/pull', async (req, res) => {
     state.destruction_rate = parseFloat(progress.destruction_rate);
     state.shield = progress.shield;
     const gimmick = getGimmick(enemy.gimmick);
+    const tables = tablesFor(gimmick);
     let hp = progress.current_hp;
 
     const results = [];
     for (let i = 0; i < PULLS_PER_TRY && hp > 0; i++) {
-      const r = rollOne(state, gimmick);
+      const r = rollOne(state, gimmick, tables);
       hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
       r.state_after = { ...state };
       results.push({ ...r, hp_after: hp });

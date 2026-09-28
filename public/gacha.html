@@ -6,8 +6,52 @@
 <title>ガチャ - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.gacha-hero { text-align:center; padding:28px 0 8px; }
-.gacha-points-display { font-size:1.5rem; font-weight:bold; color:var(--accent); margin-bottom:6px; }
+/* 所持ポイント・GP（このページだけ右上に固定表示） */
+.gacha-wallet {
+  position:fixed; top:66px; right:max(16px, calc((100vw - 1100px) / 2 + 24px)); z-index:90;
+  display:flex; align-items:center; gap:10px; padding:6px 14px; border-radius:99px;
+  background:rgba(18,16,34,0.78); backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
+  border:1px solid var(--border-light); box-shadow:0 4px 16px rgba(0,0,0,0.4);
+  font-size:0.9rem; font-weight:800; font-variant-numeric:tabular-nums;
+}
+.gacha-wallet-item { display:flex; align-items:baseline; gap:5px; }
+.gacha-wallet-label { font-size:0.62rem; font-weight:800; letter-spacing:0.1em; color:var(--text-secondary); }
+#my-points { color:#ff6b80; }
+#my-gp { color:#7fd3ff; }
+.gacha-wallet-sep { width:1px; height:14px; background:var(--border-light); }
+.gacha-wallet-dup {
+  position:absolute; top:calc(100% + 6px); right:6px; white-space:nowrap;
+  font-size:0.78rem; font-weight:bold; color:#4fc3f7; text-shadow:0 1px 6px rgba(0,0,0,0.8);
+  opacity:0; transition:opacity 0.3s; pointer-events:none;
+}
+/* 右上の固定表示と最初のコンテンツが重ならないように */
+.gacha-top-spacer { height:40px; }
+
+/* 通常 / 特殊 の切り替え（選択中の側に背景がスライドする） */
+.gacha-type-tabs {
+  position:relative; width:fit-content; margin:0 auto 18px; padding:4px; gap:0;
+  border-radius:14px; background:rgba(18,16,34,0.7); border:1px solid var(--border-light);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+}
+.gacha-type-indicator {
+  position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:10px;
+  background:linear-gradient(135deg, #ff5470, #c2185b); box-shadow:0 4px 14px rgba(230,57,80,0.45);
+  transition:transform 0.3s cubic-bezier(.4,1.3,.5,1), background 0.3s, box-shadow 0.3s;
+}
+.gacha-type-tabs[data-active="special"] .gacha-type-indicator {
+  transform:translateX(100%);
+  background:linear-gradient(135deg, #7b3fe4, #c79a2e); box-shadow:0 4px 14px rgba(160,100,230,0.45);
+}
+.gacha-type-btn {
+  position:relative; z-index:1; flex:1; min-width:132px; display:flex; align-items:center; justify-content:center; gap:7px;
+  padding:9px 18px; border:none; background:none; border-radius:10px; cursor:pointer;
+  font-family:inherit; font-size:0.9rem; font-weight:800; letter-spacing:0.04em; color:var(--text-secondary);
+  transition:color 0.2s;
+}
+.gacha-type-btn:hover { color:var(--text-primary); }
+.gacha-type-btn.active { color:#fff; text-shadow:0 1px 4px rgba(0,0,0,0.35); }
+.gacha-type-btn:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
+@media (prefers-reduced-motion: reduce) { .gacha-type-indicator { transition:none; } }
 .gacha-pull-btns { display:flex; gap:16px; justify-content:center; flex-wrap:nowrap; margin:20px 0 28px; }
 .gacha-btn {
   padding:0; margin:0; font-size:0.88rem; font-weight:bold;
@@ -188,6 +232,8 @@
 .sg-card-val { font-size:0.85rem; font-weight:900; margin-top:4px; text-align:center; line-height:1.1; }
 .sg-card-back.cat-damage .sg-card-val { color:#4fc3f7; font-size:0.56rem; margin-top:0; }
 .sg-card-back.cat-damage .sg-card-val .sg-dmg-num { display:block; font-size:1.05rem; line-height:1; margin-bottom:0; }
+/* 破壊率が数千%になるギミックでは5〜6桁のダメージが出るので、カード幅に収まるよう縮める */
+.sg-card-back.cat-damage .sg-card-val .sg-dmg-num.is-long { font-size:0.8rem; }
 .sg-card-back.cat-damage .sg-card-val .sg-dmg-label { display:block; line-height:1; }
 .sg-card-back.cat-destruction .sg-card-val { color:#c9762b; font-size:0.6rem; }
 .sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
@@ -306,18 +352,25 @@
 <main>
   <div id="alert"></div>
 
-  <div class="gacha-hero">
-    <h1 class="page-title" style="margin-bottom:6px" data-i18n="gacha.title">キャラアイコン ガチャ</h1>
-    <div style="font-size:0.75rem;color:rgba(232,232,240,0.7);margin-bottom:4px" data-i18n="shop.points_hint">※ポイントはランキングに応じて配布されます</div>
-    <div class="gacha-points-display" id="my-points">--- pt</div>
-    <div style="font-size:0.9rem;color:rgba(232,232,240,0.75)" id="my-gp">GP: ---</div>
-    <div id="dup-indicator" style="font-size:0.82rem;font-weight:bold;color:#4fc3f7;height:1.3em;opacity:0;transition:opacity 0.3s;text-align:center;margin-bottom:2px"></div>
+  <div class="gacha-wallet" id="gacha-wallet">
+    <div class="gacha-wallet-item"><span class="gacha-wallet-label">PT</span><span id="my-points">---</span></div>
+    <div class="gacha-wallet-sep"></div>
+    <div class="gacha-wallet-item"><span class="gacha-wallet-label">GP</span><span id="my-gp">---</span></div>
+    <div class="gacha-wallet-dup" id="dup-indicator"></div>
   </div>
+  <div class="gacha-top-spacer"></div>
 
   <!-- ガチャ種別タブ（特殊ガチャは管理者限定公開中） -->
-  <div id="gacha-type-tabs" style="display:none;justify-content:center;gap:8px;margin-bottom:16px">
-    <button class="btn btn-sm" id="tab-btn-normal" onclick="switchGachaType('normal')"></button>
-    <button class="btn btn-sm btn-secondary" id="tab-btn-special" onclick="switchGachaType('special')" style="display:none">特殊ガチャ</button>
+  <div id="gacha-type-tabs" class="gacha-type-tabs" data-active="normal" style="display:none">
+    <span class="gacha-type-indicator" aria-hidden="true"></span>
+    <button type="button" class="gacha-type-btn active" id="tab-btn-normal" onclick="switchGachaType('normal')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h5M15 12h5"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>通常ガチャ</span>
+    </button>
+    <button type="button" class="gacha-type-btn" id="tab-btn-special" onclick="switchGachaType('special')" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5H20.5V9.5L10 20L4 14Z"/><path d="M13 11l-4 4"/><path d="M4 20l2.5-2.5"/></svg>
+      <span>特殊ガチャ</span>
+    </button>
   </div>
 
   <!-- ①プール選択画面 -->
@@ -466,7 +519,6 @@ if (_sgUser && _sgUser.role === 'admin') {
   document.getElementById('gacha-type-tabs').style.display = 'flex';
   document.getElementById('tab-btn-special').style.display = '';
 }
-document.getElementById('tab-btn-normal').textContent = '通常ガチャ';
 
 let gSettings = null;
 let isPulling = false;
@@ -551,10 +603,10 @@ function updateRateInfo(settings, pickupIcons) {
 }
 
 function updatePointsDisplay(pts) {
-  document.getElementById('my-points').textContent = Number(pts).toLocaleString('ja-JP') + ' pt';
+  document.getElementById('my-points').textContent = Number(pts).toLocaleString('ja-JP');
 }
 function updateGpDisplay(gp) {
-  document.getElementById('my-gp').textContent = 'GP: ' + Number(gp).toLocaleString('ja-JP');
+  document.getElementById('my-gp').textContent = Number(gp).toLocaleString('ja-JP');
 }
 
 function poolDaysLabel(end_at) {
@@ -1076,8 +1128,9 @@ let sgCurrentEnemy = null;
 let sgLoaded = false;
 
 function switchGachaType(type) {
-  document.getElementById('tab-btn-normal').classList.toggle('btn-secondary', type !== 'normal');
-  document.getElementById('tab-btn-special').classList.toggle('btn-secondary', type !== 'special');
+  document.getElementById('gacha-type-tabs').dataset.active = type;
+  document.getElementById('tab-btn-normal').classList.toggle('active', type === 'normal');
+  document.getElementById('tab-btn-special').classList.toggle('active', type === 'special');
   document.getElementById('pool-select-screen').style.display = type === 'normal' && !selectedPoolId ? '' : 'none';
   document.getElementById('gacha-main').style.display = type === 'normal' && selectedPoolId ? '' : 'none';
   document.getElementById('special-gacha-screen').style.display = type === 'special' ? '' : 'none';
@@ -1106,8 +1159,9 @@ function updateSgDefeatedUi(defeated) {
   if (defeated) document.getElementById('sg-effects-row').innerHTML = '';
 }
 
+let sgMaxDestruction = 999.0;
 function renderSgDestructionRate(rate) {
-  document.getElementById('sg-destruction-rate').textContent = `${Number(rate).toFixed(1)}/999.0%`;
+  document.getElementById('sg-destruction-rate').textContent = `${Number(rate).toFixed(1)}/${sgMaxDestruction.toFixed(1)}%`;
 }
 
 function renderSgHp(hp, maxHp) {
@@ -1139,6 +1193,7 @@ function renderSgShield(shield, animate = false) {
 function renderSgGimmick(gimmick) {
   const el = document.getElementById('sg-gimmick');
   sgMaxShield = gimmick ? gimmick.max_shield : 0;
+  sgMaxDestruction = gimmick && gimmick.max_destruction ? Number(gimmick.max_destruction) : 999.0;
   el.hidden = !gimmick || gimmick.key === 'normal';
   if (el.hidden) return;
   document.getElementById('sg-gimmick-tag').textContent = gimmick.label;
@@ -1250,10 +1305,10 @@ function sgBadgeSvg(name) {
 
 function sgCardVisual(r) {
   if (r.category === 'damage' && r.blocked) {
-    return { icon: sgSvg('barrier'), val: `<span class="sg-dmg-num">${r.blocked_dmg}</span><span class="sg-dmg-label">防がれた</span>` };
+    return { icon: sgSvg('barrier'), val: `<span class="sg-dmg-num${String(r.blocked_dmg).length >= 5 ? ' is-long' : ''}">${r.blocked_dmg}</span><span class="sg-dmg-label">防がれた</span>` };
   }
   if (r.category === 'damage') {
-    return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num">${r.dmg}</span><span class="sg-dmg-label">ダメージ</span>` };
+    return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num${String(r.dmg).length >= 5 ? ' is-long' : ''}">${r.dmg}</span><span class="sg-dmg-label">ダメージ</span>` };
   }
   const label = r.label.replace(/[()]/g, '');
   if (r.category === 'destruction') {

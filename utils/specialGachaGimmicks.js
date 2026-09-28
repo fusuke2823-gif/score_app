@@ -23,6 +23,24 @@ const GIMMICKS = {
       heal_large: { key: 'shield_regen_large', amount: 10, label: 'シールド回復(大)' },
     },
   },
+  overdrive: {
+    label: '破壊率上限超上昇',
+    description: '破壊率の上限が9999%に上がり、破壊率アイテムが出やすく上昇量も3倍。クリティカルは出にくいが900ダメージ',
+    max_hp: 150000, // 破壊率が数千%まで伸びるので大幅に高くして、通常と平均回数を揃えている
+    destructionMax: 9999.0,
+    destructionMult: 3,
+    // 敵の回復も最大HPに対する割合を通常（300/800 ÷ 28000）と揃える
+    healAmount: { heal_small: 1600, heal_large: 4300 },
+    // 破壊率アイテムを20%にし、残り80%を他カテゴリに元の比率(7:1:1)で配分
+    categoryP: { damage: 0.70 * 0.8 / 0.9, favorable: 0.10 * 0.8 / 0.9, unfavorable: 0.10 * 0.8 / 0.9, destruction: 0.20 },
+    // クリティカルを1%にし、余った4%を小・中・大ダメージに元の比率で配分
+    damage: {
+      miss: { p: 0.30 * 0.99 / 0.95 },
+      normal: { p: 0.45 * 0.99 / 0.95 },
+      crit: { p: 0.20 * 0.99 / 0.95 },
+      ultra: { p: 0.01, dmg: 900 },
+    },
+  },
 };
 
 function getGimmick(key) {
@@ -32,7 +50,7 @@ function getGimmick(key) {
 // 画面・管理画面に渡す公開情報
 function gimmickSummary(key) {
   const g = getGimmick(key);
-  return { key: GIMMICKS[key] ? key : 'normal', label: g.label, description: g.description, max_hp: g.max_hp, max_shield: g.shield || 0 };
+  return { key: GIMMICKS[key] ? key : 'normal', label: g.label, description: g.description, max_hp: g.max_hp, max_shield: g.shield || 0, max_destruction: g.destructionMax || 999.0 };
 }
 
 module.exports = { GIMMICKS, getGimmick, gimmickSummary };
