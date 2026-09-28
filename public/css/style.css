@@ -9,7 +9,7 @@
   --glass-blur: blur(16px) saturate(150%);
   --text-primary: #e8e8f0;
   --text-secondary: #8888aa;
-  --text-muted: #555570;
+  --text-muted: #8080a0; /* 暗いカード上でもコントラスト比4.5:1以上を確保 */
   --accent: #e63950;
   --accent-hover: #ff4d65;
   --accent-dim: rgba(230, 57, 80, 0.15);
@@ -609,9 +609,10 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .empty-state {
   text-align: center;
   padding: 48px;
-  color: var(--text-muted);
+  color: var(--text-secondary); /* 背景画像の上に直接出ることが多いので muted より明るく */
 }
-.empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; color: var(--text-secondary); }
+.empty-state-icon svg { display: block; margin: 0 auto; }
 .empty-state p { font-size: 0.95rem; }
 
 /* スコア投稿フォーム */

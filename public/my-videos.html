@@ -260,7 +260,7 @@ async function loadPending() {
 }
 
 async function cancelPending(id) {
-  if (!confirm(t('myvid.cancel_confirm') || 'キャンセルしますか？')) return;
+  if (!await showConfirm(t('myvid.cancel_confirm'), { okLabel: t('myvid.cancel_ok'), cancelLabel: t('dialog.back'), danger: true })) return;
   try {
     await apiFetch(`/my-videos/pending/${id}`, { method: 'DELETE' });
     document.getElementById(`pend-${id}`)?.remove();
@@ -328,7 +328,7 @@ async function toggleHidden(id, btn) {
 }
 
 async function deleteVideo(id) {
-  if (!confirm(t('myvid.delete_confirm') || 'この動画を掲示板から削除しますか？')) return;
+  if (!await showConfirm(t('myvid.delete_confirm'), { okLabel: t('myvid.delete'), danger: true })) return;
   try {
     await apiFetch(`/my-videos/${id}`, { method: 'DELETE' });
     document.getElementById(`vid-${id}`)?.remove();

@@ -33,7 +33,7 @@ async function load() {
   try {
     const list = await apiFetch('/announcements');
     if (list.length === 0) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📢</div><p>${t('ann.empty')}</p></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${uiIcon('megaphone')}</div><p>${t('ann.empty')}</p></div>`;
       return;
     }
     el.innerHTML = list.map(a => `

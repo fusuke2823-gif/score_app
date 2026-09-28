@@ -119,7 +119,7 @@ function renderMyCard(rows) {
 
 function renderTable(rows) {
   if (rows.length === 0) {
-    return `<div class="empty-state"><div class="empty-state-icon">📊</div><p>${t('rate.empty')}</p></div>`;
+    return `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.empty')}</p></div>`;
   }
   const meId = me ? me.id : null;
   const rowsHtml = rows.map((r, i) => {

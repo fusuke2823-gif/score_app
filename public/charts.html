@@ -73,7 +73,7 @@ const user = getUser();
 if (!user || user.role !== 'admin') {
   document.querySelector('main').innerHTML = `
     <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:16px">
-      <div style="font-size:2.5rem">🚧</div>
+      <div style="color:var(--text-secondary)">${uiIcon('wrench')}</div>
       <div style="font-size:1.2rem;font-weight:bold;color:var(--text-primary)">準備中</div>
       <div style="font-size:0.88rem;color:var(--text-muted)">チャート掲示板およびチャート作成ツールは現在準備中です。<br>もうしばらくお待ちください。</div>
     </div>`;

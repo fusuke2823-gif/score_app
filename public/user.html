@@ -285,7 +285,7 @@ async function load() {
       </div>` : ''}
 
       ${events.length === 0
-        ? `<div class="empty-state"><div class="empty-state-icon">📊</div><p>${t('user.no_scores')}</p></div>`
+        ? `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('user.no_scores')}</p></div>`
         : `<div class="score-grid">
             ${events.map(e => `
               <div class="event-score-card">

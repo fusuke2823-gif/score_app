@@ -288,9 +288,9 @@ function changeVer(idx, delta) {
   renderVersionFields();
 }
 
-function resetVer(idx) {
+async function resetVer(idx) {
   const labels = ['第1', '第2', '第3'];
-  if (!confirm(`${labels[idx]}の数字を 0 に戻しますか？`)) return;
+  if (!await showConfirm(`${labels[idx]}の数字を 0 に戻しますか？`)) return;
   verNums[idx] = 0;
   renderVersionFields();
 }
@@ -384,7 +384,7 @@ document.getElementById('boss-add-form').addEventListener('submit', async e => {
 });
 
 async function deleteBossEnemy(id) {
-  if (!confirm('削除しますか？')) return;
+  if (!await showConfirm('削除しますか？', { danger: true })) return;
   try {
     await apiFetch(`/admin/login-bonus/enemies/${id}`, { method: 'DELETE' });
     loadBossEnemies();
@@ -448,7 +448,7 @@ async function toggleSB(id, newActive, btn) {
 }
 
 async function deleteSB(id, btn) {
-  if (!confirm('削除しますか？')) return;
+  if (!await showConfirm('削除しますか？', { danger: true })) return;
   btn.disabled = true;
   try {
     await apiFetch(`/admin/special-bonuses/${id}`, { method: 'DELETE' });
@@ -520,7 +520,7 @@ async function submitReply(id) {
   try {
     await apiFetch(`/feedback/${id}/reply`, { method: 'PATCH', body: JSON.stringify({ reply }) });
     loadFeedback();
-  } catch (err) { alert(err.message); }
+  } catch (err) { showMessage(err.message); }
 }
 
 // ===== Cloudinary =====
@@ -767,7 +767,7 @@ async function toggleAnnouncementActive(id, newActive) {
 }
 
 async function deleteAnnouncement(id) {
-  if (!confirm('削除しますか？')) return;
+  if (!await showConfirm('削除しますか？', { danger: true })) return;
   try {
     await apiFetch(`/admin/announcements/${id}`, { method: 'DELETE' });
     loadAnnouncements();

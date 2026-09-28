@@ -670,7 +670,7 @@ async function showDupReturn(from, to, dupTotal) {
 function renderMyIcons(icons) {
   const el = document.getElementById('my-icons');
   if (!icons || icons.length === 0) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎰</div><p>${t('gacha.no_icons')}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${uiIcon('capsule')}</div><p>${t('gacha.no_icons')}</p></div>`;
     return;
   }
   const anyEquipped = icons.some(i => i.is_equipped);

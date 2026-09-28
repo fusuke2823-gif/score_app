@@ -101,7 +101,7 @@ async function deleteSkills() {
 }
 
 async function deleteData(type, label) {
-  if (!confirm(`${label}データを全削除しますか？`)) return;
+  if (!await showConfirm(`${label}データを全削除しますか？`, { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/chart-data/${type}`, { method: 'DELETE' });
     showAlert('#alert', res.message, 'success');

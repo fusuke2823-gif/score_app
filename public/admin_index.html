@@ -28,7 +28,7 @@
   border-color: var(--accent);
   background: var(--bg-card2);
 }
-.admin-nav-icon { font-size: 2rem; margin-bottom: 10px; }
+.admin-nav-icon { color: var(--accent); margin-bottom: 10px; line-height: 0; }
 .admin-nav-title { font-size: 1.05rem; font-weight: bold; color: var(--text-primary); margin-bottom: 6px; }
 .admin-nav-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
 </style>
@@ -39,47 +39,47 @@
   <h1 class="page-title" style="margin-bottom:20px">管理メニュー</h1>
   <div class="admin-nav-grid">
     <a href="/admin_scores.html" class="admin-nav-card">
-      <div class="admin-nav-icon">✅</div>
+      <div class="admin-nav-icon" data-icon="check"></div>
       <div class="admin-nav-title">スコア管理</div>
       <div class="admin-nav-desc">承認待ちスコアの確認・承認・却下、全スコア一覧の閲覧</div>
     </a>
     <a href="/admin_events.html" class="admin-nav-card">
-      <div class="admin-nav-icon">🗓️</div>
+      <div class="admin-nav-icon" data-icon="calendar"></div>
       <div class="admin-nav-title">イベント管理</div>
       <div class="admin-nav-desc">イベントの作成・編集、敵情報の追加・削除</div>
     </a>
     <a href="/admin_users.html" class="admin-nav-card">
-      <div class="admin-nav-icon">👤</div>
+      <div class="admin-nav-icon" data-icon="user"></div>
       <div class="admin-nav-title">ユーザー管理</div>
       <div class="admin-nav-desc">ユーザー一覧、ロール変更、内部/外部フラグ、パスワード変更</div>
     </a>
     <a href="/admin_shop.html" class="admin-nav-card">
-      <div class="admin-nav-icon">🛒</div>
+      <div class="admin-nav-icon" data-icon="bag"></div>
       <div class="admin-nav-title">ショップ管理</div>
       <div class="admin-nav-desc">称号・フレーム・ガチャアイコンの追加・管理、ガチャプール設定</div>
     </a>
     <a href="/admin_distribute.html" class="admin-nav-card">
-      <div class="admin-nav-icon">🎁</div>
+      <div class="admin-nav-icon" data-icon="gift"></div>
       <div class="admin-nav-title">配布管理</div>
       <div class="admin-nav-desc">手動ポイント付与、順位ポイント設定、中間・最終配布の実行、ポイント履歴</div>
     </a>
     <a href="/admin_pending_videos.html" class="admin-nav-card">
-      <div class="admin-nav-icon">▶</div>
+      <div class="admin-nav-icon" data-icon="play"></div>
       <div class="admin-nav-title">動画承認</div>
       <div class="admin-nav-desc">ユーザーからの動画投稿の承認・却下</div>
     </a>
     <a href="/admin_chart_data.html" class="admin-nav-card">
-      <div class="admin-nav-icon">📋</div>
+      <div class="admin-nav-icon" data-icon="list"></div>
       <div class="admin-nav-title">チャートデータ</div>
       <div class="admin-nav-desc">キャラ・スタイル・技のCSV一括登録</div>
     </a>
     <a href="/admin_settings.html" class="admin-nav-card">
-      <div class="admin-nav-icon">⚙️</div>
+      <div class="admin-nav-icon" data-icon="gear"></div>
       <div class="admin-nav-title">設定</div>
       <div class="admin-nav-desc">バージョン・通知設定、ログインボーナス、称号スコープ、お便り箱</div>
     </a>
     <a href="/admin_analytics.html" class="admin-nav-card">
-      <div class="admin-nav-icon">📊</div>
+      <div class="admin-nav-icon" data-icon="chart"></div>
       <div class="admin-nav-title">集計</div>
       <div class="admin-nav-desc">ページアクセス数・新規登録者数の日別・週間・月間集計</div>
     </a>
@@ -89,6 +89,7 @@
 <script>
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
+document.querySelectorAll('.admin-nav-icon[data-icon]').forEach(el => { el.innerHTML = uiIcon(el.dataset.icon, 32); });
 </script>
 </body>
 </html>

@@ -5,6 +5,8 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 // ===== 国際化 (i18n) =====
 const _i18n = {
   ja: {
+    'dialog.ok':'OK','dialog.cancel':'キャンセル','dialog.back':'戻る',
+    'myvid.cancel_ok':'投稿を取り消す',
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
     'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート','nav.announcements':'お知らせ','nav.chat':'掲示板',
     'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.empty':'お知らせはまだありません',
@@ -93,7 +95,7 @@ const _i18n = {
     'dist.note':'※配布量はイベントごとに調整される場合があります',
     'bonus.title':'ログインボーナス','bonus.sub':'毎日ログインでポイント獲得！',
     'bonus.claim':'受け取る','bonus.day':'{0}日目','bonus.claimed':'本日分受取済み',
-    'bonus.msg':'{0}日目のボーナス','bonus.streak':'{0}日目 達成！','bonus.streak7':' 🎉 7日達成！',
+    'bonus.msg':'{0}日目のボーナス','bonus.streak':'{0}日目 達成！','bonus.streak7':' 7日達成！',
     'bonus.received':'受取済','bonus.limit':'上限達成','bonus.special':'特別ボーナス',
     'bonus.remaining':'残り{0}回','bonus.until':'{0}まで',
     'user.oshi':'推し: ','user.title_label':'称号: ','user.joined':'参加: ',
@@ -183,6 +185,8 @@ const _i18n = {
     'acct.save_err':'保存に失敗しました',
   },
   zh: {
+    'dialog.ok':'OK','dialog.cancel':'取消','dialog.back':'返回',
+    'myvid.cancel_ok':'取消投稿',
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
     'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表','nav.announcements':'公告','nav.chat':'留言板',
     'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.empty':'目前沒有公告',
@@ -271,7 +275,7 @@ const _i18n = {
     'dist.note':'※每次活動的發放量可能有所調整',
     'bonus.title':'登入獎勵','bonus.sub':'每日登入可獲得點數！',
     'bonus.claim':'領取','bonus.day':'第{0}天','bonus.claimed':'今日已領取',
-    'bonus.msg':'第{0}天獎勵','bonus.streak':'第{0}天達成！','bonus.streak7':' 🎉 第7天達成！',
+    'bonus.msg':'第{0}天獎勵','bonus.streak':'第{0}天達成！','bonus.streak7':' 第7天達成！',
     'bonus.received':'已領取','bonus.limit':'已達上限','bonus.special':'特別獎勵',
     'bonus.remaining':'剩餘{0}次','bonus.until':'{0}截止',
     'user.oshi':'最愛角色: ','user.title_label':'稱號: ','user.joined':'加入: ',
@@ -516,6 +520,31 @@ function ni(key) {
   return NAV_ICONS[key] ? `<i class="nvi">${NAV_ICONS[key]}</i>` : '';
 }
 
+// ===== 汎用アイコン（空状態・ボタン・バッジ用。絵文字の代わりにナビと同じ線画で統一） =====
+const UI_ICON_PATHS = {
+  trophy:    '<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/><path d="M12 14v3M8.5 20.5h7L15 17H9z"/>',
+  megaphone: '<path d="M3 10v4l3 .8V19a1 1 0 0 0 1 1h1.5v-4.7"/><path d="M3 10l13-4.5v13L3 14z"/><path d="M16 8.5c1.8.9 3 2.2 3 3.5s-1.2 2.6-3 3.5"/>',
+  search:    '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+  list:      '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/>',
+  chart:     '<path d="M4 20h16"/><rect x="6" y="11" width="3" height="6"/><rect x="11" y="6" width="3" height="11"/><rect x="16" y="13" width="3" height="4"/>',
+  capsule:   '<circle cx="12" cy="12" r="8"/><path d="M4 12h5M15 12h5"/><circle cx="12" cy="12" r="3"/>',
+  wrench:    '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.6-.4-.4-2.6z"/>',
+  check:     '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/>',
+  calendar:  '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+  user:      '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/>',
+  bag:       '<path d="M5 8h14l-1.6 12H6.6z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+  gift:      '<rect x="4" y="9" width="16" height="4" rx="1"/><path d="M5.5 13v7h13v-7M12 9v11"/><path d="M12 9C10.5 6 7 5.5 7 7.5S10 9 12 9zM12 9c1.5-3 5-3.5 5-1.5S14 9 12 9z"/>',
+  play:      '<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10 9l5 3-5 3z"/>',
+  gear:      '<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+};
+function uiIcon(name, size = 40) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${UI_ICON_PATHS[name]}</svg>`;
+}
+// 本文中に並べる小さいアイコン（チップ・バナー用）
+function uiIconInline(name) {
+  return `<span style="display:inline-flex;vertical-align:-0.15em;margin-right:4px">${uiIcon(name, 13)}</span>`;
+}
+
 // ===== ナビ =====
 function renderNav() {
   const user = getUser();
@@ -617,6 +646,71 @@ function lockBodyScroll() {
 function unlockBodyScroll() {
   _scrollLockCount = Math.max(0, _scrollLockCount - 1);
   if (_scrollLockCount === 0) document.body.style.overflow = '';
+}
+
+// ===== 確認・通知ダイアログ（ブラウザ標準の confirm / alert の代わり） =====
+// OKで true、キャンセル・背景クリック・Escで false を返す
+function _showDialog(message, { okLabel = t('dialog.ok'), cancelLabel = null, danger = false } = {}) {
+  if (!document.getElementById('app-dialog-style')) {
+    const style = document.createElement('style');
+    style.id = 'app-dialog-style';
+    style.textContent = `
+      .app-dialog { position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:4000; display:flex; align-items:center; justify-content:center; padding:16px; }
+      .app-dialog-box {
+        background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%);
+        border:1px solid var(--border-light); border-radius:14px; padding:22px 20px 18px; max-width:360px; width:100%;
+        animation: appDialogIn 0.18s ease-out both;
+      }
+      .app-dialog-msg { font-size:0.92rem; line-height:1.7; white-space:pre-line; word-break:break-word; margin-bottom:18px; }
+      .app-dialog-actions { display:flex; gap:8px; }
+      .app-dialog-actions .btn { flex:1; justify-content:center; }
+      @keyframes appDialogIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+      @media (prefers-reduced-motion: reduce) { .app-dialog-box { animation:none; } }
+    `;
+    document.head.appendChild(style);
+  }
+  return new Promise(resolve => {
+    const prevFocus = document.activeElement;
+    const el = document.createElement('div');
+    el.className = 'app-dialog';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.innerHTML = `
+      <div class="app-dialog-box">
+        <div class="app-dialog-msg"></div>
+        <div class="app-dialog-actions">
+          ${cancelLabel ? '<button type="button" class="btn btn-secondary" data-result="0"></button>' : ''}
+          <button type="button" class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-result="1"></button>
+        </div>
+      </div>`;
+    el.querySelector('.app-dialog-msg').textContent = message;
+    el.querySelector('[data-result="1"]').textContent = okLabel;
+    if (cancelLabel) el.querySelector('[data-result="0"]').textContent = cancelLabel;
+
+    const onKey = e => { if (e.key === 'Escape') close(false); };
+    function close(result) {
+      el.remove();
+      document.removeEventListener('keydown', onKey);
+      unlockBodyScroll();
+      prevFocus?.focus?.();
+      resolve(result);
+    }
+    el.addEventListener('click', e => {
+      if (e.target === el) return close(false);
+      const btn = e.target.closest('[data-result]');
+      if (btn) close(btn.dataset.result === '1');
+    });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(el);
+    lockBodyScroll();
+    el.querySelector('[data-result="1"]').focus();
+  });
+}
+function showConfirm(message, opts = {}) {
+  return _showDialog(message, { cancelLabel: t('dialog.cancel'), ...opts });
+}
+function showMessage(message) {
+  return _showDialog(message);
 }
 
 function showAnnouncementModal(a) {
@@ -885,7 +979,7 @@ function renderDistNoticeModal(idx) {
         <div class="dist-summary-eyebrow">${scopeLabel}${d.period}結果</div>
         <div class="dist-summary-event">${escHtml(d.event_name)}</div>
         <div class="dist-summary-pts">+${d.user_pts}<span>pt</span></div>
-        ${d.awarded_titles?.length ? `<div class="dist-summary-titles">${d.awarded_titles.map(n => `<span class="dist-summary-title-chip">🏆 ${escHtml(n)}</span>`).join('')}</div>` : ''}
+        ${d.awarded_titles?.length ? `<div class="dist-summary-titles">${d.awarded_titles.map(n => `<span class="dist-summary-title-chip">${uiIconInline('trophy')}${escHtml(n)}</span>`).join('')}</div>` : ''}
       </div>
       <div id="dist-result-image"></div>
       ${detailIntHtml}
@@ -998,7 +1092,7 @@ async function shareResultImage(dataUrl, d) {
       try {
         await navigator.share({ files: [shareFile], text: tweetText });
       } catch (e) {
-        if (e.name !== 'AbortError') alert('共有に失敗しました: ' + e.message);
+        if (e.name !== 'AbortError') showMessage('共有に失敗しました: ' + e.message);
       }
       return;
     }
@@ -1861,7 +1955,7 @@ async function lbChallenge() {
     });
     playLbBattle(res.total === 2, () => showLbResult(res));
   } catch (err) {
-    alert(err.message);
+    showMessage(err.message);
     document.getElementById('lb-challenge-btn').disabled = false;
   }
 }
@@ -1888,7 +1982,7 @@ function showLbResult(res) {
   const damage = (res.boss_hp_before != null && res.boss_hp_after != null) ? res.boss_hp_before - res.boss_hp_after : 0;
   const damageNote = damage > 0 ? `<div class="lb-damage-note">${damage} ダメージ</div>` : '';
   const defeatBanner = res.boss_defeated
-    ? `<div class="lb-defeat-banner">🏆 「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>`
+    ? `<div class="lb-defeat-banner">${uiIconInline('trophy')}「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>`
     : '';
   const enemyCardHtml = res.boss_enemy
     ? `<div class="lb-enemy-card">${lbEnemyCardHTML(res.boss_enemy, res.boss_hp_after, res.boss_max_hp)}${damageNote}</div>`
@@ -1966,7 +2060,7 @@ async function claimSpecialBonus(bonusId, btn) {
     checkAndCloseModal();
   } catch (err) {
     btn.disabled = false;
-    alert(err.message);
+    showMessage(err.message);
   }
 }
 
@@ -2035,8 +2129,8 @@ async function checkGoogleLink() {
   } catch {}
 }
 
-function dismissGoogleLinkBanner() {
-  if (!confirm('このバナーを非表示にしますか？\n\nGoogle連携はアカウントページからいつでも行えます。')) return;
+async function dismissGoogleLinkBanner() {
+  if (!await showConfirm('このバナーを非表示にしますか？\n\nGoogle連携はアカウントページからいつでも行えます。', { okLabel: '非表示にする' })) return;
   document.getElementById('google-link-banner')?.remove();
   localStorage.setItem('google_link_dismissed', '1');
 }

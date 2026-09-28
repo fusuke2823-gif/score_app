@@ -406,7 +406,7 @@ async function loadEnemyList(eventId) {
 }
 
 async function deleteEnemy(enemyId, eventId) {
-  if (!confirm('この敵情報を削除しますか？')) return;
+  if (!await showConfirm('この敵情報を削除しますか？', { danger: true })) return;
   try {
     await apiFetch(`/admin/enemies/${enemyId}`, { method: 'DELETE' });
     loadEnemyList(eventId);
@@ -674,7 +674,7 @@ document.getElementById('note-create-form').addEventListener('submit', async e =
 });
 
 async function deleteNote(id) {
-  if (!confirm('この特記を削除しますか？（紐付けも全て解除されます）')) return;
+  if (!await showConfirm('この特記を削除しますか？（紐付けも全て解除されます）', { danger: true })) return;
   try {
     await apiFetch(`/admin/event-notes/${id}`, { method: 'DELETE' });
     await loadNoteMaster(document.getElementById('note-master-search').value);

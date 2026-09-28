@@ -623,7 +623,7 @@ async function toggleTitleHolders(id) {
 }
 
 async function revokeTitle(titleId, userId, btn) {
-  if (!confirm('この称号を回収しますか？')) return;
+  if (!await showConfirm('この称号を回収しますか？', { danger: true })) return;
   try {
     await apiFetch(`/admin/titles/${titleId}/holders/${userId}`, { method: 'DELETE' });
     btn.closest('div[style]').remove();
@@ -633,7 +633,7 @@ async function revokeTitle(titleId, userId, btn) {
 }
 
 async function deleteTitle(id) {
-  if (!confirm('この称号を完全削除しますか？購入済みユーザーからも削除されます。')) return;
+  if (!await showConfirm('この称号を完全削除しますか？購入済みユーザーからも削除されます。', { danger: true })) return;
   try {
     await apiFetch(`/admin/titles/${id}`, { method: 'DELETE' });
     loadTitles();
@@ -694,7 +694,7 @@ async function toggleFrameVisibility(id, makeActive) {
 }
 
 async function deleteFrame(id) {
-  if (!confirm('このフレームを削除しますか？所持ユーザーからも削除されます。')) return;
+  if (!await showConfirm('このフレームを削除しますか？所持ユーザーからも削除されます。', { danger: true })) return;
   try {
     await apiFetch(`/admin/frames/${id}`, { method: 'DELETE' });
     loadFrames();
@@ -965,7 +965,7 @@ async function savePeriodSettings() {
 }
 
 async function deletePool(id, name) {
-  if (!confirm(`「${name}」を削除しますか？`)) return;
+  if (!await showConfirm(`「${name}」を削除しますか？`, { danger: true })) return;
   try {
     await apiFetch(`/admin/gacha/pools/${id}`, { method: 'DELETE' });
     showAlert('#pool-alert', '削除しました', 'success');
@@ -1340,7 +1340,7 @@ async function toggleIconVisibility(id, makeActive) {
 }
 
 async function deleteGachaIcon(id) {
-  if (!confirm('このアイコンを削除しますか？所持ユーザーからも削除されます。')) return;
+  if (!await showConfirm('このアイコンを削除しますか？所持ユーザーからも削除されます。', { danger: true })) return;
   try {
     await apiFetch(`/admin/gacha/icons/${id}`, { method: 'DELETE' });
     loadGachaIcons();
@@ -1422,7 +1422,7 @@ async function loadSpecialGachaEnemies() {
 }
 
 async function deleteSpecialGachaEnemy(id) {
-  if (!confirm('この敵を削除しますか？進行中の討伐データも失われます。')) return;
+  if (!await showConfirm('この敵を削除しますか？進行中の討伐データも失われます。', { danger: true })) return;
   try {
     await apiFetch(`/admin/special-gacha/enemies/${id}`, { method: 'DELETE' });
     loadSpecialGachaEnemies();

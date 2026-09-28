@@ -145,7 +145,7 @@ async function loadUsersList() {
 async function toggleUserRole(id, currentRole) {
   const newRole = currentRole === 'admin' ? 'user' : 'admin';
   const label = newRole === 'admin' ? '管理者にしますか？' : '管理者を解除しますか？';
-  if (!confirm(label)) return;
+  if (!await showConfirm(label)) return;
   try {
     const res = await apiFetch(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role: newRole }) });
     showAlert('#list-alert', res.message, 'success');
@@ -156,7 +156,7 @@ async function toggleUserRole(id, currentRole) {
 }
 
 async function deleteUser(id, name) {
-  if (!confirm(`「${name}」を削除しますか？スコアや称号履歴も全て削除されます。`)) return;
+  if (!await showConfirm(`「${name}」を削除しますか？スコアや称号履歴も全て削除されます。`, { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
     showAlert('#list-alert', res.message, 'success');

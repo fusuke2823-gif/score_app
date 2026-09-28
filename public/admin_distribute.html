@@ -184,7 +184,7 @@ async function grantPoints() {
   const reason = document.getElementById('grant-reason').value.trim();
   if (!amount || Number(amount) < 1) { showAlert('#grant-alert', '付与ポイント数を入力してください'); return; }
   const target = userId ? document.getElementById('grant-user').selectedOptions[0].text : '全員';
-  if (!confirm(`${target} に ${amount}pt を付与しますか？`)) return;
+  if (!await showConfirm(`${target} に ${amount}pt を付与しますか？`)) return;
   try {
     const res = await apiFetch('/admin/points/grant', {
       method: 'POST',
@@ -314,7 +314,7 @@ async function loadInterimDistributable() {
 }
 
 async function distributeInterim(id) {
-  if (!confirm('現在のランキングで中間配布しますか？\nこの操作は取り消せません。')) return;
+  if (!await showConfirm('現在のランキングで中間配布しますか？\nこの操作は取り消せません。', { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/events/${id}/distribute-interim`, { method: 'POST' });
     showAlert('#interim-alert', res.message, 'success');
@@ -356,7 +356,7 @@ async function loadDistributable() {
 }
 
 async function distributePoints(id) {
-  if (!confirm('ポイントを配布しますか？\nこの操作は取り消せません。')) return;
+  if (!await showConfirm('ポイントを配布しますか？\nこの操作は取り消せません。', { danger: true })) return;
   const award_titles = {
     rank1: document.getElementById(`t-r1-${id}`)?.checked || false,
     rank2: document.getElementById(`t-r2-${id}`)?.checked || false,
@@ -405,7 +405,7 @@ async function loadExtInterim() {
 }
 
 async function distributeExtInterim(id) {
-  if (!confirm('外部中間配布を実行しますか？')) return;
+  if (!await showConfirm('外部中間配布を実行しますか？')) return;
   try {
     const res = await apiFetch(`/admin/events/${id}/distribute-interim-external`, { method: 'POST' });
     showAlert('#ext-interim-alert', res.message, 'success');
@@ -457,7 +457,7 @@ async function loadExtDistributable() {
 }
 
 async function distributeExtPoints(id) {
-  if (!confirm('外部最終ポイントを配布しますか？この操作は1回のみ実行できます。')) return;
+  if (!await showConfirm('外部最終ポイントを配布しますか？この操作は1回のみ実行できます。', { danger: true })) return;
   const award_titles = {
     ext_rank1:  document.getElementById(`et-r1-${id}`)?.checked || false,
     ext_rank2:  document.getElementById(`et-r2-${id}`)?.checked || false,

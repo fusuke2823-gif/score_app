@@ -343,7 +343,7 @@ async function loadRanking() {
 
     if (ranking.length === 0) {
       rankEl.innerHTML = `<div class="empty-state">
-        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-icon">${uiIcon('chart')}</div>
         <p>${t('ranking.empty')}</p>
       </div>`;
       return;

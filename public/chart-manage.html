@@ -85,11 +85,11 @@ async function load() {
 }
 
 async function deleteChart(id) {
-  if (!confirm(t('chart.delete_confirm'))) return;
+  if (!await showConfirm(t('chart.delete_confirm'), { okLabel: t('chart.delete'), danger: true })) return;
   try {
     await apiFetch(`/charts/${id}`, { method: 'DELETE' });
     load();
-  } catch(e) { alert(e.message); }
+  } catch(e) { showMessage(e.message); }
 }
 
 load();
