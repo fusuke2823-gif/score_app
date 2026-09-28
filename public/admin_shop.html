@@ -76,6 +76,15 @@
         <label class="form-label">説明（任意）</label>
         <input class="form-input" id="edit-pool-desc" placeholder="例: SSレアリティ強化！">
       </div>
+      <div class="form-group">
+        <label class="form-label">バナー画像（任意・横長 2:1 推奨 例: 1200×600）</label>
+        <div id="edit-pool-banner-preview" style="aspect-ratio:2/1;border-radius:10px;border:1px dashed var(--border-light);background:var(--bg-primary) center/cover no-repeat;display:flex;align-items:center;justify-content:center;font-size:0.8rem;color:var(--text-muted);margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="file" id="edit-pool-banner-file" accept="image/*" class="form-input" style="flex:1;padding:6px">
+          <button class="btn btn-secondary btn-sm" id="edit-pool-banner-btn" onclick="uploadPoolBanner()">アップロード</button>
+        </div>
+        <div class="form-hint">未設定の場合はピックアップアイコンを並べた背景で表示されます</div>
+      </div>
       <div class="enemy-form-grid">
         <div class="form-group">
           <label class="form-label">表示順</label>
@@ -805,6 +814,7 @@ async function openPoolEditModal(poolId, tab = 'basic') {
   _poolIconModalId = poolId;
   _pickupSet = new Set();
   document.getElementById('pool-edit-alert').innerHTML = '';
+  setPoolBannerPreview(null);
   document.getElementById('stat-single').textContent = '-';
   document.getElementById('stat-multi').textContent = '-';
   document.getElementById('stat-total').textContent = '-';
@@ -820,6 +830,7 @@ async function openPoolEditModal(poolId, tab = 'basic') {
       document.getElementById('pool-edit-modal-title').textContent = escHtml(p.name);
       document.getElementById('edit-pool-name').value = p.name;
       document.getElementById('edit-pool-desc').value = p.description || '';
+      setPoolBannerPreview(p.image_url);
       document.getElementById('edit-pool-order').value = p.order_index;
       document.getElementById('edit-pool-active').checked = p.is_active;
       document.getElementById('edit-pool-side').value = p.side || '表';
@@ -927,6 +938,34 @@ function renderPoolStats() {
         </tr>
       </tfoot>
     </table>`;
+}
+
+function setPoolBannerPreview(url) {
+  const el = document.getElementById('edit-pool-banner-preview');
+  el.style.backgroundImage = url ? `url('${url}')` : '';
+  el.textContent = url ? '' : '未設定';
+  document.getElementById('edit-pool-banner-file').value = '';
+}
+
+async function uploadPoolBanner() {
+  if (!_editPoolId) return;
+  const file = document.getElementById('edit-pool-banner-file').files[0];
+  if (!file) { showAlert('#pool-edit-alert', '画像ファイルを選択してください'); return; }
+  // base64化で約1.35倍になり、サーバーのJSON上限（10MB）を超えないように
+  if (file.size > 7 * 1024 * 1024) { showAlert('#pool-edit-alert', '画像は7MB以内にしてください'); return; }
+  const btn = document.getElementById('edit-pool-banner-btn');
+  btn.disabled = true;
+  try {
+    const image_base64 = await readFileAsDataUrl(file);
+    const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/image`, { method: 'PATCH', body: JSON.stringify({ image_base64 }) });
+    setPoolBannerPreview(res.image_url);
+    showAlert('#pool-edit-alert', 'バナー画像を更新しました', 'success');
+    loadPools();
+  } catch (err) {
+    showAlert('#pool-edit-alert', err.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function saveBasicSettings() {

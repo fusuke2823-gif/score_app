@@ -221,6 +221,61 @@
   .gacha-cards { width:calc(5*66px + 4*5px); column-gap:5px; row-gap:36px; }
   .gacha-btn { padding:0; margin:0; }
 }
+/* ===== ガチャ選択（バナーカード） ===== */
+.pool-select-head { text-align:center; margin-bottom:14px; }
+.pool-select-eyebrow { font-size:0.68rem; font-weight:bold; letter-spacing:0.28em; color:var(--text-secondary); }
+.pool-select-title { font-size:1rem; font-weight:bold; margin-top:2px; }
+.pool-grid { display:grid; grid-template-columns:1fr; gap:14px; max-width:760px; margin:0 auto; }
+@media (min-width:720px) { .pool-grid { grid-template-columns:1fr 1fr; } }
+.pool-banner {
+  position:relative; display:block; width:100%; aspect-ratio:2 / 1; padding:0; overflow:hidden; isolation:isolate;
+  border-radius:16px; border:1px solid rgba(255,255,255,0.18); background:#120f26;
+  color:#fff; text-align:left; font-family:inherit; cursor:pointer;
+  box-shadow:0 10px 30px rgba(0,0,0,0.45);
+  transition:transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.pool-banner:hover { transform:translateY(-3px); border-color:var(--accent); }
+.pool-banner:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.pool-banner-bg { position:absolute; inset:0; z-index:-3; background-size:cover; background-position:center; transition:transform 0.5s; }
+.pool-banner:hover .pool-banner-bg { transform:scale(1.05); }
+/* 文字を読ませるための下側の暗幕 */
+.pool-banner::before { content:''; position:absolute; inset:0; z-index:-1; background:linear-gradient(180deg, rgba(6,6,16,0) 35%, rgba(6,6,16,0.9) 100%); }
+/* 期間限定は金枠＋光が横切る演出 */
+.pool-banner.is-limited { border-color:rgba(255,215,0,0.55); box-shadow:0 0 0 1px rgba(255,215,0,0.2), 0 10px 30px rgba(0,0,0,0.45), 0 0 24px rgba(255,190,60,0.16); }
+.pool-banner.is-limited::after {
+  content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; pointer-events:none;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,0.2), transparent); transform:skewX(-20deg);
+  animation:poolShine 3.4s ease-in-out infinite;
+}
+@keyframes poolShine { 0%, 60% { left:-60%; } 100% { left:130%; } }
+/* 画像なしプールの背景：ピックアップを扇状に並べる */
+.pool-fan { position:absolute; left:0; right:0; top:9%; height:60%; z-index:-2; }
+.pool-fan img {
+  position:absolute; left:50%; top:0; height:78%; aspect-ratio:1; object-fit:cover;
+  border-radius:16%; border:2px solid #ffd700; box-shadow:0 0 16px rgba(255,215,0,0.4), 0 6px 14px rgba(0,0,0,0.6);
+}
+.pool-mark { position:absolute; right:-14px; top:50%; transform:translateY(-58%); z-index:-2; color:rgba(255,255,255,0.1); line-height:0; }
+.pool-ribbon {
+  position:absolute; top:10px; left:10px; font-size:0.64rem; font-weight:800; letter-spacing:0.14em;
+  padding:3px 10px; border-radius:4px; background:linear-gradient(90deg, #ffd700, #ffb300); color:#241800;
+}
+.pool-chip {
+  position:absolute; top:10px; right:10px; display:flex; align-items:center; gap:4px;
+  font-size:0.72rem; font-weight:bold; padding:3px 9px; border-radius:99px;
+  background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.2); color:#fff;
+}
+.pool-chip.is-hot { color:#ffb74d; border-color:rgba(255,152,0,0.6); }
+.pool-bottom { position:absolute; left:14px; right:14px; bottom:12px; display:flex; align-items:flex-end; gap:10px; }
+.pool-name { font-size:1.2rem; font-weight:800; line-height:1.3; text-shadow:0 2px 8px rgba(0,0,0,0.8); }
+.pool-desc { font-size:0.74rem; color:rgba(255,255,255,0.85); margin-top:2px; text-shadow:0 1px 4px rgba(0,0,0,0.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pool-pus { display:flex; align-items:center; margin-left:auto; flex-shrink:0; }
+.pool-pus img { width:40px; height:40px; object-fit:cover; border-radius:10px; border:2px solid #ffd700; margin-left:-12px; box-shadow:0 2px 8px rgba(0,0,0,0.6); }
+.pool-pus img:first-child { margin-left:0; }
+.pool-pus span { margin-left:5px; font-size:0.72rem; font-weight:bold; color:#ffd700; text-shadow:0 1px 4px rgba(0,0,0,0.8); }
+@media (prefers-reduced-motion: reduce) {
+  .pool-banner, .pool-banner-bg { transition:none; }
+  .pool-banner.is-limited::after { display:none; }
+}
 </style>
 </head>
 <body>
@@ -245,10 +300,11 @@
 
   <!-- ①プール選択画面 -->
   <div id="pool-select-screen" style="display:none">
-    <div class="card" style="text-align:center;padding:28px 16px">
-      <div style="font-size:1rem;font-weight:bold;margin-bottom:20px" data-i18n="gacha.pool_select">ガチャを選んでください</div>
-      <div id="pool-pick-list" style="display:flex;flex-direction:column;gap:12px;max-width:400px;margin:0 auto"></div>
+    <div class="pool-select-head">
+      <div class="pool-select-eyebrow">SELECT GACHA</div>
+      <div class="pool-select-title" data-i18n="gacha.pool_select">ガチャを選んでください</div>
     </div>
+    <div id="pool-pick-list" class="pool-grid"></div>
   </div>
 
   <!-- ②メインガチャUI -->
@@ -490,6 +546,65 @@ function poolDaysLabel(end_at) {
   return `<span style="font-size:0.72rem;font-weight:bold;color:${color}">${t('gacha.days_left', days)}</span>`;
 }
 
+// 画像のないプールの背景色（プールごとに色を変えて並んだときに単調にならないように）
+const POOL_FALLBACK_BG = [
+  'linear-gradient(135deg, #2a1d55 0%, #162447 55%, #0b1a33 100%)',
+  'linear-gradient(135deg, #4a1433 0%, #2a1240 55%, #120b2a 100%)',
+  'linear-gradient(135deg, #0e3b4d 0%, #14305a 55%, #0b1a33 100%)',
+  'linear-gradient(135deg, #3d2a10 0%, #3a1630 55%, #140b24 100%)',
+];
+
+function poolTimeChip(end_at) {
+  if (!end_at) return '';
+  const hours = (new Date(end_at).getTime() - Date.now()) / (1000 * 60 * 60);
+  if (hours <= 0) return '';
+  const text = hours < 24 ? t('gacha.hours_left', Math.ceil(hours)) : t('gacha.days_left', Math.ceil(hours / 24));
+  const clock = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  return `<span class="pool-chip${hours <= 72 ? ' is-hot' : ''}">${clock}${text}</span>`;
+}
+
+// ピックアップを扇状に並べる（画像のないプールの背景用）
+function poolFanHTML(pickups) {
+  const icons = pickups.slice(0, 5);
+  const mid = (icons.length - 1) / 2;
+  return `<div class="pool-fan">${icons.map((pu, i) => {
+    const d = i - mid;
+    const style = `transform:translateX(${-50 + d * 62}%) translateY(${Math.abs(d) * 9}%) rotate(${d * 7}deg);z-index:${10 - Math.round(Math.abs(d) * 2)}`;
+    return `<img src="${escHtml(thumbUrl(pu.image_url))}" alt="" style="${style}">`;
+  }).join('')}</div>`;
+}
+
+function poolBannerHTML(p, idx) {
+  const pickups = p.pickup_icons || [];
+  const isLimited = !!p.end_at;
+  let visual;
+  if (p.image_url) {
+    visual = `<div class="pool-banner-bg" style="background-image:url('${escHtml(mediumUrl(p.image_url))}')"></div>`;
+  } else {
+    visual = `<div class="pool-banner-bg" style="background-image:${POOL_FALLBACK_BG[idx % POOL_FALLBACK_BG.length]}"></div>`
+      + (pickups.length ? poolFanHTML(pickups) : `<div class="pool-mark">${uiIcon('sparkle', 150)}</div>`);
+  }
+  // バナー画像があるときだけ右下にピックアップを並べる（画像なしは扇で見せているので重複させない）
+  const puStack = p.image_url && pickups.length ? `
+    <div class="pool-pus">
+      ${pickups.slice(0, 3).map(pu => `<img src="${escHtml(thumbUrl(pu.image_url))}" alt="" title="${escHtml(pu.name)}">`).join('')}
+      ${pickups.length > 3 ? `<span>+${pickups.length - 3}</span>` : ''}
+    </div>` : '';
+  return `
+    <button type="button" class="pool-banner${isLimited ? ' is-limited' : ''}" onclick="selectPool(${p.id})">
+      ${visual}
+      ${pickups.length ? '<span class="pool-ribbon">PICK UP</span>' : ''}
+      ${poolTimeChip(p.end_at)}
+      <div class="pool-bottom">
+        <div style="min-width:0;flex:1">
+          <div class="pool-name">${escHtml(p.name)}</div>
+          <div class="pool-desc">${p.description ? escHtml(p.description) + ' ・ ' : ''}${t('gacha.icons_count', p.icon_count)}</div>
+        </div>
+        ${puStack}
+      </div>
+    </button>`;
+}
+
 function renderPoolSelector(pools) {
   if (!pools || pools.length === 0) {
     // プールなし → 直接メインUIへ（従来通り全アイコン対象）
@@ -498,33 +613,7 @@ function renderPoolSelector(pools) {
     return;
   }
   // プール選択画面を表示
-  const list = document.getElementById('pool-pick-list');
-  list.innerHTML = pools.map(p => {
-    const pickupRow = p.pickup_icons && p.pickup_icons.length > 0 ? `
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px">
-        <span style="font-size:0.68rem;color:#ffd700;font-weight:bold">★PU</span>
-        ${p.pickup_icons.slice(0,5).map(pu => `<img src="${escHtml(thumbUrl(pu.image_url))}" title="${escHtml(pu.name)}" style="width:28px;height:28px;border-radius:6px;object-fit:cover;border:1px solid #ffd700">`).join('')}
-        ${p.pickup_icons.length > 5 ? `<span style="font-size:0.68rem;color:var(--text-muted)">+${p.pickup_icons.length - 5}</span>` : ''}
-      </div>` : '';
-    const daysLabel = poolDaysLabel(p.end_at);
-    return `
-    <button class="pool-pick-btn" onclick="selectPool(${p.id})" style="
-      display:flex;align-items:center;gap:14px;text-align:left;
-      padding:14px 18px;border-radius:14px;border:2px solid var(--border);
-      background:var(--bg-primary);cursor:pointer;width:100%;
-      transition:border-color 0.15s,background 0.15s;font-family:inherit
-    " onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="min-width:0;flex:1">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="font-size:1rem;font-weight:bold;color:var(--text-primary)">${escHtml(p.name)}</span>
-          ${daysLabel}
-        </div>
-        ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${t('gacha.icons_count', p.icon_count)}</div>
-        ${pickupRow}
-      </div>
-    </button>`;
-  }).join('');
+  document.getElementById('pool-pick-list').innerHTML = pools.map(poolBannerHTML).join('');
   document.getElementById('pool-select-screen').style.display = '';
   document.getElementById('gacha-main').style.display = 'none';
 }
