@@ -3,6 +3,20 @@ const router = express.Router();
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
+const { ptForEventType } = require('./rankUtils');
+
+const HISTORY_EVENT_TYPES = ['score_attack', 'seraph', 'score_attack_ex'];
+const HISTORY_RECENT_N = 5;
+
+// 直近N回のpt推移の向き（傾きを平均ptに対する割合で判定）。ptそのものは返さない
+function historyTrend(pts) {
+  const recent = pts.slice(-HISTORY_RECENT_N);
+  if (recent.length < 3) return null;
+  const n = recent.length, mx = (n - 1) / 2, my = recent.reduce((a, b) => a + b, 0) / n;
+  const slope = recent.reduce((s, y, i) => s + (i - mx) * (y - my), 0) / recent.reduce((s, _, i) => s + (i - mx) ** 2, 0);
+  const change = my > 0 ? slope * (n - 1) / my : 0;
+  return change > 0.05 ? 'up' : change < -0.05 ? 'down' : 'flat';
+}
 
 // レートランキング（X/Ex/Legend ユーザー、管理者はSランクも閲覧可）
 router.get('/rate-ranking', optionalAuth, async (req, res) => {
@@ -33,6 +47,85 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
        ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST`
     );
     res.json(result.rows.map(r => ({ ...r, equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 戦績グラフ用：初参加の回から最新の回までの各回ベストと順位。
+// pt換算は非公開のため、グラフの高さはユーザー内で0〜1に正規化した値(y)だけを返す
+router.get('/:id/history', async (req, res) => {
+  try {
+    const [eventsResult, bestResult, rankResult] = await Promise.all([
+      pool.query(
+        `SELECT id, event_number, name, event_type, COALESCE(score_multiplier, 1.0)::float AS score_multiplier
+         FROM events
+         WHERE is_active = TRUE AND event_type = ANY($1)
+           AND (submission_start IS NULL OR submission_start <= NOW())
+         ORDER BY event_number ASC`,
+        [HISTORY_EVENT_TYPES]
+      ),
+      pool.query(
+        `SELECT DISTINCT ON (event_id) event_id, attribute, approved_score::float AS score
+         FROM scores
+         WHERE user_id = $1 AND approved_score IS NOT NULL
+         ORDER BY event_id, approved_score DESC`,
+        [req.params.id]
+      ),
+      // ユーザーページの「外部順位」と同じ基準（公開ランキングの全属性順位）
+      pool.query(
+        `WITH event_ranks AS (
+           SELECT s.event_id, s.user_id,
+             RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
+           FROM scores s
+           WHERE s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'external')
+           GROUP BY s.event_id, s.user_id
+         )
+         SELECT event_id, rank::int FROM event_ranks WHERE user_id = $1`,
+        [req.params.id]
+      ),
+    ]);
+    const bestMap = new Map(bestResult.rows.map(r => [r.event_id, r]));
+    const rankMap = new Map(rankResult.rows.map(r => [r.event_id, r.rank]));
+
+    const firstIdx = eventsResult.rows.findIndex(e => bestMap.has(e.id));
+    if (firstIdx === -1) return res.json({ events: [], summary: null });
+
+    const rows = eventsResult.rows.slice(firstIdx).map(e => {
+      const best = bestMap.get(e.id);
+      return {
+        event_id: e.id, event_number: e.event_number, name: e.name, event_type: e.event_type,
+        joined: !!best,
+        attribute: best ? best.attribute : null,
+        score: best ? best.score : null,
+        rank: rankMap.get(e.id) || null,
+        pt: best ? ptForEventType(e.event_type, best.score * e.score_multiplier) : null,
+      };
+    });
+
+    const joined = rows.filter(r => r.joined);
+    const pts = joined.map(r => r.pt);
+    const minPt = Math.min(...pts), maxPt = Math.max(...pts);
+    // 自己ベストが同点で複数ある場合は最新の回に印を付ける
+    const bestEventId = joined.filter(r => r.pt === maxPt).at(-1).event_id;
+    const recentRanks = joined.map(r => r.rank).filter(r => r != null).slice(-HISTORY_RECENT_N);
+    const allRanks = joined.map(r => r.rank).filter(r => r != null);
+
+    res.json({
+      events: rows.map(({ pt, ...r }) => ({
+        ...r,
+        y: r.joined ? (maxPt > minPt ? (pt - minPt) / (maxPt - minPt) : 0.5) : null,
+        is_best: r.event_id === bestEventId,
+      })),
+      summary: {
+        joined_count: joined.length,
+        recent_avg_rank: recentRanks.length ? recentRanks.reduce((a, b) => a + b, 0) / recentRanks.length : null,
+        recent_rank_count: recentRanks.length,
+        best_rank: allRanks.length ? Math.min(...allRanks) : null,
+        trend: historyTrend(pts),
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

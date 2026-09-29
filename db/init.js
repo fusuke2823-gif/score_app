@@ -699,6 +699,58 @@ const initDB = async () => {
       );
     `);
 
+    // 以下は scripts/ の一回限りマイグレーションで本番に追加済みの定義。
+    // DBを作り直した場合にも揃うよう init に集約している（データ移行部分は含めない）
+    await client.query(`
+      -- scripts/add-score-multiplier.js
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS score_multiplier NUMERIC(6,4) DEFAULT 1.0;
+      -- scripts/add-video-url.js, add-pending-youtube-url.js
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS video_url TEXT;
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS pending_youtube_url TEXT;
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS pending_youtube_score INTEGER;
+      -- scripts/add-title-tag.js
+      ALTER TABLE titles ADD COLUMN IF NOT EXISTS tag VARCHAR(20);
+      ALTER TABLE titles ADD COLUMN IF NOT EXISTS sort_order INTEGER;
+
+      -- scripts/add-video-board.js, add-video-board-features.js
+      CREATE TABLE IF NOT EXISTS video_board (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        event_id INTEGER NOT NULL REFERENCES events(id),
+        attribute TEXT NOT NULL,
+        video_url TEXT NOT NULL,
+        approved_image_url TEXT,
+        approved_score INTEGER,
+        is_anonymous BOOLEAN DEFAULT false,
+        ranking_scope TEXT DEFAULT 'public',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(user_id, event_id, attribute, video_url)
+      );
+      ALTER TABLE video_board ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT false;
+      CREATE TABLE IF NOT EXISTS pending_videos (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        event_id INTEGER NOT NULL REFERENCES events(id),
+        attribute TEXT NOT NULL,
+        video_url TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        admin_note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      -- scripts/create-page-views.js
+      CREATE TABLE IF NOT EXISTS page_views (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        is_internal BOOLEAN NOT NULL DEFAULT FALSE,
+        page VARCHAR(200) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_page_views_created ON page_views(created_at);
+      CREATE INDEX IF NOT EXISTS idx_page_views_page ON page_views(page, created_at);
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();

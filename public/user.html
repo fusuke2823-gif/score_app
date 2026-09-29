@@ -21,6 +21,33 @@
 </main>
 
 <style>
+/* ===== 戦績グラフ ===== */
+.hist-card { padding:16px 14px 12px; margin-bottom:24px; scroll-margin-top:72px; }
+.hist-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
+.hist-title { font-weight:bold; font-size:1rem; }
+.hist-sub { font-size:0.72rem; color:var(--text-secondary); }
+.hist-legend { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:0.7rem; color:var(--text-secondary); margin-bottom:8px; }
+.hist-legend span { display:inline-flex; align-items:center; gap:4px; }
+.hist-graph { position:relative; }
+.hist-scroll { overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:thin; }
+.hist-svg { display:block; }
+.hist-hit { cursor:pointer; fill:transparent; }
+.hist-hit:focus { outline:none; }
+.hist-tip {
+  position:absolute; z-index:5; min-width:150px; max-width:190px; padding:8px 10px; border-radius:10px;
+  background:rgba(14,12,28,0.96); border:1px solid var(--border-light); box-shadow:0 8px 24px rgba(0,0,0,0.5);
+  font-size:0.74rem; line-height:1.5; pointer-events:none;
+}
+.hist-tip-ev { font-size:0.68rem; font-weight:bold; letter-spacing:0.04em; }
+.hist-tip-name { font-weight:bold; font-size:0.82rem; margin-bottom:4px; word-break:break-word; }
+.hist-tip-row { display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--text-secondary); }
+.hist-tip-row b { color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.hist-tip-best { display:inline-block; margin-top:6px; font-size:0.66rem; font-weight:800; padding:1px 8px; border-radius:4px; background:#ffd700; color:#241800; }
+.hist-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px; }
+.hist-summary > div { display:flex; flex-direction:column; justify-content:space-between; background:rgba(255,255,255,0.04); border-radius:8px; padding:6px 8px; }
+.hist-summary .l { font-size:0.66rem; color:var(--text-secondary); }
+.hist-summary .v { font-weight:bold; font-size:0.95rem; }
+
 .back-link { text-decoration:none; }
 .back-link:hover { color:var(--text-primary) !important; }
 .score-grid {
@@ -284,6 +311,8 @@ async function load() {
         <button class="btn btn-primary" onclick="saveProfile()">${t('user.save')}</button>
       </div>` : ''}
 
+      <div id="history-card"></div>
+
       ${events.length === 0
         ? `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('user.no_scores')}</p></div>`
         : `<div class="score-grid">
@@ -316,6 +345,7 @@ async function load() {
           </div>`
       }
     `;
+  loadHistory();
   if (isMe) {
     fetch('/api/charts/game-data').then(r => r.json()).then(({ characters }) => {
       const sel = document.getElementById('edit-oshi');
@@ -476,6 +506,123 @@ document.addEventListener('click', e => {
     wrap.classList.toggle('tt-open');
     e.stopPropagation();
   }
+});
+
+// ===== 戦績グラフ =====
+// 縦軸はpt換算（非公開）なので数値を出さず、APIもユーザー内で正規化した高さ(y)だけを返す
+const HIST_TYPES = {
+  score_attack: { label: 'スコアアタック', color: '#ff6b80', shape: 'circle' },
+  seraph: { label: '遭遇戦', color: '#4fc3f7', shape: 'diamond' },
+  score_attack_ex: { label: 'スコアアタックEX', color: '#e0b84a', shape: 'triangle' },
+};
+const HIST_TREND = { up: ['上昇中', '#49d6a8'], flat: ['横ばい', 'var(--text-primary)'], down: ['下降中', '#ff8a80'] };
+let _hist = null;
+
+function histShape(shape, x, y, r, color, extra = '') {
+  if (shape === 'diamond') return `<path d="M${x} ${y - r * 1.25}L${x + r * 1.25} ${y}L${x} ${y + r * 1.25}L${x - r * 1.25} ${y}Z" fill="${color}" ${extra}/>`;
+  if (shape === 'triangle') return `<path d="M${x} ${y - r * 1.3}L${x + r * 1.2} ${y + r * 0.9}L${x - r * 1.2} ${y + r * 0.9}Z" fill="${color}" ${extra}/>`;
+  return `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}" ${extra}/>`;
+}
+
+async function loadHistory() {
+  const card = document.getElementById('history-card');
+  if (!card) return;
+  try {
+    _hist = await apiFetch(`/users/${userId}/history`);
+  } catch (err) {
+    return; // グラフは補助的な表示なので、失敗してもページ全体は出す
+  }
+  if (!_hist.events.length) return;
+  const sm = _hist.summary;
+  const legend = Object.values(HIST_TYPES).map(t => `<span><svg width="12" height="12">${histShape(t.shape, 6, 6, 4, t.color)}</svg>${t.label}</span>`).join('')
+    + '<span><svg width="14" height="10"><path d="M1 5H13" stroke="rgba(232,232,240,0.6)" stroke-width="1.6" stroke-dasharray="3 3"/></svg>不参加</span>'
+    + '<span><svg width="14" height="10"><path d="M1 8L1 3L4.5 5.5L7 1L9.5 5.5L13 3L13 8Z" fill="#ffd700"/></svg>自己ベスト</span>';
+  const trend = HIST_TREND[sm.trend];
+  card.className = 'card hist-card';
+  card.id = 'history-card';
+  card.innerHTML = `
+    <div class="hist-head"><span class="hist-title">戦績グラフ</span><span class="hist-sub">参加 ${sm.joined_count} 回</span></div>
+    <div class="hist-legend">${legend}</div>
+    <div class="hist-graph" id="hist-graph"></div>
+    <div class="hist-summary">
+      <div><div class="l">直近${sm.recent_rank_count || 5}回の平均順位</div><div class="v">${sm.recent_avg_rank != null ? sm.recent_avg_rank.toFixed(1) + '位' : '-'}</div></div>
+      <div><div class="l">最高順位</div><div class="v">${sm.best_rank != null ? sm.best_rank + '位' : '-'}</div></div>
+      <div><div class="l">直近5回の傾向</div><div class="v" style="color:${trend ? trend[1] : 'inherit'}">${trend ? trend[0] : '-'}</div></div>
+    </div>`;
+  renderHistoryGraph(null);
+  if (location.hash === '#history') card.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderHistoryGraph(openIdx) {
+  const el = document.getElementById('hist-graph');
+  const evs = _hist.events;
+  const prevScroll = el.querySelector('.hist-scroll')?.scrollLeft;
+  const H = 220, padL = 12, padR = 16, padT = 26, padB = 30, step = 26;
+  const W = Math.max(el.clientWidth, padL + padR + Math.max(1, evs.length - 1) * step);
+  const X = i => evs.length === 1 ? W / 2 : padL + i * ((W - padL - padR) / (evs.length - 1));
+  const Y = y => padT + (1 - (0.08 + y * 0.84)) * (H - padT - padB);
+  let grid = '';
+  for (let k = 0; k <= 4; k++) { const y = padT + k * (H - padT - padB) / 4; grid += `<line x1="0" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.06)"/>`; }
+  const labelEvery = evs.length <= 10 ? 1 : 5;
+  let xlab = '';
+  evs.forEach((e, i) => { if (e.event_number % labelEvery === 0 || evs.length <= 10) xlab += `<text x="${X(i)}" y="${H - 10}" text-anchor="middle" font-size="10" fill="rgba(232,232,240,0.55)">${e.event_number}</text>`; });
+  // 参加回どうしは実線、不参加の回は直前の値から点線で真横に伸ばす
+  let solid = '', dotted = '', last = null;
+  evs.forEach((e, i) => {
+    if (!e.joined) return;
+    if (last) {
+      if (last.i === i - 1) solid += `M${X(last.i)} ${Y(last.y)}L${X(i)} ${Y(e.y)}`;
+      else { dotted += `M${X(last.i)} ${Y(last.y)}H${X(i - 1)}`; solid += `M${X(i - 1)} ${Y(last.y)}L${X(i)} ${Y(e.y)}`; }
+    }
+    last = { i, y: e.y };
+  });
+  if (last && last.i < evs.length - 1) dotted += `M${X(last.i)} ${Y(last.y)}H${X(evs.length - 1)}`;
+  const joinedPts = evs.map((e, i) => (e.joined ? [X(i), Y(e.y)] : null)).filter(Boolean);
+  const area = `M${joinedPts[0][0]} ${H - padB}` + joinedPts.map(p => `L${p[0]} ${p[1]}`).join('') + `L${joinedPts.at(-1)[0]} ${H - padB}Z`;
+  let points = '', hits = '';
+  evs.forEach((e, i) => {
+    if (!e.joined) return;
+    const t = HIST_TYPES[e.event_type] || HIST_TYPES.score_attack;
+    points += histShape(t.shape, X(i), Y(e.y), i === openIdx ? 6.5 : 4.5, t.color, 'stroke="#0e0c1c" stroke-width="1.5"');
+    hits += `<circle class="hist-hit" cx="${X(i)}" cy="${Y(e.y)}" r="13" tabindex="0" data-i="${i}" aria-label="${escHtml(e.name)}"/>`;
+  });
+  const bi = evs.findIndex(e => e.is_best);
+  const crown = bi < 0 ? '' : `<g transform="translate(${X(bi)},${Y(evs[bi].y) - 16})"><path d="M-7 3L-7 -3L-3.5 0L0 -5L3.5 0L7 -3L7 3Z" fill="#ffd700" stroke="#241800" stroke-width="0.8"/></g>
+    <circle cx="${X(bi)}" cy="${Y(evs[bi].y)}" r="10" fill="none" stroke="#ffd700" stroke-width="1.5" opacity="0.8"/>`;
+  el.innerHTML = `<div class="hist-scroll"><svg class="hist-svg" width="${W}" height="${H}">
+    <defs><linearGradient id="hist-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,107,128,0.28)"/><stop offset="1" stop-color="rgba(255,107,128,0)"/></linearGradient></defs>
+    ${grid}<path d="${area}" fill="url(#hist-area)"/>
+    <path d="${dotted}" fill="none" stroke="rgba(232,232,240,0.45)" stroke-width="1.6" stroke-dasharray="3 4"/>
+    <path d="${solid}" fill="none" stroke="#ff6b80" stroke-width="2" stroke-linejoin="round"/>
+    ${crown}${points}${xlab}${hits}</svg></div>`;
+  const sc = el.querySelector('.hist-scroll');
+  sc.scrollLeft = prevScroll != null ? prevScroll : sc.scrollWidth; // 初回は最新の回が見える位置
+  sc.querySelectorAll('.hist-hit').forEach(h => {
+    const open = () => renderHistoryGraph(Number(h.dataset.i) === openIdx ? null : Number(h.dataset.i));
+    h.addEventListener('click', e => { e.stopPropagation(); open(); });
+    h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
+  if (openIdx == null) return;
+  const e = evs[openIdx], t = HIST_TYPES[e.event_type] || HIST_TYPES.score_attack;
+  const tip = document.createElement('div');
+  tip.className = 'hist-tip';
+  tip.innerHTML = `
+    <div class="hist-tip-ev" style="color:${t.color}">${t.label}</div>
+    <div class="hist-tip-name">${escHtml(e.name)}</div>
+    <div class="hist-tip-row">属性 ${attrBadge(e.attribute, true)}</div>
+    <div class="hist-tip-row">スコア <b>${formatScore(e.score)}</b></div>
+    <div class="hist-tip-row">順位 <b>${e.rank != null ? e.rank + '位' : '-'}</b></div>
+    ${e.is_best ? '<span class="hist-tip-best">自己ベスト</span>' : ''}`;
+  el.appendChild(tip);
+  // 点の横（右に入らなければ左）に、縦はグラフ内に収まる位置で出す
+  const px = X(openIdx) - sc.scrollLeft, py = Y(e.y), tw = tip.offsetWidth, th = tip.offsetHeight;
+  const left = px + 14 + tw > el.clientWidth ? px - 14 - tw : px + 14;
+  tip.style.left = Math.max(0, left) + 'px';
+  tip.style.top = Math.max(0, Math.min(py - th / 2, H - th)) + 'px';
+}
+// グラフの外をタップしたら吹き出しを閉じる
+document.addEventListener('click', e => {
+  if (_hist && document.querySelector('.hist-tip') && !e.target.closest('.hist-hit')) renderHistoryGraph(null);
 });
 
 load();
