@@ -282,6 +282,24 @@
 .sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
 .sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.56rem; }
 .sg-card-back.cat-shield .sg-card-val { color:#a9b4ff; font-size:0.56rem; }
+.sg-card-back.cat-gauge { border:2px solid #5ee0c0; box-shadow:0 0 10px rgba(94,224,192,0.5); color:#5ee0c0; }
+.sg-card-back.cat-gauge .sg-card-val { color:#5ee0c0; font-size:0.56rem; }
+/* ゲージアクション */
+.sg-gauge-overlay { position:fixed; inset:0; z-index:2600; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.55); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.sg-gauge-overlay[hidden] { display:none; }
+.sg-gauge-box { width:100%; max-width:340px; padding:18px 18px 16px; border-radius:16px; text-align:center; user-select:none;
+  background:rgba(14,12,28,0.96); border:1px solid rgba(94,224,192,0.5); box-shadow:0 0 30px rgba(94,224,192,0.25), 0 12px 32px rgba(0,0,0,0.6); }
+.sg-gauge-title { font-size:0.8rem; font-weight:900; letter-spacing:0.12em; color:#5ee0c0; margin-bottom:12px; }
+.sg-gauge-bar { position:relative; height:22px; border-radius:11px; overflow:hidden; border:1px solid var(--border-light); background:rgba(255,255,255,0.06); }
+.sg-gauge-zone { position:absolute; top:0; bottom:0; }
+.sg-gauge-marker { position:absolute; top:-4px; bottom:-4px; width:4px; margin-left:-2px; border-radius:2px; background:#fff; box-shadow:0 0 8px #fff, 0 0 16px rgba(255,255,255,0.7); }
+.sg-gauge-hint { margin-top:12px; font-size:0.78rem; color:var(--text-secondary); }
+.sg-gauge-result { height:34px; margin-top:6px; font-size:1.5rem; font-weight:900; letter-spacing:0.06em; text-shadow:0 0 12px currentColor; }
+.sg-gauge-result.pop { animation:sgGaugePop 0.5s ease-out; }
+@keyframes sgGaugePop { 0% { transform:scale(0.6); opacity:0; } 50% { transform:scale(1.25); opacity:1; } 100% { transform:scale(1); } }
+@media (prefers-reduced-motion: reduce) { .sg-gauge-result.pop { animation:none; } }
+.sg-gauge-resume { margin-left:8px; }
+
 /* 討伐後のオーバーキル分のカード */
 .sg-overkill-tag {
   position:absolute; top:-9px; left:50%; transform:translateX(-50%); z-index:2; white-space:nowrap;
@@ -523,6 +541,16 @@
   </div>
 
   <!-- 討伐ガチャ 討伐演出 -->
+  <!-- 討伐ガチャ ゲージアクション（ゲージアクションのギミック用） -->
+  <div id="sg-gauge-overlay" class="sg-gauge-overlay" hidden>
+    <div class="sg-gauge-box" role="dialog" aria-label="ゲージアクション">
+      <div class="sg-gauge-title">ゲージアクション <span id="sg-gauge-count"></span></div>
+      <div class="sg-gauge-bar" id="sg-gauge-bar"><div class="sg-gauge-marker" id="sg-gauge-marker"></div></div>
+      <div class="sg-gauge-result" id="sg-gauge-result"></div>
+      <div class="sg-gauge-hint" id="sg-gauge-hint">中心に近いところでタップ！</div>
+    </div>
+  </div>
+
   <div id="sg-defeat-overlay" class="sg-overlay">
     <div class="sg-defeat-card">
       <div class="sg-defeat-title">討伐完了</div>
@@ -1314,6 +1342,8 @@ function renderSgShield(shield, animate = false) {
 function renderSgGimmick(gimmick) {
   const el = document.getElementById('sg-gimmick');
   sgMaxShield = gimmick ? gimmick.max_shield : 0;
+  sgGaugeTiers = gimmick && gimmick.gauge ? gimmick.gauge.tiers : null;
+  if (gimmick && gimmick.gauge) sgGaugeAuto = gimmick.gauge.auto_accuracy;
   sgMaxDestruction = gimmick && gimmick.max_destruction ? Number(gimmick.max_destruction) : 999.0;
   el.hidden = !gimmick || gimmick.key === 'normal';
   if (el.hidden) return;
@@ -1343,11 +1373,138 @@ async function loadSpecialGacha() {
     updatePointsDisplay(data.points);
     currentPoints = data.points;
     document.getElementById('sg-pull-btn').disabled = !!data.progress.defeated_at;
+    sgLastProgress = data.progress;
     if (data.progress.defeated_at) {
       document.getElementById('sg-battle-log').textContent = 'この敵は既に討伐済みです';
+    } else if ((data.progress.pending_gauge || []).length) {
+      document.getElementById('sg-battle-log').innerHTML = `発動していないゲージ攻撃が ${data.progress.pending_gauge.length} 回分あります<button class="btn btn-primary btn-sm sg-gauge-resume" onclick="resumeSgGauges()">発動する</button>`;
     }
   } catch (err) {
     document.getElementById('sg-boss-name').textContent = '読み込みに失敗しました';
+  }
+}
+
+// ===== ゲージアクション =====
+let sgGaugeTiers = null; // ギミックがゲージアクションのときだけ入る（[{ name, min, mult }]）
+let sgGaugeAuto = 0.45;
+const SG_GAUGE_COLORS = { PERFECT: '#ffd700', GREAT: '#49d6a8', GOOD: '#4fc3f7', MISS: '#8888aa' };
+// バーの帯は重ねて描くので、半透明にすると色が混ざる。暗めの不透明色で描く
+const SG_GAUGE_ZONE_COLORS = { PERFECT: '#c9a21c', GREAT: '#237a63', GOOD: '#1f4d66' };
+
+// 判定幅（精度 = 1 - |位置|）をバーの色帯として描く
+function renderSgGaugeZones() {
+  const bar = document.getElementById('sg-gauge-bar');
+  bar.querySelectorAll('.sg-gauge-zone').forEach(z => z.remove());
+  [...sgGaugeTiers].reverse().forEach(t => {
+    if (t.min <= 0) return;
+    const half = (1 - t.min) * 50; // 位置|x|<=1-min の範囲を%に
+    const z = document.createElement('div');
+    z.className = 'sg-gauge-zone';
+    z.style.cssText = `left:${50 - half}%;width:${half * 2}%;background:${SG_GAUGE_ZONE_COLORS[t.name] || SG_GAUGE_COLORS[t.name]}`;
+    bar.insertBefore(z, document.getElementById('sg-gauge-marker')); // 外側(GOOD)から順に描き、内側を上に重ねる
+  });
+}
+
+// マーカーが左右に往復するのをタップで止める。精度(0〜1)を返す。一定時間で自動（GOOD相当）
+function playSgGauge(index, total) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('sg-gauge-overlay');
+    const marker = document.getElementById('sg-gauge-marker');
+    const result = document.getElementById('sg-gauge-result');
+    const hint = document.getElementById('sg-gauge-hint');
+    document.getElementById('sg-gauge-count').textContent = total > 1 ? `${index + 1}/${total}` : '';
+    result.textContent = '';
+    result.className = 'sg-gauge-result';
+    hint.textContent = '中心に近いところでタップ！';
+    renderSgGaugeZones();
+    overlay.hidden = false;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const period = reduced ? 2400 : 1200;
+    const start = performance.now();
+    let pos = -1, raf = 0, done = false;
+    const tick = now => {
+      pos = -Math.cos(((now - start) / period) * Math.PI * 2);
+      marker.style.left = ((pos + 1) / 2 * 100) + '%';
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    const finish = (accuracy, auto) => {
+      if (done) return;
+      done = true;
+      cancelAnimationFrame(raf);
+      clearTimeout(autoTimer);
+      overlay.removeEventListener('pointerdown', onTap);
+      document.removeEventListener('keydown', onKey);
+      hint.textContent = auto ? '時間切れ（自動発動）' : '';
+      resolve(accuracy);
+    };
+    const onTap = e => { e.preventDefault(); finish(1 - Math.abs(pos), false); };
+    const onKey = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); finish(1 - Math.abs(pos), false); } };
+    const autoTimer = setTimeout(() => finish(sgGaugeAuto, true), 6000);
+    // 直前のカードめくりのタップが誤って入らないよう少し待ってから受け付ける
+    setTimeout(() => { if (!done) { overlay.addEventListener('pointerdown', onTap); document.addEventListener('keydown', onKey); } }, 250);
+  });
+}
+
+// 発動待ちのゲージ攻撃を順に遊んでダメージを確定する
+async function runSgGauges(tokens) {
+  const out = { defeated: false, awarded_icon: null, progress: null, total: 0 };
+  const overlay = document.getElementById('sg-gauge-overlay');
+  for (let i = 0; i < tokens.length; i++) {
+    const accuracy = await playSgGauge(i, tokens.length);
+    let res;
+    try {
+      res = await apiFetch('/special-gacha/gauge', { method: 'POST', body: JSON.stringify({ token: tokens[i], accuracy }) });
+    } catch (err) {
+      overlay.hidden = true;
+      showAlert('#alert', err.message);
+      break;
+    }
+    const result = document.getElementById('sg-gauge-result');
+    result.textContent = `${res.tier}  ×${res.mult}`;
+    result.style.color = SG_GAUGE_COLORS[res.tier];
+    void result.offsetWidth;
+    result.classList.add('pop');
+    _sePlay(res.tier === 'PERFECT' ? '/sounds/ss_sound.mp3' : res.tier === 'MISS' ? '/sounds/turn.mp3' : '/sounds/s_sound.mp3');
+    sgBossReact({ category: 'damage', key: res.tier === 'PERFECT' ? 'ultra' : 'crit', dmg: res.dmg, overkill: res.overkill });
+    renderSgHp(res.progress.current_hp, sgCurrentEnemy.max_hp);
+    out.total += res.overkill ? 0 : res.dmg;
+    out.progress = res.progress;
+    if (res.defeated) { out.defeated = true; out.awarded_icon = res.awarded_icon; }
+    await new Promise(r => setTimeout(r, 1100));
+    overlay.hidden = true;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  overlay.hidden = true;
+  return out;
+}
+
+// ページを開いたときに発動待ちが残っていたら、その場で発動できるようにする
+async function resumeSgGauges() {
+  const btn = document.getElementById('sg-pull-btn');
+  const pending = (sgLastProgress && sgLastProgress.pending_gauge) || [];
+  if (!pending.length) return;
+  btn.disabled = true;
+  const g = await runSgGauges(pending.map(p => p.token));
+  document.getElementById('sg-battle-log').innerHTML = `ゲージ攻撃で <b>${g.total.toLocaleString('ja-JP')}</b> ダメージ`;
+  await finishSgTurn(g.progress || sgLastProgress, g.defeated, g.awarded_icon);
+}
+
+let sgLastProgress = null;
+// 1回分（10連＋ゲージ）の最後に画面を最新の状態にそろえる
+async function finishSgTurn(progress, defeated, awardedIcon) {
+  sgLastProgress = progress;
+  if (defeated) await sgPlayDefeat();
+  renderSgHp(progress.current_hp, sgCurrentEnemy.max_hp);
+  renderSgShield(progress.shield);
+  renderSgDestructionRate(progress.destruction_rate);
+  renderSgEffects(progress);
+  updateSgDefeatedUi(!!progress.defeated_at);
+  document.getElementById('sg-pull-btn').disabled = !!progress.defeated_at;
+  if (defeated && awardedIcon) {
+    document.getElementById('sg-ssr-icon-img').src = awardedIcon.image_url;
+    document.getElementById('sg-ssr-name').textContent = `限定アイコン「${awardedIcon.name}」を獲得！`;
+    document.getElementById('sg-defeat-overlay').classList.add('show');
   }
 }
 
@@ -1401,6 +1558,7 @@ const SG_ICON_MAP = {
 
 // 手描きの線画アイコン(SVG)。currentColorでカテゴリ色を継承する。
 const SG_SVG_BASE = {
+  target: '<path d="M12 2.5a9.5 9.5 0 1 0 0 19a9.5 9.5 0 1 0 0-19zM12 5.5a6.5 6.5 0 1 1 0 13a6.5 6.5 0 1 1 0-13z" fill-rule="evenodd"/><circle cx="12" cy="12" r="3"/>',
   barrier: '<path d="M12 2 L20.5 7 V17 L12 22 L3.5 17 V7 Z" fill-opacity="0.35"/><path d="M12 2 L20.5 7 V17 L12 22 L3.5 17 V7 Z M12 4.3 L5.5 8.1 V15.9 L12 19.7 L18.5 15.9 V8.1 Z" fill-rule="evenodd"/>',
   sword: '<path d="M12 2 L14.2 4.2 L14.2 15 L12 17.2 L9.8 15 L9.8 4.2 Z"/><rect x="6.5" y="14.2" width="11" height="2" rx="0.5"/><rect x="11" y="16.5" width="2" height="5.5" rx="0.6"/><circle cx="12" cy="22.3" r="1.4"/>',
   shield: '<path d="M12 2 L19.5 5 V11 C19.5 16 16 19.8 12 21.5 C8 19.8 4.5 16 4.5 11 V5 Z"/>',
@@ -1427,6 +1585,9 @@ function sgBadgeSvg(name) {
 function sgCardVisual(r) {
   if (r.category === 'damage' && r.blocked) {
     return { icon: sgSvg('barrier'), val: `<span class="sg-dmg-num${String(r.blocked_dmg).length >= 5 ? ' is-long' : ''}">${r.blocked_dmg}</span><span class="sg-dmg-label">防がれた</span>` };
+  }
+  if (r.category === 'gauge') {
+    return { icon: sgSvg('target'), val: r.overkill ? 'ゲージ攻撃' : 'ゲージ<br>チャージ' };
   }
   if (r.category === 'damage' && r.overkill) {
     return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num${String(r.dmg).length >= 5 ? ' is-long' : ''}">${r.dmg}</span><span class="sg-dmg-label">オーバーキル</span>` };
@@ -1546,32 +1707,24 @@ async function doSpecialPull() {
   try {
     const data = await apiFetch('/special-gacha/pull', { method: 'POST' });
     await animateSpecialPull(data.results);
-    if (data.defeated) await sgPlayDefeat();
+    // ゲージアクション：10枚めくり終わったら、チャージしたゲージ攻撃を順に発動
+    const gauge = await runSgGauges(data.results.filter(r => r.gauge_token).map(r => r.gauge_token));
+    const progress = gauge.progress || data.progress;
+    const defeated = data.defeated || gauge.defeated;
+    const awardedIcon = data.awarded_icon || gauge.awarded_icon;
 
     const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 && !r.overkill ? r.dmg : 0), 0);
     const overkillDmg = data.results.reduce((s, r) => s + (r.dmg > 0 && r.overkill ? r.dmg : 0), 0);
     const blockedCount = data.results.filter(r => r.blocked).length;
     const notes = [];
     if (blockedCount) notes.push(`シールドに ${blockedCount} 回防がれた`);
+    if (gauge.total) notes.push(`ゲージ攻撃 ${gauge.total.toLocaleString('ja-JP')}`);
+    if (data.leftover_gauge_damage) notes.push(`前回のゲージ攻撃 ${data.leftover_gauge_damage.toLocaleString('ja-JP')}`);
     if (overkillDmg) notes.push(`オーバーキル ${overkillDmg.toLocaleString('ja-JP')}`);
-    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ` + (notes.length ? `（${notes.join('・')}）` : '');
-
-    renderSgHp(data.progress.current_hp, sgCurrentEnemy.max_hp);
-    renderSgShield(data.progress.shield);
-    renderSgDestructionRate(data.progress.destruction_rate);
-    renderSgEffects(data.progress);
-    updateSgDefeatedUi(!!data.progress.defeated_at);
+    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${(totalDmg + gauge.total).toLocaleString('ja-JP')}</b> ダメージ` + (notes.length ? `（${notes.join('・')}）` : '');
     currentPoints = data.new_points;
     updatePointsDisplay(currentPoints);
-
-    {
-      btn.disabled = !!data.progress.defeated_at;
-      if (data.defeated) {
-        document.getElementById('sg-ssr-icon-img').src = data.awarded_icon.image_url;
-        document.getElementById('sg-ssr-name').textContent = `限定アイコン「${data.awarded_icon.name}」を獲得！`;
-        document.getElementById('sg-defeat-overlay').classList.add('show');
-      }
-    }
+    await finishSgTurn(progress, defeated, awardedIcon);
   } catch (err) {
     showAlert('#alert', err.message);
     btn.disabled = false;

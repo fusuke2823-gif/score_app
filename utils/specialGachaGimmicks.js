@@ -41,6 +41,23 @@ const GIMMICKS = {
       ultra: { p: 0.01, dmg: 900 },
     },
   },
+  gauge: {
+    label: 'ゲージアクション',
+    description: 'ゲージ攻撃のカードを引くと、10連の最後にゲージアクションが発動。往復するマーカーを中心の近くで止めるほど大ダメージ（最大3倍）',
+    max_hp: 32000, // 平均的な腕前（PERFECT15%/GREAT30%/GOOD35%/MISS20%）で通常と平均回数が揃う値
+    gauge: {
+      p: 0.07,    // ダメージカードのうちゲージ攻撃に置き換わる割合
+      base: 40,   // 基本ダメージ（攻撃UP・破壊率などの倍率は引いた時点の値を掛ける）
+      // 精度 = 1 - |マーカー位置|（中心=1、端=0）。上から順に判定
+      tiers: [
+        { name: 'PERFECT', min: 0.9, mult: 3 },
+        { name: 'GREAT', min: 0.7, mult: 2 },
+        { name: 'GOOD', min: 0.4, mult: 1.5 },
+        { name: 'MISS', min: 0, mult: 1 },
+      ],
+      autoAccuracy: 0.45, // タップしなかったときはGOOD扱い
+    },
+  },
 };
 
 function getGimmick(key) {
@@ -50,7 +67,12 @@ function getGimmick(key) {
 // 画面・管理画面に渡す公開情報
 function gimmickSummary(key) {
   const g = getGimmick(key);
-  return { key: GIMMICKS[key] ? key : 'normal', label: g.label, description: g.description, max_hp: g.max_hp, max_shield: g.shield || 0, max_destruction: g.destructionMax || 999.0 };
+  return {
+    key: GIMMICKS[key] ? key : 'normal', label: g.label, description: g.description, max_hp: g.max_hp,
+    max_shield: g.shield || 0, max_destruction: g.destructionMax || 999.0,
+    // ゲージの判定幅は画面の描画にも使う（判定そのものはサーバーで行う）
+    gauge: g.gauge ? { tiers: g.gauge.tiers, auto_accuracy: g.gauge.autoAccuracy } : null,
+  };
 }
 
 module.exports = { GIMMICKS, getGimmick, gimmickSummary };

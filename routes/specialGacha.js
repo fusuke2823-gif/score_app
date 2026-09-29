@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
@@ -77,6 +78,16 @@ function rollOne(state, gimmick, tables = tablesFor(gimmick)) {
   const cat = pick(tables.cat);
 
   if (cat.name === 'damage') {
+    const allyBonus0 = (state.ally_small > 0 ? 0.5 : 0) + (state.ally_large > 0 ? 2.0 : 0);
+    const debuffBonus0 = (state.debuff_small > 0 ? 0.5 : 0) + (state.debuff_large > 0 ? 2.0 : 0);
+    const enemyPenalty0 = (state.enemybuff_small > 0 ? 0.2 : 0) + (state.enemybuff_large > 0 ? 0.5 : 0);
+    // ゲージアクション：ダメージカードの一部がゲージ攻撃（10連の最後に発動）に置き換わる。
+    // 基本ダメージは引いた時点の倍率で確定し、発動時にタイミングの倍率を掛ける
+    if (gimmick.gauge && Math.random() < gimmick.gauge.p) {
+      const mult0 = (1 + allyBonus0) * (1 + debuffBonus0) * Math.max(0, 1 - enemyPenalty0) * (state.destruction_rate / 100);
+      decrementAll(state);
+      return { category: 'gauge', key: 'gauge_attack', label: 'ゲージ攻撃', dmg: 0, gauge_base: Math.max(1, Math.round(gimmick.gauge.base * mult0)) };
+    }
     const [missBase, normalBase, critBase, ultraBase] = tables.damage.map(t => t.p);
     const critBoost = 1 + (state.critup_small > 0 ? 0.5 : 0) + (state.critup_large > 0 ? 1.0 : 0);
     const crit = critBase * critBoost, ultra = ultraBase * critBoost;
@@ -180,6 +191,13 @@ router.get('/rates', async (req, res) => {
     } else {
       categories.push({ ...catDestruction, items: tables.destruction.map(t => ({ label: t.label, p: t.p, detail: t.sub })) });
     }
+    if (gimmick.gauge) {
+      // ダメージリソースを引いたうちの一定割合がゲージ攻撃に置き換わる
+      categories.push({
+        name: 'gauge', label: `ゲージ攻撃（ダメージリソースの${Math.round(gimmick.gauge.p * 100)}%が置き換わる）`, p: catDamage.p * gimmick.gauge.p,
+        items: [{ label: 'ゲージ攻撃', p: 1, detail: `10連の最後に発動。${gimmick.gauge.tiers.map(t => `${t.name}×${t.mult}`).join(' / ')}（基本${gimmick.gauge.base}ダメージ）` }],
+      });
+    }
     res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(enemy && enemy.gimmick), categories });
   } catch (err) {
     console.error(err);
@@ -243,6 +261,27 @@ router.post('/pull', async (req, res) => {
       return res.status(400).json({ error: '既に討伐済みです' });
     }
 
+    // 前回発動しないまま残ったゲージ攻撃は、MISS（1倍）で先に発動させる。
+    // それだけで倒せる場合はポイントを使わずに討伐として返す
+    const leftoverDmg = (progress.pending_gauge || []).reduce((s, g) => s + g.base, 0);
+    if (leftoverDmg > 0 && progress.current_hp - leftoverDmg <= 0) {
+      await client.query(
+        'INSERT INTO user_icons (user_id, icon_id) VALUES ($1,$2) ON CONFLICT (user_id, icon_id) DO NOTHING',
+        [req.user.id, enemy.ssr_icon_id]
+      );
+      const updated = await client.query(
+        `UPDATE user_special_gacha_progress SET current_hp=0, pending_gauge='[]'::jsonb, defeated_at=NOW()
+         WHERE user_id=$1 AND enemy_id=$2 RETURNING *`,
+        [req.user.id, enemy.id]
+      );
+      const pts = (await client.query('SELECT points FROM users WHERE id=$1', [req.user.id])).rows[0].points;
+      await client.query('COMMIT');
+      return res.json({
+        results: [], progress: updated.rows[0], new_points: pts, defeated: true,
+        awarded_icon: { name: enemy.ssr_icon_name, image_url: enemy.ssr_icon_image_url }, leftover_gauge_damage: leftoverDmg,
+      });
+    }
+
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     if (userResult.rows[0].points < PULL_COST) {
       await client.query('ROLLBACK');
@@ -258,6 +297,7 @@ router.post('/pull', async (req, res) => {
     const gimmick = getGimmick(enemy.gimmick);
     const tables = tablesFor(gimmick);
     let hp = progress.current_hp;
+    hp = Math.max(0, hp - leftoverDmg);
 
     const results = [];
     // 途中で倒しても10枚すべて抽選する（カード枚数で討伐が先に分からないように）。
@@ -269,6 +309,14 @@ router.post('/pull', async (req, res) => {
       else hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
       r.state_after = { ...state };
       results.push({ ...r, hp_after: hp });
+    }
+
+    // 倒す前に引いたゲージ攻撃は発動待ちとして記録（倒した後の分はオーバーキルなので発動しない）
+    const pendingGauge = [];
+    for (const r of results) {
+      if (r.category !== 'gauge' || r.overkill) continue;
+      r.gauge_token = crypto.randomBytes(8).toString('hex');
+      pendingGauge.push({ token: r.gauge_token, base: r.gauge_base });
     }
 
     let defeated = false;
@@ -286,11 +334,12 @@ router.post('/pull', async (req, res) => {
       `UPDATE user_special_gacha_progress SET
          current_hp=$3, ally_small=$4, ally_large=$5, debuff_small=$6, debuff_large=$7,
          enemybuff_small=$8, enemybuff_large=$9, critup_small=$10, critup_large=$11, destruction_rate=$12,
-         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14, pull_count=pull_count+1
+         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14, pull_count=pull_count+1, pending_gauge=$15::jsonb
        WHERE user_id=$1 AND enemy_id=$2
        RETURNING *`,
       [req.user.id, enemy.id, hp, state.ally_small, state.ally_large, state.debuff_small, state.debuff_large,
-       state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, state.destruction_rate, defeated, state.shield]
+       state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, state.destruction_rate, defeated, state.shield,
+       JSON.stringify(pendingGauge)]
     );
 
     await client.query('COMMIT');
@@ -300,7 +349,60 @@ router.post('/pull', async (req, res) => {
       new_points: userResult.rows[0].points - PULL_COST,
       defeated,
       awarded_icon: awardedIcon,
+      leftover_gauge_damage: leftoverDmg,
     });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// ゲージアクションの結果を受け取ってダメージを確定する。
+// 精度は画面側の申告だが、発動待ちのトークン1つにつき1回だけ受け付け、倍率は段階に丸めて上限3倍とする
+router.post('/gauge', async (req, res) => {
+  const { token } = req.body || {};
+  let accuracy = Number(req.body && req.body.accuracy);
+  if (!Number.isFinite(accuracy)) accuracy = 0;
+  accuracy = Math.min(1, Math.max(0, accuracy));
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const enemy = await getActiveEnemy();
+    if (!enemy) { await client.query('ROLLBACK'); return res.status(404).json({ error: '現在挑戦できる敵がいません' }); }
+    const gimmick = getGimmick(enemy.gimmick);
+    const progress = (await client.query(
+      'SELECT * FROM user_special_gacha_progress WHERE user_id=$1 AND enemy_id=$2 FOR UPDATE',
+      [req.user.id, enemy.id]
+    )).rows[0];
+    const pending = progress ? (progress.pending_gauge || []) : [];
+    const idx = pending.findIndex(g => g.token === token);
+    if (!gimmick.gauge || idx === -1) { await client.query('ROLLBACK'); return res.status(400).json({ error: '発動できるゲージ攻撃がありません' }); }
+
+    const tier = gimmick.gauge.tiers.find(t => accuracy >= t.min);
+    const dmg = Math.round(pending[idx].base * tier.mult);
+    pending.splice(idx, 1);
+    const alreadyDefeated = !!progress.defeated_at;
+    const hp = Math.max(0, progress.current_hp - dmg);
+    const defeated = !alreadyDefeated && hp <= 0;
+    let awardedIcon = null;
+    if (defeated) {
+      await client.query(
+        'INSERT INTO user_icons (user_id, icon_id) VALUES ($1,$2) ON CONFLICT (user_id, icon_id) DO NOTHING',
+        [req.user.id, enemy.ssr_icon_id]
+      );
+      awardedIcon = { name: enemy.ssr_icon_name, image_url: enemy.ssr_icon_image_url };
+    }
+    const updated = await client.query(
+      `UPDATE user_special_gacha_progress SET current_hp=$3, pending_gauge=$4::jsonb,
+         defeated_at = CASE WHEN $5 THEN NOW() ELSE defeated_at END
+       WHERE user_id=$1 AND enemy_id=$2 RETURNING *`,
+      [req.user.id, enemy.id, hp, JSON.stringify(pending), defeated]
+    );
+    await client.query('COMMIT');
+    res.json({ dmg, tier: tier.name, mult: tier.mult, overkill: alreadyDefeated, defeated, awarded_icon: awardedIcon, progress: updated.rows[0] });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
