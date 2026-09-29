@@ -175,6 +175,19 @@
           <div class="form-hint" id="edit-event-multiplier-hint"></div>
         </div>
         <div class="form-group">
+          <label class="form-label">戦績グラフでの表示（任意）</label>
+          <select class="form-input" id="edit-event-display-type">
+            <option value="">イベント種別と同じ</option>
+            <option value="score_attack">スコアアタック</option>
+            <option value="seraph">遭遇戦</option>
+            <option value="score_attack_ex">スコアタEX</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-size:0.85rem">
+            <input type="checkbox" id="edit-event-exclude-history" style="width:16px;height:16px"> 戦績グラフに含めない
+          </label>
+          <div class="form-hint">表示の種類はグラフの点の形・ラベルだけに使われ、レート計算は上のイベント種別のままです</div>
+        </div>
+        <div class="form-group">
           <label class="form-label">説明（任意）</label>
           <textarea class="form-textarea" id="edit-event-desc" rows="2"></textarea>
         </div>
@@ -257,6 +270,19 @@
       <div class="form-group">
         <label class="form-label">スコア補正係数（例: 複数体は0.95など、通常は1.0）</label>
         <input class="form-input" type="number" id="event-multiplier" min="0.01" max="2" step="0.0001" value="1.0">
+      </div>
+      <div class="form-group">
+          <label class="form-label">戦績グラフでの表示（任意）</label>
+          <select class="form-input" id="event-display-type">
+            <option value="">イベント種別と同じ</option>
+            <option value="score_attack">スコアアタック</option>
+            <option value="seraph">遭遇戦</option>
+            <option value="score_attack_ex">スコアタEX</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-size:0.85rem">
+            <input type="checkbox" id="event-exclude-history" style="width:16px;height:16px"> 戦績グラフに含めない
+          </label>
+        <div class="form-hint">表示の種類はグラフの点の形・ラベルだけに使われ、レート計算は上のイベント種別のままです</div>
       </div>
       <div class="form-group">
         <label class="form-label">説明（任意）</label>
@@ -427,6 +453,8 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
         name: document.getElementById('event-name').value,
         event_type: document.getElementById('event-type').value,
         score_multiplier: parseFloat(document.getElementById('event-multiplier').value) || 1.0,
+        display_type: document.getElementById('event-display-type').value || null,
+        exclude_from_history: document.getElementById('event-exclude-history').checked,
         description: document.getElementById('event-desc').value,
         submission_start: toISO(document.getElementById('event-start').value),
         submission_end: toISO(document.getElementById('event-end').value)
@@ -469,6 +497,8 @@ async function openEditEvent(id) {
   document.getElementById('edit-event-type').value = e.event_type || 'score_attack';
   document.getElementById('edit-event-multiplier').value = e.score_multiplier != null ? e.score_multiplier : 1.0;
   document.getElementById('edit-event-multiplier-hint').textContent = '';
+  document.getElementById('edit-event-display-type').value = e.display_type || '';
+  document.getElementById('edit-event-exclude-history').checked = !!e.exclude_from_history;
   document.getElementById('edit-event-desc').value = e.description || '';
   document.getElementById('edit-event-start').value = toLocalDatetime(e.submission_start);
   document.getElementById('edit-event-end').value = toLocalDatetime(e.submission_end);
@@ -532,6 +562,8 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
         name: document.getElementById('edit-event-name').value,
         event_type: document.getElementById('edit-event-type').value,
         score_multiplier: parseFloat(document.getElementById('edit-event-multiplier').value) || 1.0,
+        display_type: document.getElementById('edit-event-display-type').value || null,
+        exclude_from_history: document.getElementById('edit-event-exclude-history').checked,
         description: document.getElementById('edit-event-desc').value,
         submission_start: toISO(document.getElementById('edit-event-start').value),
         submission_end: toISO(document.getElementById('edit-event-end').value),

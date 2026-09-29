@@ -704,6 +704,9 @@ const initDB = async () => {
     await client.query(`
       -- scripts/add-score-multiplier.js
       ALTER TABLE events ADD COLUMN IF NOT EXISTS score_multiplier NUMERIC(6,4) DEFAULT 1.0;
+      -- 戦績グラフ用：表示上の種類（計算用の event_type とは別。NULL なら event_type と同じ）と、グラフから外すフラグ
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS display_type VARCHAR(20);
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS exclude_from_history BOOLEAN NOT NULL DEFAULT FALSE;
       -- scripts/add-video-url.js, add-pending-youtube-url.js
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS video_url TEXT;
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS pending_youtube_url TEXT;

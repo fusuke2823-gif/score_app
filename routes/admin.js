@@ -124,11 +124,11 @@ router.get('/events', async (req, res) => {
 
 // イベント作成
 router.post('/events', async (req, res) => {
-  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier } = req.body;
+  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0]
+      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, display_type || null, !!exclude_from_history]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -141,11 +141,16 @@ router.post('/events', async (req, res) => {
 
 // イベント更新
 router.put('/events/:id', async (req, res) => {
-  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier } = req.body;
+  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history } = req.body;
   try {
+    // display_type / exclude_from_history は送られてこなければ現在の値を保つ
     const result = await pool.query(
-      'UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6, score_multiplier=$7 WHERE id=$8 RETURNING *',
-      [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, req.params.id]
+      `UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6, score_multiplier=$7,
+         display_type = CASE WHEN $9 THEN $10 ELSE display_type END,
+         exclude_from_history = COALESCE($11, exclude_from_history)
+       WHERE id=$8 RETURNING *`,
+      [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, req.params.id,
+       display_type !== undefined, display_type || null, exclude_from_history === undefined ? null : !!exclude_from_history]
     );
     res.json(result.rows[0]);
   } catch (err) {

@@ -59,9 +59,10 @@ router.get('/:id/history', async (req, res) => {
   try {
     const [eventsResult, bestResult, rankResult] = await Promise.all([
       pool.query(
-        `SELECT id, event_number, name, event_type, COALESCE(score_multiplier, 1.0)::float AS score_multiplier
+        `SELECT id, event_number, name, event_type, COALESCE(display_type, event_type) AS display_type,
+                COALESCE(score_multiplier, 1.0)::float AS score_multiplier
          FROM events
-         WHERE is_active = TRUE AND event_type = ANY($1)
+         WHERE is_active = TRUE AND event_type = ANY($1) AND exclude_from_history = FALSE
            -- 開催中（受付終了日時が未設定・未到来）の回は結果が確定していないので含めない
            AND submission_end IS NOT NULL AND submission_end < NOW()
          ORDER BY event_number ASC`,
@@ -96,7 +97,8 @@ router.get('/:id/history', async (req, res) => {
     const rows = eventsResult.rows.slice(firstIdx).map(e => {
       const best = bestMap.get(e.id);
       return {
-        event_id: e.id, event_number: e.event_number, name: e.name, event_type: e.event_type,
+        // 点の形・ラベルは表示上の種類、ptの換算は計算用の種類（event_type）で行う
+        event_id: e.id, event_number: e.event_number, name: e.name, event_type: e.display_type,
         joined: !!best,
         attribute: best ? best.attribute : null,
         score: best ? best.score : null,
