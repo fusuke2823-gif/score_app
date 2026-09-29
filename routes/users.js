@@ -110,8 +110,6 @@ router.get('/:id/history', async (req, res) => {
     const joined = rows.filter(r => r.joined);
     const pts = joined.map(r => r.pt);
     const minPt = Math.min(...pts), maxPt = Math.max(...pts);
-    // 自己ベストが同点で複数ある場合は最新の回に印を付ける
-    const bestEventId = joined.filter(r => r.pt === maxPt).at(-1).event_id;
     const recentRanks = joined.map(r => r.rank).filter(r => r != null).slice(-HISTORY_RECENT_N);
     const allRanks = joined.map(r => r.rank).filter(r => r != null);
 
@@ -119,7 +117,6 @@ router.get('/:id/history', async (req, res) => {
       events: rows.map(({ pt, ...r }) => ({
         ...r,
         y: r.joined ? (maxPt > minPt ? (pt - minPt) / (maxPt - minPt) : 0.5) : null,
-        is_best: r.event_id === bestEventId,
       })),
       summary: {
         joined_count: joined.length,

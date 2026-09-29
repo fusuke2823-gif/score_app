@@ -515,6 +515,9 @@ const HIST_TYPES = {
   seraph: { label: '遭遇戦', color: '#4fc3f7', shape: 'diamond' },
   score_attack_ex: { label: 'スコアアタックEX', color: '#e0b84a', shape: 'triangle' },
 };
+// 上位3位の王冠の色（ランキング表示の金・銀・銅と揃える）
+const HIST_PODIUM = { 1: '#ffd700', 2: '#c0c0c0', 3: '#cd7f32' };
+const histCrown = (x, y, color) => `<g transform="translate(${x},${y})"><path d="M-7 3L-7 -3L-3.5 0L0 -5L3.5 0L7 -3L7 3Z" fill="${color}" stroke="#241800" stroke-width="0.8"/></g>`;
 const HIST_TREND = { up: ['上昇傾向', '#49d6a8'], flat: ['維持', 'var(--text-primary)'], down: ['下降傾向', '#ff8a80'] };
 let _hist = null;
 
@@ -536,7 +539,7 @@ async function loadHistory() {
   const sm = _hist.summary;
   const legend = Object.values(HIST_TYPES).map(t => `<span><svg width="12" height="12">${histShape(t.shape, 6, 6, 4, t.color)}</svg>${t.label}</span>`).join('')
     + '<span><svg width="14" height="10"><path d="M1 5H13" stroke="rgba(232,232,240,0.6)" stroke-width="1.6" stroke-dasharray="3 3"/></svg>不参加</span>'
-    + '<span><svg width="14" height="10"><path d="M1 8L1 3L4.5 5.5L7 1L9.5 5.5L13 3L13 8Z" fill="#ffd700"/></svg>自己ベスト</span>';
+    + `<span><svg width="50" height="12">${[1, 2, 3].map(r => histCrown(8 + (r - 1) * 17, 7, HIST_PODIUM[r])).join('')}</svg>1〜3位</span>`;
   const trend = HIST_TREND[sm.trend];
   card.className = 'card hist-card';
   card.id = 'history-card';
@@ -586,9 +589,8 @@ function renderHistoryGraph(openIdx) {
     points += histShape(t.shape, X(i), Y(e.y), i === openIdx ? 6.5 : 4.5, t.color, 'stroke="#0e0c1c" stroke-width="1.5"');
     hits += `<circle class="hist-hit" cx="${X(i)}" cy="${Y(e.y)}" r="13" tabindex="0" data-i="${i}" aria-label="${escHtml(e.name)}"/>`;
   });
-  const bi = evs.findIndex(e => e.is_best);
-  const crown = bi < 0 ? '' : `<g transform="translate(${X(bi)},${Y(evs[bi].y) - 16})"><path d="M-7 3L-7 -3L-3.5 0L0 -5L3.5 0L7 -3L7 3Z" fill="#ffd700" stroke="#241800" stroke-width="0.8"/></g>
-    <circle cx="${X(bi)}" cy="${Y(evs[bi].y)}" r="10" fill="none" stroke="#ffd700" stroke-width="1.5" opacity="0.8"/>`;
+  // 3位以内に入った回に王冠（金・銀・銅。何回でも付く）
+  const crown = evs.map((e, i) => (HIST_PODIUM[e.rank] ? histCrown(X(i), Y(e.y) - 14, HIST_PODIUM[e.rank]) : '')).join('');
   el.innerHTML = `<div class="hist-scroll"><svg class="hist-svg" width="${W}" height="${H}">
     <defs><linearGradient id="hist-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(255,107,128,0.28)"/><stop offset="1" stop-color="rgba(255,107,128,0)"/></linearGradient></defs>
     ${grid}<path d="${area}" fill="url(#hist-area)"/>
@@ -612,7 +614,7 @@ function renderHistoryGraph(openIdx) {
     <div class="hist-tip-row">属性 ${attrBadge(e.attribute, true)}</div>
     <div class="hist-tip-row">スコア <b>${formatScore(e.score)}</b></div>
     <div class="hist-tip-row">順位 <b>${e.rank != null ? e.rank + '位' : '-'}</b></div>
-    ${e.is_best ? '<span class="hist-tip-best">自己ベスト</span>' : ''}`;
+    ${HIST_PODIUM[e.rank] ? `<span class="hist-tip-best" style="background:${HIST_PODIUM[e.rank]}">${e.rank}位獲得</span>` : ''}`;
   el.appendChild(tip);
   // 点の横（右に入らなければ左）に、縦はグラフ内に収まる位置で出す
   const px = X(openIdx) - sc.scrollLeft, py = Y(e.y), tw = tip.offsetWidth, th = tip.offsetHeight;
