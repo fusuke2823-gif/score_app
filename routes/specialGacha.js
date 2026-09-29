@@ -178,8 +178,10 @@ router.get('/rates', async (req, res) => {
         ? { label: regen.label, p: t.p, detail: `シールド+${regen.amount}（${t.label}の代わり）` }
         : { label: t.label, p: t.p, detail: t.sub };
     });
+    // ゲージ攻撃はダメージリソースの一部が置き換わるので、一覧ではダメージから差し引いて別カテゴリとして出す（合計100%）
+    const gaugeP = gimmick.gauge ? catDamage.p * gimmick.gauge.p : 0;
     const categories = [
-      { ...catDamage, items: tables.damage.map(t => ({ label: t.label, p: t.p, detail: `${t.dmg}ダメージ` })) },
+      { ...catDamage, p: catDamage.p - gaugeP, items: tables.damage.map(t => ({ label: t.label, p: t.p, detail: `${t.dmg}ダメージ` })) },
       { ...catFavorable, items: FAVORABLE.map(t => ({ label: t.label, p: t.p, detail: t.sub })) },
       { ...catUnfavorable, items: unfavorableItems },
     ];
@@ -192,9 +194,8 @@ router.get('/rates', async (req, res) => {
       categories.push({ ...catDestruction, items: tables.destruction.map(t => ({ label: t.label, p: t.p, detail: t.sub })) });
     }
     if (gimmick.gauge) {
-      // ダメージリソースを引いたうちの一定割合がゲージ攻撃に置き換わる
-      categories.push({
-        name: 'gauge', label: `ゲージ攻撃（ダメージリソースの${Math.round(gimmick.gauge.p * 100)}%が置き換わる）`, p: catDamage.p * gimmick.gauge.p,
+      categories.splice(1, 0, {
+        name: 'gauge', label: 'ゲージ攻撃', p: gaugeP,
         items: [{ label: 'ゲージ攻撃', p: 1, detail: `10連の最後に発動。${gimmick.gauge.tiers.map(t => `${t.name}×${t.mult}`).join(' / ')}（基本${gimmick.gauge.base}ダメージ）` }],
       });
     }

@@ -1599,7 +1599,7 @@ function sgCardVisual(r) {
     return { icon: sgSvg('barrier'), val: `<span class="sg-dmg-num${String(r.blocked_dmg).length >= 5 ? ' is-long' : ''}">${r.blocked_dmg}</span><span class="sg-dmg-label">防がれた</span>` };
   }
   if (r.category === 'gauge') {
-    return { icon: sgSvg('target'), val: r.overkill ? 'ゲージ攻撃' : 'ゲージ<br>チャージ' };
+    return { icon: sgSvg('target'), val: 'ゲージ攻撃' };
   }
   if (r.category === 'damage' && r.overkill) {
     return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num${String(r.dmg).length >= 5 ? ' is-long' : ''}">${r.dmg}</span><span class="sg-dmg-label">オーバーキル</span>` };
