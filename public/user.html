@@ -26,6 +26,23 @@
 .hist-head { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
 .hist-title { font-weight:bold; font-size:1rem; }
 .hist-sub { font-size:0.72rem; color:var(--text-secondary); }
+.hist-title-wrap { position:relative; display:flex; align-items:center; gap:6px; }
+/* 吹き出しの基準をタイトル側にして、カードの左端に揃える */
+.hist-help.title-tooltip-wrap { position:static; }
+.hist-help { display:inline-flex; color:var(--text-secondary); cursor:pointer; line-height:0; }
+.hist-help:hover, .hist-help.tt-open { color:var(--text-primary); }
+.hist-help:focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:50%; }
+/* 説明が長いので、ナビに隠れないようアイコンの下に左揃えで出す */
+.hist-help .title-tooltip {
+  top:calc(100% + 10px); bottom:auto; left:0; transform:none; width:min(300px, calc(100vw - 60px)); line-height:1.6; padding:10px 12px;
+  background:rgba(16,14,30,0.98); z-index:20;
+}
+/* 矢印は「?」アイコンの真下（タイトル幅＋余白の位置）に */
+.hist-help .title-tooltip::after { top:auto; bottom:100%; left:86px; transform:none; border-top-color:transparent; border-bottom-color:var(--border-light); }
+.hist-help .title-tooltip::before { top:auto; bottom:100%; left:87px; transform:translateY(2px); border-width:5px; border-top-color:transparent; border-bottom-color:rgba(16,14,30,0.98); }
+.hist-help-title { display:block; font-weight:bold; color:var(--text-primary); margin-bottom:4px; }
+.hist-help-item { display:block; padding-left:10px; text-indent:-10px; margin-top:4px; }
+.hist-help-item::before { content:'・'; }
 .hist-legend { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:0.7rem; color:var(--text-secondary); margin-bottom:8px; }
 .hist-legend span { display:inline-flex; align-items:center; gap:4px; }
 .hist-graph { position:relative; }
@@ -544,7 +561,28 @@ async function loadHistory() {
   card.className = 'card hist-card';
   card.id = 'history-card';
   card.innerHTML = `
-    <div class="hist-head"><span class="hist-title">戦績グラフ</span><span class="hist-sub">参加 ${sm.joined_count} 回</span></div>
+    <div class="hist-head">
+      <span class="hist-title-wrap">
+        <span class="hist-title">戦績グラフ</span>
+        <span class="title-tooltip-wrap hist-help" tabindex="0" role="button" aria-label="グラフの高さについて"
+              onclick="event.stopPropagation(); this.classList.toggle('tt-open')"
+              onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.classList.toggle('tt-open'); }">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
+          <span class="title-tooltip">
+            <span class="hist-help-title">戦績グラフの見方</span>
+            <span class="hist-help-item">各回のベストスコア（いちばん高い属性）の推移です</span>
+            <span class="hist-help-item">高さは、スコアアタック・遭遇戦・EXを同じ基準で比べられるように換算したスコアです。順位ではありません</span>
+            <span class="hist-help-item">高さはこの人の中での高い・低いを表します。他の人のグラフとは比べられません</span>
+            <span class="hist-help-item">点線は参加しなかった回です（直前の回の高さのまま横に伸ばしています）</span>
+            <span class="hist-help-item">王冠は、その回に1〜3位を取った印です</span>
+            <span class="hist-help-item">点をタップすると、イベント名・属性・スコア・順位が見られます</span>
+            <span class="hist-help-item">開催中のイベントは、終了後に反映されます</span>
+            <span class="hist-help-item">下の順位は公開ランキングの順位です。傾向は参加した直近5回のスコアの流れから判定しています</span>
+          </span>
+        </span>
+      </span>
+      <span class="hist-sub">参加 ${sm.joined_count} 回</span>
+    </div>
     <div class="hist-legend">${legend}</div>
     <div class="hist-graph" id="hist-graph"></div>
     <div class="hist-summary">
@@ -625,6 +663,7 @@ function renderHistoryGraph(openIdx) {
 // グラフの外をタップしたら吹き出しを閉じる
 document.addEventListener('click', e => {
   if (_hist && document.querySelector('.hist-tip') && !e.target.closest('.hist-hit')) renderHistoryGraph(null);
+  if (!e.target.closest('.hist-help')) document.querySelector('.hist-help.tt-open')?.classList.remove('tt-open');
 });
 
 load();
