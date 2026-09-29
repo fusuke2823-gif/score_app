@@ -53,7 +53,7 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
   }
 });
 
-// 戦績グラフ用：初参加の回から最新の回までの各回ベストと順位。
+// 戦績グラフ用：初参加の回から、終了済みの最新の回までの各回ベストと順位。
 // pt換算は非公開のため、グラフの高さはユーザー内で0〜1に正規化した値(y)だけを返す
 router.get('/:id/history', async (req, res) => {
   try {
@@ -62,7 +62,8 @@ router.get('/:id/history', async (req, res) => {
         `SELECT id, event_number, name, event_type, COALESCE(score_multiplier, 1.0)::float AS score_multiplier
          FROM events
          WHERE is_active = TRUE AND event_type = ANY($1)
-           AND (submission_start IS NULL OR submission_start <= NOW())
+           -- 開催中（受付終了日時が未設定・未到来）の回は結果が確定していないので含めない
+           AND submission_end IS NOT NULL AND submission_end < NOW()
          ORDER BY event_number ASC`,
         [HISTORY_EVENT_TYPES]
       ),
