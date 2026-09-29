@@ -260,9 +260,13 @@ router.post('/pull', async (req, res) => {
     let hp = progress.current_hp;
 
     const results = [];
-    for (let i = 0; i < PULLS_PER_TRY && hp > 0; i++) {
-      const r = rollOne(state, gimmick, tables);
-      hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
+    // 途中で倒しても10枚すべて抽選する（カード枚数で討伐が先に分からないように）。
+    // 倒した後の分はオーバーキル扱いで、HPは0のまま・進行状況（バフやシールド）にも反映しない
+    for (let i = 0; i < PULLS_PER_TRY; i++) {
+      const overkill = hp <= 0;
+      const r = rollOne(overkill ? { ...state } : state, gimmick, tables);
+      if (overkill) r.overkill = true;
+      else hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
       r.state_after = { ...state };
       results.push({ ...r, hp_after: hp });
     }

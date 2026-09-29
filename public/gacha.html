@@ -282,6 +282,12 @@
 .sg-card-back.cat-favorable .sg-card-val { color:#49d6a8; font-size:0.56rem; }
 .sg-card-back.cat-unfavorable .sg-card-val { color:#e6494f; font-size:0.56rem; }
 .sg-card-back.cat-shield .sg-card-val { color:#a9b4ff; font-size:0.56rem; }
+/* 討伐後のオーバーキル分のカード */
+.sg-overkill-tag {
+  position:absolute; top:-9px; left:50%; transform:translateX(-50%); z-index:2; white-space:nowrap;
+  padding:1px 6px; border-radius:4px; background:linear-gradient(90deg, #7b3fe4, #c79a2e); color:#fff;
+  font-size:0.52rem; font-weight:900; letter-spacing:0.06em; box-shadow:0 2px 6px rgba(0,0,0,0.5);
+}
 
 /* ギミック表示とシールドバー */
 .sg-gimmick { display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px; padding:8px 10px; border-radius:8px; background:rgba(169,180,255,0.08); border:1px solid rgba(169,180,255,0.25); font-size:0.72rem; color:var(--text-secondary); line-height:1.5; }
@@ -1253,7 +1259,7 @@ function sgBossReact(r) {
   let cls = null, text = null, popCls = '';
   if (r.category === 'damage' && r.blocked) { cls = 'is-blocked'; text = r.blocked_dmg; popCls = 'blocked'; }
   else if (r.category === 'damage' && r.dmg > 0) { const big = r.key === 'ultra'; cls = big ? 'is-hit-big' : 'is-hit'; text = r.dmg.toLocaleString('ja-JP'); popCls = big ? 'big' : ''; }
-  else if (r.dmg < 0) { text = '+' + (-r.dmg).toLocaleString('ja-JP'); popCls = 'heal'; }
+  else if (r.dmg < 0 && !r.overkill) { text = '+' + (-r.dmg).toLocaleString('ja-JP'); popCls = 'heal'; }
   if (cls) {
     wrap.classList.remove('is-hit', 'is-hit-big', 'is-blocked');
     void wrap.offsetWidth; // 連続ヒットでもアニメーションをやり直す
@@ -1422,6 +1428,9 @@ function sgCardVisual(r) {
   if (r.category === 'damage' && r.blocked) {
     return { icon: sgSvg('barrier'), val: `<span class="sg-dmg-num${String(r.blocked_dmg).length >= 5 ? ' is-long' : ''}">${r.blocked_dmg}</span><span class="sg-dmg-label">防がれた</span>` };
   }
+  if (r.category === 'damage' && r.overkill) {
+    return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num${String(r.dmg).length >= 5 ? ' is-long' : ''}">${r.dmg}</span><span class="sg-dmg-label">オーバーキル</span>` };
+  }
   if (r.category === 'damage') {
     return { icon: sgSvg('sword'), val: `<span class="sg-dmg-num${String(r.dmg).length >= 5 ? ' is-long' : ''}">${r.dmg}</span><span class="sg-dmg-label">ダメージ</span>` };
   }
@@ -1461,6 +1470,7 @@ async function animateSpecialPull(results) {
       <div class="g-card-inner" id="sg-gc-${i}">
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
         <div class="g-card-back sg-card-back ${cls}">
+          ${r.overkill ? '<span class="sg-overkill-tag">OVERKILL</span>' : ''}
           <div class="sg-card-icon">${icon}</div>
           ${val ? `<div class="sg-card-val">${val}</div>` : ''}
         </div>
@@ -1538,9 +1548,13 @@ async function doSpecialPull() {
     await animateSpecialPull(data.results);
     if (data.defeated) await sgPlayDefeat();
 
-    const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 ? r.dmg : 0), 0);
+    const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 && !r.overkill ? r.dmg : 0), 0);
+    const overkillDmg = data.results.reduce((s, r) => s + (r.dmg > 0 && r.overkill ? r.dmg : 0), 0);
     const blockedCount = data.results.filter(r => r.blocked).length;
-    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ` + (blockedCount ? `（シールドに ${blockedCount} 回防がれた）` : '');
+    const notes = [];
+    if (blockedCount) notes.push(`シールドに ${blockedCount} 回防がれた`);
+    if (overkillDmg) notes.push(`オーバーキル ${overkillDmg.toLocaleString('ja-JP')}`);
+    document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${totalDmg}</b> ダメージ` + (notes.length ? `（${notes.join('・')}）` : '');
 
     renderSgHp(data.progress.current_hp, sgCurrentEnemy.max_hp);
     renderSgShield(data.progress.shield);
