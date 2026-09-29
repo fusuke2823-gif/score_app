@@ -1903,7 +1903,8 @@ router.post('/login-bonus/enemies', upload.single('image'), async (req, res) => 
   try {
     const result = await new Promise((resolve, reject) => {
       cloudinary.uploader
-        .upload_stream({ folder: 'hbr-ranking/login-bonus', resource_type: 'image' }, (err, r) => {
+        // 表示は最大280px幅なので、保存時点で幅800pxまでに縮めて画質も自動調整する
+        .upload_stream({ folder: 'hbr-ranking/login-bonus', resource_type: 'image', quality: 'auto:good', fetch_format: 'auto', width: 800, crop: 'limit' }, (err, r) => {
           if (err) reject(err); else resolve(r);
         })
         .end(req.file.buffer);

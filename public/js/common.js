@@ -1873,8 +1873,9 @@ function lbHeartsHTML(hp, maxHp = 40) {
 }
 
 function lbEnemyCardHTML(boss, hp, maxHp) {
+  // 表示は最大280px幅なので、元画像ではなく幅640px・画質自動の変換版を使う（毎ログイン表示されるため帯域節約）
   const art = boss.image_url
-    ? `<img src="${boss.image_url}" alt="${escHtml(boss.name)}">`
+    ? `<img src="${escHtml(mediumUrl(boss.image_url))}" alt="${escHtml(boss.name)}">`
     : lbEnemyPlaceholderSvg();
   return `
     <div class="lb-enemy-name">${escHtml(boss.name)}</div>
