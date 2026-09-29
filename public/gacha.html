@@ -607,7 +607,7 @@ let selectedPoolId = null;
 let gPools = [];
 
 async function init() {
-  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3','/sounds/putcard.mp3'].forEach(_sePreload);
+  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/kakutei.mp3','/sounds/putcard.mp3','/sounds/gauge_hit.mp3'].forEach(_sePreload);
   try {
     const [settings, myData, pools] = await Promise.all([
       apiFetch('/gacha/settings'),
@@ -1465,7 +1465,7 @@ async function runSgGauges(tokens) {
     result.style.color = SG_GAUGE_COLORS[res.tier];
     void result.offsetWidth;
     result.classList.add('pop');
-    _sePlay(res.tier === 'PERFECT' ? '/sounds/ss_sound.mp3' : res.tier === 'MISS' ? '/sounds/turn.mp3' : '/sounds/s_sound.mp3');
+    _sePlay('/sounds/gauge_hit.mp3'); // 判定に関係なく同じ打撃音
     sgBossReact({ category: 'damage', key: res.tier === 'PERFECT' ? 'ultra' : 'crit', dmg: res.dmg, overkill: res.overkill });
     renderSgHp(res.progress.current_hp, sgCurrentEnemy.max_hp);
     out.total += res.overkill ? 0 : res.dmg;
