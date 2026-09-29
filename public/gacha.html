@@ -14,6 +14,13 @@
   border:1px solid var(--border-light); box-shadow:0 4px 16px rgba(0,0,0,0.4);
   font-size:0.9rem; font-weight:800; font-variant-numeric:tabular-nums;
 }
+.gacha-mute {
+  display:flex; align-items:center; justify-content:center; width:24px; height:24px; margin:-2px 0 -2px -6px; padding:0;
+  border:none; border-radius:50%; background:none; color:var(--text-secondary); cursor:pointer;
+}
+.gacha-mute:hover { color:var(--text-primary); background:rgba(255,255,255,0.08); }
+.gacha-mute:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.gacha-mute.is-muted { color:#ff8a80; }
 .gacha-wallet-item { display:flex; align-items:baseline; gap:5px; }
 .gacha-wallet-label { font-size:0.62rem; font-weight:800; letter-spacing:0.1em; color:var(--text-secondary); }
 #my-points { color:#ff6b80; }
@@ -94,6 +101,11 @@
 }
 .g-card-back { transform:rotateY(180deg); background:#201c3a; padding:4px; overflow:visible; }
 .g-card-back img { width:52px; height:52px; border-radius:20%; object-fit:cover; }
+.g-new {
+  position:absolute; top:-9px; right:-6px; z-index:2; padding:1px 6px; border-radius:99px;
+  background:linear-gradient(90deg, #ff5470, #ff8a3d); color:#fff; font-size:0.58rem; font-weight:900; letter-spacing:0.04em;
+  box-shadow:0 2px 6px rgba(230,57,80,0.5);
+}
 .g-dup { position:absolute; bottom:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.6rem; background:rgba(100,180,255,0.25); color:#7dd3fc; padding:1px 7px; border-radius:3px; }
 .g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
 .g-rarity-tag { position:absolute; top:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.65rem; font-weight:bold; padding:1px 7px; border-radius:4px; }
@@ -189,12 +201,43 @@
 .sg-boss-card { padding:16px 18px; }
 .sg-defeated-banner { text-align:center; font-size:1.15rem; font-weight:900; letter-spacing:.05em; color:#ffd700; margin-bottom:10px; }
 .sg-boss-row { display:flex; align-items:center; gap:14px; }
-.sg-boss-portrait { width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; }
+.sg-boss-portrait { width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; display:block; }
+/* ボスの被弾・討伐演出 */
+.sg-boss-portrait-wrap { position:relative; flex-shrink:0; }
+.sg-boss-portrait-wrap.is-hit .sg-boss-portrait { animation:sgHit 0.32s ease-out; }
+.sg-boss-portrait-wrap.is-hit-big .sg-boss-portrait { animation:sgHitBig 0.55s ease-out; }
+.sg-boss-portrait-wrap.is-blocked .sg-boss-portrait { animation:sgBlocked 0.25s ease-out; }
+.sg-boss-portrait-wrap.is-defeated .sg-boss-portrait { filter:grayscale(1) brightness(0.55); }
+.sg-boss-portrait-wrap.is-dying .sg-boss-portrait { animation:sgDefeat 0.9s ease-in forwards; }
+@keyframes sgHit { 0% { transform:translateX(0); filter:brightness(2.2); } 25% { transform:translateX(-4px); } 50% { transform:translateX(3px); filter:brightness(1.3); } 75% { transform:translateX(-2px); } 100% { transform:translateX(0); filter:brightness(1); } }
+@keyframes sgHitBig { 0% { transform:scale(1); filter:brightness(3) saturate(0.5); } 15% { transform:scale(1.18) translateX(-6px); } 30% { transform:scale(1.1) translateX(6px); } 45% { transform:scale(1.05) translateX(-4px); filter:brightness(1.6); } 70% { transform:translateX(2px); } 100% { transform:scale(1); filter:brightness(1); } }
+@keyframes sgBlocked { 0% { transform:translateX(0); box-shadow:0 0 0 3px #a9b4ff, 0 0 14px rgba(169,180,255,0.8); } 50% { transform:translateX(-2px); } 100% { transform:translateX(0); box-shadow:0 0 0 0 rgba(169,180,255,0); } }
+@keyframes sgDefeat { 0% { transform:scale(1); filter:brightness(1); opacity:1; } 30% { transform:scale(1.15); filter:brightness(3); opacity:1; } 100% { transform:scale(1.6); filter:brightness(4) blur(6px); opacity:0; } }
+.sg-dmg-pop {
+  position:absolute; left:50%; top:16px; z-index:5; transform:translate(-50%, 0); white-space:nowrap; pointer-events:none;
+  font-size:0.95rem; font-weight:900; color:#fff; text-shadow:0 0 4px rgba(0,0,0,0.9), 0 2px 6px rgba(0,0,0,0.8);
+  font-variant-numeric:tabular-nums; animation:sgDmgPop 0.9s ease-out forwards;
+}
+.sg-dmg-pop.big { font-size:1.3rem; color:#ffd700; text-shadow:0 0 6px rgba(0,0,0,0.9), 0 0 14px rgba(255,190,60,0.8); }
+.sg-dmg-pop.blocked { font-size:0.8rem; color:#a9b4ff; text-decoration:line-through; }
+.sg-dmg-pop.heal { color:#49d6a8; }
+@keyframes sgDmgPop { 0% { opacity:0; transform:translate(-50%, 4px) scale(0.7); } 15% { opacity:1; transform:translate(-50%, -4px) scale(1.15); } 30% { transform:translate(-50%, -8px) scale(1); } 100% { opacity:0; transform:translate(-50%, -26px) scale(1); } }
+.sg-defeat-flash { position:fixed; inset:0; z-index:1500; pointer-events:none; background:radial-gradient(ellipse at center, rgba(255,240,200,0.55) 0%, transparent 65%); animation:sgDefeatFlash 0.7s ease-out forwards; }
+@keyframes sgDefeatFlash { 0% { opacity:0; } 25% { opacity:1; } 100% { opacity:0; } }
+@media (prefers-reduced-motion: reduce) {
+  .sg-boss-portrait-wrap.is-hit .sg-boss-portrait, .sg-boss-portrait-wrap.is-hit-big .sg-boss-portrait, .sg-boss-portrait-wrap.is-blocked .sg-boss-portrait { animation:none; }
+  .sg-boss-portrait-wrap.is-dying .sg-boss-portrait { animation:none; opacity:0; }
+  .sg-dmg-pop { animation-duration:1.2s; }
+  .sg-defeat-flash { display:none; }
+}
 .sg-boss-info { flex:1; min-width:0; }
 .sg-boss-name { font-size:0.82rem; color:var(--text-secondary); letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .sg-destruction-rate { text-align:right; font-size:0.66rem; font-weight:700; color:#ff8fa3; font-variant-numeric:tabular-nums; margin-bottom:3px; }
 .sg-hp-bar-outer { width:100%; height:8px; border-radius:5px; background:rgba(0,0,0,0.4); border:1px solid var(--border); overflow:hidden; }
-.sg-hp-bar-inner { height:100%; border-radius:5px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .5s ease; }
+.sg-hp-bar-outer { position:relative; }
+.sg-hp-bar-inner { position:relative; z-index:1; height:100%; border-radius:5px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .25s ease-out; }
+/* 減った分をいったん残して遅れて縮める（回復時は即座に追従） */
+.sg-hp-bar-ghost { position:absolute; left:0; top:0; bottom:0; border-radius:5px; background:rgba(255,220,220,0.75); transition:width .6s ease-in .35s; }
 .sg-reward-preview { flex-shrink:0; text-align:center; }
 .sg-reward-preview img { width:36px; height:36px; border-radius:20%; object-fit:cover; border:1px solid rgba(255,214,0,0.5); box-shadow:0 0 8px rgba(255,214,0,0.3); display:block; margin:0 auto 2px; }
 .sg-reward-label { font-size:0.55rem; color:var(--text-muted); max-width:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -353,6 +396,7 @@
   <div id="alert"></div>
 
   <div class="gacha-wallet" id="gacha-wallet">
+    <button type="button" class="gacha-mute" id="gacha-mute" onclick="toggleGachaMute()" aria-label="効果音を消す" title="効果音を消す"></button>
     <div class="gacha-wallet-item"><span class="gacha-wallet-label">PT</span><span id="my-points">---</span></div>
     <div class="gacha-wallet-sep"></div>
     <div class="gacha-wallet-item"><span class="gacha-wallet-label">GP</span><span id="my-gp">---</span></div>
@@ -436,7 +480,7 @@
     <div class="card sg-boss-card">
       <div class="sg-defeated-banner" id="sg-defeated-banner" hidden>討伐済み</div>
       <div class="sg-boss-row">
-        <img class="sg-boss-portrait" id="sg-boss-portrait" alt="">
+        <div class="sg-boss-portrait-wrap" id="sg-boss-portrait-wrap"><img class="sg-boss-portrait" id="sg-boss-portrait" alt=""></div>
         <div class="sg-boss-info">
           <div class="sg-boss-name" id="sg-boss-name">-</div>
           <div class="sg-destruction-rate" id="sg-destruction-rate">-</div>
@@ -444,7 +488,7 @@
             <div class="sg-shield-label"><span id="sg-shield-state">SHIELD</span><span id="sg-shield-num"></span></div>
             <div class="sg-shield-bar-outer"><div class="sg-shield-bar-inner" id="sg-shield-bar" style="width:100%"></div></div>
           </div>
-          <div class="sg-hp-bar-outer"><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
+          <div class="sg-hp-bar-outer"><div class="sg-hp-bar-ghost" id="sg-hp-ghost" style="width:100%"></div><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
         </div>
         <div class="sg-reward-preview">
           <img id="sg-reward-icon" alt="">
@@ -942,7 +986,29 @@ async function _sePreload(src) {
   } catch (e) {}
 }
 
+// 効果音のオン/オフ（通常・討伐ガチャ共通、端末に保存）
+const GACHA_MUTE_KEY = 'hbr_gacha_muted';
+let _gachaMuted = false;
+try { _gachaMuted = localStorage.getItem(GACHA_MUTE_KEY) === '1'; } catch (_) {}
+function renderGachaMute() {
+  const btn = document.getElementById('gacha-mute');
+  btn.classList.toggle('is-muted', _gachaMuted);
+  const label = _gachaMuted ? '効果音を鳴らす' : '効果音を消す';
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+  btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4z" fill="currentColor" fill-opacity="0.25"/>${_gachaMuted
+    ? '<path d="M16 9l5 6M21 9l-5 6"/>'
+    : '<path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>'}</svg>`;
+}
+function toggleGachaMute() {
+  _gachaMuted = !_gachaMuted;
+  try { localStorage.setItem(GACHA_MUTE_KEY, _gachaMuted ? '1' : '0'); } catch (_) {}
+  renderGachaMute();
+}
+renderGachaMute();
+
 function _sePlay(src) {
+  if (_gachaMuted) return null;
   const ctx = _getAudioCtx();
   const buf = _audioBuffers[src];
   if (!buf) return null;
@@ -988,7 +1054,7 @@ async function animatePull(results) {
         <div class="g-card-back">
           <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}">
           <div class="g-name">${escHtml(icon.name)}</div>
-          ${icon.is_dup ? `<span class="g-dup">重複+${icon.dup_pts}pt</span>` : ''}
+          ${icon.is_dup ? `<span class="g-dup">重複+${icon.dup_pts}pt</span>` : '<span class="g-new">NEW</span>'}
         </div>
       </div>`;
     wrap.appendChild(card);
@@ -1131,8 +1197,9 @@ function switchGachaType(type) {
   document.getElementById('gacha-type-tabs').dataset.active = type;
   document.getElementById('tab-btn-normal').classList.toggle('active', type === 'normal');
   document.getElementById('tab-btn-special').classList.toggle('active', type === 'special');
-  document.getElementById('pool-select-screen').style.display = type === 'normal' && !selectedPoolId ? '' : 'none';
-  document.getElementById('gacha-main').style.display = type === 'normal' && selectedPoolId ? '' : 'none';
+  const needsPoolSelect = gPools.length > 0 && !selectedPoolId;
+  document.getElementById('pool-select-screen').style.display = type === 'normal' && needsPoolSelect ? '' : 'none';
+  document.getElementById('gacha-main').style.display = type === 'normal' && !needsPoolSelect ? '' : 'none';
   document.getElementById('special-gacha-screen').style.display = type === 'special' ? '' : 'none';
   if (type === 'special' && !sgLoaded) { sgLoaded = true; loadSpecialGacha(); }
 }
@@ -1156,6 +1223,7 @@ function renderSgEffects(progress) {
 
 function updateSgDefeatedUi(defeated) {
   document.getElementById('sg-defeated-banner').hidden = !defeated;
+  document.getElementById('sg-boss-portrait-wrap').classList.toggle('is-defeated', defeated);
   if (defeated) document.getElementById('sg-effects-row').innerHTML = '';
 }
 
@@ -1165,7 +1233,54 @@ function renderSgDestructionRate(rate) {
 }
 
 function renderSgHp(hp, maxHp) {
-  document.getElementById('sg-hp-bar').style.width = Math.max(0, hp / maxHp * 100) + '%';
+  const pct = Math.max(0, hp / maxHp * 100);
+  const ghost = document.getElementById('sg-hp-ghost');
+  // 回復で増えたときは残像を即座に合わせ、減ったときだけ遅れて縮める
+  if (pct > parseFloat(ghost.style.width || '100')) {
+    ghost.style.transition = 'none';
+    ghost.style.width = pct + '%';
+    void ghost.offsetWidth;
+    ghost.style.transition = '';
+  } else {
+    ghost.style.width = pct + '%';
+  }
+  document.getElementById('sg-hp-bar').style.width = pct + '%';
+}
+
+// ボスの被弾リアクション（揺れ＋ダメージ数字）
+function sgBossReact(r) {
+  const wrap = document.getElementById('sg-boss-portrait-wrap');
+  let cls = null, text = null, popCls = '';
+  if (r.category === 'damage' && r.blocked) { cls = 'is-blocked'; text = r.blocked_dmg; popCls = 'blocked'; }
+  else if (r.category === 'damage' && r.dmg > 0) { const big = r.key === 'ultra'; cls = big ? 'is-hit-big' : 'is-hit'; text = r.dmg.toLocaleString('ja-JP'); popCls = big ? 'big' : ''; }
+  else if (r.dmg < 0) { text = '+' + (-r.dmg).toLocaleString('ja-JP'); popCls = 'heal'; }
+  if (cls) {
+    wrap.classList.remove('is-hit', 'is-hit-big', 'is-blocked');
+    void wrap.offsetWidth; // 連続ヒットでもアニメーションをやり直す
+    wrap.classList.add(cls);
+  }
+  if (text != null) {
+    const pop = document.createElement('span');
+    pop.className = 'sg-dmg-pop ' + popCls;
+    pop.textContent = text;
+    wrap.appendChild(pop);
+    setTimeout(() => pop.remove(), 1300);
+  }
+}
+
+// 討伐の瞬間：ボスが光って砕けるように消えてから結果を出す
+async function sgPlayDefeat() {
+  const wrap = document.getElementById('sg-boss-portrait-wrap');
+  wrap.classList.remove('is-hit', 'is-hit-big', 'is-blocked');
+  const flash = document.createElement('div');
+  flash.className = 'sg-defeat-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 800);
+  _sePlay('/sounds/ss_sound.mp3');
+  wrap.classList.add('is-dying');
+  await new Promise(r => setTimeout(r, 950));
+  wrap.classList.remove('is-dying');
+  wrap.classList.add('is-defeated');
 }
 
 // シールドギミックの敵だけ表示。0になっても復活しうるので、バーは消さずに「BREAK」表示にする
@@ -1401,6 +1516,7 @@ async function animateSpecialPull(results) {
     _sePlay('/sounds/turn.mp3');
     await new Promise(r => setTimeout(r, 100));
     document.getElementById(`sg-gc-${i}`).classList.add('flipped');
+    sgBossReact(results[i]);
     renderSgHp(results[i].hp_after, sgCurrentEnemy.max_hp);
     if (results[i].state_after) {
       renderSgEffects(results[i].state_after);
@@ -1420,6 +1536,7 @@ async function doSpecialPull() {
   try {
     const data = await apiFetch('/special-gacha/pull', { method: 'POST' });
     await animateSpecialPull(data.results);
+    if (data.defeated) await sgPlayDefeat();
 
     const totalDmg = data.results.reduce((s, r) => s + (r.dmg > 0 ? r.dmg : 0), 0);
     const blockedCount = data.results.filter(r => r.blocked).length;
