@@ -294,8 +294,13 @@
 .sg-gauge-zone { position:absolute; top:0; bottom:0; }
 .sg-gauge-marker { position:absolute; top:-4px; bottom:-4px; width:4px; margin-left:-2px; border-radius:2px; background:#fff; box-shadow:0 0 8px #fff, 0 0 16px rgba(255,255,255,0.7); }
 .sg-gauge-hint { margin-top:12px; font-size:0.78rem; color:var(--text-secondary); }
-.sg-gauge-result { height:34px; margin-top:6px; font-size:1.5rem; font-weight:900; letter-spacing:0.06em; text-shadow:0 0 12px currentColor; }
+.sg-gauge-result { height:34px; margin-top:10px; font-size:1.5rem; font-weight:900; letter-spacing:0.06em; text-shadow:0 0 12px currentColor; }
 .sg-gauge-result.pop { animation:sgGaugePop 0.5s ease-out; }
+.sg-gauge-dmg {
+  height:44px; font-size:2.2rem; font-weight:900; line-height:44px; color:#ff4d61; font-variant-numeric:tabular-nums;
+  text-shadow:-1px -1px 0 #1a0008, 1px -1px 0 #1a0008, -1px 1px 0 #1a0008, 1px 1px 0 #1a0008, 0 2px 10px rgba(0,0,0,0.8);
+}
+.sg-gauge-dmg.pop { animation:sgGaugePop 0.5s ease-out 0.08s both; }
 @keyframes sgGaugePop { 0% { transform:scale(0.6); opacity:0; } 50% { transform:scale(1.25); opacity:1; } 100% { transform:scale(1); } }
 @media (prefers-reduced-motion: reduce) { .sg-gauge-result.pop { animation:none; } }
 .sg-gauge-resume { margin-left:8px; }
@@ -547,6 +552,7 @@
       <div class="sg-gauge-title">ゲージアクション <span id="sg-gauge-count"></span></div>
       <div class="sg-gauge-bar" id="sg-gauge-bar"><div class="sg-gauge-marker" id="sg-gauge-marker"></div></div>
       <div class="sg-gauge-result" id="sg-gauge-result"></div>
+      <div class="sg-gauge-dmg" id="sg-gauge-dmg"></div>
       <div class="sg-gauge-hint" id="sg-gauge-hint">中心に近いところでタップ！</div>
     </div>
   </div>
@@ -1415,6 +1421,9 @@ function playSgGauge(index, total) {
     document.getElementById('sg-gauge-count').textContent = total > 1 ? `${index + 1}/${total}` : '';
     result.textContent = '';
     result.className = 'sg-gauge-result';
+    const dmgEl = document.getElementById('sg-gauge-dmg');
+    dmgEl.textContent = '';
+    dmgEl.className = 'sg-gauge-dmg';
     hint.textContent = '中心に近いところでタップ！';
     renderSgGaugeZones();
     overlay.hidden = false;
@@ -1465,6 +1474,9 @@ async function runSgGauges(tokens) {
     result.style.color = SG_GAUGE_COLORS[res.tier];
     void result.offsetWidth;
     result.classList.add('pop');
+    const dmgEl = document.getElementById('sg-gauge-dmg');
+    dmgEl.textContent = res.dmg.toLocaleString('ja-JP');
+    dmgEl.classList.add('pop');
     _sePlay('/sounds/gauge_hit.mp3'); // 判定に関係なく同じ打撃音
     sgBossReact({ category: 'damage', key: res.tier === 'PERFECT' ? 'ultra' : 'crit', dmg: res.dmg, overkill: res.overkill });
     renderSgHp(res.progress.current_hp, sgCurrentEnemy.max_hp);
