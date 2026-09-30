@@ -60,6 +60,10 @@
 .gacha-type-btn:focus-visible { outline:2px solid #fff; outline-offset:-2px; }
 @media (prefers-reduced-motion: reduce) { .gacha-type-indicator { transition:none; } }
 .gacha-pull-btns { display:flex; gap:16px; justify-content:center; flex-wrap:nowrap; margin:20px 0 28px; }
+/* 討伐ガチャ：引いている間はボタンを畳んでカードを敵のすぐ下に出し、引けるようになったら戻す */
+.gacha-pull-btns.sg-collapsible { max-height:260px; overflow:hidden; transition:max-height 0.35s ease, margin 0.35s ease, opacity 0.25s ease; }
+.gacha-pull-btns.sg-collapsible.is-collapsed { max-height:0; margin:14px 0 0; opacity:0; pointer-events:none; }
+@media (prefers-reduced-motion: reduce) { .gacha-pull-btns.sg-collapsible { transition:none; } }
 .gacha-btn {
   padding:0; margin:0; font-size:0.88rem; font-weight:bold;
   border:none; cursor:pointer; background:transparent;
@@ -594,7 +598,7 @@
       <div class="sg-effects-row" id="sg-effects-row"></div>
     </div>
 
-    <div class="gacha-pull-btns">
+    <div class="gacha-pull-btns sg-collapsible" id="sg-pull-wrap">
       <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" disabled>
         <img src="/img/gacha_battle.png" alt="討伐ガチャ 10連 100pt">
       </button>
@@ -1581,6 +1585,7 @@ async function finishSgTurn(progress, defeated, awardedIcon) {
   renderSgEffects(progress);
   updateSgDefeatedUi(!!progress.defeated_at);
   document.getElementById('sg-pull-btn').disabled = !!progress.defeated_at;
+  if (!progress.defeated_at) setSgPullCollapsed(false);
   if (defeated && awardedIcon) {
     document.getElementById('sg-ssr-icon-img').src = awardedIcon.image_url;
     document.getElementById('sg-ssr-name').textContent = `限定アイコン「${awardedIcon.name}」を獲得！`;
@@ -1781,9 +1786,14 @@ async function animateSpecialPull(results) {
   await new Promise(r => setTimeout(r, 700));
 }
 
+function setSgPullCollapsed(collapsed) {
+  document.getElementById('sg-pull-wrap').classList.toggle('is-collapsed', collapsed);
+}
+
 async function doSpecialPull() {
   const btn = document.getElementById('sg-pull-btn');
   btn.disabled = true;
+  setSgPullCollapsed(true);
   try {
     const data = await apiFetch('/special-gacha/pull', { method: 'POST' });
     await animateSpecialPull(data.results);
@@ -1808,6 +1818,7 @@ async function doSpecialPull() {
   } catch (err) {
     showAlert('#alert', err.message);
     btn.disabled = false;
+    setSgPullCollapsed(false);
   }
 }
 
