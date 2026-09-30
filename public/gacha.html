@@ -497,7 +497,7 @@
   </div>
   <div class="gacha-top-spacer"></div>
 
-  <!-- ガチャ種別タブ（討伐ガチャは管理者限定公開中） -->
+  <!-- ガチャ種別タブ -->
   <div id="gacha-type-tabs" class="gacha-type-tabs" data-active="normal" style="display:none">
     <span class="gacha-type-indicator" aria-hidden="true"></span>
     <button type="button" class="gacha-type-btn active" id="tab-btn-normal" onclick="switchGachaType('normal')">
@@ -567,7 +567,7 @@
 
   </div><!-- /#gacha-main -->
 
-  <!-- ③討伐ガチャ画面（管理者限定公開中） -->
+  <!-- ③討伐ガチャ画面 -->
   <div id="special-gacha-screen" style="display:none">
     <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます　※GPは入手できません</div>
     <div class="card sg-boss-card">
@@ -668,11 +668,9 @@ renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
 
-const _sgUser = getUser();
-if (_sgUser && _sgUser.role === 'admin') {
-  document.getElementById('gacha-type-tabs').style.display = 'flex';
-  document.getElementById('tab-btn-special').style.display = '';
-}
+// 通常ガチャ / 討伐ガチャの切り替え（このページはログイン必須なので全員に表示）
+document.getElementById('gacha-type-tabs').style.display = 'flex';
+document.getElementById('tab-btn-special').style.display = '';
 
 let gSettings = null;
 let isPulling = false;
@@ -1299,7 +1297,7 @@ function showResultSummary(results) {
 
 init();
 
-// ===== 討伐ガチャ（期間限定・管理者限定公開中） =====
+// ===== 討伐ガチャ（期間限定） =====
 let sgCurrentEnemy = null;
 let sgLoaded = false;
 

@@ -2,11 +2,11 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const pool = require('../db/index');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 const { getGimmick, gimmickSummary } = require('../utils/specialGachaGimmicks');
 
-// 管理者限定リリース中。一般公開する際はこの1行を削除する。
-router.use(authenticateToken, requireAdmin);
+// ログインユーザーなら誰でも挑戦できる（2026-10-01 一般公開）
+router.use(authenticateToken);
 
 const PULL_COST = 100;
 const PULLS_PER_TRY = 10;
