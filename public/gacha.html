@@ -198,12 +198,52 @@
 .rate-row:last-child { border-bottom:none; }
 
 /* ===== 討伐ガチャ ===== */
-.sg-boss-card { padding:16px 18px; }
-.sg-defeated-banner { text-align:center; font-size:1.15rem; font-weight:900; letter-spacing:.05em; color:#ffd700; margin-bottom:10px; }
-.sg-boss-row { display:flex; align-items:center; gap:14px; }
-.sg-boss-portrait { width:56px; height:56px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; display:block; }
+.sg-boss-card {
+  position:relative; padding:12px 14px 12px; text-align:center; overflow:hidden; isolation:isolate;
+  border-radius:14px; border:1px solid rgba(255,84,112,0.35);
+  /* 暗い赤紫のパネル＋うっすら斜線 */
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 9px),
+    linear-gradient(180deg, rgba(46,14,40,0.88) 0%, rgba(16,12,32,0.92) 55%, rgba(10,9,22,0.94) 100%);
+  box-shadow:0 0 0 1px rgba(0,0,0,0.4), 0 0 24px rgba(255,84,112,0.18), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -20px 40px rgba(0,0,0,0.35);
+}
+/* 四隅の金のL字飾り */
+.sg-boss-card::after {
+  content:''; position:absolute; inset:5px; z-index:0; pointer-events:none; border-radius:10px;
+  --c:rgba(224,184,74,0.85); --l:14px; --w:2px;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--l) var(--w) no-repeat,
+    linear-gradient(var(--c), var(--c)) top left / var(--w) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--l) var(--w) no-repeat,
+    linear-gradient(var(--c), var(--c)) top right / var(--w) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--l) var(--w) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom left / var(--w) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--l) var(--w) no-repeat,
+    linear-gradient(var(--c), var(--c)) bottom right / var(--w) var(--l) no-repeat;
+}
+.sg-boss-card > * { position:relative; z-index:1; }
+.sg-boss-card > .sg-reward-preview, .sg-boss-card > .sg-defeated-banner { position:absolute; z-index:2; }
+/* ボスの背後のスポットライト */
+.sg-boss-card::before { content:''; position:absolute; left:50%; top:-40px; width:340px; height:300px; transform:translateX(-50%); z-index:0; pointer-events:none;
+  background:radial-gradient(ellipse at center, rgba(255,84,112,0.22) 0%, rgba(123,63,228,0.12) 40%, transparent 70%); }
+.sg-defeated-banner { position:absolute; top:12px; left:14px; z-index:2; font-size:0.95rem; font-weight:900; letter-spacing:.05em; color:#ffd700; text-shadow:0 1px 6px rgba(0,0,0,0.8); }
+.sg-defeated-banner[hidden] { display:none; }
+.sg-boss-stage { display:flex; justify-content:center; margin:0 0 8px; }
+.sg-boss-portrait {
+  width:clamp(88px, 26vw, 104px); height:clamp(88px, 26vw, 104px); border-radius:50%; object-fit:cover; display:block;
+  border:2px solid rgba(10,9,22,0.9);
+  box-shadow:0 0 28px rgba(255,84,112,0.35), 0 10px 22px rgba(0,0,0,0.6);
+}
 /* ボスの被弾・討伐演出 */
-.sg-boss-portrait-wrap { position:relative; flex-shrink:0; }
+.sg-boss-portrait-wrap { position:relative; flex-shrink:0; padding:4px; }
+.sg-boss-portrait-wrap::before {
+  content:''; position:absolute; inset:0; z-index:-1; border-radius:50%;
+  background:conic-gradient(from 0deg, #ff5470, #7b3fe4, #e0b84a, #ff5470);
+  animation:sgRingSpin 6s linear infinite; filter:drop-shadow(0 0 6px rgba(255,84,112,0.6));
+}
+.sg-boss-portrait-wrap.is-defeated::before { background:#444; animation:none; filter:none; }
+@keyframes sgRingSpin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sg-boss-portrait-wrap::before { animation:none; } }
 .sg-boss-portrait-wrap.is-hit .sg-boss-portrait { animation:sgHit 0.32s ease-out; }
 .sg-boss-portrait-wrap.is-hit-big .sg-boss-portrait { animation:sgHitBig 0.55s ease-out; }
 .sg-boss-portrait-wrap.is-blocked .sg-boss-portrait { animation:sgBlocked 0.25s ease-out; }
@@ -214,14 +254,14 @@
 @keyframes sgBlocked { 0% { transform:translateX(0); box-shadow:0 0 0 3px #a9b4ff, 0 0 14px rgba(169,180,255,0.8); } 50% { transform:translateX(-2px); } 100% { transform:translateX(0); box-shadow:0 0 0 0 rgba(169,180,255,0); } }
 @keyframes sgDefeat { 0% { transform:scale(1); filter:brightness(1); opacity:1; } 30% { transform:scale(1.15); filter:brightness(3); opacity:1; } 100% { transform:scale(1.6); filter:brightness(4) blur(6px); opacity:0; } }
 .sg-dmg-pop {
-  position:absolute; left:50%; top:16px; z-index:5; transform:translate(-50%, 0); white-space:nowrap; pointer-events:none;
-  font-size:1.05rem; font-weight:900; color:#ff4d61; text-shadow:-1px -1px 0 #1a0008, 1px -1px 0 #1a0008, -1px 1px 0 #1a0008, 1px 1px 0 #1a0008, 0 2px 6px rgba(0,0,0,0.8);
+  position:absolute; left:50%; top:30%; z-index:5; transform:translate(-50%, 0); white-space:nowrap; pointer-events:none;
+  font-size:1.5rem; font-weight:900; color:#ff4d61; text-shadow:-1px -1px 0 #1a0008, 1px -1px 0 #1a0008, -1px 1px 0 #1a0008, 1px 1px 0 #1a0008, 0 2px 6px rgba(0,0,0,0.8);
   font-variant-numeric:tabular-nums; animation:sgDmgPop 0.9s ease-out forwards;
 }
-.sg-dmg-pop.big { font-size:1.35rem; color:#ffd700; text-shadow:-1px -1px 0 #1a0008, 1px -1px 0 #1a0008, -1px 1px 0 #1a0008, 1px 1px 0 #1a0008, 0 2px 6px rgba(0,0,0,0.8), 0 0 14px rgba(255,190,60,0.7); }
-.sg-dmg-pop.blocked { font-size:0.8rem; color:#a9b4ff; text-decoration:line-through; }
+.sg-dmg-pop.big { font-size:1.75rem; color:#ffd700; text-shadow:-1px -1px 0 #1a0008, 1px -1px 0 #1a0008, -1px 1px 0 #1a0008, 1px 1px 0 #1a0008, 0 2px 6px rgba(0,0,0,0.8), 0 0 14px rgba(255,190,60,0.7); }
+.sg-dmg-pop.blocked { font-size:1.1rem; color:#a9b4ff; text-decoration:line-through; }
 .sg-dmg-pop.heal { color:#49d6a8; }
-@keyframes sgDmgPop { 0% { opacity:0; transform:translate(-50%, 4px) scale(0.7); } 15% { opacity:1; transform:translate(-50%, -4px) scale(1.15); } 30% { transform:translate(-50%, -8px) scale(1); } 100% { opacity:0; transform:translate(-50%, -26px) scale(1); } }
+@keyframes sgDmgPop { 0% { opacity:0; transform:translate(-50%, 6px) scale(0.7); } 15% { opacity:1; transform:translate(-50%, -6px) scale(1.15); } 30% { transform:translate(-50%, -12px) scale(1); } 100% { opacity:0; transform:translate(-50%, -44px) scale(1); } }
 .sg-defeat-flash { position:fixed; inset:0; z-index:1500; pointer-events:none; background:radial-gradient(ellipse at center, rgba(255,240,200,0.55) 0%, transparent 65%); animation:sgDefeatFlash 0.7s ease-out forwards; }
 @keyframes sgDefeatFlash { 0% { opacity:0; } 25% { opacity:1; } 100% { opacity:0; } }
 @media (prefers-reduced-motion: reduce) {
@@ -230,19 +270,37 @@
   .sg-dmg-pop { animation-duration:1.2s; }
   .sg-defeat-flash { display:none; }
 }
-.sg-boss-info { flex:1; min-width:0; }
-.sg-boss-name { font-size:0.82rem; color:var(--text-secondary); letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.sg-destruction-rate { text-align:right; font-size:0.66rem; font-weight:700; color:#ff8fa3; font-variant-numeric:tabular-nums; margin-bottom:3px; }
-.sg-hp-bar-outer { width:100%; height:8px; border-radius:5px; background:rgba(0,0,0,0.4); border:1px solid var(--border); overflow:hidden; }
+.sg-boss-title { display:flex; align-items:center; justify-content:center; gap:8px; min-width:0; }
+.sg-boss-name { min-width:0; font-size:1rem; font-weight:800; color:var(--text-primary); letter-spacing:.03em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 2px 8px rgba(0,0,0,0.7); }
+.sg-boss-bars { margin-top:8px; text-align:left; }
+.sg-hp-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px; }
+.sg-hp-label { font-size:0.8rem; line-height:1.2; font-weight:900; font-style:italic; letter-spacing:0.1em; color:#ff5470; text-shadow:0 0 8px rgba(255,84,112,0.6); }
+.sg-destruction { font-size:0.7rem; font-weight:700; color:#ff8fa3; font-variant-numeric:tabular-nums; }
+.sg-destruction-label { font-size:0.62rem; color:var(--text-secondary); margin-right:4px; font-weight:700; }
+.sg-hp-bar-outer {
+  width:100%; height:12px; border-radius:3px; overflow:hidden;
+  background:rgba(0,0,0,0.55); border:1px solid rgba(255,84,112,0.45); box-shadow:inset 0 1px 3px rgba(0,0,0,0.8), 0 0 10px rgba(255,84,112,0.15);
+}
+/* 上側の光沢 */
+.sg-hp-bar-outer::after {
+  content:''; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 50%);
+}
 .sg-hp-bar-outer { position:relative; }
-.sg-hp-bar-inner { position:relative; z-index:1; height:100%; border-radius:5px; background:linear-gradient(90deg,#ff5470,var(--accent)); transition:width .25s ease-out; }
+.sg-hp-bar-inner { position:relative; z-index:1; height:100%; border-radius:0; background:linear-gradient(90deg,#b3123a,#ff5470 60%,#ff8a5c); transition:width .25s ease-out; }
 /* 減った分をいったん残して遅れて縮める（回復時は即座に追従） */
-.sg-hp-bar-ghost { position:absolute; left:0; top:0; bottom:0; border-radius:5px; background:rgba(255,220,220,0.75); transition:width .6s ease-in .35s; }
-.sg-reward-preview { flex-shrink:0; text-align:center; }
-.sg-reward-preview img { width:36px; height:36px; border-radius:20%; object-fit:cover; border:1px solid rgba(255,214,0,0.5); box-shadow:0 0 8px rgba(255,214,0,0.3); display:block; margin:0 auto 2px; }
-.sg-reward-label { font-size:0.55rem; color:var(--text-muted); max-width:44px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.sg-effects-row { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:12px; min-height:22px; }
-.sg-eff-badge { font-size:0.66rem; font-weight:700; padding:3px 8px; border-radius:20px; }
+.sg-hp-bar-ghost { position:absolute; left:0; top:0; bottom:0; border-radius:0; background:rgba(255,220,220,0.75); transition:width .6s ease-in .35s; }
+.sg-reward-preview { position:absolute; top:10px; right:12px; z-index:2; text-align:center; }
+.sg-reward-caption { font-size:0.55rem; font-weight:700; color:var(--text-secondary); margin-bottom:2px; }
+.sg-reward-preview img { width:44px; height:44px; border-radius:20%; object-fit:cover; border:1px solid rgba(255,214,0,0.5); box-shadow:0 0 8px rgba(255,214,0,0.3); display:block; margin:0 auto 2px; }
+.sg-reward-label { font-size:0.55rem; color:var(--text-muted); max-width:52px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sg-effects-row { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; margin-top:8px; }
+.sg-effects-row:empty { display:none; }
+.sg-eff-badge { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem; font-weight:800; padding:2px 7px 2px 4px; border-radius:20px; font-variant-numeric:tabular-nums; cursor:default; }
+/* カードと同じ絵柄を小さくして使う */
+.sg-eff-badge .sg-icon-stack { width:18px; height:18px; margin-right:4px; }
+.sg-eff-badge .sg-svg-icon { width:18px; height:18px; }
+.sg-eff-badge .sg-icon-stack .sg-svg-badge { right:-5px; bottom:-2px; width:10px; height:10px; padding:1px; }
 .sg-eff-badge.fav { background:rgba(73,214,168,0.14); color:#49d6a8; border:1px solid rgba(73,214,168,0.4); }
 .sg-eff-badge.unfav { background:rgba(230,73,79,0.14); color:#e6494f; border:1px solid rgba(230,73,79,0.4); }
 
@@ -313,9 +371,11 @@
 }
 
 /* ギミック表示とシールドバー */
-.sg-gimmick { display:flex; flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px; padding:8px 10px; border-radius:8px; background:rgba(169,180,255,0.08); border:1px solid rgba(169,180,255,0.25); font-size:0.72rem; color:var(--text-secondary); line-height:1.5; }
+/* 敵のカードにはギミック名だけ出す（説明は「排出内容・確率を見る」の詳細に載せている） */
+.sg-gimmick { display:flex; flex-shrink:0; }
+.sg-gimmick[hidden] { display:none; }
 .sg-gimmick-tag { flex-shrink:0; font-size:0.66rem; font-weight:800; letter-spacing:0.08em; padding:1px 8px; border-radius:4px; background:#a9b4ff; color:#14163a; }
-.sg-shield-row { margin-bottom:5px; }
+.sg-shield-row { margin-bottom:6px; }
 .sg-shield-label { display:flex; justify-content:space-between; font-size:0.62rem; font-weight:800; letter-spacing:0.1em; color:#a9b4ff; margin-bottom:2px; font-variant-numeric:tabular-nums; }
 .sg-shield-bar-outer { width:100%; height:6px; border-radius:4px; background:rgba(0,0,0,0.4); border:1px solid rgba(169,180,255,0.35); overflow:hidden; }
 .sg-shield-bar-inner { height:100%; border-radius:4px; background:linear-gradient(90deg,#7b8cff,#c9d0ff); transition:width .4s ease; }
@@ -507,30 +567,36 @@
   <div id="special-gacha-screen" style="display:none">
     <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます　※GPは入手できません</div>
     <div class="card sg-boss-card">
-      <div class="sg-defeated-banner" id="sg-defeated-banner" hidden>討伐済み</div>
-      <div class="sg-boss-row">
-        <div class="sg-boss-portrait-wrap" id="sg-boss-portrait-wrap"><img class="sg-boss-portrait" id="sg-boss-portrait" alt=""></div>
-        <div class="sg-boss-info">
-          <div class="sg-boss-name" id="sg-boss-name">-</div>
-          <div class="sg-destruction-rate" id="sg-destruction-rate">-</div>
-          <div class="sg-shield-row" id="sg-shield-row" hidden>
-            <div class="sg-shield-label"><span id="sg-shield-state">SHIELD</span><span id="sg-shield-num"></span></div>
-            <div class="sg-shield-bar-outer"><div class="sg-shield-bar-inner" id="sg-shield-bar" style="width:100%"></div></div>
-          </div>
-          <div class="sg-hp-bar-outer"><div class="sg-hp-bar-ghost" id="sg-hp-ghost" style="width:100%"></div><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
-        </div>
-        <div class="sg-reward-preview">
-          <img id="sg-reward-icon" alt="">
-          <div class="sg-reward-label" id="sg-reward-name"></div>
-        </div>
+      <div class="sg-reward-preview">
+        <div class="sg-reward-caption">討伐報酬</div>
+        <img id="sg-reward-icon" alt="">
+        <div class="sg-reward-label" id="sg-reward-name"></div>
       </div>
-      <div class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span><span id="sg-gimmick-desc"></span></div>
+      <div class="sg-defeated-banner" id="sg-defeated-banner" hidden>討伐済み</div>
+      <div class="sg-boss-stage">
+        <div class="sg-boss-portrait-wrap" id="sg-boss-portrait-wrap"><img class="sg-boss-portrait" id="sg-boss-portrait" alt=""></div>
+      </div>
+      <div class="sg-boss-title">
+        <span class="sg-boss-name" id="sg-boss-name">-</span>
+        <span class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span></span>
+      </div>
+      <div class="sg-boss-bars">
+        <div class="sg-shield-row" id="sg-shield-row" hidden>
+          <div class="sg-shield-label"><span id="sg-shield-state">SHIELD</span><span id="sg-shield-num"></span></div>
+          <div class="sg-shield-bar-outer"><div class="sg-shield-bar-inner" id="sg-shield-bar" style="width:100%"></div></div>
+        </div>
+        <div class="sg-hp-head">
+          <span class="sg-hp-label">HP</span>
+          <span class="sg-destruction"><span class="sg-destruction-label">破壊率</span><span class="sg-destruction-rate" id="sg-destruction-rate">-</span></span>
+        </div>
+        <div class="sg-hp-bar-outer"><div class="sg-hp-bar-ghost" id="sg-hp-ghost" style="width:100%"></div><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
+      </div>
       <div class="sg-effects-row" id="sg-effects-row"></div>
     </div>
 
     <div class="gacha-pull-btns">
       <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" disabled>
-        <img src="/img/gacha_10.png" alt="10連ガチャ">
+        <img src="/img/gacha_battle.png" alt="討伐ガチャ 10連 100pt">
       </button>
     </div>
 
@@ -1257,7 +1323,10 @@ function renderSgEffects(progress) {
     .filter(k => progress[k] > 0)
     .map(k => {
       const cls = k.startsWith('enemybuff') ? 'unfav' : 'fav';
-      return `<span class="sg-eff-badge ${cls}">${SG_EFFECT_LABELS[k]}<span style="opacity:.75">残り${progress[k]}</span></span>`;
+      // 文字の代わりにカードと同じ絵柄＋残り回数。効果名は title（長押し・マウスオーバー）と読み上げで補う
+      const [base, badge] = SG_ICON_MAP[k];
+      const label = `${SG_EFFECT_LABELS[k]} 残り${progress[k]}`;
+      return `<span class="sg-eff-badge ${cls}" title="${label}" aria-label="${label}"><span class="sg-icon-stack" aria-hidden="true">${sgSvg(base)}${badge ? sgBadgeSvg(badge) : ''}</span>${progress[k]}</span>`;
     }).join('');
 }
 
@@ -1354,7 +1423,6 @@ function renderSgGimmick(gimmick) {
   el.hidden = !gimmick || gimmick.key === 'normal';
   if (el.hidden) return;
   document.getElementById('sg-gimmick-tag').textContent = gimmick.label;
-  document.getElementById('sg-gimmick-desc').textContent = gimmick.description;
 }
 
 async function loadSpecialGacha() {
