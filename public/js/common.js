@@ -85,14 +85,7 @@ const _i18n = {
     'feedback.has_reply':'返信あり','feedback.reply_btn':'返信する',
     'feedback.reply_ph':'返信を入力（1000文字以内）',
     'dist.title_final':'最終結果のお知らせ','dist.sub_final':'以下のイベントの最終結果です',
-    'dist.title_interim':'中間結果のお知らせ','dist.sub_interim':'以下のイベントの中間結果です',
-    'dist.type_mid':'中間','dist.type_final':'最終','dist.detail_btn':'配布量詳細を見る',
-    'dist.th_rank':'順位','dist.th_pts':'配布pt',
-    'dist.rank1':'1位','dist.rank2':'2位','dist.rank3':'3位','dist.rank4':'4位','dist.rank5':'5位',
-    'dist.rank6':'6位','dist.rank7':'7位','dist.rank8':'8位','dist.rank9':'9位','dist.rank10':'10位',
-    'dist.rank11_15':'11〜15位','dist.rank16_20':'16〜20位','dist.rank21_25':'21〜25位',
-    'dist.rank26_30':'26〜30位','dist.rank31plus':'31位以降',
-    'dist.note':'※配布量はイベントごとに調整される場合があります',
+    'dist.type_final':'最終',
     'bonus.title':'ログインボーナス','bonus.sub':'毎日ログインでポイント獲得！',
     'bonus.claim':'受け取る','bonus.day':'{0}日目','bonus.claimed':'本日分受取済み',
     'bonus.msg':'{0}日目のボーナス','bonus.streak':'{0}日目 達成！','bonus.streak7':' 7日達成！',
@@ -265,14 +258,7 @@ const _i18n = {
     'feedback.has_reply':'有回覆','feedback.reply_btn':'回覆',
     'feedback.reply_ph':'請輸入回覆（1000字以內）',
     'dist.title_final':'最終結果通知','dist.sub_final':'以下活動的最終結果',
-    'dist.title_interim':'中間結果通知','dist.sub_interim':'以下活動的中間結果',
-    'dist.type_mid':'中間','dist.type_final':'最終','dist.detail_btn':'查看發放量詳情',
-    'dist.th_rank':'排名','dist.th_pts':'發放pt',
-    'dist.rank1':'第1名','dist.rank2':'第2名','dist.rank3':'第3名','dist.rank4':'第4名','dist.rank5':'第5名',
-    'dist.rank6':'第6名','dist.rank7':'第7名','dist.rank8':'第8名','dist.rank9':'第9名','dist.rank10':'第10名',
-    'dist.rank11_15':'第11〜15名','dist.rank16_20':'第16〜20名','dist.rank21_25':'第21〜25名',
-    'dist.rank26_30':'第26〜30名','dist.rank31plus':'第31名以後',
-    'dist.note':'※每次活動的發放量可能有所調整',
+    'dist.type_final':'最終',
     'bonus.title':'登入獎勵','bonus.sub':'每日登入可獲得點數！',
     'bonus.claim':'領取','bonus.day':'第{0}天','bonus.claimed':'今日已領取',
     'bonus.msg':'第{0}天獎勵','bonus.streak':'第{0}天達成！','bonus.streak7':' 第7天達成！',
@@ -861,26 +847,14 @@ async function initInterimDistributionNotice() {
   }
   window._distNoticeStarted = true;
   try {
-    const meData = await apiFetch('/auth/me').catch(() => null);
-    const isInternalUser = !!(meData && meData.is_internal);
-    const [interim, final, rankPts, extRankPts] = await Promise.all([
-      apiFetch('/events/interim-distributions/recent').catch(() => []),
-      apiFetch('/events/final-distributions/recent').catch(() => []),
-      isInternalUser ? apiFetch('/events/rank-pts').catch(() => null) : Promise.resolve(null),
-      apiFetch('/events/ext-rank-pts').catch(() => null),
-    ]);
+    // 配布は外部最終配布のみ（内部・中間配布は廃止）
+    const final = await apiFetch('/events/final-distributions/recent').catch(() => []);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
-    // 外部ユーザーは外部配布のみ表示
-    const scopeFilter = d => isInternalUser || d.type === 'external';
-    const unseenInterim = (interim || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_mid'), is_final: false }));
-    const unseenFinal  = (final  || []).filter(isNew).filter(d => d.user_rank != null).filter(scopeFilter).map(d => ({ ...d, scope: d.type, period: t('dist.type_final'), is_final: true }));
-    const unseen = [...unseenFinal, ...unseenInterim]
+    const unseen = (final || []).filter(isNew).filter(d => d.user_rank != null)
+      .map(d => ({ ...d, scope: 'external', period: t('dist.type_final'), is_final: true }))
       .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
     if (unseen.length === 0) return;
-
-    const hasInternal = isInternalUser && unseen.some(d => d.scope === 'internal');
-    const hasExternal = unseen.some(d => d.scope === 'external');
 
     const style = document.createElement('style');
     style.textContent = `
@@ -894,20 +868,28 @@ async function initInterimDistributionNotice() {
       .dist-summary-event { font-size:0.92rem; font-weight:bold; color:var(--text-primary); line-height:1.4; }
       .dist-summary-pts { font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:2.1rem; line-height:1; color:#d4af6a; margin-top:8px; letter-spacing:0.02em; }
       .dist-summary-pts span { font-size:1rem; font-family:inherit; opacity:0.75; margin-left:3px; }
+      .dist-summary-pts .dist-pts-num { font-size:inherit; opacity:1; margin:0; font-variant-numeric:tabular-nums; display:inline-block; }
+      .dist-summary-pts.done .dist-pts-num { animation:distPtsDone 0.6s ease-out; }
+      @keyframes distPtsDone { 0% { transform:scale(1); text-shadow:none; } 40% { transform:scale(1.18); text-shadow:0 0 18px rgba(212,175,106,0.9); } 100% { transform:scale(1); text-shadow:none; } }
+      .dist-pts-step { height:1.3em; margin-top:4px; font-size:0.74rem; font-weight:bold; color:#d4af6a; opacity:0; transition:opacity 0.15s; }
+      .dist-pts-step.show { opacity:1; }
+      .dist-summary { cursor:pointer; }
+      @media (prefers-reduced-motion: reduce) { .dist-summary-pts.done .dist-pts-num { animation:none; } }
       .dist-summary-titles { display:flex; flex-wrap:wrap; gap:5px; justify-content:center; margin-top:10px; }
       .dist-summary-title-chip { font-size:0.7rem; padding:3px 10px; border-radius:99px; background:rgba(212,175,106,0.12); border:1px solid rgba(212,175,106,0.4); color:#d4af6a; }
       .rank-pts-table { width:100%; border-collapse:collapse; font-size:0.78rem; margin-top:8px; }
       .rank-pts-table th, .rank-pts-table td { padding:4px 8px; border:1px solid var(--border); text-align:center; }
       .rank-pts-table th { background:var(--bg-primary); color:var(--text-muted); }
+      .rank-pts-table td:first-child { text-align:left; }
+      .rank-pts-table td:last-child { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+      .rank-pts-table .sub td { font-size:0.7rem; color:var(--text-muted); border-top:none; }
+      .rank-pts-table .total td { font-weight:bold; color:#d4af6a; }
       .rank-pts-note { font-size:0.72rem; color:var(--text-muted); margin-top:6px; }
     `;
     document.head.appendChild(style);
 
     window._distQueue = unseen;
     window._distQueueIdx = 0;
-    window._distInternalUser = isInternalUser;
-    window._distRankPts = rankPts;
-    window._distExtRankPts = extRankPts;
 
     const modal = document.createElement('div');
     modal.id = 'interim-dist-modal';
@@ -923,67 +905,42 @@ function renderDistNoticeModal(idx) {
   if (!modal) return;
   const unseen = window._distQueue;
   const d = unseen[idx];
-  const isInternalUser = window._distInternalUser;
-  const rankPts = window._distRankPts;
-  const extRankPts = window._distExtRankPts;
   const total = unseen.length;
   const isLast = idx === total - 1;
-  const scopeLabel = isInternalUser ? (d.scope === 'internal' ? '内部' : '外部') : '';
+  const scopeLabel = '';
 
-  const detailIntHtml = (isInternalUser && d.scope === 'internal' && rankPts) ? `
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-int').style.display=document.getElementById('rank-pts-detail-int').style.display==='none'?'block':'none'">内部配布量詳細</button>
-    <div id="rank-pts-detail-int" style="display:none;margin-top:8px">
-      <table class="rank-pts-table">
-        <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
-        <tr><td>${t('dist.rank1')}</td><td>${rankPts.rank_pts_1 ?? 100}pt</td></tr>
-        <tr><td>${t('dist.rank2')}</td><td>${rankPts.rank_pts_2 ?? 95}pt</td></tr>
-        <tr><td>${t('dist.rank3')}</td><td>${rankPts.rank_pts_3 ?? 95}pt</td></tr>
-        <tr><td>${t('dist.rank4')}</td><td>${rankPts.rank_pts_4 ?? 90}pt</td></tr>
-        <tr><td>${t('dist.rank5')}</td><td>${rankPts.rank_pts_5 ?? 90}pt</td></tr>
-        <tr><td>${t('dist.rank6')}</td><td>${rankPts.rank_pts_6 ?? 80}pt</td></tr>
-        <tr><td>${t('dist.rank7')}</td><td>${rankPts.rank_pts_7 ?? 80}pt</td></tr>
-        <tr><td>${t('dist.rank8')}</td><td>${rankPts.rank_pts_8 ?? 80}pt</td></tr>
-        <tr><td>${t('dist.rank9')}</td><td>${rankPts.rank_pts_9 ?? 80}pt</td></tr>
-        <tr><td>${t('dist.rank10')}</td><td>${rankPts.rank_pts_10 ?? 80}pt</td></tr>
-        <tr><td>${t('dist.rank11_15')}</td><td>${rankPts.rank_pts_11_15 ?? 60}pt</td></tr>
-        <tr><td>${t('dist.rank16_20')}</td><td>${rankPts.rank_pts_16_20 ?? 50}pt</td></tr>
-        <tr><td>${t('dist.rank21_25')}</td><td>${rankPts.rank_pts_21_25 ?? 30}pt</td></tr>
-        <tr><td>${t('dist.rank26_30')}</td><td>${rankPts.rank_pts_26_30 ?? 20}pt</td></tr>
-        <tr><td>${t('dist.rank31plus')}</td><td>${rankPts.rank_pts_31plus ?? 10}pt</td></tr>
-      </table>
-      <div class="rank-pts-note">${t('dist.note')}</div>
-    </div>` : '';
-
-  const detailExtHtml = (d.scope === 'external' && extRankPts) ? `
-    <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="document.getElementById('rank-pts-detail-ext').style.display=document.getElementById('rank-pts-detail-ext').style.display==='none'?'block':'none'">${isInternalUser ? '外部配布量詳細' : t('dist.detail_btn')}</button>
+  // 本人の配布量の内訳（新しい計算方式で配布した回のみ。以前の回は内訳なし）
+  const b = d.breakdown;
+  const attrLines = b ? (b.attrs || []).map(a => `
+        <tr class="sub"><td>　${escHtml(a.attribute)}属性 ${a.rank}位/${a.n}人</td><td>+${a.rank_bonus} / +${a.score_bonus}</td></tr>`).join('') : '';
+  const detailExtHtml = b ? `
+    <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="const x=document.getElementById('rank-pts-detail-ext');x.style.display=x.style.display==='none'?'block':'none'">配布量の内訳を見る</button>
     <div id="rank-pts-detail-ext" style="display:none;margin-top:8px">
       <table class="rank-pts-table">
-        <tr><th>${t('dist.th_rank')}</th><th>${t('dist.th_pts')}</th></tr>
-        <tr><td>1〜5位</td><td>${extRankPts.ext_rank_pts_1_5 ?? 100}pt</td></tr>
-        <tr><td>6〜10位</td><td>${extRankPts.ext_rank_pts_6_10 ?? 80}pt</td></tr>
-        <tr><td>11〜20位</td><td>${extRankPts.ext_rank_pts_11_20 ?? 60}pt</td></tr>
-        <tr><td>21〜30位</td><td>${extRankPts.ext_rank_pts_21_30 ?? 40}pt</td></tr>
-        <tr><td>31〜50位</td><td>${extRankPts.ext_rank_pts_31_50 ?? 20}pt</td></tr>
-        <tr><td>51〜75位</td><td>${extRankPts.ext_rank_pts_51_75 ?? 10}pt</td></tr>
-        <tr><td>76〜100位</td><td>${extRankPts.ext_rank_pts_76_100 ?? 7}pt</td></tr>
-        <tr><td>101位以降</td><td>${extRankPts.ext_rank_pts_101plus ?? 5}pt</td></tr>
+        <tr><td>参加ボーナス</td><td>+${b.parts.participation}pt</td></tr>
+        <tr><td>総合順位ボーナス（${d.user_rank}位/${b.participants}人）</td><td>+${b.parts.overall_rank}pt</td></tr>
+        <tr><td>総合スコアボーナス</td><td>+${b.parts.overall_score}pt</td></tr>
+        <tr><td>属性順位ボーナス</td><td>+${b.parts.attr_rank}pt</td></tr>
+        <tr><td>属性スコアボーナス</td><td>+${b.parts.attr_score}pt</td></tr>
+        ${attrLines ? `<tr class="sub"><td>　属性ごとの内訳（順位 / スコア）</td><td></td></tr>${attrLines}` : ''}
+        <tr class="total"><td>合計</td><td>+${d.user_pts}pt</td></tr>
       </table>
-      <div class="rank-pts-note">${t('dist.note')}</div>
+      <div class="rank-pts-note">順位ボーナスは順位が高いほど、スコアボーナスは1位のスコアに近いほど多くなります。属性ボーナスは投稿した属性ごとにもらえます。</div>
     </div>` : '';
 
   modal.innerHTML = `
     <div id="interim-dist-box">
-      <h3>${d.is_final ? t('dist.title_final') : t('dist.title_interim')}</h3>
+      <h3>${t('dist.title_final')}</h3>
       ${total > 1 ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px">${idx + 1} / ${total}</div>` : ''}
-      <div class="interim-sub">${d.is_final ? t('dist.sub_final') : t('dist.sub_interim')}</div>
+      <div class="interim-sub">${t('dist.sub_final')}</div>
       <div class="dist-summary">
         <div class="dist-summary-eyebrow">${scopeLabel}${d.period}結果</div>
         <div class="dist-summary-event">${escHtml(d.event_name)}</div>
-        <div class="dist-summary-pts">+${d.user_pts}<span>pt</span></div>
+        <div class="dist-summary-pts" id="dist-summary-pts"><span class="dist-pts-num" id="dist-pts-num">+0</span><span>pt</span></div>
+        <div class="dist-pts-step" id="dist-pts-step"></div>
         ${d.awarded_titles?.length ? `<div class="dist-summary-titles">${d.awarded_titles.map(n => `<span class="dist-summary-title-chip">${uiIconInline('trophy')}${escHtml(n)}</span>`).join('')}</div>` : ''}
       </div>
       <div id="dist-result-image"></div>
-      ${detailIntHtml}
       ${detailExtHtml}
       ${isLast
         ? `<button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="closeInterimDistModal()">${t('close')}</button>`
@@ -992,6 +949,52 @@ function renderDistNoticeModal(idx) {
     </div>`;
 
   renderDistResultImage(d, true);
+  animateDistPts(d);
+}
+
+// 配布ポイントを内訳の順に足し上げる演出（内訳が無い回は合計まで一気に）。枠のタップで最後まで飛ばす
+let _distPtsAnimId = 0;
+function animateDistPts(d) {
+  const animId = ++_distPtsAnimId; // 「次へ」で別の通知に切り替わったら古い演出は止める
+  const num = document.getElementById('dist-pts-num');
+  const step = document.getElementById('dist-pts-step');
+  const wrap = document.getElementById('dist-summary-pts');
+  const total = Number(d.user_pts) || 0;
+  const p = d.breakdown && d.breakdown.parts;
+  const steps = p
+    ? [['参加ボーナス', p.participation], ['総合順位ボーナス', p.overall_rank], ['総合スコアボーナス', p.overall_score], ['属性順位ボーナス', p.attr_rank], ['属性スコアボーナス', p.attr_score]].filter(([, v]) => v > 0)
+    : [[null, total]];
+  let skipped = false;
+  const finish = () => {
+    if (animId !== _distPtsAnimId) return;
+    num.textContent = `+${total.toLocaleString('ja-JP')}`;
+    step.classList.remove('show');
+    wrap.classList.add('done');
+  };
+  document.querySelector('.dist-summary')?.addEventListener('click', () => { skipped = true; finish(); }, { once: true });
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { finish(); return; }
+  (async () => {
+    let cur = 0;
+    for (const [label, v] of steps) {
+      if (skipped || animId !== _distPtsAnimId) return;
+      step.textContent = label ? `${label} +${v.toLocaleString('ja-JP')}` : '';
+      step.classList.toggle('show', !!label);
+      const from = cur, to = cur + v, dur = 450, start = performance.now();
+      await new Promise(resolve => {
+        const tick = now => {
+          if (skipped || animId !== _distPtsAnimId) return resolve();
+          const t = Math.min(1, (now - start) / dur);
+          const ease = 1 - Math.pow(1 - t, 3);
+          num.textContent = `+${Math.round(from + (to - from) * ease).toLocaleString('ja-JP')}`;
+          if (t < 1) requestAnimationFrame(tick); else resolve();
+        };
+        requestAnimationFrame(tick);
+      });
+      cur = to;
+      await new Promise(r => setTimeout(r, 180));
+    }
+    if (!skipped) finish();
+  })();
 }
 
 function advanceDistNotice() {

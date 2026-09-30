@@ -14,6 +14,10 @@
   padding:12px 16px; border-bottom:1px solid var(--border);
 }
 .event-list-item:last-child { border-bottom:none; }
+.dist-preview-table { font-size:0.78rem; }
+.dist-preview-table th, .dist-preview-table td { padding:5px 8px; text-align:right; white-space:nowrap; }
+.dist-preview-table th:nth-child(2), .dist-preview-table td:nth-child(2), .dist-preview-table th:last-child, .dist-preview-table td:last-child { text-align:left; }
+.dist-preview-table thead th { position:sticky; top:0; background:var(--bg-modal); }
 </style>
 </head>
 <body>
@@ -60,71 +64,28 @@
       <button class="btn btn-primary" onclick="grantPoints()">付与する</button>
     </div>
 
-    <!-- 内部ランクポイント設定 -->
+    <!-- 最終配布の配布ボーナス設定 -->
     <div class="card" style="margin-bottom:20px">
-      <div class="section-title">内部 順位ポイント設定</div>
-      <div id="rank-pts-alert" style="margin-bottom:12px"></div>
+      <div class="section-title" style="margin:0 0 4px">配布ボーナス設定</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
+        配布量 ＝ 参加 ＋ 総合順位 ＋ 総合スコア ＋ 属性順位 ＋ 属性スコア（属性は投稿した属性ごとに加算）<br>
+        順位ボーナス ＝ 最大値 ×（参加人数 − 順位）÷（参加人数 − 1）… 1位で満額、最下位で0<br>
+        スコアボーナス ＝ 最大値 × 自分のpt換算値 ÷ 1位のpt換算値
+      </p>
+      <div id="bonus-alert" style="margin-bottom:12px"></div>
       <div class="enemy-form-grid">
-        <div class="form-group"><label class="form-label">1位</label><input class="form-input" type="number" id="rp-1" min="0" placeholder="100"></div>
-        <div class="form-group"><label class="form-label">2位</label><input class="form-input" type="number" id="rp-2" min="0" placeholder="95"></div>
-        <div class="form-group"><label class="form-label">3位</label><input class="form-input" type="number" id="rp-3" min="0" placeholder="95"></div>
-        <div class="form-group"><label class="form-label">4位</label><input class="form-input" type="number" id="rp-4" min="0" placeholder="90"></div>
-        <div class="form-group"><label class="form-label">5位</label><input class="form-input" type="number" id="rp-5" min="0" placeholder="90"></div>
-        <div class="form-group"><label class="form-label">6位</label><input class="form-input" type="number" id="rp-6" min="0" placeholder="80"></div>
-        <div class="form-group"><label class="form-label">7位</label><input class="form-input" type="number" id="rp-7" min="0" placeholder="80"></div>
-        <div class="form-group"><label class="form-label">8位</label><input class="form-input" type="number" id="rp-8" min="0" placeholder="80"></div>
-        <div class="form-group"><label class="form-label">9位</label><input class="form-input" type="number" id="rp-9" min="0" placeholder="80"></div>
-        <div class="form-group"><label class="form-label">10位</label><input class="form-input" type="number" id="rp-10" min="0" placeholder="80"></div>
-        <div class="form-group"><label class="form-label">11〜15位</label><input class="form-input" type="number" id="rp-11-15" min="0" placeholder="60"></div>
-        <div class="form-group"><label class="form-label">16〜20位</label><input class="form-input" type="number" id="rp-16-20" min="0" placeholder="50"></div>
-        <div class="form-group"><label class="form-label">21〜25位</label><input class="form-input" type="number" id="rp-21-25" min="0" placeholder="30"></div>
-        <div class="form-group"><label class="form-label">26〜30位</label><input class="form-input" type="number" id="rp-26-30" min="0" placeholder="20"></div>
-        <div class="form-group"><label class="form-label">31位以降</label><input class="form-input" type="number" id="rp-31plus" min="0" placeholder="10"></div>
+        <div class="form-group"><label class="form-label">参加ボーナス</label><input class="form-input" type="number" id="bonus-participation" min="0"></div>
+        <div class="form-group"><label class="form-label">総合順位ボーナス（最大）</label><input class="form-input" type="number" id="bonus-overall_rank" min="0"></div>
+        <div class="form-group"><label class="form-label">総合スコアボーナス（最大）</label><input class="form-input" type="number" id="bonus-overall_score" min="0"></div>
+        <div class="form-group"><label class="form-label">属性順位ボーナス（1属性あたり最大）</label><input class="form-input" type="number" id="bonus-attr_rank" min="0"></div>
+        <div class="form-group"><label class="form-label">属性スコアボーナス（1属性あたり最大）</label><input class="form-input" type="number" id="bonus-attr_score" min="0"></div>
       </div>
-      <button class="btn btn-primary" onclick="saveRankPts()">保存する</button>
-    </div>
-
-    <!-- 外部ランクポイント設定 -->
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title">外部 順位ポイント設定</div>
-      <div id="ext-rank-pts-alert" style="margin-bottom:12px"></div>
-      <div class="enemy-form-grid">
-        <div class="form-group"><label class="form-label">1〜5位</label><input class="form-input" type="number" id="erp-1-5" min="0" placeholder="100"></div>
-        <div class="form-group"><label class="form-label">6〜10位</label><input class="form-input" type="number" id="erp-6-10" min="0" placeholder="80"></div>
-        <div class="form-group"><label class="form-label">11〜20位</label><input class="form-input" type="number" id="erp-11-20" min="0" placeholder="60"></div>
-        <div class="form-group"><label class="form-label">21〜30位</label><input class="form-input" type="number" id="erp-21-30" min="0" placeholder="40"></div>
-        <div class="form-group"><label class="form-label">31〜50位</label><input class="form-input" type="number" id="erp-31-50" min="0" placeholder="20"></div>
-        <div class="form-group"><label class="form-label">51〜75位</label><input class="form-input" type="number" id="erp-51-75" min="0" placeholder="10"></div>
-        <div class="form-group"><label class="form-label">76〜100位</label><input class="form-input" type="number" id="erp-76-100" min="0" placeholder="7"></div>
-        <div class="form-group"><label class="form-label">101位以降</label><input class="form-input" type="number" id="erp-101plus" min="0" placeholder="5"></div>
-      </div>
-      <button class="btn btn-primary" onclick="saveExtRankPts()">保存する</button>
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title" style="margin:0 0 4px">内部 中間配布（開催中イベント）</div>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">イベント終了前に現在のランキングでポイントを配布します。何度でも実行可能です。</p>
-      <div id="interim-alert" style="margin-bottom:12px"></div>
-      <div id="interim-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title" style="margin:0 0 4px">外部 中間配布（開催中イベント）</div>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコア（public）のみで現在のランキングでポイントを配布します。何度でも実行可能です。称号は付与されません。</p>
-      <div id="ext-interim-alert" style="margin-bottom:12px"></div>
-      <div id="ext-interim-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title" style="margin:0 0 4px">内部 最終配布（終了済みイベント）</div>
-      <p id="rank-pts-summary" style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px"></p>
-      <div id="points-alert" style="margin-bottom:12px"></div>
-      <div id="distributable-list"><div class="loading"><div class="spinner"></div></div></div>
+      <button class="btn btn-primary" onclick="saveDistBonus()">保存する</button>
     </div>
 
     <div class="card">
-      <div class="section-title" style="margin:0 0 4px">外部 最終配布（終了済みイベント）</div>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">外部公開スコアでポイント・称号を配布します。1回のみ実行可能です。</p>
+      <div class="section-title" style="margin:0 0 4px">最終配布（終了済みイベント）</div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">ランキングに公開されているスコアでポイント・称号を配布します。1回のみ実行可能です。配布前に「試算する」で内訳を確認できます。</p>
       <div id="ext-points-alert" style="margin-bottom:12px"></div>
       <div id="ext-distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
@@ -164,7 +125,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'points') { loadRankPts(); loadExtRankPts(); loadInterimDistributable(); loadDistributable(); loadExtInterim(); loadExtDistributable(); loadGrantUsers(); }
+  if (name === 'points') { loadDistBonus(); loadExtDistributable(); loadGrantUsers(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
 }
 
@@ -197,221 +158,25 @@ async function grantPoints() {
   } catch (err) { showAlert('#grant-alert', err.message); }
 }
 
-// ===== 順位ポイント設定 =====
-async function loadRankPts() {
+// ===== 配布ボーナス設定 =====
+const DIST_BONUS_FIELDS = ['participation', 'overall_rank', 'overall_score', 'attr_rank', 'attr_score'];
+async function loadDistBonus() {
   try {
-    const result = await apiFetch('/admin/settings/rank-pts');
-    document.getElementById('rp-1').value      = result.rank_pts_1;
-    document.getElementById('rp-2').value      = result.rank_pts_2;
-    document.getElementById('rp-3').value      = result.rank_pts_3;
-    document.getElementById('rp-4').value      = result.rank_pts_4;
-    document.getElementById('rp-5').value      = result.rank_pts_5;
-    document.getElementById('rp-6').value      = result.rank_pts_6;
-    document.getElementById('rp-7').value      = result.rank_pts_7;
-    document.getElementById('rp-8').value      = result.rank_pts_8;
-    document.getElementById('rp-9').value      = result.rank_pts_9;
-    document.getElementById('rp-10').value     = result.rank_pts_10;
-    document.getElementById('rp-11-15').value  = result.rank_pts_11_15;
-    document.getElementById('rp-16-20').value  = result.rank_pts_16_20;
-    document.getElementById('rp-21-25').value  = result.rank_pts_21_25;
-    document.getElementById('rp-26-30').value  = result.rank_pts_26_30;
-    document.getElementById('rp-31plus').value = result.rank_pts_31plus;
-    updateRankPtsSummary(result);
-  } catch (err) { showAlert('#rank-pts-alert', err.message); }
+    const b = await apiFetch('/admin/settings/distribution-bonus');
+    DIST_BONUS_FIELDS.forEach(k => { document.getElementById(`bonus-${k}`).value = b[k]; });
+  } catch (err) { showAlert('#bonus-alert', err.message); }
 }
-
-let _rankPtsCache = null;
-function updateRankPtsSummary(r) {
-  _rankPtsCache = r;
-  document.getElementById('rank-pts-summary').textContent =
-    `1位: ${r.rank_pts_1}pt / 2位: ${r.rank_pts_2}pt / 3位: ${r.rank_pts_3}pt / 4位: ${r.rank_pts_4}pt / 5位: ${r.rank_pts_5}pt / 6位: ${r.rank_pts_6}pt / 7位: ${r.rank_pts_7}pt / 8位: ${r.rank_pts_8}pt / 9位: ${r.rank_pts_9}pt / 10位: ${r.rank_pts_10}pt / 11〜15位: ${r.rank_pts_11_15}pt / 16〜20位: ${r.rank_pts_16_20}pt / 21〜25位: ${r.rank_pts_21_25}pt / 26〜30位: ${r.rank_pts_26_30}pt / 31位以降: ${r.rank_pts_31plus}pt`;
-}
-
-async function saveRankPts() {
-  const body = {
-    rank_pts_1:      parseInt(document.getElementById('rp-1').value),
-    rank_pts_2:      parseInt(document.getElementById('rp-2').value),
-    rank_pts_3:      parseInt(document.getElementById('rp-3').value),
-    rank_pts_4:      parseInt(document.getElementById('rp-4').value),
-    rank_pts_5:      parseInt(document.getElementById('rp-5').value),
-    rank_pts_6:      parseInt(document.getElementById('rp-6').value),
-    rank_pts_7:      parseInt(document.getElementById('rp-7').value),
-    rank_pts_8:      parseInt(document.getElementById('rp-8').value),
-    rank_pts_9:      parseInt(document.getElementById('rp-9').value),
-    rank_pts_10:     parseInt(document.getElementById('rp-10').value),
-    rank_pts_11_15:  parseInt(document.getElementById('rp-11-15').value),
-    rank_pts_16_20:  parseInt(document.getElementById('rp-16-20').value),
-    rank_pts_21_25:  parseInt(document.getElementById('rp-21-25').value),
-    rank_pts_26_30:  parseInt(document.getElementById('rp-26-30').value),
-    rank_pts_31plus: parseInt(document.getElementById('rp-31plus').value)
-  };
+async function saveDistBonus() {
+  const body = {};
+  DIST_BONUS_FIELDS.forEach(k => { body[k] = parseInt(document.getElementById(`bonus-${k}`).value, 10) || 0; });
   try {
-    await apiFetch('/admin/settings/rank-pts', { method: 'PUT', body: JSON.stringify(body) });
-    showAlert('#rank-pts-alert', '保存しました', 'success');
-    updateRankPtsSummary(body);
-  } catch (err) { showAlert('#rank-pts-alert', err.message); }
-}
-
-async function loadExtRankPts() {
-  try {
-    const r = await apiFetch('/admin/settings/ext-rank-pts');
-    document.getElementById('erp-1-5').value    = r.ext_rank_pts_1_5    ?? '';
-    document.getElementById('erp-6-10').value   = r.ext_rank_pts_6_10   ?? '';
-    document.getElementById('erp-11-20').value  = r.ext_rank_pts_11_20  ?? '';
-    document.getElementById('erp-21-30').value  = r.ext_rank_pts_21_30  ?? '';
-    document.getElementById('erp-31-50').value  = r.ext_rank_pts_31_50  ?? '';
-    document.getElementById('erp-51-75').value  = r.ext_rank_pts_51_75  ?? '';
-    document.getElementById('erp-76-100').value = r.ext_rank_pts_76_100 ?? '';
-    document.getElementById('erp-101plus').value= r.ext_rank_pts_101plus ?? '';
-  } catch (err) { showAlert('#ext-rank-pts-alert', err.message); }
-}
-
-async function saveExtRankPts() {
-  const body = {
-    ext_rank_pts_1_5:    parseInt(document.getElementById('erp-1-5').value),
-    ext_rank_pts_6_10:   parseInt(document.getElementById('erp-6-10').value),
-    ext_rank_pts_11_20:  parseInt(document.getElementById('erp-11-20').value),
-    ext_rank_pts_21_30:  parseInt(document.getElementById('erp-21-30').value),
-    ext_rank_pts_31_50:  parseInt(document.getElementById('erp-31-50').value),
-    ext_rank_pts_51_75:  parseInt(document.getElementById('erp-51-75').value),
-    ext_rank_pts_76_100: parseInt(document.getElementById('erp-76-100').value),
-    ext_rank_pts_101plus:parseInt(document.getElementById('erp-101plus').value),
-  };
-  try {
-    await apiFetch('/admin/settings/ext-rank-pts', { method: 'PUT', body: JSON.stringify(body) });
-    showAlert('#ext-rank-pts-alert', '保存しました', 'success');
-  } catch (err) { showAlert('#ext-rank-pts-alert', err.message); }
+    await apiFetch('/admin/settings/distribution-bonus', { method: 'PUT', body: JSON.stringify(body) });
+    showAlert('#bonus-alert', '保存しました（開いている試算は再計算してください）', 'success');
+  } catch (err) { showAlert('#bonus-alert', err.message); }
 }
 
 // ===== ポイント配布 =====
-async function loadInterimDistributable() {
-  const el = document.getElementById('interim-list');
-  try {
-    const events = await apiFetch('/admin/events/interim-distributable');
-    if (events.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>開催中のイベントがありません</p></div>';
-      return;
-    }
-    el.innerHTML = events.map(e => {
-      const history = (e.interim_history || []).map(d =>
-        `<span style="font-size:0.75rem;color:var(--text-muted)">${new Date(d.distributed_at).toLocaleString('ja-JP')}（${d.distributed_count}名）</span>`
-      ).join('<br>');
-      return `
-        <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:8px">
-          <div>
-            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
-            <strong>${escHtml(e.name)}</strong>
-          </div>
-          ${history ? `<div style="line-height:1.6">${history}</div>` : ''}
-          <div style="text-align:right">
-            <button class="btn btn-secondary btn-sm" onclick="distributeInterim(${e.id})">内部中間配布する</button>
-          </div>
-        </div>`;
-    }).join('');
-  } catch (err) {
-    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-async function distributeInterim(id) {
-  if (!await showConfirm('現在のランキングで中間配布しますか？\nこの操作は取り消せません。', { danger: true })) return;
-  try {
-    const res = await apiFetch(`/admin/events/${id}/distribute-interim`, { method: 'POST' });
-    showAlert('#interim-alert', res.message, 'success');
-    loadInterimDistributable();
-  } catch (err) { showAlert('#interim-alert', err.message); }
-}
-
 const AWARD_ATTRS = ['火', '氷', '雷', '光', '闇', '無'];
-
-async function loadDistributable() {
-  const el = document.getElementById('distributable-list');
-  try {
-    const events = await apiFetch('/admin/events/distributable');
-    if (events.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>配布可能なイベントがありません</p></div>';
-      return;
-    }
-    el.innerHTML = events.map(e => `
-      <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:10px">
-        <div>
-          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
-          <strong>${escHtml(e.name)}</strong>
-        </div>
-        <div style="font-size:0.82rem;color:var(--text-muted)">称号付与（任意）</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:0.85rem">
-          <label><input type="checkbox" id="t-r1-${e.id}" checked> 優勝（1位）</label>
-          <label><input type="checkbox" id="t-r2-${e.id}"> 準優勝（2位）</label>
-          <label><input type="checkbox" id="t-r3-${e.id}"> 3位</label>
-          <span style="color:var(--border);margin:0 4px">|</span>
-          ${AWARD_ATTRS.map(a => `<label><input type="checkbox" id="t-a${a}-${e.id}"> ${a}属性1位</label>`).join('')}
-        </div>
-        <div style="text-align:right">
-          <button class="btn btn-primary btn-sm" onclick="distributePoints(${e.id})">内部最終配布する</button>
-        </div>
-      </div>`).join('');
-  } catch (err) {
-    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-async function distributePoints(id) {
-  if (!await showConfirm('ポイントを配布しますか？\nこの操作は取り消せません。', { danger: true })) return;
-  const award_titles = {
-    rank1: document.getElementById(`t-r1-${id}`)?.checked || false,
-    rank2: document.getElementById(`t-r2-${id}`)?.checked || false,
-    rank3: document.getElementById(`t-r3-${id}`)?.checked || false,
-  };
-  for (const a of AWARD_ATTRS) {
-    award_titles[`attr_${a}`] = document.getElementById(`t-a${a}-${id}`)?.checked || false;
-  }
-  try {
-    const res = await apiFetch(`/admin/events/${id}/distribute-points`, {
-      method: 'POST',
-      body: JSON.stringify({ award_titles })
-    });
-    showAlert('#points-alert', res.message, 'success');
-    loadDistributable();
-  } catch (err) { showAlert('#points-alert', err.message); }
-}
-
-async function loadExtInterim() {
-  const el = document.getElementById('ext-interim-list');
-  try {
-    const events = await apiFetch('/admin/events/interim-distributable-external');
-    if (events.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>対象イベントがありません</p></div>';
-      return;
-    }
-    el.innerHTML = events.map(e => {
-      const history = (e.interim_history || []).map(d =>
-        `<span style="font-size:0.75rem;color:var(--text-muted)">${new Date(d.distributed_at).toLocaleString('ja-JP')}（${d.distributed_count}名）</span>`
-      ).join('<br>');
-      return `
-        <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:8px">
-          <div>
-            <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
-            <strong>${escHtml(e.name)}</strong>
-          </div>
-          ${history ? `<div style="line-height:1.6">${history}</div>` : ''}
-          <div style="text-align:right">
-            <button class="btn btn-secondary btn-sm" onclick="distributeExtInterim(${e.id})">外部中間配布する</button>
-          </div>
-        </div>`;
-    }).join('');
-  } catch (err) {
-    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-async function distributeExtInterim(id) {
-  if (!await showConfirm('外部中間配布を実行しますか？')) return;
-  try {
-    const res = await apiFetch(`/admin/events/${id}/distribute-interim-external`, { method: 'POST' });
-    showAlert('#ext-interim-alert', res.message, 'success');
-    loadExtInterim();
-  } catch (err) { showAlert('#ext-interim-alert', err.message); }
-}
 
 async function loadExtDistributable() {
   const el = document.getElementById('ext-distributable-list');
@@ -447,17 +212,51 @@ async function loadExtDistributable() {
               <label><input type="checkbox" id="et-a5-${a}-${e.id}"> TOP5</label>
             </span>`).join('')}
         </div>
-        <div style="text-align:right">
-          <button class="btn btn-primary btn-sm" onclick="distributeExtPoints(${e.id})">外部最終配布する</button>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="previewDistribution(${e.id})">試算する</button>
+          <button class="btn btn-primary btn-sm" onclick="distributeExtPoints(${e.id})">最終配布する</button>
         </div>
+        <div id="dist-preview-${e.id}"></div>
       </div>`).join('');
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
 
+// 配布前の試算：1人ずつの内訳（DBは変更しない）
+async function previewDistribution(id) {
+  const el = document.getElementById(`dist-preview-${id}`);
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const p = await apiFetch(`/admin/events/${id}/distribution-preview`);
+    if (!p.rows.length) { el.innerHTML = '<div class="form-hint">対象のスコアがありません</div>'; return; }
+    const n = v => Number(v).toLocaleString('ja-JP');
+    el.innerHTML = `
+      <div style="font-size:0.82rem;margin:4px 0 6px">参加 ${p.participants}人 ／ 配布合計 <b>${n(p.total)}pt</b> ／ 1人平均 ${n(Math.round(p.total / p.participants))}pt</div>
+      <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
+        <table class="table dist-preview-table">
+          <thead><tr><th>順位</th><th>ユーザー</th><th>参加</th><th>総合順位</th><th>総合スコア</th><th>属性順位</th><th>属性スコア</th><th>合計</th><th>属性</th></tr></thead>
+          <tbody>${p.rows.map(r => `
+            <tr>
+              <td>${r.rank}</td>
+              <td>${escHtml(r.username)}</td>
+              <td>${r.parts.participation}</td>
+              <td>${r.parts.overall_rank}</td>
+              <td>${r.parts.overall_score}</td>
+              <td>${r.parts.attr_rank}</td>
+              <td>${r.parts.attr_score}</td>
+              <td style="font-weight:bold;color:var(--accent)">${n(r.total)}</td>
+              <td style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap">${r.attrs.map(a => `${escHtml(a.attribute)}${a.rank}位(+${a.rank_bonus}/+${a.score_bonus})`).join(' ')}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
 async function distributeExtPoints(id) {
-  if (!await showConfirm('外部最終ポイントを配布しますか？この操作は1回のみ実行できます。', { danger: true })) return;
+  if (!await showConfirm('ポイントを配布しますか？この操作は1回のみ実行できます。', { danger: true })) return;
   const award_titles = {
     ext_rank1:  document.getElementById(`et-r1-${id}`)?.checked || false,
     ext_rank2:  document.getElementById(`et-r2-${id}`)?.checked || false,
@@ -522,11 +321,7 @@ async function loadHistory(reset = false) {
 function loadHistoryMore() { loadHistory(false); }
 
 // 初期ロード
-loadRankPts();
-loadExtRankPts();
-loadInterimDistributable();
-loadDistributable();
-loadExtInterim();
+loadDistBonus();
 loadExtDistributable();
 loadGrantUsers();
 </script>

@@ -756,6 +756,24 @@ const initDB = async () => {
       CREATE INDEX IF NOT EXISTS idx_page_views_page ON page_views(page, created_at);
     `);
 
+    // 外部最終配布：ボーナス最大値（utils/distribution.js）と、本人に見せる内訳
+    await client.query(`
+      INSERT INTO settings (key, value) VALUES ('dist_bonus_participation', '250') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('dist_bonus_overall_rank', '250') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('dist_bonus_overall_score', '150') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('dist_bonus_attr_rank', '40') ON CONFLICT (key) DO NOTHING;
+      INSERT INTO settings (key, value) VALUES ('dist_bonus_attr_score', '25') ON CONFLICT (key) DO NOTHING;
+      CREATE TABLE IF NOT EXISTS ext_distribution_details (
+        event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        rank INTEGER NOT NULL,
+        total INTEGER NOT NULL,
+        breakdown JSONB NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (event_id, user_id)
+      );
+    `);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();

@@ -26,148 +26,47 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// 順位ポイント設定（公開用）― /:id より前に定義
-router.get('/rank-pts', async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('rank_pts_1','rank_pts_2','rank_pts_3','rank_pts_4','rank_pts_5','rank_pts_6','rank_pts_7','rank_pts_8','rank_pts_9','rank_pts_10','rank_pts_11_15','rank_pts_16_20','rank_pts_21_25','rank_pts_26_30','rank_pts_31plus')"
-    );
-    const rp = {};
-    result.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
-    res.json(rp);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'サーバーエラー' });
-  }
-});
-
-// 最近の中間配布一覧（通知用・7日以内・自分の順位＋配布pt付き）― /:id より前に定義
-router.get('/interim-distributions/recent', authenticateToken, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT d.id, d.event_id, d.distributed_at, d.type,
-              e.name AS event_name, e.event_number,
-              (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
-               FROM point_history ph
-               WHERE ph.user_id = $1
-                 AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
-                                       AND d.distributed_at + INTERVAL '5 minutes'
-                 AND (
-                   (d.type = 'internal' AND ph.reason LIKE '%中間配布%' AND ph.reason NOT LIKE '%外部中間配布%')
-                   OR
-                   (d.type = 'external' AND ph.reason LIKE '%外部中間配布%')
-                 )
-               LIMIT 1) AS user_rank,
-              (SELECT ph.amount
-               FROM point_history ph
-               WHERE ph.user_id = $1
-                 AND ph.created_at BETWEEN d.distributed_at - INTERVAL '5 minutes'
-                                       AND d.distributed_at + INTERVAL '5 minutes'
-                 AND (
-                   (d.type = 'internal' AND ph.reason LIKE '%中間配布%' AND ph.reason NOT LIKE '%外部中間配布%')
-                   OR
-                   (d.type = 'external' AND ph.reason LIKE '%外部中間配布%')
-                 )
-               LIMIT 1) AS user_pts
-       FROM event_interim_distributions d
-       JOIN events e ON e.id = d.event_id
-       WHERE d.distributed_at > NOW() - INTERVAL '7 days'
-       ORDER BY d.distributed_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'サーバーエラー' });
-  }
-});
-
 // 最近の最終配布一覧（通知用・7日以内・自分の順位＋配布pt付き）― /:id より前に定義
 router.get('/final-distributions/recent', authenticateToken, async (req, res) => {
   try {
+    // 外部最終配布のみ（内部・中間配布は廃止）。内訳（ext_distribution_details）がある回は本人の内訳も返す
     const result = await pool.query(
-      `SELECT event_id, distributed_at, event_name, event_number, user_rank, user_pts, type, awarded_titles FROM (
-         SELECT e.id AS event_id, e.points_distributed_at AS distributed_at,
-                e.name AS event_name, e.event_number,
-                'internal' AS type,
-                (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
-                 FROM point_history ph
-                 WHERE ph.user_id = $1
-                   AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
-                                         AND e.points_distributed_at + INTERVAL '5 minutes'
-                   AND ph.reason NOT LIKE '%中間配布%'
-                   AND ph.reason LIKE '%（内部）%'
-                 LIMIT 1) AS user_rank,
-                (SELECT ph.amount
-                 FROM point_history ph
-                 WHERE ph.user_id = $1
-                   AND ph.created_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
-                                         AND e.points_distributed_at + INTERVAL '5 minutes'
-                   AND ph.reason NOT LIKE '%中間配布%'
-                   AND ph.reason LIKE '%（内部）%'
-                 LIMIT 1) AS user_pts,
-                (SELECT array_agg(t.name)
-                 FROM user_titles ut
-                 JOIN titles t ON t.id = ut.title_id
-                 WHERE ut.user_id = $1
-                   AND ut.acquired_at BETWEEN e.points_distributed_at - INTERVAL '5 minutes'
-                                          AND e.points_distributed_at + INTERVAL '5 minutes'
-                   AND t.scope = 'internal'
-                ) AS awarded_titles
-         FROM events e
-         WHERE e.points_distributed = TRUE
-           AND e.points_distributed_at IS NOT NULL
-           AND e.points_distributed_at > NOW() - INTERVAL '7 days'
-         UNION ALL
-         SELECT e.id AS event_id, e.points_distributed_external_at AS distributed_at,
-                e.name AS event_name, e.event_number,
-                'external' AS type,
+      `SELECT e.id AS event_id, e.points_distributed_external_at AS distributed_at,
+              e.name AS event_name, e.event_number, 'external' AS type,
+              COALESCE(dd.rank,
                 (SELECT (regexp_match(ph.reason, '(\\d+)位'))[1]::integer
                  FROM point_history ph
                  WHERE ph.user_id = $1
                    AND ph.created_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
                                          AND e.points_distributed_external_at + INTERVAL '5 minutes'
                    AND ph.reason LIKE '%（外部）%'
-                 LIMIT 1) AS user_rank,
+                 LIMIT 1)) AS user_rank,
+              COALESCE(dd.total,
                 (SELECT ph.amount
                  FROM point_history ph
                  WHERE ph.user_id = $1
                    AND ph.created_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
                                          AND e.points_distributed_external_at + INTERVAL '5 minutes'
                    AND ph.reason LIKE '%（外部）%'
-                 LIMIT 1) AS user_pts,
-                (SELECT array_agg(t.name)
-                 FROM user_titles ut
-                 JOIN titles t ON t.id = ut.title_id
-                 WHERE ut.user_id = $1
-                   AND ut.acquired_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
-                                          AND e.points_distributed_external_at + INTERVAL '5 minutes'
-                   AND t.scope = 'external'
-                ) AS awarded_titles
-         FROM events e
-         WHERE e.points_distributed_external = TRUE
-           AND e.points_distributed_external_at IS NOT NULL
-           AND e.points_distributed_external_at > NOW() - INTERVAL '7 days'
-       ) combined
-       ORDER BY distributed_at DESC`,
+                 LIMIT 1)) AS user_pts,
+              dd.breakdown,
+              (SELECT array_agg(t.name)
+               FROM user_titles ut
+               JOIN titles t ON t.id = ut.title_id
+               WHERE ut.user_id = $1
+                 AND ut.acquired_at BETWEEN e.points_distributed_external_at - INTERVAL '5 minutes'
+                                        AND e.points_distributed_external_at + INTERVAL '5 minutes'
+                 AND t.scope = 'external'
+              ) AS awarded_titles
+       FROM events e
+       LEFT JOIN ext_distribution_details dd ON dd.event_id = e.id AND dd.user_id = $1
+       WHERE e.points_distributed_external = TRUE
+         AND e.points_distributed_external_at IS NOT NULL
+         AND e.points_distributed_external_at > NOW() - INTERVAL '7 days'
+       ORDER BY e.points_distributed_external_at DESC`,
       [req.user.id]
     );
     res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'サーバーエラー' });
-  }
-});
-
-// 外部順位ポイント設定（公開用）― /:id より前に定義
-router.get('/ext-rank-pts', async (req, res) => {
-  try {
-    const result = await pool.query(
-      "SELECT key, value FROM settings WHERE key IN ('ext_rank_pts_1_5','ext_rank_pts_6_10','ext_rank_pts_11_20','ext_rank_pts_21_30','ext_rank_pts_31_50','ext_rank_pts_51_75','ext_rank_pts_76_100','ext_rank_pts_101plus')"
-    );
-    const rp = {};
-    result.rows.forEach(r => { rp[r.key] = parseInt(r.value); });
-    res.json(rp);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
