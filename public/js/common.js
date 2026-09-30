@@ -1731,13 +1731,6 @@ async function initLoginBonus() {
     .lb-gi.picked { color:var(--text-primary); font-weight:bold; background:var(--bg-card2); border:1px solid var(--border-light); border-radius:5px; padding:1px 6px; }
     .lb-gi-sep { color:var(--text-muted); margin:0 1px; }
 
-    .special-bonus-list { margin-top:18px; border-top:1px solid var(--border); padding-top:14px; text-align:left; }
-    .special-bonus-list h4 { font-size:0.85rem; color:var(--text-muted); margin:0 0 10px; text-align:center; }
-    .special-bonus-item { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
-    .special-bonus-info { flex:1; min-width:0; }
-    .special-bonus-title { font-size:0.88rem; font-weight:bold; margin-bottom:2px; }
-    .special-bonus-meta { font-size:0.72rem; color:var(--text-muted); }
-    .special-bonus-btn { flex-shrink:0; }
 
     @media (prefers-reduced-motion:reduce) {
       #lb-stage .lb-screen, .lb-sword, .lb-clash-flash, .lb-spark, #login-bonus-box.lb-shake, #login-bonus-box.lb-shake-big, .lb-battle-overlay, .lb-battle-overlay.mega.clash::after, .lb-verdict.tone-jackpot, .lb-verdict.tone-jackpot::before, .lb-cta, .lb-cta::before {
@@ -1793,7 +1786,6 @@ async function initLoginBonus() {
           </div>
         </div>
       </div>
-      <div id="special-bonus-section"></div>
     </div>`;
   document.body.appendChild(modal);
 
@@ -1803,10 +1795,14 @@ async function initLoginBonus() {
       apiFetch('/auth/special-bonuses').catch(() => [])
     ]);
 
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const hasUnclaimed = specials.some(b => b.claimed_count < b.max_claims && b.last_claimed_date?.slice(0, 10) !== todayStr);
-
-    if (status.already_claimed && !hasUnclaimed) return;
+    // 特別ボーナスは別のポップアップ。デイリーバトルがまだならその後に、済んでいればすぐに出す
+    const hasClaimableSpecial = specials.some(spBonusCanClaim);
+    // デイリーバトルのモーダルは非表示のまま残す（renderNav が再実行されたときに二重に確認しないための目印）
+    if (status.already_claimed) {
+      if (hasClaimableSpecial) openSpecialBonusModal(specials);
+      return;
+    }
+    window._lbPendingSpecials = hasClaimableSpecial ? specials : null;
 
     window._lbLoginDone = status.already_claimed;
     renderLbEnemyCard(status.boss_enemy);
@@ -1821,10 +1817,8 @@ async function initLoginBonus() {
       document.getElementById('lb-screen-picker').hidden = true;
     }
 
-    if (specials.length > 0) renderSpecialBonuses(specials);
     document.getElementById('login-bonus-modal').classList.add('open');
     lockBodyScroll();
-    checkAndCloseModal();
   } catch {}
 }
 
@@ -2013,56 +2007,169 @@ function showLbResult(res) {
   document.getElementById('lb-close-btn').addEventListener('click', () => {
     document.getElementById('login-bonus-modal').classList.remove('open');
     unlockBodyScroll();
+    if (window._lbPendingSpecials) {
+      const specials = window._lbPendingSpecials;
+      window._lbPendingSpecials = null;
+      setTimeout(() => openSpecialBonusModal(specials), 250);
+    }
   });
   renderLbDayTrack(res.streak, res.is_day7);
   window._lbLoginDone = true;
 }
 
-function renderSpecialBonuses(bonuses) {
-  const today = new Date().toISOString().slice(0, 10);
-  const el = document.getElementById('special-bonus-section');
-  const items = bonuses.filter(b => b.max_claims - b.claimed_count > 0).map(b => {
-    const remaining = b.max_claims - b.claimed_count;
-    const claimedToday = b.last_claimed_date && b.last_claimed_date.slice(0, 10) === today;
-    const canClaim = remaining > 0 && !claimedToday;
-    return `<div class="special-bonus-item">
-      <div class="special-bonus-info">
-        <div class="special-bonus-title">${escHtml(b.title)}</div>
-        <div class="special-bonus-meta">${t('bonus.until', escHtml(b.end_date.slice(0,10)))} ・ ${b.points_per_claim}pt ・ ${t('bonus.remaining', remaining)}</div>
-      </div>
-      <button class="btn btn-primary btn-sm special-bonus-btn" ${canClaim ? '' : 'disabled'}
-        onclick="claimSpecialBonus(${b.id}, this)">
-        ${claimedToday ? t('bonus.received') : remaining <= 0 ? t('bonus.limit') : t('bonus.claim')}
-      </button>
-    </div>`;
-  }).join('');
-  el.innerHTML = `<div class="special-bonus-list"><h4>${t('bonus.special')}</h4>${items}</div>`;
+// ===== 特別ボーナス（期間限定。デイリーバトルとは別のポップアップ） =====
+const _spToday = () => new Date().toISOString().slice(0, 10);
+function spBonusCanClaim(b) {
+  return b.claimed_count < b.max_claims && (!b.last_claimed_date || b.last_claimed_date.slice(0, 10) !== _spToday());
+}
+const SP_GIFT_SVG = `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="9" width="17" height="4" rx="1"/><path d="M5 13v7.5h14V13M12 9v11.5"/><path d="M12 9C10.5 5.8 7 5.3 7 7.5S10 9 12 9zM12 9c1.5-3.2 5-3.7 5-1.5S14 9 12 9z"/></svg>`;
+
+function spProgressHtml(b) {
+  // 10回以下は丸の並び、それより多いと数字で
+  if (b.max_claims <= 10) {
+    return `<div class="sp-dots" aria-label="${b.claimed_count}/${b.max_claims}回受取">${Array.from({ length: b.max_claims }, (_, i) => `<i class="${i < b.claimed_count ? 'on' : ''}"></i>`).join('')}</div>`;
+  }
+  return `<div class="sp-count">${b.claimed_count}<span>/${b.max_claims}回</span></div>`;
 }
 
-function checkAndCloseModal() {
-  const loginDone = window._lbLoginDone === true;
-  const anySpecialLeft = [...document.querySelectorAll('.special-bonus-btn')].some(b => !b.disabled);
-  if (loginDone && !anySpecialLeft) {
-    setTimeout(() => {
-      document.getElementById('login-bonus-modal')?.classList.remove('open');
-      unlockBodyScroll();
-    }, 800);
+function spItemHtml(b) {
+  const can = spBonusCanClaim(b);
+  const done = b.claimed_count >= b.max_claims;
+  const label = can ? t('bonus.claim') : done ? t('bonus.limit') : t('bonus.received');
+  const end = new Date(b.end_date);
+  return `
+    <div class="sp-item${can ? '' : ' is-claimed'}" data-id="${b.id}">
+      <div class="sp-gift">${SP_GIFT_SVG}</div>
+      <div class="sp-body">
+        <div class="sp-title">${escHtml(b.title)}</div>
+        <div class="sp-meta">${t('bonus.until', `${end.getMonth() + 1}/${end.getDate()}`)}</div>
+        ${spProgressHtml(b)}
+      </div>
+      <div class="sp-reward">
+        <div class="sp-pts">+${b.points_per_claim}<span>pt</span></div>
+        <button type="button" class="sp-claim" ${can ? '' : 'disabled'} onclick="claimSpecialBonus(${b.id}, this)">${label}</button>
+      </div>
+      <div class="sp-stamp" aria-hidden="true">${t('bonus.received')}</div>
+    </div>`;
+}
+
+function openSpecialBonusModal(bonuses) {
+  if (!document.getElementById('sp-bonus-style')) {
+    const style = document.createElement('style');
+    style.id = 'sp-bonus-style';
+    style.textContent = `
+      #sp-bonus-modal { display:flex; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.72); }
+      #sp-bonus-box {
+        position:relative; width:100%; max-width:380px; max-height:88vh; overflow-y:auto; padding:30px 18px 18px; border-radius:16px; text-align:center;
+        background:radial-gradient(120% 60% at 50% 0%, rgba(255,120,160,0.18), transparent 60%), linear-gradient(180deg, rgba(34,20,44,0.97), rgba(14,12,26,0.97));
+        border:1px solid rgba(224,184,74,0.55); box-shadow:0 0 30px rgba(224,184,74,0.18), 0 16px 40px rgba(0,0,0,0.6);
+        animation:spBoxIn 0.4s cubic-bezier(.2,.9,.3,1.25) both;
+      }
+      @keyframes spBoxIn { from { opacity:0; transform:translateY(12px) scale(0.94); } to { opacity:1; transform:none; } }
+      .sp-ribbon {
+        position:absolute; top:10px; left:50%; transform:translateX(-50%); padding:3px 18px; border-radius:3px;
+        font-size:0.62rem; font-weight:900; letter-spacing:0.22em; color:#2a1a00; white-space:nowrap;
+        background:linear-gradient(90deg, #c9a21c, #ffe38a, #c9a21c); box-shadow:0 2px 8px rgba(0,0,0,0.4);
+      }
+      #sp-bonus-box h3 { margin:14px 0 2px; font-size:1.2rem; letter-spacing:0.05em; color:#ffe38a; text-shadow:0 0 12px rgba(224,184,74,0.5); }
+      .sp-sub { font-size:0.78rem; color:var(--text-secondary); margin-bottom:16px; }
+      .sp-list { display:flex; flex-direction:column; gap:10px; text-align:left; }
+      .sp-item {
+        position:relative; display:flex; align-items:center; gap:12px; padding:12px; border-radius:12px; overflow:hidden;
+        background:linear-gradient(100deg, rgba(255,120,160,0.12), rgba(224,184,74,0.08)); border:1px solid rgba(224,184,74,0.35);
+      }
+      /* チケットの切り込み */
+      .sp-item::before, .sp-item::after { content:''; position:absolute; top:50%; width:14px; height:14px; margin-top:-7px; border-radius:50%; background:#15111f; border:1px solid rgba(224,184,74,0.35); }
+      .sp-item::before { left:-8px; } .sp-item::after { right:-8px; }
+      .sp-gift { flex-shrink:0; width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#ffe38a; background:rgba(224,184,74,0.14); border:1px solid rgba(224,184,74,0.4); }
+      .sp-item:not(.is-claimed) .sp-gift { animation:spGiftBob 2.2s ease-in-out infinite; }
+      @keyframes spGiftBob { 0%,100% { transform:translateY(0) rotate(0); } 50% { transform:translateY(-3px) rotate(-4deg); } }
+      .sp-body { flex:1; min-width:0; }
+      .sp-title { font-size:0.9rem; font-weight:bold; color:var(--text-primary); line-height:1.35; word-break:break-word; }
+      .sp-meta { font-size:0.7rem; color:var(--text-secondary); margin-top:2px; }
+      .sp-dots { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+      .sp-dots i { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid rgba(224,184,74,0.35); }
+      .sp-dots i.on { background:#e0b84a; box-shadow:0 0 6px rgba(224,184,74,0.7); border-color:#e0b84a; }
+      .sp-count { margin-top:4px; font-size:0.85rem; font-weight:900; color:#e0b84a; font-variant-numeric:tabular-nums; }
+      .sp-count span { font-size:0.7rem; font-weight:normal; color:var(--text-secondary); }
+      .sp-reward { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:6px; }
+      .sp-pts { font-size:1.15rem; font-weight:900; color:#ffe38a; font-variant-numeric:tabular-nums; }
+      .sp-pts span { font-size:0.7rem; margin-left:1px; opacity:0.8; }
+      .sp-claim {
+        padding:6px 14px; border:none; border-radius:99px; cursor:pointer; font-family:inherit; font-size:0.78rem; font-weight:800; color:#2a1a00;
+        background:linear-gradient(180deg, #ffe38a, #d8a93a); box-shadow:0 3px 10px rgba(224,184,74,0.45); transition:transform 0.15s, box-shadow 0.15s;
+      }
+      .sp-claim:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 5px 14px rgba(224,184,74,0.6); }
+      .sp-claim:disabled { cursor:default; background:rgba(255,255,255,0.1); color:var(--text-secondary); box-shadow:none; }
+      .sp-item.is-claimed { border-color:rgba(255,255,255,0.14); background:rgba(255,255,255,0.03); }
+      .sp-item.is-claimed .sp-gift, .sp-item.is-claimed .sp-pts { opacity:0.45; }
+      .sp-stamp {
+        position:absolute; right:78px; top:50%; padding:2px 10px; border:2px solid #ff5470; border-radius:6px; pointer-events:none;
+        font-size:0.8rem; font-weight:900; letter-spacing:0.1em; color:#ff5470; opacity:0; transform:translateY(-50%) rotate(-12deg) scale(1.6);
+      }
+      .sp-item.stamped .sp-stamp { animation:spStamp 0.35s cubic-bezier(.3,1.6,.5,1) forwards; }
+      @keyframes spStamp { to { opacity:0.85; transform:translateY(-50%) rotate(-12deg) scale(1); } }
+      .sp-float { position:absolute; right:16px; top:8px; font-size:1rem; font-weight:900; color:#ffe38a; pointer-events:none; text-shadow:0 0 10px rgba(224,184,74,0.9); animation:spFloat 1s ease-out forwards; }
+      @keyframes spFloat { from { opacity:1; transform:translateY(0); } to { opacity:0; transform:translateY(-26px); } }
+      .sp-close { margin-top:16px; width:100%; justify-content:center; }
+      @media (prefers-reduced-motion: reduce) {
+        #sp-bonus-box, .sp-item:not(.is-claimed) .sp-gift, .sp-float { animation:none; }
+        .sp-item.stamped .sp-stamp { animation:none; opacity:0.85; transform:translateY(-50%) rotate(-12deg); }
+      }
+    `;
+    document.head.appendChild(style);
   }
+  document.getElementById('sp-bonus-modal')?.remove();
+  const visible = bonuses.filter(b => b.claimed_count < b.max_claims || spBonusCanClaim(b));
+  const modal = document.createElement('div');
+  modal.id = 'sp-bonus-modal';
+  modal.innerHTML = `
+    <div id="sp-bonus-box" role="dialog" aria-label="${t('bonus.special')}">
+      <div class="sp-ribbon">SPECIAL BONUS</div>
+      <h3>${t('bonus.special')}</h3>
+      <div class="sp-sub">期間限定のボーナスを受け取ろう</div>
+      <div class="sp-list">${visible.map(spItemHtml).join('')}</div>
+      <button type="button" class="btn btn-secondary sp-close" id="sp-close-btn" onclick="closeSpecialBonusModal()">あとで</button>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) closeSpecialBonusModal(); });
+  document.body.appendChild(modal);
+  lockBodyScroll();
+  updateSpCloseBtn();
+}
+
+function closeSpecialBonusModal() {
+  const modal = document.getElementById('sp-bonus-modal');
+  if (!modal) return;
+  modal.remove();
+  unlockBodyScroll();
+}
+
+// 全部受け取ったら「OK」に変える
+function updateSpCloseBtn() {
+  const btn = document.getElementById('sp-close-btn');
+  if (!btn) return;
+  const left = [...document.querySelectorAll('#sp-bonus-modal .sp-claim')].some(b => !b.disabled);
+  btn.textContent = left ? 'あとで' : 'OK';
+  btn.className = `btn ${left ? 'btn-secondary' : 'btn-primary'} sp-close`;
 }
 
 async function claimSpecialBonus(bonusId, btn) {
   btn.disabled = true;
+  const item = btn.closest('.sp-item');
   try {
     const res = await apiFetch(`/auth/special-bonuses/${bonusId}/claim`, { method: 'POST' });
-    btn.textContent = t('bonus.received');
-    const meta = btn.closest('.special-bonus-item').querySelector('.special-bonus-meta');
-    const remaining = res.max_claims - res.claimed_count;
-    if (meta) {
-      const lang = getLang();
-      const pattern = lang === 'zh' ? /剩餘\d+次/ : /残り\d+回/;
-      meta.textContent = meta.textContent.replace(pattern, t('bonus.remaining', remaining));
-    }
-    checkAndCloseModal();
+    btn.textContent = res.claimed_count >= res.max_claims ? t('bonus.limit') : t('bonus.received');
+    item.classList.add('is-claimed', 'stamped');
+    const dots = item.querySelectorAll('.sp-dots i');
+    if (dots[res.claimed_count - 1]) dots[res.claimed_count - 1].classList.add('on');
+    const count = item.querySelector('.sp-count');
+    if (count) count.innerHTML = `${res.claimed_count}<span>/${res.max_claims}回</span>`;
+    const float = document.createElement('div');
+    float.className = 'sp-float';
+    float.textContent = `+${res.points_earned}pt`;
+    item.appendChild(float);
+    setTimeout(() => float.remove(), 1100);
+    updateSpCloseBtn();
   } catch (err) {
     btn.disabled = false;
     showMessage(err.message);
