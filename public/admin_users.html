@@ -59,8 +59,11 @@
   <!-- ユーザー一覧タブ -->
   <div class="tab-content active" id="tab-users-list">
     <div class="card">
-      <div class="section-title">ユーザー一覧</div>
+      <div class="section-title">ユーザー一覧 <span id="list-count" style="font-size:0.8rem;font-weight:normal;color:var(--text-muted)"></span></div>
       <div id="list-alert" style="margin-bottom:12px"></div>
+      <div style="margin-bottom:12px">
+        <input class="form-input" id="list-search" type="search" placeholder="ユーザー名またはIDで検索" oninput="renderUsersList()" style="max-width:280px">
+      </div>
       <div id="users-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
@@ -94,14 +97,29 @@ function switchTab(name) {
 }
 
 // ===== ユーザー一覧 =====
+let _listUsers = [];
 async function loadUsersList() {
-  const el = document.getElementById('users-list');
   try {
-    const users = await apiFetch('/admin/users');
-    if (users.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>ユーザーがいません</p></div>';
-      return;
-    }
+    _listUsers = await apiFetch('/admin/users');
+    renderUsersList();
+  } catch (err) {
+    document.getElementById('users-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// 検索欄の文字でユーザー名（部分一致・大文字小文字を区別しない）かID（数字のみのとき完全一致）を絞り込む
+function renderUsersList() {
+  const el = document.getElementById('users-list');
+  const q = document.getElementById('list-search').value.trim().toLowerCase();
+  const users = q
+    ? _listUsers.filter(u => u.username.toLowerCase().includes(q) || (/^\d+$/.test(q) && String(u.id) === q))
+    : _listUsers;
+  document.getElementById('list-count').textContent = q ? `${users.length}人 / 全${_listUsers.length}人` : `全${_listUsers.length}人`;
+  if (users.length === 0) {
+    el.innerHTML = `<div class="empty-state"><p>${q ? '該当するユーザーがいません' : 'ユーザーがいません'}</p></div>`;
+    return;
+  }
+  {
     el.innerHTML = `
       <table class="ranking-table" id="users-table" style="width:100%">
         <thead>
@@ -137,8 +155,6 @@ async function loadUsersList() {
             </tr>`).join('')}
         </tbody>
       </table>`;
-  } catch (err) {
-    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
 
