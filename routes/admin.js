@@ -859,14 +859,18 @@ router.post('/points/grant', async (req, res) => {
 
 // ポイント履歴一覧（管理用）
 router.get('/point-history', async (req, res) => {
-  const { user_id, limit = 50, offset = 0 } = req.query;
+  const { user_id, limit = 50, offset = 0, exclude_admin, exclude_dup, sign } = req.query;
   try {
+    // 絞り込み：ユーザー / 管理者を除外 / ガチャ重複補償を除外 / 獲得(+)・消費(-)
     const params = [];
-    let where = '';
-    if (user_id) {
-      params.push(user_id);
-      where = `WHERE ph.user_id = $${params.length}`;
-    }
+    const conds = [];
+    if (user_id) { params.push(user_id); conds.push(`ph.user_id = $${params.length}`); }
+    if (exclude_admin === '1') conds.push(`u.role <> 'admin'`);
+    if (exclude_dup === '1') conds.push(`COALESCE(ph.reason, '') NOT LIKE 'ガチャ重複補償%'`);
+    if (sign === 'plus') conds.push('ph.amount > 0');
+    else if (sign === 'minus') conds.push('ph.amount < 0');
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const filterParams = [...params];
     params.push(parseInt(limit, 10), parseInt(offset, 10));
     const [rows, countRow] = await Promise.all([
       pool.query(
@@ -879,8 +883,8 @@ router.get('/point-history', async (req, res) => {
         params
       ),
       pool.query(
-        `SELECT COUNT(*) FROM point_history ph ${where}`,
-        user_id ? [user_id] : []
+        `SELECT COUNT(*) FROM point_history ph JOIN users u ON ph.user_id = u.id ${where}`,
+        filterParams
       )
     ]);
     res.json({ rows: rows.rows, total: parseInt(countRow.rows[0].count, 10) });
