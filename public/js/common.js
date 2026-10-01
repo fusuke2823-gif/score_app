@@ -1082,24 +1082,42 @@ async function renderDistResultImage(d, includeUnsubmitted = true, boxId = 'dist
   }
 }
 
-// 結果画像を共有ページ（OGP付き /s/:id）にアップロードし、X の投稿画面を直接開く。
-// ポップアップブロックを避けるため、タブはクリック直後に先に開き、アップロード後に移動させる
+// 結果画像の共有。
+//  ・スマホなど共有メニューが使える端末 … 画像ファイルを添付して共有メニューを開く（X を選ぶと画像付きで投稿できる）
+//  ・それ以外（PC） … 画像を OGP 付きの共有ページ（/s/:id）にアップロードし、X の投稿画面を開く
 async function shareResultImage(dataUrl, d, btn) {
-  const resultLabel = d.is_final ? '最終結果' : '中間結果';
-  const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の${resultLabel}を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n`;
+  const tweetText = '\n\n非公式ファンサイト\n「ヘブバンランクボード」\nhebuban-rankboard.com\n#ヘブバン #ヘブバンランクボード';
   const original = btn ? btn.innerHTML : '';
+
+  let file = null;
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    const f = new File([blob], `${d.event_name}_result.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) file = f;
+  } catch {}
+
+  if (file) {
+    try {
+      await navigator.share({ files: [file], text: tweetText });
+    } catch (e) {
+      if (e.name !== 'AbortError') showMessage('共有に失敗しました: ' + e.message);
+    }
+    return;
+  }
+
+  // PC 用：ポップアップブロックを避けるためタブはクリック直後に開き、アップロード後に移動させる
   const win = window.open('', '_blank');
   if (win) win.opener = null;
-  if (btn) { btn.disabled = true; btn.textContent = '画像を準備中...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'アップロード中...'; }
   try {
-    let sharePageUrl = location.origin;
+    let sharePageUrl = null;
     try {
       const shareRes = await apiFetch('/share-image', { method: 'POST', body: JSON.stringify({ dataUrl, eventName: d.event_name }) });
       sharePageUrl = location.origin + shareRes.url;
-    } catch { /* アップロードに失敗してもサイトのURLで投稿できるようにする */ }
-    const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(sharePageUrl)}`;
+    } catch { /* アップロードに失敗したらリンクなしで投稿 */ }
+    const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweetText)}${sharePageUrl ? `&url=${encodeURIComponent(sharePageUrl)}` : ''}`;
     if (win) win.location.href = intent;
-    else location.href = intent; // タブを開けなかった環境ではこのページで開く
+    else location.href = intent;
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
   }

@@ -101,15 +101,21 @@ app.get('/s/:id', async (req, res) => {
     if (!r.rows[0]) return res.status(404).send('Not found');
     const { image_url, event_name } = r.rows[0];
     const title = `${event_name} - ヘブバン ランクボード`;
+    // X の大きな画像カードは横長（約1.91:1）で中央が切り抜かれるので、縦長の結果画像を横長の枠に全体が収まるよう余白で埋める
+    const ogImage = image_url.includes('res.cloudinary.com')
+      ? image_url.replace('/upload/', '/upload/c_pad,w_1200,h_630,b_rgb:0d0d1a/')
+      : image_url;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
 <meta property="og:type" content="website">
 <meta property="og:title" content="${title.replace(/"/g, '&quot;')}">
-<meta property="og:image" content="${image_url}">
+<meta property="og:image" content="${ogImage}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:description" content="ヘブバン ランクボードで生成した結果画像">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${title.replace(/"/g, '&quot;')}">
-<meta name="twitter:image" content="${image_url}">
+<meta name="twitter:image" content="${ogImage}">
 <title>${title.replace(/</g, '&lt;')}</title>
 </head><body style="margin:0;background:#0d0d1a;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh">
 <img src="${image_url}" style="max-width:100%;border-radius:8px">
