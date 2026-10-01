@@ -154,7 +154,7 @@ async function loadPending() {
   const el = document.getElementById('pending-list');
   el.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
   try {
-    const items = await apiFetch('/admin/pending');
+    const [items] = await Promise.all([apiFetch('/admin/pending'), loadScoreEvents()]);
     document.getElementById('pending-count').textContent = items.length > 0 ? `(${items.length})` : '';
 
     if (items.length === 0) {
@@ -165,8 +165,17 @@ async function loadPending() {
     el.innerHTML = items.map(item => `
       <div class="pending-item" id="pending-${item.id}">
         <div class="pending-info">
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">
-            第${item.event_number}回 ${escHtml(item.event_name)}
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span id="event-display-${item.id}" style="display:inline-flex;align-items:center;gap:6px">
+              第${item.event_number}回 ${escHtml(item.event_name)}
+              <button class="btn btn-secondary btn-sm" style="padding:2px 6px;font-size:0.72rem" onclick="startEditEvent(${item.id})" title="イベントを修正">✎</button>
+            </span>
+            <span id="event-edit-${item.id}" style="display:none;align-items:center;gap:4px">
+              <select class="form-select" id="event-input-${item.id}" style="width:auto;max-width:260px;padding:2px 6px;font-size:0.82rem">
+                ${_scoreEvents.map(e => `<option value="${e.id}" ${e.id === item.event_id ? 'selected' : ''}>第${e.event_number}回 ${escHtml(e.name)}</option>`).join('')}
+              </select>
+              <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="cancelEditEvent(${item.id})">キャンセル</button>
+            </span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
             <span id="attr-display-${item.id}" style="display:inline-flex;align-items:center;gap:4px">
@@ -227,6 +236,21 @@ function cancelEditScore(id) {
   document.getElementById(`score-display-${id}`).style.display = 'flex';
 }
 
+// イベントの付け替え用の一覧（新しい回が上）
+let _scoreEvents = [];
+async function loadScoreEvents() {
+  if (_scoreEvents.length) return;
+  try { _scoreEvents = await apiFetch('/admin/events'); } catch { _scoreEvents = []; }
+}
+function startEditEvent(id) {
+  document.getElementById(`event-display-${id}`).style.display = 'none';
+  document.getElementById(`event-edit-${id}`).style.display = 'inline-flex';
+}
+function cancelEditEvent(id) {
+  document.getElementById(`event-edit-${id}`).style.display = 'none';
+  document.getElementById(`event-display-${id}`).style.display = 'inline-flex';
+}
+
 function startEditAttr(id) {
   document.getElementById(`attr-display-${id}`).style.display = 'none';
   document.getElementById(`attr-edit-${id}`).style.display = 'inline-flex';
@@ -248,6 +272,10 @@ async function approveScore(id, clearYoutube = false) {
   const attrEditEl = document.getElementById(`attr-edit-${id}`);
   if (attrEditEl && attrEditEl.style.display !== 'none') {
     body.attribute = document.getElementById(`attr-input-${id}`).value;
+  }
+  const eventEditEl = document.getElementById(`event-edit-${id}`);
+  if (eventEditEl && eventEditEl.style.display !== 'none') {
+    body.event_id = Number(document.getElementById(`event-input-${id}`).value);
   }
   try {
     const res = await apiFetch(`/admin/scores/${id}/approve`, {

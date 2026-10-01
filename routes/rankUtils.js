@@ -231,33 +231,56 @@ async function syncLegendRanks(client) {
 // スコアを承認済みにし、video_boardへの反映まで行う共通処理。
 // 呼び出し側でBEGIN済みのclientを渡すこと（エラー時は例外を投げるのでROLLBACKは呼び出し側で行う）。
 // admin.jsの手動承認、scores.jsのAI自動承認の両方から使う。
-async function approveScoreRow(client, scoreId, { overrideScore = null, overrideAttribute = null, clearYoutube = false, adminNote = null } = {}) {
+// overrideEventId / overrideAttribute で投稿の付け替え先（イベント・属性）を変えられる。
+// 付け替え先に同じユーザーのスコアがあれば上書きする。
+async function approveScoreRow(client, scoreId, { overrideScore = null, overrideAttribute = null, overrideEventId = null, clearYoutube = false, adminNote = null } = {}) {
   let overwritten = false;
-  if (overrideAttribute) {
-    const cur = await client.query('SELECT user_id, event_id, attribute FROM scores WHERE id = $1', [scoreId]);
+  if (overrideAttribute || overrideEventId) {
+    const cur = await client.query('SELECT user_id, event_id, attribute, approved_score, pending_score FROM scores WHERE id = $1', [scoreId]);
     if (cur.rows.length === 0) {
       const err = new Error('score not found');
       err.code = 'SCORE_NOT_FOUND';
       throw err;
     }
-    const { user_id, event_id, attribute } = cur.rows[0];
-    if (overrideAttribute !== attribute) {
+    const { user_id, event_id, attribute, approved_score, pending_score } = cur.rows[0];
+    const targetEvent = overrideEventId || event_id;
+    const targetAttr = overrideAttribute || attribute;
+    if (targetEvent !== event_id || targetAttr !== attribute) {
       const del = await client.query(
         'DELETE FROM scores WHERE user_id = $1 AND event_id = $2 AND attribute = $3 AND id != $4',
-        [user_id, event_id, overrideAttribute, scoreId]
+        [user_id, targetEvent, targetAttr, scoreId]
       );
       overwritten = del.rowCount > 0;
-      // 上書きされた属性の動画掲示板エントリも削除しておく（古いスコアの動画が残らないように）
+      // 上書きされた枠の動画掲示板エントリも削除しておく（古いスコアの動画が残らないように）
       await client.query(
         'DELETE FROM video_board WHERE user_id = $1 AND event_id = $2 AND attribute = $3',
-        [user_id, event_id, overrideAttribute]
+        [user_id, targetEvent, targetAttr]
       );
+      if (approved_score != null && pending_score != null) {
+        // 承認済みスコアがある枠への再投稿：元の枠の承認済みスコアは残し、保留中の投稿だけを付け替え先へ移す
+        const ins = await client.query(
+          `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, pending_youtube_url, pending_youtube_score,
+                               is_anonymous, ranking_scope, ai_extracted_score, ai_match, ai_note, status)
+           SELECT user_id, $2, $3, pending_score, pending_image_url, pending_youtube_url, pending_youtube_score,
+                  is_anonymous, ranking_scope, ai_extracted_score, ai_match, ai_note, 'pending'
+           FROM scores WHERE id = $1 RETURNING id`,
+          [scoreId, targetEvent, targetAttr]
+        );
+        await client.query(
+          `UPDATE scores SET pending_score = NULL, pending_image_url = NULL, pending_youtube_url = NULL, pending_youtube_score = NULL,
+             status = 'approved', updated_at = NOW() WHERE id = $1`,
+          [scoreId]
+        );
+        scoreId = ins.rows[0].id;
+      } else {
+        await client.query('UPDATE scores SET event_id = $2, attribute = $3 WHERE id = $1', [scoreId, targetEvent, targetAttr]);
+      }
     }
   }
 
   const result = await client.query(
     `UPDATE scores SET
-       approved_score = COALESCE($3, pending_score),
+       approved_score = COALESCE($3, pending_score, approved_score),
        attribute = COALESCE($4, attribute),
        approved_image_url = COALESCE(pending_image_url, approved_image_url),
        pending_score = NULL,

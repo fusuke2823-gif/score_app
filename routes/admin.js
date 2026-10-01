@@ -69,10 +69,16 @@ router.post('/scores/:id/approve', async (req, res) => {
       return res.status(400).json({ error: '属性が不正です' });
     }
   }
+  let overrideEventId = null;
+  if (req.body?.event_id != null) {
+    overrideEventId = parseInt(req.body.event_id, 10);
+    const ev = Number.isFinite(overrideEventId) ? await pool.query('SELECT id FROM events WHERE id = $1', [overrideEventId]) : { rows: [] };
+    if (!ev.rows.length) return res.status(400).json({ error: 'イベントが不正です' });
+  }
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { score, overwritten } = await approveScoreRow(client, req.params.id, { overrideScore, overrideAttribute, clearYoutube });
+    const { score, overwritten } = await approveScoreRow(client, req.params.id, { overrideScore, overrideAttribute, overrideEventId, clearYoutube });
     await client.query('COMMIT');
     res.json({
       message: (clearYoutube ? 'スコアのみ承認しました' : '承認しました') + (overwritten ? '（変更先の既存スコアを上書きしました）' : ''),
