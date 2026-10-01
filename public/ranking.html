@@ -232,6 +232,7 @@ async function loadEvent() {
   try {
     const event = await apiFetch(`/events/${eventId}`);
     _eventData = event;
+    updateSubmitButton();
     document.title = `${event.name} - HBR`;
 
     document.getElementById('event-header').innerHTML = `
@@ -530,7 +531,26 @@ function showRankingToast(msg) {
   setTimeout(() => el.remove(), 3000);
 }
 
+// 投稿期間が終わったイベントでは「スコア投稿」を「結果を共有」に切り替える
+function isEventEnded() {
+  return !!(_eventData && _eventData.submission_end && new Date() > new Date(_eventData.submission_end));
+}
+function updateSubmitButton() {
+  if (!isEventEnded()) return;
+  const btn = document.getElementById('submit-btn');
+  btn.removeAttribute('data-i18n');
+  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-right:5px;vertical-align:-1px"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>結果を共有';
+}
+
 function goSubmit() {
+  if (isEventEnded()) {
+    if (!getUser()) {
+      location.href = `/login.html?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+      return;
+    }
+    openResultShareModal(_eventData);
+    return;
+  }
   if (!getUser()) {
     location.href = `/login.html?redirect=${encodeURIComponent(`/submit.html?event_id=${eventId}`)}`;
     return;

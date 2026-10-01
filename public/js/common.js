@@ -1039,8 +1039,9 @@ function _ensureResultFonts() {
   return _resultFontsReady;
 }
 
-async function renderDistResultImage(d, includeUnsubmitted = true) {
-  const box = document.getElementById('dist-result-image');
+// 結果画像を生成して表示（配布通知・ランキング画面の共有で共用）。boxId の要素に描画する
+async function renderDistResultImage(d, includeUnsubmitted = true, boxId = 'dist-result-image') {
+  const box = document.getElementById(boxId);
   if (!box || !d) return;
   box.innerHTML = `<div class="loading" style="padding:16px 0"><div class="spinner"></div></div>`;
 
@@ -1066,56 +1067,74 @@ async function renderDistResultImage(d, includeUnsubmitted = true) {
     box.innerHTML = `
       <img src="${dataUrl}" style="max-width:100%;border-radius:10px;display:block;margin-top:10px" alt="result">
       <label style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:10px;font-size:0.78rem;color:var(--text-muted);cursor:pointer">
-        <input type="checkbox" id="dist-include-unsub" ${includeUnsubmitted ? 'checked' : ''}>
+        <input type="checkbox" class="result-include-unsub" ${includeUnsubmitted ? 'checked' : ''}>
         未提出の属性も表示する
       </label>
-      <button id="dist-share-btn" class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px">${xSvg}共有</button>
+      <button type="button" class="btn btn-secondary btn-sm result-share-btn" style="margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px">${xSvg}Xで共有</button>
     `;
-    document.getElementById('dist-include-unsub').addEventListener('change', e => {
-      renderDistResultImage(d, e.target.checked);
+    box.querySelector('.result-include-unsub').addEventListener('change', e => {
+      renderDistResultImage(d, e.target.checked, boxId);
     });
-    document.getElementById('dist-share-btn').addEventListener('click', () => shareResultImage(dataUrl, d));
+    const shareBtn = box.querySelector('.result-share-btn');
+    shareBtn.addEventListener('click', () => shareResultImage(dataUrl, d, shareBtn));
   } catch (err) {
     box.innerHTML = `<p style="color:var(--text-muted);font-size:0.82rem;margin-top:8px">${escHtml(err.message)}</p>`;
   }
 }
 
-async function shareResultImage(dataUrl, d) {
-  const fileName = `${d.event_name}_result.png`;
+// 結果画像を共有ページ（OGP付き /s/:id）にアップロードし、X の投稿画面を直接開く。
+// ポップアップブロックを避けるため、タブはクリック直後に先に開き、アップロード後に移動させる
+async function shareResultImage(dataUrl, d, btn) {
   const resultLabel = d.is_final ? '最終結果' : '中間結果';
-  const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の${resultLabel}を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n\nhebuban-rankboard.com`;
-  const btn = document.getElementById('dist-share-btn');
-  const xSvg = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
-
+  const tweetText = `\n\nヘブバン ランクボードで${d.event_name}の${resultLabel}を生成しました\n\n#ヘブバン　#ヘブバンランクボード\n`;
+  const original = btn ? btn.innerHTML : '';
+  const win = window.open('', '_blank');
+  if (win) win.opener = null;
+  if (btn) { btn.disabled = true; btn.textContent = '画像を準備中...'; }
   try {
-    const blob = await (await fetch(dataUrl)).blob();
-    const shareFile = new File([blob], fileName, { type: 'image/png' });
-    const canNativeShare = navigator.canShare && navigator.canShare({ files: [shareFile] });
+    let sharePageUrl = location.origin;
+    try {
+      const shareRes = await apiFetch('/share-image', { method: 'POST', body: JSON.stringify({ dataUrl, eventName: d.event_name }) });
+      sharePageUrl = location.origin + shareRes.url;
+    } catch { /* アップロードに失敗してもサイトのURLで投稿できるようにする */ }
+    const intent = `https://x.com/intent/post?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(sharePageUrl)}`;
+    if (win) win.location.href = intent;
+    else location.href = intent; // タブを開けなかった環境ではこのページで開く
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+  }
+}
 
-    if (canNativeShare) {
-      try {
-        await navigator.share({ files: [shareFile], text: tweetText });
-      } catch (e) {
-        if (e.name !== 'AbortError') showMessage('共有に失敗しました: ' + e.message);
-      }
+// 終了したイベントの結果画像を作って共有する（ランキング画面の「結果を共有」）
+async function openResultShareModal(ev) {
+  document.getElementById('result-share-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'result-share-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:2100;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,0.7)';
+  modal.innerHTML = `
+    <div style="width:100%;max-width:360px;max-height:90vh;overflow-y:auto;padding:22px 20px 18px;border-radius:14px;text-align:center;background:var(--bg-modal);border:1px solid var(--border-light)">
+      <div style="font-size:1.05rem;font-weight:bold;margin-bottom:2px">結果を共有</div>
+      <div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:6px">${escHtml(ev.name)}</div>
+      <div id="result-share-image"><div class="loading" style="padding:16px 0"><div class="spinner"></div></div></div>
+      <button type="button" class="btn btn-secondary" style="margin-top:12px;width:100%;justify-content:center" id="result-share-close">${t('close')}</button>
+    </div>`;
+  const close = () => { modal.remove(); unlockBodyScroll(); };
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  document.body.appendChild(modal);
+  lockBodyScroll();
+  document.getElementById('result-share-close').addEventListener('click', close);
+  try {
+    // 公開ランキング（全属性）での自分の総合順位
+    const me = getUser();
+    const ranking = await apiFetch(`/events/${ev.id}/ranking`);
+    const mine = ranking.find(r => String(r.user_id) === String(me.id));
+    if (!mine) {
+      document.getElementById('result-share-image').innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;margin:12px 0">このイベントの承認済みスコアがありません</p>';
       return;
     }
-
-    // デスクトップ用フォールバック：Cloudinaryアップ → OGタグ付きシェアページURL
-    if (btn) btn.textContent = 'アップロード中...';
-    let sharePageUrl = null;
-    try {
-      const shareRes = await apiFetch('/api/share-image', {
-        method: 'POST',
-        body: JSON.stringify({ dataUrl, eventName: d.event_name }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      sharePageUrl = location.origin + shareRes.url;
-    } catch { /* アップ失敗時はURLなし */ }
-    const tweetIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}${sharePageUrl ? `&url=${encodeURIComponent(sharePageUrl)}` : ''}`;
-    window.open(tweetIntentUrl, '_blank', 'noopener,noreferrer');
-  } finally {
-    if (btn) btn.innerHTML = `${xSvg}共有`;
+    renderDistResultImage({ event_id: ev.id, event_name: ev.name, scope: 'external', user_rank: Number(mine.rank), is_final: true }, true, 'result-share-image');
+  } catch (err) {
+    document.getElementById('result-share-image').innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem">${escHtml(err.message)}</p>`;
   }
 }
 
