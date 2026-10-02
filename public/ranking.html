@@ -360,25 +360,24 @@ function renderCoop(event) {
   requestAnimationFrame(() => requestAnimationFrame(() => { el.querySelector('.coop-fill').style.width = pos(c.progress); }));
 }
 
+const ENEMY_PLACEHOLDER_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>';
 function renderEnemy(enemy) {
-  const hpDpEp = enemy.use_ep
-    ? `<span class="enemy-stat"><span class="enemy-stat-label">HP</span><span class="enemy-stat-val">${enemy.hp ? Number(enemy.hp).toLocaleString() : '-'}</span></span>
-       <span class="enemy-stat"><span class="enemy-stat-label">EP</span><span class="enemy-stat-val">${enemy.ep ? Number(enemy.ep).toLocaleString() : '-'}</span></span>`
-    : `<span class="enemy-stat"><span class="enemy-stat-label">HP</span><span class="enemy-stat-val">${enemy.hp ? Number(enemy.hp).toLocaleString() : '-'}</span></span>
-       <span class="enemy-stat"><span class="enemy-stat-label">DP</span><span class="enemy-stat-val">${enemy.dp ? Number(enemy.dp).toLocaleString() : '-'}</span></span>`;
-
-  const weakBadges = enemy.weak_attributes
-    ? enemy.weak_attributes.split(',').filter(Boolean).map(a => attrBadge(a)).join('')
-    : '';
-
+  const num = v => (v ? Number(v).toLocaleString() : '-');
+  const stat = (label, val, cls = '') => `<div class="enemy-stat ${cls}"><span class="enemy-stat-label">${label}</span><span class="enemy-stat-val">${val}</span></div>`;
+  const weak = (enemy.weak_attributes || '').split(',').filter(Boolean);
   return `<div class="enemy-card">
-    ${enemy.image_url ? `<img class="enemy-img" src="${escHtml(thumbUrl(enemy.image_url))}" alt="${escHtml(enemy.name)}">` : ''}
-    <div class="enemy-name">${escHtml(enemy.name)}</div>
-    <div class="enemy-stats">
-      ${hpDpEp}
-      ${enemy.destruction_rate != null ? `<span class="enemy-stat"><span class="enemy-stat-label">破壊率</span><span class="enemy-stat-val">${enemy.destruction_rate}%</span></span>` : ''}
+    <div class="enemy-head">
+      <div class="enemy-name" title="${escHtml(enemy.name)}">${escHtml(enemy.name)}</div>
     </div>
-    ${weakBadges ? `<div style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap"><span style="font-size:0.75rem;color:var(--text-muted);margin-right:2px">${t('ranking.weak')}</span>${weakBadges}</div>` : ''}
+    <div class="enemy-img-wrap${enemy.image_url ? '' : ' empty'}">
+      ${enemy.image_url ? `<img class="enemy-img" src="${escHtml(thumbUrl(enemy.image_url))}" alt="${escHtml(enemy.name)}">` : ENEMY_PLACEHOLDER_ICON}
+    </div>
+    <div class="enemy-stats">
+      ${stat('HP', num(enemy.hp), 'hp')}
+      ${enemy.use_ep ? stat('EP', num(enemy.ep), 'dp') : stat('DP', num(enemy.dp), 'dp')}
+      ${stat('破壊率', enemy.destruction_rate != null ? `${enemy.destruction_rate}%` : '-', 'destruction')}
+      ${weak.length ? stat(t('ranking.weak'), `<span class="enemy-weak">${weak.map(a => attrBadge(a)).join('')}</span>`, 'weak') : ''}
+    </div>
   </div>`;
 }
 
