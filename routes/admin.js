@@ -4,7 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { updateUserRanks, approveScoreRow, getCombinedXPt, getCombinedXPtV2, rankFromCombined, legendRanksFor } = require('./rankUtils');
+const { updateUserRanks, approveScoreRow, getCombinedXPt, getCombinedXPtV2, RATE_V2_DEFAULTS, rankFromCombined, legendRanksFor } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
 const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
@@ -1011,17 +1011,32 @@ router.put('/settings/distribution-bonus', async (req, res) => {
 // レート計算の試算（DBは変更しない）。S以上の全員について
 //   current: 今保存されている値 / all: 今の式で全員を再計算 / v2: 新しい式で全員を再計算
 router.get('/rate-preview', async (req, res) => {
+  // 新しい式の値はクエリで変えられる（直近N回のうち良いK回、ベスト・直近・EXの割合%）
+  const num = (v, def, min, max) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def;
+  };
+  const d = RATE_V2_DEFAULTS;
+  const recentN = num(req.query.n, d.recentN, 1, 20);
+  const opts = {
+    recentN,
+    recentK: num(req.query.k, d.recentK, 1, recentN),
+    wBest: num(req.query.w_best, d.wBest, 0, 100),
+    wRecent: num(req.query.w_recent, d.wRecent, 0, 100),
+    wEx: num(req.query.w_ex, d.wEx, 0, 100),
+  };
   try {
     const maxEv = (await pool.query('SELECT MAX(event_number)::int AS n FROM events WHERE points_distributed_external = TRUE')).rows[0].n;
     const { rows: users } = await pool.query(
       `SELECT id, username, comp_rank, s_rate::float, x_rate::float FROM users
        WHERE comp_rank IN ('S','X','Ex','Legend')`
     );
-    const all = [], v2 = [];
+    const all = [], v2 = [], recentCounts = [];
     for (const u of users) {
-      const [oldPt, newPt] = await Promise.all([getCombinedXPt(pool, u.id, maxEv), getCombinedXPtV2(pool, u.id, maxEv)]);
+      const [oldPt, newRes] = await Promise.all([getCombinedXPt(pool, u.id, maxEv), getCombinedXPtV2(pool, u.id, maxEv, opts)]);
       all.push({ id: u.id, ...rankFromCombined(u.comp_rank, u.x_rate, oldPt) });
-      v2.push({ id: u.id, ...rankFromCombined(u.comp_rank, u.x_rate, newPt) });
+      v2.push({ id: u.id, ...rankFromCombined(u.comp_rank, u.x_rate, newRes.pt) });
+      recentCounts.push(newRes.recentCount);
     }
     const allRank = legendRanksFor(all), v2Rank = legendRanksFor(v2);
     // 表示用のレート：S は Sレート、X以上は Xレート
@@ -1031,8 +1046,9 @@ router.get('/rate-preview', async (req, res) => {
       current: view(u.comp_rank, u.s_rate, u.x_rate),
       all: view(allRank.get(u.id), all[i].sRate, all[i].xRate),
       v2: view(v2Rank.get(u.id), v2[i].sRate, v2[i].xRate),
+      recent_count: recentCounts[i],
     }));
-    res.json({ max_event_number: maxEv, rows });
+    res.json({ max_event_number: maxEv, opts, rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

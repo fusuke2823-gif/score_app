@@ -22,6 +22,10 @@
 .dist-preview-table th, .dist-preview-table td { padding:5px 8px; text-align:right; white-space:nowrap; }
 .dist-preview-table th:nth-child(2), .dist-preview-table td:nth-child(2), .dist-preview-table th:last-child, .dist-preview-table td:last-child { text-align:left; }
 .dist-preview-table thead th { position:sticky; top:0; background:var(--bg-modal); }
+.rate-opts { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin-bottom:12px; font-size:0.85rem; }
+.rate-opts input { width:56px; padding:4px 6px; margin:0 2px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
+.rate-opts-sum { font-size:0.78rem; color:var(--text-muted); }
+.rate-opts-sum.warn { color:#e0a040; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -100,8 +104,15 @@
       <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
         S以上の全員について、今のレートと計算し直した場合を並べます（DBは変更しません）。<br>
         今の式（全員）… 今の計算式のまま、投稿しなかった人も含めて全員を再計算<br>
-        新しい式 … 直近5回のうち良い3回の平均（出た回が3回に満たない分は0）、EXは参加した回を新しさで割り引いた最大値
+        新しい式 … ベスト ＋ 直近（スコアタ・遭遇戦の直近◯回のうち良い◯回の平均。出た回が足りない分は0）＋ EX（参加した回を新しさで割り引いた最大値）を下の割合で合計
       </p>
+      <div class="rate-opts">
+        <label>直近 <input type="number" id="rp-n" value="5" min="1" max="20"> 回のうち良い <input type="number" id="rp-k" value="3" min="1" max="20"> 回</label>
+        <label>ベスト <input type="number" id="rp-w-best" value="40" min="0" max="100">%</label>
+        <label>直近 <input type="number" id="rp-w-recent" value="40" min="0" max="100">%</label>
+        <label>EX <input type="number" id="rp-w-ex" value="20" min="0" max="100">%</label>
+        <span id="rp-w-sum" class="rate-opts-sum"></span>
+      </div>
       <button class="btn btn-secondary btn-sm" onclick="previewRates()">試算する</button>
       <div id="rate-preview" style="margin-top:12px"></div>
     </div>
@@ -294,11 +305,23 @@ async function previewDistribution(id) {
 // レート計算の試算
 const RANK_ORDER = { S: 0, X: 1, Ex: 2, Legend: 3 };
 const rateKey = v => (v.rate == null ? -Infinity : v.rank === 'S' ? v.rate : v.rate + 1000);
+// 割合の合計を表示（100%以外だとレート全体が上下にずれるので注意を出す）
+function updateRateWeightSum() {
+  const sum = ['rp-w-best', 'rp-w-recent', 'rp-w-ex'].reduce((a, id) => a + (Number(document.getElementById(id).value) || 0), 0);
+  const el = document.getElementById('rp-w-sum');
+  el.textContent = sum === 100 ? '合計 100%' : `合計 ${sum}%（100%でないとレート全体がずれます）`;
+  el.classList.toggle('warn', sum !== 100);
+}
+['rp-w-best', 'rp-w-recent', 'rp-w-ex'].forEach(id => document.getElementById(id).addEventListener('input', updateRateWeightSum));
+updateRateWeightSum();
+
 async function previewRates() {
   const el = document.getElementById('rate-preview');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const v = id => document.getElementById(id).value;
+  const qs = new URLSearchParams({ n: v('rp-n'), k: v('rp-k'), w_best: v('rp-w-best'), w_recent: v('rp-w-recent'), w_ex: v('rp-w-ex') });
   try {
-    const p = await apiFetch('/admin/rate-preview');
+    const p = await apiFetch('/admin/rate-preview?' + qs);
     if (!p.rows.length) { el.innerHTML = '<div class="form-hint">S以上のユーザーがいません</div>'; return; }
     const rows = p.rows.sort((a, b) => rateKey(b.v2) - rateKey(a.v2));
     const fmt = v => `${v.rank} ${v.rate == null ? '-' : Math.round(v.rate)}`;
@@ -307,15 +330,17 @@ async function previewRates() {
     const up = rows.filter(r => diff(r) >= 1).length, down = rows.filter(r => diff(r) <= -1).length;
     const rankChanged = rows.filter(r => r.v2.rank !== r.current.rank).length;
     el.innerHTML = `
-      <div style="font-size:0.82rem;margin:4px 0 6px">対象 ${rows.length}人（第${p.max_event_number}回まで）／ 新しい式で 上がる ${up}人・下がる ${down}人・ランクが変わる ${rankChanged}人</div>
+      <div style="font-size:0.82rem;margin:4px 0 2px">新しい式：直近${p.opts.recentN}回のうち良い${p.opts.recentK}回 ／ ベスト${p.opts.wBest}%・直近${p.opts.wRecent}%・EX${p.opts.wEx}%</div>
+      <div style="font-size:0.82rem;margin:0 0 6px">対象 ${rows.length}人（第${p.max_event_number}回まで）／ 新しい式で 上がる ${up}人・下がる ${down}人・ランクが変わる ${rankChanged}人</div>
       <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
         <table class="table dist-preview-table">
-          <thead><tr><th>#</th><th>ユーザー</th><th>現在</th><th>今の式（全員）</th><th>新しい式</th><th>差（新しい式−現在）</th></tr></thead>
+          <thead><tr><th>#</th><th>ユーザー</th><th>直近の出場</th><th>現在</th><th>今の式（全員）</th><th>新しい式</th><th>差（新しい式−現在）</th></tr></thead>
           <tbody>${rows.map((r, i) => {
             const d = diff(r);
             return `<tr>
               <td>${i + 1}</td>
               <td>${escHtml(r.username)}</td>
+              <td style="color:${r.recent_count >= p.opts.recentK ? 'var(--text-secondary)' : '#e0a040'}">${r.recent_count}/${p.opts.recentN}</td>
               <td>${fmt(r.current)}</td>
               <td style="${rankMark(r.current.rank, r.all.rank)}">${fmt(r.all)}</td>
               <td style="${rankMark(r.current.rank, r.v2.rank)}">${fmt(r.v2)}</td>
