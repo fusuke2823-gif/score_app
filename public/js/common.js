@@ -948,8 +948,10 @@ function renderDistNoticeModal(idx) {
       }
     </div>`;
 
-  renderDistResultImage(d, true);
-  animateDistPts(d);
+  // ポイントの演出は結果画像ができてから始める（「次へ」で別の通知に切り替わっていたら始めない）
+  renderDistResultImage(d, true).finally(() => {
+    if (window._distQueueIdx === idx) animateDistPts(d);
+  });
 }
 
 // 配布ポイントを内訳の順に足し上げる演出（内訳が無い回は合計まで一気に）。枠のタップで最後まで飛ばす
