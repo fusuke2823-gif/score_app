@@ -22,6 +22,8 @@
 .dist-preview-table th, .dist-preview-table td { padding:5px 8px; text-align:right; white-space:nowrap; }
 .dist-preview-table th:nth-child(2), .dist-preview-table td:nth-child(2), .dist-preview-table th:last-child, .dist-preview-table td:last-child { text-align:left; }
 .dist-preview-table thead th { position:sticky; top:0; background:var(--bg-modal); }
+.coop-tiers { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; font-size:0.85rem; }
+.coop-tiers input { width:80px; padding:4px 6px; margin:0 4px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
 .rate-opts { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin-bottom:12px; font-size:0.85rem; }
 .rate-opts input[type=number] { width:56px; padding:4px 6px; margin:0 2px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
 .rate-opts-sum { font-size:0.78rem; color:var(--text-muted); }
@@ -89,6 +91,18 @@
         <div class="form-group"><label class="form-label">属性スコアボーナス（1属性あたり最大）</label><input class="form-input" type="number" id="bonus-attr_score" min="0"></div>
       </div>
       <button class="btn btn-primary" onclick="saveDistBonus()">保存する</button>
+    </div>
+
+    <!-- 共闘目標の段階（全イベント共通） -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="section-title" style="margin:0 0 4px">共闘目標の段階</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
+        全員の合計スコアが目標（イベントごとに設定）の何%に届いたかで、その回にスコアを出した全員の最終配布に一律でポイントを足します。<br>
+        届いた段階のうち一番上の段階の額だけを足します（段階ごとの額の合計ではありません）。
+      </p>
+      <div id="coop-alert" style="margin-bottom:12px"></div>
+      <div id="coop-tiers" class="coop-tiers"></div>
+      <button class="btn btn-primary" onclick="saveCoopTiers()">保存する</button>
     </div>
 
     <div class="card">
@@ -163,7 +177,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'points') { loadDistBonus(); loadExtDistributable(); loadGrantUsers(); }
+  if (name === 'points') { loadDistBonus(); loadCoopTiers(); loadExtDistributable(); loadGrantUsers(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
 }
 
@@ -211,6 +225,24 @@ async function saveDistBonus() {
     await apiFetch('/admin/settings/distribution-bonus', { method: 'PUT', body: JSON.stringify(body) });
     showAlert('#bonus-alert', '保存しました（開いている試算は再計算してください）', 'success');
   } catch (err) { showAlert('#bonus-alert', err.message); }
+}
+
+// 共闘目標の段階（3段階）
+async function loadCoopTiers() {
+  try {
+    const tiers = await apiFetch('/admin/settings/coop-tiers');
+    document.getElementById('coop-tiers').innerHTML = [0, 1, 2].map(i => `
+      <div>第${i + 1}段階：達成率<input type="number" id="coop-pct-${i}" min="1" value="${tiers[i]?.pct ?? ''}">%で ＋<input type="number" id="coop-pts-${i}" min="0" step="10" value="${tiers[i]?.pts ?? ''}">pt</div>`).join('');
+  } catch (err) { showAlert('#coop-alert', err.message); }
+}
+async function saveCoopTiers() {
+  const tiers = [0, 1, 2].map(i => ({ pct: document.getElementById(`coop-pct-${i}`).value, pts: document.getElementById(`coop-pts-${i}`).value }))
+    .filter(t => t.pct && t.pts !== '');
+  try {
+    await apiFetch('/admin/settings/coop-tiers', { method: 'PUT', body: JSON.stringify({ tiers }) });
+    showAlert('#coop-alert', '保存しました', 'success');
+    loadCoopTiers();
+  } catch (err) { showAlert('#coop-alert', err.message); }
 }
 
 // ===== ポイント配布 =====
@@ -279,10 +311,11 @@ async function previewDistribution(id) {
     if (!p.rows.length) { el.innerHTML = '<div class="form-hint">対象のスコアがありません</div>'; return; }
     const n = v => Number(v).toLocaleString('ja-JP');
     el.innerHTML = `
-      <div style="font-size:0.82rem;margin:4px 0 6px">参加 ${p.participants}人 ／ 配布合計 <b>${n(p.total)}pt</b> ／ 1人平均 ${n(Math.round(p.total / p.participants))}pt</div>
+      <div style="font-size:0.82rem;margin:4px 0 6px">参加 ${p.participants}人 ／ 配布合計 <b>${n(p.total)}pt</b> ／ 1人平均 ${n(Math.round(p.total / p.participants))}pt
+        ／ 共闘目標 ${p.coop ? `達成率 ${p.coop.progress.toFixed(1)}%（全員に＋${p.coop.bonus}pt）` : 'なし'}</div>
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table class="table dist-preview-table">
-          <thead><tr><th>順位</th><th>ユーザー</th><th>参加</th><th>総合順位</th><th>総合スコア</th><th>属性順位</th><th>属性スコア</th><th>合計</th><th>属性</th></tr></thead>
+          <thead><tr><th>順位</th><th>ユーザー</th><th>参加</th><th>総合順位</th><th>総合スコア</th><th>属性順位</th><th>属性スコア</th><th>共闘目標</th><th>合計</th><th>属性</th></tr></thead>
           <tbody>${p.rows.map(r => `
             <tr>
               <td>${r.rank}</td>
@@ -292,6 +325,7 @@ async function previewDistribution(id) {
               <td>${r.parts.overall_score}</td>
               <td>${r.parts.attr_rank}</td>
               <td>${r.parts.attr_score}</td>
+              <td>${r.parts.coop}</td>
               <td style="font-weight:bold;color:var(--accent)">${n(r.total)}</td>
               <td style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap">${r.attrs.map(a => `${escHtml(a.attribute)}${a.rank}位(+${a.rank_bonus}/+${a.score_bonus})`).join(' ')}</td>
             </tr>`).join('')}</tbody>
@@ -441,6 +475,7 @@ function setPhSign(btn) {
 
 // 初期ロード
 loadDistBonus();
+loadCoopTiers();
 loadExtDistributable();
 loadGrantUsers();
 </script>

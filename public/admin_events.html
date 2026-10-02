@@ -175,6 +175,11 @@
           <div class="form-hint" id="edit-event-multiplier-hint"></div>
         </div>
         <div class="form-group">
+          <label class="form-label">共闘目標の目標スコア（全員の合計、空欄なら共闘目標なし）</label>
+          <input class="form-input" type="number" id="edit-event-coop-target" min="0" step="1" placeholder="例: 500000000">
+          <div class="form-hint" id="edit-event-coop-hint"></div>
+        </div>
+        <div class="form-group">
           <label class="form-label">戦績グラフでの表示（任意）</label>
           <select class="form-input" id="edit-event-display-type">
             <option value="">イベント種別と同じ</option>
@@ -270,6 +275,10 @@
       <div class="form-group">
         <label class="form-label">スコア補正係数（例: 複数体は0.95など、通常は1.0）</label>
         <input class="form-input" type="number" id="event-multiplier" min="0.01" max="2" step="0.0001" value="1.0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">共闘目標の目標スコア（全員の合計、空欄なら共闘目標なし）</label>
+        <input class="form-input" type="number" id="event-coop-target" min="0" step="1" placeholder="例: 500000000">
       </div>
       <div class="form-group">
           <label class="form-label">戦績グラフでの表示（任意）</label>
@@ -453,6 +462,7 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
         name: document.getElementById('event-name').value,
         event_type: document.getElementById('event-type').value,
         score_multiplier: parseFloat(document.getElementById('event-multiplier').value) || 1.0,
+        coop_target: document.getElementById('event-coop-target').value || null,
         display_type: document.getElementById('event-display-type').value || null,
         exclude_from_history: document.getElementById('event-exclude-history').checked,
         description: document.getElementById('event-desc').value,
@@ -489,6 +499,19 @@ function addEditRule(text = '') {
   document.getElementById('edit-rules-container').appendChild(div);
 }
 
+// 共闘目標：今の合計と達成率、目標を決める参考に前回（同じ種別）の合計を出す
+async function loadCoopHint(id) {
+  const el = document.getElementById('edit-event-coop-hint');
+  el.textContent = '';
+  try {
+    const c = await apiFetch(`/admin/events/${id}/coop-info`);
+    const n = v => Number(v).toLocaleString('ja-JP');
+    const parts = [`今の合計 ${n(c.total)}（${c.participants}人）${c.progress != null ? ` ／ 達成率 ${c.progress.toFixed(1)}%` : ''}`];
+    if (c.prev) parts.push(`参考：前回の同じ種別（第${c.prev.event_number}回）の合計 ${n(c.prev.total)}（${c.prev.participants}人）`);
+    el.textContent = parts.join(' ／ ');
+  } catch {}
+}
+
 async function openEditEvent(id) {
   const e = currentEvents.find(ev => ev.id === id);
   if (!e) return;
@@ -497,6 +520,8 @@ async function openEditEvent(id) {
   document.getElementById('edit-event-type').value = e.event_type || 'score_attack';
   document.getElementById('edit-event-multiplier').value = e.score_multiplier != null ? e.score_multiplier : 1.0;
   document.getElementById('edit-event-multiplier-hint').textContent = '';
+  document.getElementById('edit-event-coop-target').value = e.coop_target || '';
+  loadCoopHint(e.id);
   document.getElementById('edit-event-display-type').value = e.display_type || '';
   document.getElementById('edit-event-exclude-history').checked = !!e.exclude_from_history;
   document.getElementById('edit-event-desc').value = e.description || '';
@@ -562,6 +587,7 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
         name: document.getElementById('edit-event-name').value,
         event_type: document.getElementById('edit-event-type').value,
         score_multiplier: parseFloat(document.getElementById('edit-event-multiplier').value) || 1.0,
+        coop_target: document.getElementById('edit-event-coop-target').value || null,
         display_type: document.getElementById('edit-event-display-type').value || null,
         exclude_from_history: document.getElementById('edit-event-exclude-history').checked,
         description: document.getElementById('edit-event-desc').value,

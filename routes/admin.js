@@ -9,6 +9,7 @@ const { fetchUsage } = require('../utils/cloudinary');
 const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
 const { PULL_COST: SPECIAL_GACHA_PULL_COST } = require('./specialGacha');
+const { COOP_TIERS_KEY, getCoopTiers, getCoopStatus } = require('../utils/coop');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
@@ -129,13 +130,19 @@ router.get('/events', async (req, res) => {
   }
 });
 
+// 共闘目標の目標スコア：正の整数ならその値、空・0以下なら共闘目標なし（NULL）
+const parseCoopTarget = v => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 // イベント作成
 router.post('/events', async (req, res) => {
-  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history } = req.body;
+  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, display_type || null, !!exclude_from_history]
+      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, display_type || null, !!exclude_from_history, parseCoopTarget(coop_target)]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -148,16 +155,18 @@ router.post('/events', async (req, res) => {
 
 // イベント更新
 router.put('/events/:id', async (req, res) => {
-  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history } = req.body;
+  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target } = req.body;
   try {
-    // display_type / exclude_from_history は送られてこなければ現在の値を保つ
+    // display_type / exclude_from_history / coop_target は送られてこなければ現在の値を保つ
     const result = await pool.query(
       `UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6, score_multiplier=$7,
          display_type = CASE WHEN $9 THEN $10 ELSE display_type END,
-         exclude_from_history = COALESCE($11, exclude_from_history)
+         exclude_from_history = COALESCE($11, exclude_from_history),
+         coop_target = CASE WHEN $12 THEN $13 ELSE coop_target END
        WHERE id=$8 RETURNING *`,
       [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, req.params.id,
-       display_type !== undefined, display_type || null, exclude_from_history === undefined ? null : !!exclude_from_history]
+       display_type !== undefined, display_type || null, exclude_from_history === undefined ? null : !!exclude_from_history,
+       coop_target !== undefined, parseCoopTarget(coop_target)]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -666,7 +675,7 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       await client.query(
         `INSERT INTO ext_distribution_details (event_id, user_id, rank, total, breakdown) VALUES ($1, $2, $3, $4, $5::jsonb)
          ON CONFLICT (event_id, user_id) DO UPDATE SET rank=$3, total=$4, breakdown=$5::jsonb`,
-        [event.id, row.user_id, row.rank, row.total, JSON.stringify({ parts: row.parts, attrs: row.attrs.map(a => ({ attribute: a.attribute, rank: a.rank, n: a.n, rank_bonus: a.rank_bonus, score_bonus: a.score_bonus })), participants: dist.participants })]
+        [event.id, row.user_id, row.rank, row.total, JSON.stringify({ parts: row.parts, attrs: row.attrs.map(a => ({ attribute: a.attribute, rank: a.rank, n: a.n, rank_bonus: a.rank_bonus, score_bonus: a.score_bonus })), participants: dist.participants, coop: dist.coop && dist.coop.bonus > 0 ? { pct: dist.coop.reachedPct, pts: dist.coop.bonus } : null })]
       );
       rankUpdateUserIdsExt.push(row.user_id);
       distributed++;
@@ -1007,7 +1016,31 @@ router.put('/settings/distribution-bonus', async (req, res) => {
   }
 });
 
-// 配布前の試算（DBは変更しない）
+// 共闘目標の段階（達成率%と付与pt、全イベント共通）
+router.get('/settings/coop-tiers', async (req, res) => {
+  try {
+    res.json(await getCoopTiers(pool));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/settings/coop-tiers', async (req, res) => {
+  try {
+    const tiers = (Array.isArray(req.body.tiers) ? req.body.tiers : [])
+      .map(t => ({ pct: parseInt(t.pct, 10), pts: parseInt(t.pts, 10) }))
+      .filter(t => t.pct > 0 && t.pts >= 0)
+      .sort((a, b) => a.pct - b.pct);
+    if (!tiers.length) return res.status(400).json({ error: '段階を1つ以上設定してください' });
+    await pool.query('INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2', [COOP_TIERS_KEY, JSON.stringify(tiers)]);
+    res.json(tiers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // レート計算の試算（DBは変更しない）。S以上の全員について
 //   current: 今保存されている値 / all: 今の式で全員を再計算 / v2: 新しい式で全員を再計算
 router.get('/rate-preview', async (req, res) => {
@@ -1055,6 +1088,31 @@ router.get('/rate-preview', async (req, res) => {
   }
 });
 
+// 共闘目標の状況（管理画面用：合計スコアも返す）と、目標を決める参考に前回の同じ種別の合計
+router.get('/events/:id/coop-info', async (req, res) => {
+  try {
+    const ev = (await pool.query('SELECT * FROM events WHERE id=$1', [req.params.id])).rows[0];
+    if (!ev) return res.status(404).json({ error: 'イベントが見つかりません' });
+    const sumOf = async id => (await pool.query(
+      `SELECT COALESCE(SUM(approved_score), 0)::float AS total, COUNT(DISTINCT user_id)::int AS participants
+       FROM scores WHERE event_id = $1 AND approved_score IS NOT NULL AND ranking_scope IN ('public', 'external')`, [id])).rows[0];
+    const prevEv = (await pool.query(
+      `SELECT id, event_number FROM events WHERE event_type = $1 AND event_number < $2 ORDER BY event_number DESC LIMIT 1`,
+      [ev.event_type, ev.event_number])).rows[0];
+    const cur = await sumOf(ev.id);
+    const status = await getCoopStatus(pool, ev);
+    res.json({
+      total: cur.total, participants: cur.participants,
+      progress: status ? status.progress : null,
+      prev: prevEv ? { event_number: prevEv.event_number, ...(await sumOf(prevEv.id)) } : null,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 配布前の試算（DBは変更しない）
 router.get('/events/:id/distribution-preview', async (req, res) => {
   try {
     const ev = await pool.query('SELECT * FROM events WHERE id=$1', [req.params.id]);
@@ -1062,6 +1120,7 @@ router.get('/events/:id/distribution-preview', async (req, res) => {
     const dist = await computeExternalDistribution(pool, ev.rows[0]);
     res.json({
       bonus: dist.bonus, participants: dist.participants,
+      coop: dist.coop && { progress: dist.coop.progress, bonus: dist.coop.bonus },
       total: dist.rows.reduce((s, r) => s + r.total, 0),
       rows: dist.rows.map(({ best_pt, ...r }) => r), // pt換算値は管理画面にも出さない
     });

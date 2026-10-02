@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
+const { getCoopStatus, publicCoop } = require('../utils/coop');
 
 // 全イベント一覧（公開：is_active=trueのみ）
 router.get('/', optionalAuth, async (req, res) => {
@@ -19,7 +20,7 @@ router.get('/', optionalAuth, async (req, res) => {
         (SELECT en.destruction_rate FROM enemies en WHERE en.event_id = e.id ORDER BY en.order_index LIMIT 1) AS first_enemy_destruction_rate
        FROM events e ${where} ORDER BY e.event_number DESC`
     );
-    res.json(result.rows.map(r => ({ ...r, first_enemy_image: optimizeUrl(r.first_enemy_image) })));
+    res.json(result.rows.map(({ coop_target, ...r }) => ({ ...r, first_enemy_image: optimizeUrl(r.first_enemy_image) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -129,7 +130,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
        ORDER BY l.order_index`,
       [req.params.id]
     );
-    res.json({ ...event, enemies: enemiesResult.rows.map(e => ({ ...e, image_url: optimizeUrl(e.image_url) })), rules: rulesResult.rows, notes: notesResult.rows });
+    // 共闘目標は coop にまとめて返す
+    const { coop_target, ...eventPublic } = event;
+    const coop = publicCoop(await getCoopStatus(pool, event));
+    res.json({ ...eventPublic, coop, enemies: enemiesResult.rows.map(e => ({ ...e, image_url: optimizeUrl(e.image_url) })), rules: rulesResult.rows, notes: notesResult.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

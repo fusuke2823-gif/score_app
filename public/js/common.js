@@ -923,6 +923,7 @@ function renderDistNoticeModal(idx) {
         <tr><td>属性順位ボーナス</td><td>+${b.parts.attr_rank}pt</td></tr>
         <tr><td>属性スコアボーナス</td><td>+${b.parts.attr_score}pt</td></tr>
         ${attrLines ? `<tr class="sub"><td>　属性ごとの内訳（順位 / スコア）</td><td></td></tr>${attrLines}` : ''}
+        ${b.parts.coop ? `<tr><td>共闘目標ボーナス${b.coop ? `（${b.coop.pct}%達成）` : ''}</td><td>+${b.parts.coop}pt</td></tr>` : ''}
         <tr class="total"><td>合計</td><td>+${d.user_pts}pt</td></tr>
       </table>
       <div class="rank-pts-note">順位ボーナスは順位が高いほど、スコアボーナスは1位のスコアに近いほど多くなります。属性ボーナスは投稿した属性ごとにもらえます。</div>
@@ -964,7 +965,7 @@ function animateDistPts(d) {
   const total = Number(d.user_pts) || 0;
   const p = d.breakdown && d.breakdown.parts;
   const steps = p
-    ? [['参加ボーナス', p.participation], ['総合順位ボーナス', p.overall_rank], ['総合スコアボーナス', p.overall_score], ['属性順位ボーナス', p.attr_rank], ['属性スコアボーナス', p.attr_score]].filter(([, v]) => v > 0)
+    ? [['参加ボーナス', p.participation], ['総合順位ボーナス', p.overall_rank], ['総合スコアボーナス', p.overall_score], ['属性順位ボーナス', p.attr_rank], ['属性スコアボーナス', p.attr_score], ['共闘目標ボーナス', p.coop || 0]].filter(([, v]) => v > 0)
     : [[null, total]];
   let skipped = false;
   const finish = () => {

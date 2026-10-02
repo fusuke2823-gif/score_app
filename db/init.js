@@ -763,6 +763,9 @@ const initDB = async () => {
       INSERT INTO settings (key, value) VALUES ('dist_bonus_overall_score', '150') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('dist_bonus_attr_rank', '40') ON CONFLICT (key) DO NOTHING;
       INSERT INTO settings (key, value) VALUES ('dist_bonus_attr_score', '25') ON CONFLICT (key) DO NOTHING;
+      -- 共闘目標：目標スコア（全員の合計、100%の値）。NULLなら共闘目標なし
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS coop_target BIGINT;
+      INSERT INTO settings (key, value) VALUES ('coop_tiers', '[{"pct":100,"pts":100},{"pct":150,"pts":200},{"pct":200,"pts":300}]') ON CONFLICT (key) DO NOTHING;
       CREATE TABLE IF NOT EXISTS ext_distribution_details (
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -5,11 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ランキング - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+/* 共闘目標 */
+.coop-card { margin:2px 0 14px; padding:9px 14px 8px; border-radius:10px; background:linear-gradient(135deg, rgba(212,175,106,0.14), rgba(84,194,255,0.04)), var(--bg-card); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); border:1px solid rgba(212,175,106,0.35); box-shadow:0 4px 16px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08); }
+.coop-head { display:flex; align-items:baseline; gap:8px; }
+.coop-title { font-size:0.85rem; font-weight:bold; color:#d4af6a; letter-spacing:0.04em; display:flex; align-items:center; gap:5px; align-self:center; }
+.coop-title svg { width:16px; height:16px; }
+.coop-pct { margin-left:auto; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:1.25rem; line-height:1; color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.coop-pct span { font-size:0.8rem; margin-left:1px; opacity:0.7; }
+.coop-track { position:relative; height:7px; border-radius:99px; background:rgba(255,255,255,0.08); margin:7px 5px 6px; }
+.coop-fill { position:absolute; inset:0 auto 0 0; border-radius:99px; background:linear-gradient(90deg, #b8893f, #f0d08a); box-shadow:0 0 8px rgba(240,208,138,0.45); transition:width 0.9s cubic-bezier(.2,.8,.2,1); }
+.coop-tier { position:absolute; top:50%; transform:translate(-50%,-50%); width:12px; height:12px; border-radius:50%; background:var(--bg-primary); border:2px solid rgba(255,255,255,0.3); }
+.coop-tier.reached { background:#f0d08a; border-color:#fff3d0; box-shadow:0 0 6px rgba(240,208,138,0.8); }
+.coop-foot { display:flex; justify-content:space-between; gap:8px; font-size:0.72rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.coop-foot .ok { color:#f0d08a; font-weight:bold; }
+.coop-foot span:last-child { white-space:nowrap; }
+</style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main>
   <div id="event-header"></div>
+  <div id="coop-section"></div>
   <div id="alert"></div>
 
   <!-- 敵情報 -->
@@ -242,6 +259,8 @@ async function loadEvent() {
       ${renderSubmissionPeriod(event)}
     `;
 
+    renderCoop(event);
+
     let enemySectionHtml = '';
     if (event.enemies && event.enemies.length > 0) {
       enemySectionHtml += `
@@ -303,6 +322,38 @@ async function loadEvent() {
   } catch (err) {
     showAlert('#alert', err.message);
   }
+}
+
+// 共闘目標：みんなの合計スコアと目標（100%の値）。バーの右端は次の段階（100%未達成なら100%、達成すれば150%…）、
+// 全段階を達成したら最後の段階まで。目標の無い回は出さない
+const COOP_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 19c.6-3 2.8-5 5.5-5s4.9 2 5.5 5"/><path d="M13.6 14.6c.7-.4 1.5-.6 2.4-.6 2.7 0 4.9 2 5.5 5"/></svg>';
+function renderCoop(event) {
+  const el = document.getElementById('coop-section');
+  const c = event.coop;
+  if (!c || !c.tiers || !c.tiers.length) { el.innerHTML = ''; return; }
+  const ended = !!(event.submission_end && new Date() > new Date(event.submission_end));
+  const next = c.tiers.find(t => !t.reached);
+  const scaleTier = next || c.tiers[c.tiers.length - 1];
+  const pos = pct => `${Math.min(100, (pct / scaleTier.pct) * 100)}%`;
+  const n = v => Math.round(v).toLocaleString('ja-JP');
+  const status = c.bonus > 0 && !next
+    ? `<span class="ok">${ended ? '達成！' : '全段階達成！'} 参加者に+${c.bonus}pt</span>`
+    : ended
+      ? (c.bonus > 0 ? `<span class="ok">達成！ 参加者に+${c.bonus}pt</span>` : '<span>未達成</span>')
+      : `<span>${c.bonus > 0 ? `<span class="ok">+${c.bonus}pt獲得</span> ／ ` : ''}${next.pct}%で+${next.pts}pt</span>`;
+  el.innerHTML = `
+    <div class="coop-card">
+      <div class="coop-head">
+        <div class="coop-title">${COOP_ICON}共闘目標</div>
+        <div class="coop-pct">${c.progress.toFixed(1)}<span>%</span></div>
+      </div>
+      <div class="coop-track">
+        <div class="coop-fill" style="width:0"></div>
+        ${c.tiers.filter(t => t.pct <= scaleTier.pct).map(t => `<div class="coop-tier${t.reached ? ' reached' : ''}" style="left:${pos(t.pct)}"></div>`).join('')}
+      </div>
+      <div class="coop-foot"><span>${n(c.total)} / ${n(c.target)}</span>${status}</div>
+    </div>`;
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.querySelector('.coop-fill').style.width = pos(c.progress); }));
 }
 
 function renderEnemy(enemy) {
