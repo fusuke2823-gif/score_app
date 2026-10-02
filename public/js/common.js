@@ -853,7 +853,7 @@ async function initInterimDistributionNotice() {
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
     const unseen = (final || []).filter(isNew).filter(d => d.user_rank != null)
       .map(d => ({ ...d, scope: 'external', period: t('dist.type_final'), is_final: true }))
-      .sort((a, b) => new Date(b.distributed_at) - new Date(a.distributed_at));
+      .sort((a, b) => new Date(a.distributed_at) - new Date(b.distributed_at));
     if (unseen.length === 0) return;
 
     const style = document.createElement('style');
