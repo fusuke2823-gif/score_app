@@ -209,22 +209,22 @@ async function loadExtDistributable() {
         </div>
         <div style="font-size:0.82rem;color:var(--text-muted)">称号付与（任意）</div>
         <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.82rem">
-          <label><input type="checkbox" id="et-r1-${e.id}" checked> 優勝</label>
-          <label><input type="checkbox" id="et-r2-${e.id}"> 準優勝</label>
-          <label><input type="checkbox" id="et-r3-${e.id}"> 3位</label>
-          <label><input type="checkbox" id="et-top10-${e.id}"> TOP10</label>
-          <label><input type="checkbox" id="et-top30-${e.id}"> TOP30</label>
-          <label><input type="checkbox" id="et-top50-${e.id}"> TOP50</label>
+          <label><input type="checkbox" id="et-r1-${e.id}" data-tier-group="overall-${e.id}" data-tier="0" checked> 優勝</label>
+          <label><input type="checkbox" id="et-r2-${e.id}" data-tier-group="overall-${e.id}" data-tier="1"> 準優勝</label>
+          <label><input type="checkbox" id="et-r3-${e.id}" data-tier-group="overall-${e.id}" data-tier="2"> 3位</label>
+          <label><input type="checkbox" id="et-top10-${e.id}" data-tier-group="overall-${e.id}" data-tier="3"> TOP10</label>
+          <label><input type="checkbox" id="et-top30-${e.id}" data-tier-group="overall-${e.id}" data-tier="4"> TOP30</label>
+          <label><input type="checkbox" id="et-top50-${e.id}" data-tier-group="overall-${e.id}" data-tier="5"> TOP50</label>
         </div>
         <div style="font-size:0.78rem;color:var(--text-muted)">属性別称号（1位/2位/3位/TOP5）</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:0.78rem">
           ${AWARD_ATTRS.map(a => `
             <span style="display:inline-flex;gap:4px;align-items:center;background:var(--bg-primary);padding:3px 8px;border-radius:6px">
               <b>${a}</b>
-              <label><input type="checkbox" id="et-a1-${a}-${e.id}"> 1位</label>
-              <label><input type="checkbox" id="et-a2-${a}-${e.id}"> 2位</label>
-              <label><input type="checkbox" id="et-a3-${a}-${e.id}"> 3位</label>
-              <label><input type="checkbox" id="et-a5-${a}-${e.id}"> TOP5</label>
+              <label><input type="checkbox" id="et-a1-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="0"> 1位</label>
+              <label><input type="checkbox" id="et-a2-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="1"> 2位</label>
+              <label><input type="checkbox" id="et-a3-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="2"> 3位</label>
+              <label><input type="checkbox" id="et-a5-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="3"> TOP5</label>
             </span>`).join('')}
         </div>
         <div style="display:flex;justify-content:flex-end;gap:8px">
@@ -237,6 +237,15 @@ async function loadExtDistributable() {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
+
+// 称号：下位の枠（例: TOP30）にチェックしたら、それより上位の枠も自動でチェックする
+document.addEventListener('change', e => {
+  const cb = e.target;
+  if (!cb.checked || !cb.dataset.tierGroup) return;
+  document.querySelectorAll(`input[data-tier-group="${cb.dataset.tierGroup}"]`).forEach(x => {
+    if (Number(x.dataset.tier) < Number(cb.dataset.tier)) x.checked = true;
+  });
+});
 
 // 配布前の試算：1人ずつの内訳（DBは変更しない）
 async function previewDistribution(id) {

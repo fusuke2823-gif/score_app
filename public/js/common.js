@@ -1070,7 +1070,7 @@ async function renderDistResultImage(d, includeUnsubmitted = true, boxId = 'dist
         <input type="checkbox" class="result-include-unsub" ${includeUnsubmitted ? 'checked' : ''}>
         未提出の属性も表示する
       </label>
-      <button type="button" class="btn btn-secondary btn-sm result-share-btn" style="margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px">${xSvg}Xで共有</button>
+      <button type="button" class="btn btn-secondary btn-sm result-share-btn" style="margin-top:8px;width:100%;display:flex;align-items:center;justify-content:center;gap:6px">${xSvg}共有</button>
     `;
     box.querySelector('.result-include-unsub').addEventListener('change', e => {
       renderDistResultImage(d, e.target.checked, boxId);
@@ -1086,7 +1086,7 @@ async function renderDistResultImage(d, includeUnsubmitted = true, boxId = 'dist
 //  ・スマホなど共有メニューが使える端末 … 画像ファイルを添付して共有メニューを開く（X を選ぶと画像付きで投稿できる）
 //  ・それ以外（PC） … 画像を OGP 付きの共有ページ（/s/:id）にアップロードし、X の投稿画面を開く
 async function shareResultImage(dataUrl, d, btn) {
-  const tweetText = '\n\n非公式ファンサイト\n「ヘブバンランクボード」\nhebuban-rankboard.com\n#ヘブバン #ヘブバンランクボード';
+  const tweetText = '（自由記述）\n\n非公式ファンサイト\n「ヘブバンランクボード」\nhebuban-rankboard.com\n#ヘブバン #ヘブバンランクボード';
   const original = btn ? btn.innerHTML : '';
 
   let file = null;
