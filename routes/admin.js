@@ -4,7 +4,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { updateUserRanks, approveScoreRow } = require('./rankUtils');
+const { updateUserRanks, approveScoreRow, getCombinedXPt, getCombinedXPtV2, rankFromCombined, legendRanksFor } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
 const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
@@ -1008,6 +1008,37 @@ router.put('/settings/distribution-bonus', async (req, res) => {
 });
 
 // 配布前の試算（DBは変更しない）
+// レート計算の試算（DBは変更しない）。S以上の全員について
+//   current: 今保存されている値 / all: 今の式で全員を再計算 / v2: 新しい式で全員を再計算
+router.get('/rate-preview', async (req, res) => {
+  try {
+    const maxEv = (await pool.query('SELECT MAX(event_number)::int AS n FROM events WHERE points_distributed_external = TRUE')).rows[0].n;
+    const { rows: users } = await pool.query(
+      `SELECT id, username, comp_rank, s_rate::float, x_rate::float FROM users
+       WHERE comp_rank IN ('S','X','Ex','Legend')`
+    );
+    const all = [], v2 = [];
+    for (const u of users) {
+      const [oldPt, newPt] = await Promise.all([getCombinedXPt(pool, u.id, maxEv), getCombinedXPtV2(pool, u.id, maxEv)]);
+      all.push({ id: u.id, ...rankFromCombined(u.comp_rank, u.x_rate, oldPt) });
+      v2.push({ id: u.id, ...rankFromCombined(u.comp_rank, u.x_rate, newPt) });
+    }
+    const allRank = legendRanksFor(all), v2Rank = legendRanksFor(v2);
+    // 表示用のレート：S は Sレート、X以上は Xレート
+    const view = (rank, sRate, xRate) => ({ rank, rate: rank === 'S' ? sRate : xRate });
+    const rows = users.map((u, i) => ({
+      id: u.id, username: u.username,
+      current: view(u.comp_rank, u.s_rate, u.x_rate),
+      all: view(allRank.get(u.id), all[i].sRate, all[i].xRate),
+      v2: view(v2Rank.get(u.id), v2[i].sRate, v2[i].xRate),
+    }));
+    res.json({ max_event_number: maxEv, rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.get('/events/:id/distribution-preview', async (req, res) => {
   try {
     const ev = await pool.query('SELECT * FROM events WHERE id=$1', [req.params.id]);

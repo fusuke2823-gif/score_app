@@ -93,6 +93,18 @@
       <div id="ext-points-alert" style="margin-bottom:12px"></div>
       <div id="ext-distributable-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
+
+    <!-- レート計算の試算（DBは変更しない） -->
+    <div class="card" style="margin-top:20px">
+      <div class="section-title" style="margin:0 0 4px">レート計算の試算</div>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
+        S以上の全員について、今のレートと計算し直した場合を並べます（DBは変更しません）。<br>
+        今の式（全員）… 今の計算式のまま、投稿しなかった人も含めて全員を再計算<br>
+        新しい式 … 直近5回のうち上位3回の平均（欠席はベストを割り引いて埋める）、EXは参加した回を新しさで割り引いた最大値
+      </p>
+      <button class="btn btn-secondary btn-sm" onclick="previewRates()">試算する</button>
+      <div id="rate-preview" style="margin-top:12px"></div>
+    </div>
   </div>
 
   <!-- ポイント履歴タブ -->
@@ -272,6 +284,44 @@ async function previewDistribution(id) {
               <td style="font-weight:bold;color:var(--accent)">${n(r.total)}</td>
               <td style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap">${r.attrs.map(a => `${escHtml(a.attribute)}${a.rank}位(+${a.rank_bonus}/+${a.score_bonus})`).join(' ')}</td>
             </tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+  }
+}
+
+// レート計算の試算
+const RANK_ORDER = { S: 0, X: 1, Ex: 2, Legend: 3 };
+const rateKey = v => (v.rate == null ? -Infinity : v.rank === 'S' ? v.rate : v.rate + 1000);
+async function previewRates() {
+  const el = document.getElementById('rate-preview');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const p = await apiFetch('/admin/rate-preview');
+    if (!p.rows.length) { el.innerHTML = '<div class="form-hint">S以上のユーザーがいません</div>'; return; }
+    const rows = p.rows.sort((a, b) => rateKey(b.v2) - rateKey(a.v2));
+    const fmt = v => `${v.rank} ${v.rate == null ? '-' : Math.round(v.rate)}`;
+    const diff = r => rateKey(r.v2) - rateKey(r.current);
+    const rankMark = (from, to) => RANK_ORDER[to] > RANK_ORDER[from] ? 'color:#4caf7a;font-weight:bold' : RANK_ORDER[to] < RANK_ORDER[from] ? 'color:#e05a5a;font-weight:bold' : '';
+    const up = rows.filter(r => diff(r) >= 1).length, down = rows.filter(r => diff(r) <= -1).length;
+    const rankChanged = rows.filter(r => r.v2.rank !== r.current.rank).length;
+    el.innerHTML = `
+      <div style="font-size:0.82rem;margin:4px 0 6px">対象 ${rows.length}人（第${p.max_event_number}回まで）／ 新しい式で 上がる ${up}人・下がる ${down}人・ランクが変わる ${rankChanged}人</div>
+      <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
+        <table class="table dist-preview-table">
+          <thead><tr><th>#</th><th>ユーザー</th><th>現在</th><th>今の式（全員）</th><th>新しい式</th><th>差（新しい式−現在）</th></tr></thead>
+          <tbody>${rows.map((r, i) => {
+            const d = diff(r);
+            return `<tr>
+              <td>${i + 1}</td>
+              <td>${escHtml(r.username)}</td>
+              <td>${fmt(r.current)}</td>
+              <td style="${rankMark(r.current.rank, r.all.rank)}">${fmt(r.all)}</td>
+              <td style="${rankMark(r.current.rank, r.v2.rank)}">${fmt(r.v2)}</td>
+              <td style="text-align:left;color:${d >= 1 ? '#4caf7a' : d <= -1 ? '#e05a5a' : 'var(--text-muted)'}">${Number.isFinite(d) ? (d > 0 ? '+' : '') + Math.round(d) : '-'}</td>
+            </tr>`;
+          }).join('')}</tbody>
         </table>
       </div>`;
   } catch (err) {

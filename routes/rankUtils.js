@@ -143,6 +143,75 @@ async function getCombinedXPt(client, userId, maxEventNumber) {
   return newBestPt * 0.40 + saSeraphRecent4 * 0.40 + exDecayed * 0.20;
 }
 
+// ===== 新しいレート計算（試算中。出して損をしない形） =====
+// 直近N回のうち上位K回の平均。欠席の枠は「ベスト × (FILL_BASE − FILL_STEP × 欠席回数)」で埋めた候補として扱う。
+// 候補の上位K個を取るので、投稿が増えて候補が増えても平均は下がらない（欠席回数が減ると埋める値も上がる）
+const RECENT_N = 5;
+const RECENT_K = 3;
+const RECENT_FILL_BASE = 0.8;
+const RECENT_FILL_STEP = 0.1;
+
+async function getRecentTopKPt(client, userId, eventTypes, bestPt, maxEventNumber) {
+  const { rows } = await client.query(
+    `SELECT e.event_type, MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score
+     FROM (
+       SELECT id, event_number, event_type, score_multiplier FROM events
+       WHERE event_type = ANY($1) AND ($3::int IS NULL OR event_number <= $3)
+       ORDER BY event_number DESC LIMIT ${RECENT_N}
+     ) e
+     LEFT JOIN scores s ON s.event_id = e.id AND s.user_id = $2
+       AND s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'internal', 'external')
+     GROUP BY e.id, e.event_type`,
+    [eventTypes, userId, maxEventNumber]
+  );
+  const pts = rows.filter(r => r.score != null).map(r => ptForEventType(r.event_type, r.score));
+  const missed = rows.length - pts.length;
+  const fill = bestPt * Math.max(0, RECENT_FILL_BASE - RECENT_FILL_STEP * missed);
+  const candidates = [...pts, ...Array(RECENT_K).fill(fill)].sort((a, b) => b - a);
+  return candidates.slice(0, RECENT_K).reduce((s, p) => s + p, 0) / RECENT_K;
+}
+
+// EX：参加した各回の最高pt × 0.9^(その回より後のEXの回数) の最大値。出た回が増えても下がらない
+async function getExDecayedBestPt(client, userId, maxEventNumber) {
+  const { rows } = await client.query(
+    `SELECT MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score,
+            (SELECT COUNT(*)::int FROM events e2
+             WHERE e2.event_type = 'score_attack_ex' AND e2.event_number > e.event_number
+               AND ($2::int IS NULL OR e2.event_number <= $2)) AS later
+     FROM scores s JOIN events e ON e.id = s.event_id
+     WHERE s.user_id = $1 AND s.approved_score IS NOT NULL
+       AND s.ranking_scope IN ('public', 'internal', 'external')
+       AND e.event_type = 'score_attack_ex' AND ($2::int IS NULL OR e.event_number <= $2)
+     GROUP BY e.id, e.event_number`,
+    [userId, maxEventNumber]
+  );
+  return rows.reduce((max, r) => Math.max(max, convertExScoreToPoints(r.score) * Math.pow(0.9, r.later)), 0);
+}
+
+// 新しい合成pt = ベスト40% + スコアタ・遭遇戦の直近5回中上位3回40% + EX減衰ベスト20%
+async function getCombinedXPtV2(client, userId, maxEventNumber) {
+  const bestPt = await getBestPtAllTypes(client, userId, maxEventNumber);
+  const [recent, ex] = await Promise.all([
+    getRecentTopKPt(client, userId, ['score_attack', 'seraph'], bestPt, maxEventNumber),
+    getExDecayedBestPt(client, userId, maxEventNumber),
+  ]);
+  return bestPt * 0.40 + recent * 0.40 + ex * 0.20;
+}
+
+// S以上のユーザーの合成ptからランクとレートを決める（Legendは X/Ex に戻し、syncLegendRanks で判定する）
+function rankFromCombined(rank, prevXRate, combinedXPt) {
+  const sRate = combinedXPt - 500;
+  if (rank === 'S') {
+    if (sRate < 1000) return { rank: 'S', sRate, xRate: prevXRate };
+    const xRate = rateForXPt(combinedXPt);
+    if (xRate < 0) return { rank: 'S', sRate, xRate: null };
+    return { rank: xRate >= 1500 ? 'Ex' : 'X', sRate, xRate };
+  }
+  const xRate = rateForXPt(combinedXPt);
+  if (xRate < 0) return { rank: 'S', sRate, xRate: null };
+  return { rank: xRate >= 1500 ? 'Ex' : 'X', sRate: Math.min(sRate, 1000), xRate };
+}
+
 async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) {
   for (const userId of userIds) {
     const userRow = (await client.query(
@@ -169,32 +238,9 @@ async function updateUserRanks(client, userIds, { maxEventNumber = null } = {}) 
     // S/X/Ex/Legendレート計算（SレートもXレートも同じ合成ptから算出）
     if (['S', 'X', 'Ex', 'Legend'].includes(newRank)) {
       // 合成pt（ベスト40%+スコアタ・遭遇戦混合の直近4回平均40%+EX直近減衰20%）
+      // X or Ex or Legend は一旦X/Exまで戻し、Legendへの再昇格はsyncLegendRanksでまとめて判定する
       const combinedXPt = await getCombinedXPt(client, userId, maxEventNumber);
-      const sRate = combinedXPt - 500;
-
-      if (newRank === 'S') {
-        newSRate = sRate;
-        if (sRate >= 1000) {
-          newXRate = rateForXPt(combinedXPt);
-          if (newXRate < 0) {
-            newXRate = null;
-          } else {
-            newRank = newXRate >= 1500 ? 'Ex' : 'X';
-          }
-        }
-      } else {
-        // X or Ex or Legend（一旦X/Exまで戻し、Legendへの再昇格はsyncLegendRanksでまとめて判定する）
-        newXRate = rateForXPt(combinedXPt);
-        newSRate = Math.min(sRate, 1000);
-
-        if (newXRate < 0) {
-          newRank = 'S';
-          newSRate = sRate;
-          newXRate = null;
-        } else {
-          newRank = newXRate >= 1500 ? 'Ex' : 'X';
-        }
-      }
+      ({ rank: newRank, sRate: newSRate, xRate: newXRate } = rankFromCombined(newRank, newXRate, combinedXPt));
     }
 
     await client.query(
@@ -211,6 +257,13 @@ const LEGEND_MIN_RATE = 2000;
 const LEGEND_TOP_N = 10;
 
 // Xレート2000以上のユーザーを対象に、上位10人をLegendへ昇格・それ以外(元Legend含む)はExへ差し戻す
+// Legend判定だけを行う純粋な関数（試算用）。users: [{ id, rank, xRate }] → id ごとの新しいランク
+function legendRanksFor(users) {
+  const sorted = users.filter(u => u.xRate != null && u.xRate >= LEGEND_MIN_RATE).sort((a, b) => b.xRate - a.xRate);
+  const legend = new Set(sorted.slice(0, LEGEND_TOP_N).map(u => u.id));
+  return new Map(users.map(u => [u.id, legend.has(u.id) ? 'Legend' : (u.rank === 'Legend' ? 'Ex' : u.rank)]));
+}
+
 async function syncLegendRanks(client) {
   const { rows } = await client.query(
     `SELECT id, comp_rank, x_rate FROM users
@@ -328,6 +381,9 @@ module.exports = {
   getDecayedModePt,
   getBestPtAllTypes,
   getCombinedXPt,
+  getCombinedXPtV2,
+  rankFromCombined,
+  legendRanksFor,
   updateUserRanks,
   syncLegendRanks,
   approveScoreRow,
