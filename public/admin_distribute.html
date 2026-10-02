@@ -23,7 +23,7 @@
 .dist-preview-table th:nth-child(2), .dist-preview-table td:nth-child(2), .dist-preview-table th:last-child, .dist-preview-table td:last-child { text-align:left; }
 .dist-preview-table thead th { position:sticky; top:0; background:var(--bg-modal); }
 .rate-opts { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin-bottom:12px; font-size:0.85rem; }
-.rate-opts input { width:56px; padding:4px 6px; margin:0 2px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
+.rate-opts input[type=number] { width:56px; padding:4px 6px; margin:0 2px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
 .rate-opts-sum { font-size:0.78rem; color:var(--text-muted); }
 .rate-opts-sum.warn { color:#e0a040; font-weight:bold; }
 </style>
@@ -323,6 +323,14 @@ async function previewRates() {
   try {
     const p = await apiFetch('/admin/rate-preview?' + qs);
     if (!p.rows.length) { el.innerHTML = '<div class="form-hint">S以上のユーザーがいません</div>'; return; }
+    // 順位：今の値での並びと、新しい式での並び（同じレートは同じ順位）
+    const positions = key => {
+      const sorted = [...p.rows].sort((a, b) => key(b) - key(a));
+      const m = new Map();
+      sorted.forEach((r, i) => m.set(r.id, i > 0 && key(r) === key(sorted[i - 1]) ? m.get(sorted[i - 1].id) : i + 1));
+      return m;
+    };
+    const curPos = positions(r => rateKey(r.current)), newPos = positions(r => rateKey(r.v2));
     const rows = p.rows.sort((a, b) => rateKey(b.v2) - rateKey(a.v2));
     const fmt = v => `${v.rank} ${v.rate == null ? '-' : Math.round(v.rate)}`;
     const diff = r => rateKey(r.v2) - rateKey(r.current);
@@ -334,13 +342,15 @@ async function previewRates() {
       <div style="font-size:0.82rem;margin:0 0 6px">対象 ${rows.length}人（第${p.max_event_number}回まで）／ 新しい式で 上がる ${up}人・下がる ${down}人・ランクが変わる ${rankChanged}人</div>
       <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
         <table class="table dist-preview-table">
-          <thead><tr><th>#</th><th>ユーザー</th><th>直近の出場</th><th>現在</th><th>今の式（全員）</th><th>新しい式</th><th>差（新しい式−現在）</th></tr></thead>
+          <thead><tr><th>#</th><th>ユーザー</th><th>直近の出場</th><th>順位（今→新）</th><th>現在</th><th>今の式（全員）</th><th>新しい式</th><th>差（新しい式−現在）</th></tr></thead>
           <tbody>${rows.map((r, i) => {
             const d = diff(r);
             return `<tr>
               <td>${i + 1}</td>
               <td>${escHtml(r.username)}</td>
               <td style="color:${r.recent_count >= p.opts.recentK ? 'var(--text-secondary)' : '#e0a040'}">${r.recent_count}/${p.opts.recentN}</td>
+              <td>${(() => { const a = curPos.get(r.id), b = newPos.get(r.id), dp = a - b;
+                return `${a} → ${b} <span style="color:${dp > 0 ? '#4caf7a' : dp < 0 ? '#e05a5a' : 'var(--text-muted)'}">(${dp > 0 ? '+' + dp : dp < 0 ? dp : '±0'})</span>`; })()}</td>
               <td>${fmt(r.current)}</td>
               <td style="${rankMark(r.current.rank, r.all.rank)}">${fmt(r.all)}</td>
               <td style="${rankMark(r.current.rank, r.v2.rank)}">${fmt(r.v2)}</td>
