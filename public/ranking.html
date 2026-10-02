@@ -14,6 +14,7 @@
 .coop-pct { margin-left:auto; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:1.25rem; line-height:1; color:var(--text-primary); font-variant-numeric:tabular-nums; }
 .coop-pct span { font-size:0.8rem; margin-left:1px; opacity:0.7; }
 .coop-track { position:relative; height:7px; border-radius:99px; background:rgba(255,255,255,0.08); margin:7px 5px 6px; }
+.coop-track.more { background:linear-gradient(90deg, rgba(255,255,255,0.08) 86%, rgba(255,255,255,0.05) 92%, transparent 100%); border-radius:99px 0 0 99px; }
 .coop-fill { position:absolute; inset:0 auto 0 0; border-radius:99px; background:linear-gradient(90deg, #b8893f, #f0d08a); box-shadow:0 0 8px rgba(240,208,138,0.45); transition:width 0.9s cubic-bezier(.2,.8,.2,1); }
 .coop-tier { position:absolute; top:50%; transform:translate(-50%,-50%); width:12px; height:12px; border-radius:50%; background:var(--bg-primary); border:2px solid rgba(255,255,255,0.3); }
 .coop-tier.reached { background:#f0d08a; border-color:#fff3d0; box-shadow:0 0 6px rgba(240,208,138,0.8); }
@@ -334,7 +335,10 @@ function renderCoop(event) {
   const ended = !!(event.submission_end && new Date() > new Date(event.submission_end));
   const next = c.tiers.find(t => !t.reached);
   const scaleTier = next || c.tiers[c.tiers.length - 1];
-  const pos = pct => `${Math.min(100, (pct / scaleTier.pct) * 100)}%`;
+  // まだ先の段階がある間は、右端の段階の〇を少し内側に置き、その先にバーが続いているように見せる
+  const hasMore = scaleTier !== c.tiers[c.tiers.length - 1];
+  const span = hasMore ? 88 : 100;
+  const pos = pct => `${Math.min(1, pct / scaleTier.pct) * span}%`;
   const n = v => Math.round(v).toLocaleString('ja-JP');
   const status = c.bonus > 0 && !next
     ? `<span class="ok">${ended ? '達成！' : '全段階達成！'} 参加者に+${c.bonus}pt</span>`
@@ -347,7 +351,7 @@ function renderCoop(event) {
         <div class="coop-title">${COOP_ICON}共闘目標</div>
         <div class="coop-pct">${c.progress.toFixed(1)}<span>%</span></div>
       </div>
-      <div class="coop-track">
+      <div class="coop-track${hasMore ? ' more' : ''}">
         <div class="coop-fill" style="width:0"></div>
         ${c.tiers.filter(t => t.pct <= scaleTier.pct).map(t => `<div class="coop-tier${t.reached ? ' reached' : ''}" style="left:${pos(t.pct)}"></div>`).join('')}
       </div>
