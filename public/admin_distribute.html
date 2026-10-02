@@ -100,7 +100,7 @@
       <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
         S以上の全員について、今のレートと計算し直した場合を並べます（DBは変更しません）。<br>
         今の式（全員）… 今の計算式のまま、投稿しなかった人も含めて全員を再計算<br>
-        新しい式 … 直近5回のうち上位3回の平均（欠席はベストを割り引いて埋める）、EXは参加した回を新しさで割り引いた最大値
+        新しい式 … 直近5回のうち良い3回の平均（出た回が3回に満たない分は0）、EXは参加した回を新しさで割り引いた最大値
       </p>
       <button class="btn btn-secondary btn-sm" onclick="previewRates()">試算する</button>
       <div id="rate-preview" style="margin-top:12px"></div>

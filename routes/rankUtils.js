@@ -144,14 +144,12 @@ async function getCombinedXPt(client, userId, maxEventNumber) {
 }
 
 // ===== 新しいレート計算（試算中。出して損をしない形） =====
-// 直近N回のうち上位K回の平均。欠席の枠は「ベスト × (FILL_BASE − FILL_STEP × 欠席回数)」で埋めた候補として扱う。
-// 候補の上位K個を取るので、投稿が増えて候補が増えても平均は下がらない（欠席回数が減ると埋める値も上がる）
+// 直近N回のうち上位K回の合計 ÷ K。出た回がK回に満たない分は0として数える。
+// 低い回は上位K回に入らないだけなので、投稿して下がることはない。休み続けると1回ずつ下がる
 const RECENT_N = 5;
 const RECENT_K = 3;
-const RECENT_FILL_BASE = 0.8;
-const RECENT_FILL_STEP = 0.1;
 
-async function getRecentTopKPt(client, userId, eventTypes, bestPt, maxEventNumber) {
+async function getRecentTopKPt(client, userId, eventTypes, maxEventNumber) {
   const { rows } = await client.query(
     `SELECT e.event_type, MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score
      FROM (
@@ -165,10 +163,7 @@ async function getRecentTopKPt(client, userId, eventTypes, bestPt, maxEventNumbe
     [eventTypes, userId, maxEventNumber]
   );
   const pts = rows.filter(r => r.score != null).map(r => ptForEventType(r.event_type, r.score));
-  const missed = rows.length - pts.length;
-  const fill = bestPt * Math.max(0, RECENT_FILL_BASE - RECENT_FILL_STEP * missed);
-  const candidates = [...pts, ...Array(RECENT_K).fill(fill)].sort((a, b) => b - a);
-  return candidates.slice(0, RECENT_K).reduce((s, p) => s + p, 0) / RECENT_K;
+  return pts.sort((a, b) => b - a).slice(0, RECENT_K).reduce((s, p) => s + p, 0) / RECENT_K;
 }
 
 // EX：参加した各回の最高pt × 0.9^(その回より後のEXの回数) の最大値。出た回が増えても下がらない
@@ -190,9 +185,9 @@ async function getExDecayedBestPt(client, userId, maxEventNumber) {
 
 // 新しい合成pt = ベスト40% + スコアタ・遭遇戦の直近5回中上位3回40% + EX減衰ベスト20%
 async function getCombinedXPtV2(client, userId, maxEventNumber) {
-  const bestPt = await getBestPtAllTypes(client, userId, maxEventNumber);
-  const [recent, ex] = await Promise.all([
-    getRecentTopKPt(client, userId, ['score_attack', 'seraph'], bestPt, maxEventNumber),
+  const [bestPt, recent, ex] = await Promise.all([
+    getBestPtAllTypes(client, userId, maxEventNumber),
+    getRecentTopKPt(client, userId, ['score_attack', 'seraph'], maxEventNumber),
     getExDecayedBestPt(client, userId, maxEventNumber),
   ]);
   return bestPt * 0.40 + recent * 0.40 + ex * 0.20;
