@@ -794,13 +794,13 @@ function poolTimeChip(end_at) {
   return `<span class="pool-chip${hours <= 72 ? ' is-hot' : ''}">${clock}${text}</span>`;
 }
 
-// ピックアップを扇状に並べる（画像のないプールの背景用）
+// ピックアップを扇状に並べる（画像のないプールの背景用）。右に行くほど上に重ねる
 function poolFanHTML(pickups) {
   const icons = pickups.slice(0, 5);
   const mid = (icons.length - 1) / 2;
   return `<div class="pool-fan">${icons.map((pu, i) => {
     const d = i - mid;
-    const style = `transform:translateX(${-50 + d * 62}%) translateY(${Math.abs(d) * 9}%) rotate(${d * 7}deg);z-index:${10 - Math.round(Math.abs(d) * 2)}`;
+    const style = `transform:translateX(${-50 + d * 62}%) translateY(${Math.abs(d) * 9}%) rotate(${d * 7}deg);z-index:${10 + i}`;
     return `<img src="${escHtml(thumbUrl(pu.image_url))}" alt="" style="${style}">`;
   }).join('')}</div>`;
 }
