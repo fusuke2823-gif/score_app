@@ -2096,7 +2096,7 @@ router.get('/announcements', async (req, res) => {
 });
 
 router.post('/announcements', upload.single('image'), async (req, res) => {
-  const { title, body, link_url, link_label, modal_start, modal_end } = req.body;
+  const { title, body, link_url, link_label, modal_start, modal_end, notify_registered_before } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: 'タイトルは必須です' });
   if (!body || !body.trim()) return res.status(400).json({ error: '本文は必須です' });
   try {
@@ -2112,8 +2112,8 @@ router.post('/announcements', upload.single('image'), async (req, res) => {
       imageUrl = result.secure_url;
     }
     const r = await pool.query(
-      `INSERT INTO announcements (title, body, link_url, link_label, image_url, modal_start, modal_end) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [title.trim(), body.trim(), link_url || null, link_label ? link_label.trim() : null, imageUrl, modal_start || null, modal_end || null]
+      `INSERT INTO announcements (title, body, link_url, link_label, image_url, modal_start, modal_end, notify_registered_before) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [title.trim(), body.trim(), link_url || null, link_label ? link_label.trim() : null, imageUrl, modal_start || null, modal_end || null, notify_registered_before || null]
     );
     res.json(r.rows[0]);
   } catch (err) {
@@ -2123,7 +2123,7 @@ router.post('/announcements', upload.single('image'), async (req, res) => {
 });
 
 router.put('/announcements/:id', upload.single('image'), async (req, res) => {
-  const { title, body, link_url, link_label, is_active, modal_start, modal_end } = req.body;
+  const { title, body, link_url, link_label, is_active, modal_start, modal_end, notify_registered_before } = req.body;
   if (!title || !title.trim()) return res.status(400).json({ error: 'タイトルは必須です' });
   if (!body || !body.trim()) return res.status(400).json({ error: '本文は必須です' });
   try {
@@ -2141,8 +2141,8 @@ router.put('/announcements/:id', upload.single('image'), async (req, res) => {
       imageUrl = result.secure_url;
     }
     const r = await pool.query(
-      `UPDATE announcements SET title=$1, body=$2, link_url=$3, link_label=$4, image_url=$5, is_active=$6, modal_start=$7, modal_end=$8, updated_at=NOW() WHERE id=$9 RETURNING *`,
-      [title.trim(), body.trim(), link_url || null, link_label ? link_label.trim() : null, imageUrl, is_active !== 'false' && is_active !== false, modal_start || null, modal_end || null, req.params.id]
+      `UPDATE announcements SET title=$1, body=$2, link_url=$3, link_label=$4, image_url=$5, is_active=$6, modal_start=$7, modal_end=$8, notify_registered_before=$10, updated_at=NOW() WHERE id=$9 RETURNING *`,
+      [title.trim(), body.trim(), link_url || null, link_label ? link_label.trim() : null, imageUrl, is_active !== 'false' && is_active !== false, modal_start || null, modal_end || null, req.params.id, notify_registered_before || null]
     );
     res.json(r.rows[0]);
   } catch (err) {

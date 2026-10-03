@@ -223,6 +223,11 @@
       <p style="font-size:0.78rem;color:var(--text-muted);margin:-8px 0 12px">
         この期間中に初めて訪れたユーザーにだけポップアップ表示されます（一覧ページには期間に関係なく常に表示）。
       </p>
+      <div class="form-group">
+        <label class="form-label">通知対象：この日時までに登録したユーザーのみ（任意・空欄なら全員）</label>
+        <input class="form-input" type="datetime-local" id="ann-notify-before" style="max-width:280px">
+        <div class="form-hint">対象外のユーザー（これより後に登録した人・ログインしていない人）にはポップアップを出しません。一覧ページには全員に表示されます。</div>
+      </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" id="ann-submit-btn" onclick="submitAnnouncement()">作成する</button>
         <button class="btn btn-secondary" id="ann-cancel-btn" onclick="cancelEditAnnouncement()" style="display:none">編集をキャンセル</button>
@@ -676,7 +681,7 @@ async function loadAnnouncements() {
         ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="max-width:200px;max-height:120px;border-radius:6px;display:block;margin-bottom:8px">` : ''}
         <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(a.body)}</div>
         ${a.link_url ? `<div style="font-size:0.8rem;margin-top:6px">「${escHtml(a.link_label || t('ann.detail'))}」→ <a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.link_url)}</a></div>` : ''}
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">${modalPeriodLabel(a)}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">${modalPeriodLabel(a)}${a.notify_registered_before ? ` ／ 通知対象: ${new Date(a.notify_registered_before).toLocaleString('ja-JP')} までに登録したユーザー` : ''}</div>
         <div style="display:flex;gap:8px;margin-top:10px">
           <button class="btn btn-secondary btn-sm" onclick='editAnnouncement(${JSON.stringify(a).replace(/'/g, "&#39;")})'>編集</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncementActive(${a.id}, ${!a.is_active})">${a.is_active ? '非公開にする' : '公開する'}</button>
@@ -694,6 +699,7 @@ function editAnnouncement(a) {
   document.getElementById('ann-link-label').value = a.link_label || '';
   document.getElementById('ann-modal-start').value = toLocalDatetime(a.modal_start);
   document.getElementById('ann-modal-end').value = toLocalDatetime(a.modal_end);
+  document.getElementById('ann-notify-before').value = toLocalDatetime(a.notify_registered_before);
   document.getElementById('ann-form-title').textContent = 'お知らせを編集';
   document.getElementById('ann-submit-btn').textContent = '更新する';
   document.getElementById('ann-cancel-btn').style.display = '';
@@ -709,6 +715,7 @@ function cancelEditAnnouncement() {
   document.getElementById('ann-image').value = '';
   document.getElementById('ann-modal-start').value = '';
   document.getElementById('ann-modal-end').value = '';
+  document.getElementById('ann-notify-before').value = '';
   document.getElementById('ann-form-title').textContent = 'お知らせを作成';
   document.getElementById('ann-submit-btn').textContent = '作成する';
   document.getElementById('ann-cancel-btn').style.display = 'none';
@@ -723,6 +730,7 @@ async function submitAnnouncement() {
   const imageFile = document.getElementById('ann-image').files[0];
   const modalStart = toISO(document.getElementById('ann-modal-start').value);
   const modalEnd = toISO(document.getElementById('ann-modal-end').value);
+  const notifyBefore = toISO(document.getElementById('ann-notify-before').value);
   if (!title) return showAlert('#ann-form-alert', 'タイトルを入力してください');
   if (!body) return showAlert('#ann-form-alert', '本文を入力してください');
 
@@ -734,6 +742,7 @@ async function submitAnnouncement() {
   if (imageFile) formData.append('image', imageFile);
   if (modalStart) formData.append('modal_start', modalStart);
   if (modalEnd) formData.append('modal_end', modalEnd);
+  if (notifyBefore) formData.append('notify_registered_before', notifyBefore);
 
   try {
     if (id) {
@@ -760,6 +769,7 @@ async function toggleAnnouncementActive(id, newActive) {
     if (cur.link_label) formData.append('link_label', cur.link_label);
     if (cur.modal_start) formData.append('modal_start', cur.modal_start);
     if (cur.modal_end) formData.append('modal_end', cur.modal_end);
+    if (cur.notify_registered_before) formData.append('notify_registered_before', cur.notify_registered_before);
     formData.append('is_active', String(newActive));
     await apiFormFetch(`/admin/announcements/${id}`, formData, 'PUT');
     loadAnnouncements();

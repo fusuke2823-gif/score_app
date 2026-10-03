@@ -609,6 +609,8 @@ const initDB = async () => {
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS modal_start TIMESTAMPTZ;
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS modal_end TIMESTAMPTZ;
       ALTER TABLE announcements ADD COLUMN IF NOT EXISTS link_label VARCHAR(50);
+      -- ポップアップ通知の対象：この日時までに登録したユーザーだけ（NULLなら全員）
+      ALTER TABLE announcements ADD COLUMN IF NOT EXISTS notify_registered_before TIMESTAMPTZ;
     `);
 
     // 属性ごとの掲示板（チャット）

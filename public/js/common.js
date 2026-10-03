@@ -609,13 +609,14 @@ renderNav = function() {
 // ===== お知らせモーダル（1人1回だけ表示） =====
 async function initAnnouncementCheck() {
   try {
-    const list = await fetch(API + '/announcements').then(r => r.json());
+    const token = getToken();
+    const list = await fetch(API + '/announcements', { headers: token ? { Authorization: 'Bearer ' + token } : {} }).then(r => r.json());
     if (!Array.isArray(list) || list.length === 0) return;
     const seenId = parseInt(localStorage.getItem('hbr_seen_announcement_id') || '0', 10);
     const now = new Date();
-    // 未読のうち、モーダル表示期間内（未設定なら常時）の最新のものを表示
+    // 未読のうち、通知対象（登録日時で絞ったお知らせは対象のユーザーだけ）で、モーダル表示期間内（未設定なら常時）の最新のものを表示
     const target = list.find(a =>
-      a.id > seenId &&
+      a.id > seenId && a.notify &&
       (!a.modal_start || new Date(a.modal_start) <= now) &&
       (!a.modal_end || new Date(a.modal_end) >= now)
     );
