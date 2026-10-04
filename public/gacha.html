@@ -261,9 +261,6 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-deck[data-t="SS"] { --dc:240,140,255; }
 .gx-deck.in { opacity:1; transform:none; }
 .gx-deck.out { opacity:0; transform:scale(0.7); transition:opacity 0.35s, transform 0.35s; }
-.gx-deck-glow { position:absolute; inset:-60%; border-radius:50%; background:radial-gradient(circle, rgba(var(--dc),0.55) 0%, rgba(var(--dc),0.15) 40%, transparent 70%); animation:gxDeckGlow 1.2s ease-in-out infinite alternate; }
-.gx-deck[data-t="SS"] .gx-deck-glow { background:radial-gradient(circle, rgba(255,230,140,0.5) 0%, rgba(255,120,220,0.3) 30%, rgba(80,200,255,0.18) 50%, transparent 70%); }
-@keyframes gxDeckGlow { from { opacity:0.6; transform:scale(0.9); } to { opacity:1; transform:scale(1.08); } }
 .gx-deck-card {
   position:absolute; inset:0; border-radius:10px; display:flex; align-items:center; justify-content:center;
   background:#201c3a; border:2px solid rgba(var(--dc),0.85);
@@ -291,8 +288,11 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 /* 配る直前にぐっと光る */
 .gx-deck.charge { transform:scale(1.08); }
 .gx-deck.charge .gx-deck-card { box-shadow:0 0 30px rgba(var(--dc),1), 0 0 60px rgba(var(--dc),0.6); }
-.gx-deck.dealing { transform:scale(0.92); z-index:0; }
+.gx-deck.dealing { transform:scale(0.92); }
+/* 配るとき：山札を一番手前に置き、カードは山札の下から出ていく。配るたびに山札が減る */
+.gx-deck { z-index:3; }
 .gx-stage .gacha-cards { position:relative; z-index:1; }
+.gx-deck-card.used { opacity:0; transition:opacity 0.15s; }
 /* 虹の束はカードの縁も虹色にする */
 .gx-deck[data-t="SS"] .gx-deck-card {
   border-color:transparent;
@@ -439,7 +439,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
   .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
-  .gx-big.charging .gx-big-front, .gx-deck-glow, .gx-deck.riffle .gx-deck-card, .gx-deck.shake { animation:none !important; }
+  .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake { animation:none !important; }
 }
 
 /* ===== 討伐ガチャ ===== */
@@ -1600,7 +1600,7 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   const steps = _gxTintSteps(tint);
   const deck = document.createElement('div');
   deck.className = 'gx-deck';
-  deck.innerHTML = '<div class="gx-deck-glow"></div><div class="gx-deck-ring"></div>' +
+  deck.innerHTML = '<div class="gx-deck-ring"></div>' +
     Array.from({ length: 6 }, (_, k) => `<div class="gx-deck-card" style="--k:${k}"><img src="/img/logo.png" alt=""></div>`).join('');
   stage.appendChild(deck);
   const setTint = t => { ov.classList.remove('tint-A', 'tint-S', 'tint-SS'); ov.classList.add(`tint-${t}`); deck.dataset.t = t; };
@@ -1642,10 +1642,13 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   });
   deck.classList.remove('charge');
   deck.classList.add('dealing');
-  for (const card of cardEls) {
+  const deckCards = [...deck.querySelectorAll('.gx-deck-card')].reverse(); // 上の札から減らす
+  for (let k = 0; k < cardEls.length; k++) {
     if (fast()) break;
     _sePlay('/sounds/putcard.mp3');
-    card.classList.add('card-visible');
+    cardEls[k].classList.add('card-visible');
+    const remain = Math.ceil(deckCards.length * (1 - (k + 1) / cardEls.length));
+    deckCards.forEach((dc, n) => dc.classList.toggle('used', n < deckCards.length - remain));
     await _gxWait(120);
   }
   cardEls.forEach(c => c.classList.add('card-visible'));
