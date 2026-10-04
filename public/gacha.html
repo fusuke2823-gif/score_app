@@ -270,16 +270,27 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 }
 .gx-deck-aura { position:absolute; inset:0; border-radius:12px; transition:box-shadow 0.4s;
   box-shadow:0 0 26px 7px rgba(var(--dc),0.95), 0 0 70px 18px rgba(var(--dc),0.55); }
-.gx-deck[data-t="SS"] .gx-deck-aura {
-  box-shadow:0 0 18px 4px rgba(255,215,0,0.85), 0 0 40px 10px rgba(255,102,204,0.6), 0 0 70px 16px rgba(0,238,255,0.4);
-  animation:gxAuraSpin 1.6s linear infinite;
-}
+.gx-deck[data-t="SS"] .gx-deck-aura { animation:gxAuraSpin 1.2s linear infinite; }
 @keyframes gxAuraSpin {
-  0%   { box-shadow:0 0 18px 4px rgba(255,215,0,0.85), 0 0 40px 10px rgba(255,102,204,0.6), 0 0 70px 16px rgba(0,238,255,0.4); }
-  33%  { box-shadow:0 0 18px 4px rgba(255,102,204,0.85), 0 0 40px 10px rgba(0,238,255,0.6), 0 0 70px 16px rgba(255,215,0,0.4); }
-  66%  { box-shadow:0 0 18px 4px rgba(0,238,255,0.85), 0 0 40px 10px rgba(255,215,0,0.6), 0 0 70px 16px rgba(255,102,204,0.4); }
-  100% { box-shadow:0 0 18px 4px rgba(255,215,0,0.85), 0 0 40px 10px rgba(255,102,204,0.6), 0 0 70px 16px rgba(0,238,255,0.4); }
+  0%   { box-shadow:0 0 22px 8px rgba(255,225,80,1), 0 0 60px 22px rgba(255,90,200,0.85), 0 0 120px 40px rgba(0,230,255,0.6); }
+  33%  { box-shadow:0 0 22px 8px rgba(255,90,200,1), 0 0 60px 22px rgba(0,230,255,0.85), 0 0 120px 40px rgba(255,225,80,0.6); }
+  66%  { box-shadow:0 0 22px 8px rgba(0,230,255,1), 0 0 60px 22px rgba(255,225,80,0.85), 0 0 120px 40px rgba(255,90,200,0.6); }
+  100% { box-shadow:0 0 22px 8px rgba(255,225,80,1), 0 0 60px 22px rgba(255,90,200,0.85), 0 0 120px 40px rgba(0,230,255,0.6); }
 }
+/* 虹のときだけ：束の周りから虹色の粒が立ちのぼる */
+.gx-deck-sparks { position:absolute; inset:-20% -70% 0; pointer-events:none; display:none; }
+.gx-deck[data-t="SS"] .gx-deck-sparks { display:block; }
+.gx-deck-sparks i {
+  position:absolute; bottom:20%; left:var(--x); width:6px; height:6px; border-radius:50%; background:var(--c);
+  box-shadow:0 0 10px 2px var(--c); opacity:0; animation:gxSpark 1.6s ease-out infinite; animation-delay:var(--d);
+}
+@keyframes gxSpark { 0% { opacity:0; transform:translateY(0) scale(0.6); } 15% { opacity:1; } 100% { opacity:0; transform:translateY(-170px) scale(1.1); } }
+/* 虹になった瞬間の画面フラッシュ */
+.gx-screen-flash { position:absolute; inset:0; z-index:2; pointer-events:none; opacity:0;
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95), rgba(255,180,240,0.5) 35%, rgba(120,220,255,0.15) 65%, transparent 80%); }
+.gx-screen-flash.go { animation:gxScreenFlash 0.7s ease-out; }
+@keyframes gxScreenFlash { 0% { opacity:1; } 100% { opacity:0; } }
+.gx-deck[data-t="SS"] .gx-deck-ring { border-color:#fff; box-shadow:0 0 30px #ffd700, 0 0 50px #ff66cc, inset 0 0 24px #00eeff; }
 .gx-deck-card img { width:62%; opacity:0.7; }
 /* シャッフル：札が1枚ずつ違う距離・角度で左右に広がり、交互に重なって戻る */
 .gx-deck.riffle .gx-deck-card { animation:gxRiffle 0.62s cubic-bezier(.4,0,.3,1) both; animation-delay:var(--dl); }
@@ -452,7 +463,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
   .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
-  .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake, .gx-deck-aura { animation:none !important; }
+  .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake, .gx-deck-aura, .gx-deck-sparks i { animation:none !important; }
 }
 
 /* ===== 討伐ガチャ ===== */
@@ -1405,6 +1416,7 @@ function _gxOverlay() {
   ov.innerHTML = `
     <div class="gx-aurora"></div>
     <div class="gx-stars"></div>
+    <div class="gx-screen-flash" id="gx-screen-flash"></div>
     <div class="gx-top"><span class="gx-title" id="gx-title"></span><button type="button" class="gx-skip" id="gx-skip" hidden>SKIP ›</button></div>
     <div class="gx-stage" id="gx-stage"></div>
     <div class="gx-bottom">
@@ -1615,7 +1627,9 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   deck.className = 'gx-deck';
   // 札は12枚。シャッフルで1枚ずつ違う距離・角度で広がるように値をずらす
   const DECK_N = 12;
+  const sparkColors = ['#ffd700', '#ff66cc', '#00eeff', '#7cff8a', '#b07cff'];
   deck.innerHTML = '<div class="gx-deck-aura"></div><div class="gx-deck-ring"></div>' +
+    `<div class="gx-deck-sparks">${Array.from({ length: 14 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k * 113) % 1600}ms;--c:${sparkColors[k % sparkColors.length]}"></i>`).join('')}</div>` +
     Array.from({ length: DECK_N }, (_, k) => {
       const side = k % 2 ? 1 : -1;
       const spread = 38 + (k * 37) % 46;      // 38〜84%
@@ -1625,8 +1639,19 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     }).join('');
   stage.appendChild(deck);
   const setTint = t => { ov.classList.remove('tint-A', 'tint-S', 'tint-SS'); ov.classList.add(`tint-${t}`); deck.dataset.t = t; };
+  // 虹になった瞬間：画面フラッシュと光の輪
+  const ssFlash = () => {
+    const fl = document.getElementById('gx-screen-flash');
+    fl.classList.remove('go'); void fl.offsetWidth; fl.classList.add('go');
+    deck.classList.remove('burst'); void deck.offsetWidth; deck.classList.add('burst');
+  };
   setTint(steps[0]);
   requestAnimationFrame(() => deck.classList.add('in'));
+  if (steps[0] === 'SS') {
+    await waitOrSkip(250);
+    if (!fast()) { ssFlash(); const a = _sePlay('/sounds/ss_sound.mp3'); setTimeout(() => _seStop(a), 700); }
+    await waitOrSkip(500);
+  }
   await waitOrSkip(350);
 
   // シャッフル（2回）。格上げがある場合は、途中で束が震えて光の色が上がる
@@ -1643,7 +1668,8 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
       const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
       setTimeout(() => _seStop(upAudio), 700);
       setTint(up);
-      deck.classList.remove('burst'); void deck.offsetWidth; deck.classList.add('burst');
+      if (up === 'SS') ssFlash();
+      else { deck.classList.remove('burst'); void deck.offsetWidth; deck.classList.add('burst'); }
       await waitOrSkip(450);
     }
   }
