@@ -222,27 +222,41 @@
 /* ===== 通常ガチャ：全画面の演出 ===== */
 .gx-overlay {
   position:fixed; inset:0; z-index:2500; display:flex; flex-direction:column; align-items:center;
-  background:radial-gradient(ellipse at 50% 40%, #1d1648 0%, #0b0920 55%, #04030a 100%);
-  opacity:0; transition:opacity 0.25s; overflow:hidden;
-  --gx-tint:79,195,247;
+  background:#06051a; opacity:0; transition:opacity 0.25s; overflow:hidden;
+  --gx-tint:90,170,255;
 }
 .gx-overlay.open { opacity:1; }
 .gx-overlay[hidden] { display:none; }
-.gx-overlay.tint-S { --gx-tint:255,215,0; }
-.gx-overlay.tint-SS { --gx-tint:255,140,220; }
-/* 背景の光の筋（ゆっくり回る） */
-.gx-rays {
-  position:absolute; left:50%; top:42%; width:180vmax; height:180vmax; transform:translate(-50%,-50%); pointer-events:none;
-  background:repeating-conic-gradient(from 0deg, rgba(var(--gx-tint),0.10) 0deg 6deg, transparent 6deg 18deg);
-  -webkit-mask:radial-gradient(circle, #000 0%, transparent 60%); mask:radial-gradient(circle, #000 0%, transparent 60%);
-  animation:gxSpin 40s linear infinite; opacity:0.8; transition:opacity 0.6s;
+.gx-overlay.tint-S { --gx-tint:255,200,80; }
+.gx-overlay.tint-SS { --gx-tint:220,120,255; }
+/* 引き終わって結果が出たら、所持pt・GPを演出の上（右上）に出す */
+body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s ease-out; }
+@keyframes gxWalletIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+/* 背景：ゆっくり動くオーロラ＋星くず＋周辺減光 */
+.gx-aurora { position:absolute; inset:-20%; pointer-events:none; filter:blur(60px); opacity:0.75; }
+.gx-aurora::before, .gx-aurora::after {
+  content:''; position:absolute; width:60%; height:55%; border-radius:50%;
+  background:radial-gradient(circle, rgba(var(--gx-tint),0.55) 0%, transparent 65%);
 }
-.gx-overlay.tint-SS .gx-rays { animation:gxSpin 40s linear infinite, gxHue 4s linear infinite; }
-@keyframes gxSpin { to { transform:translate(-50%,-50%) rotate(360deg); } }
-@keyframes gxHue { to { filter:hue-rotate(360deg); } }
+.gx-aurora::before { left:8%; top:18%; animation:gxDriftA 14s ease-in-out infinite alternate; }
+.gx-aurora::after { right:6%; bottom:14%; background:radial-gradient(circle, rgba(120,80,255,0.45) 0%, transparent 65%); animation:gxDriftB 18s ease-in-out infinite alternate; }
+.gx-overlay.tint-SS .gx-aurora { animation:gxHue 6s linear infinite; }
+@keyframes gxDriftA { to { transform:translate(30%, 20%) scale(1.2); } }
+@keyframes gxDriftB { to { transform:translate(-25%, -15%) scale(0.9); } }
+@keyframes gxHue { to { filter:blur(60px) hue-rotate(360deg); } }
+.gx-stars {
+  position:absolute; inset:0; pointer-events:none; opacity:0.7;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 72% 12%, #fff, transparent),
+    radial-gradient(1.2px 1.2px at 38% 64%, #fff, transparent), radial-gradient(1px 1px at 86% 72%, #fff, transparent),
+    radial-gradient(1.4px 1.4px at 54% 34%, rgba(255,255,255,0.8), transparent), radial-gradient(1px 1px at 22% 86%, #fff, transparent);
+  background-size:340px 340px; animation:gxStars 60s linear infinite;
+}
+@keyframes gxStars { to { background-position:0 -680px; } }
+.gx-overlay::after { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0,0,0,0.65) 100%); }
 /* 引いた直後の光（溜め） */
 .gx-charge {
-  position:absolute; left:50%; top:42%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; pointer-events:none;
+  position:absolute; left:50%; top:45%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; pointer-events:none; z-index:1;
   background:radial-gradient(circle, #fff 0%, rgba(var(--gx-tint),0.9) 35%, transparent 70%);
   opacity:0; transform:scale(0.2);
 }
@@ -252,70 +266,122 @@
   60% { opacity:1; transform:scale(3); }
   100% { opacity:0; transform:scale(16); }
 }
-.gx-top {
-  position:relative; z-index:2; width:100%; max-width:640px; display:flex; align-items:center; gap:10px;
-  padding:14px 16px 0; box-sizing:border-box;
-}
-.gx-title { font-size:0.8rem; font-weight:bold; letter-spacing:0.08em; color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.gx-skip {
-  margin-left:auto; padding:6px 14px; border-radius:99px; border:1px solid rgba(255,255,255,0.3);
-  background:rgba(0,0,0,0.35); color:#fff; font-family:inherit; font-size:0.78rem; font-weight:800; letter-spacing:0.1em; cursor:pointer;
-}
-.gx-skip[hidden] { display:none; }
+.gx-top { position:relative; z-index:2; width:100%; max-width:640px; display:flex; align-items:center; min-height:44px; padding:12px 16px 0; box-sizing:border-box; }
+.gx-title { font-size:0.8rem; font-weight:bold; letter-spacing:0.08em; color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }
 .gx-stage { position:relative; z-index:1; flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:0 8px; box-sizing:border-box; }
 .gx-stage .gacha-cards { --cw:min(16.2vw, 104px); width:calc(5 * var(--cw) + 4 * 9px); max-width:none; column-gap:9px; row-gap:30px; }
 .gx-stage .g-card { width:var(--cw); height:calc(var(--cw) * 1.39); opacity:0; transform:translateY(-60px) scale(0.5) rotate(-10deg); transition:opacity 0.3s, transform 0.4s cubic-bezier(.2,1.2,.4,1); }
 .gx-stage .g-card.card-visible { opacity:1; transform:none; }
 .gx-stage .g-card-back img { width:62%; height:auto; aspect-ratio:1; }
 .gx-stage .g-card-back .g-name { max-width:92%; font-size:0.64rem; }
-.gx-stage .g-card.single { --cw:min(34vw, 150px); }
-/* SSのアップ */
+/* A・Sのカードがめくれたときの簡易演出：光の輪が広がり、表面を光がなでる */
+.gx-stage .g-card { position:relative; --pop:79,195,247; }
+.gx-stage .g-card.rarity-S { --pop:255,215,0; }
+.gx-stage .g-card::after {
+  content:''; position:absolute; inset:-3px; border-radius:12px; pointer-events:none; opacity:0;
+  border:2px solid rgba(var(--pop),1); box-shadow:0 0 16px rgba(var(--pop),0.9);
+}
+.gx-stage .g-card.pop::after { animation:gxCardRing 0.6s ease-out; }
+.gx-stage .g-card.rarity-S.pop::after { animation:gxCardRing 0.8s ease-out; border-width:3px; }
+@keyframes gxCardRing { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(1.45); } }
+.g-shine { position:absolute; inset:0; border-radius:10px; overflow:hidden; pointer-events:none; }
+.g-shine::before {
+  content:''; position:absolute; top:0; bottom:0; left:-70%; width:45%; transform:skewX(-20deg);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+}
+.g-card.pop .g-shine::before { animation:gxSweep 0.7s ease-out both; }
+.gx-stage .g-card.rarity-S.pop .g-card-back { animation:gxSPulse 0.8s ease-out; }
+@keyframes gxSPulse { 0% { box-shadow:0 0 40px rgba(255,215,0,1); filter:brightness(1.6); } 100% { box-shadow:0 0 12px rgba(255,215,0,0.65); filter:none; } }
+.gx-bottom { position:relative; z-index:2; width:100%; max-width:520px; min-height:72px; display:flex; align-items:center; justify-content:center; padding:0 20px calc(18px + env(safe-area-inset-bottom)); box-sizing:border-box; }
+.gx-skip {
+  margin-left:auto; padding:6px 16px; border-radius:99px; border:1px solid rgba(255,255,255,0.3);
+  background:rgba(0,0,0,0.35); color:#fff; font-family:inherit; font-size:0.8rem; font-weight:800; letter-spacing:0.12em; cursor:pointer;
+}
+.gx-skip[hidden] { display:none; }
+
+/* SSの演出：虹のカードが中央に寄ってきて、光と一緒にめくれる */
 .gx-closeup {
-  position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
-  background:rgba(4,3,12,0.88); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); cursor:pointer; opacity:0; transition:opacity 0.25s;
+  position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:rgba(3,2,10,0.94); cursor:pointer; opacity:0; transition:opacity 0.25s;
 }
 .gx-closeup.show { opacity:1; }
 .gx-closeup[hidden] { display:none; }
-.gx-cu-rank {
-  font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3rem; line-height:1; letter-spacing:0.08em;
-  background:linear-gradient(90deg,#ffd700,#ff66cc,#00eeff,#ffd700); background-size:300% 100%;
-  -webkit-background-clip:text; background-clip:text; color:transparent;
-  animation:gxRankShine 2.4s linear infinite; filter:drop-shadow(0 0 12px rgba(255,200,255,0.6));
+.gx-big { position:relative; width:min(58vw, 240px); aspect-ratio:1 / 1.39; perspective:1000px; z-index:1;
+  opacity:0; transform:scale(0.55) translateY(30px); transition:opacity 0.35s, transform 0.5s cubic-bezier(.2,1.3,.4,1); }
+.gx-closeup.card-in .gx-big { opacity:1; transform:none; }
+/* 暗くなったあと、カードより先に名前を真ん中に出す */
+.gx-cu-intro {
+  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); z-index:2; padding:0 24px; text-align:center; pointer-events:none;
+  font-size:clamp(1.3rem, 6vw, 2rem); font-weight:900; letter-spacing:0.06em; line-height:1.35; color:#fff;
+  text-shadow:0 0 18px rgba(255,200,255,0.9), 0 0 40px rgba(255,215,0,0.6);
+  opacity:0; filter:blur(10px); transition:opacity 0.5s, filter 0.5s, transform 0.5s;
 }
-@keyframes gxRankShine { to { background-position:300% 0; } }
-.gx-cu-icon { position:relative; width:min(52vw, 220px); aspect-ratio:1; }
-.gx-cu-icon::before {
-  content:''; position:absolute; inset:-14px; border-radius:26%;
-  background:conic-gradient(#ffd700, #ff66cc, #00eeff, #7cff8a, #ffd700); filter:blur(10px); opacity:0.9;
-  animation:gxSpinPlain 3s linear infinite;
+.gx-cu-intro.in { opacity:1; filter:none; }
+.gx-cu-intro.out { opacity:0; filter:blur(6px); transform:translateY(-50%) scale(1.15); transition-duration:0.35s; }
+.gx-big-inner { position:absolute; inset:0; transform-style:preserve-3d; transition:transform 0.7s cubic-bezier(.3,1.4,.5,1); }
+.gx-big.flipped .gx-big-inner { transform:rotateY(180deg); }
+.gx-big-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+.gx-big-front {
+  background:linear-gradient(#1c1838,#1c1838) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
+  border:3px solid transparent; box-shadow:0 0 30px rgba(255,200,255,0.6);
 }
-@keyframes gxSpinPlain { to { transform:rotate(360deg); } }
-.gx-cu-icon img { position:relative; width:100%; height:100%; object-fit:cover; border-radius:22%; border:3px solid #fff; box-shadow:0 0 40px rgba(255,255,255,0.5); }
-.gx-closeup.show .gx-cu-icon { animation:gxPop 0.6s cubic-bezier(.2,1.5,.4,1) both; }
-.gx-closeup.show .gx-cu-rank { animation:gxRankShine 2.4s linear infinite, gxDrop 0.5s 0.15s cubic-bezier(.2,1.4,.4,1) both; }
-@keyframes gxPop { from { transform:scale(0.2) rotate(-12deg); filter:brightness(3) blur(6px); } to { transform:none; filter:none; } }
-@keyframes gxDrop { from { opacity:0; transform:translateY(-24px) scale(1.4); } to { opacity:1; transform:none; } }
-.gx-cu-name { font-size:1.15rem; font-weight:900; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,0.8); text-align:center; padding:0 20px; }
-.gx-cu-new { padding:2px 12px; border-radius:99px; background:linear-gradient(90deg,#ff5470,#ff8a3d); color:#fff; font-size:0.8rem; font-weight:900; letter-spacing:0.06em; }
-.gx-cu-hint { font-size:0.72rem; color:rgba(255,255,255,0.55); margin-top:6px; }
+.gx-big-front img { width:60%; opacity:0.8; }
+.gx-big.charging .gx-big-front { animation:gxShake 0.9s ease-in both; }
+@keyframes gxShake {
+  0% { box-shadow:0 0 20px rgba(255,200,255,0.4); filter:brightness(1); transform:scale(1); }
+  30% { transform:scale(1.03) rotate(-1.5deg); }
+  50% { transform:scale(1.05) rotate(1.5deg); }
+  70% { transform:scale(1.07) rotate(-1deg); }
+  100% { box-shadow:0 0 70px #fff, 0 0 120px rgba(255,150,255,0.8); filter:brightness(2.2); transform:scale(1.1); }
+}
+.gx-big-back {
+  transform:rotateY(180deg); gap:10px; padding:14px 12px;
+  background:linear-gradient(160deg, #2a2150 0%, #15112e 60%) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
+  border:3px solid transparent; box-shadow:0 0 40px rgba(255,210,120,0.55);
+}
+/* 表面をなでる光 */
+.gx-big-back::after {
+  content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%; transform:skewX(-20deg);
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+}
+.gx-big.flipped .gx-big-back::after { animation:gxSweep 1.1s 0.55s ease-out both; }
+@keyframes gxSweep { to { left:130%; } }
+.gx-big-rank {
+  padding:2px 16px; border-radius:6px; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:1.5rem; line-height:1.1; letter-spacing:0.12em; color:#2a1a00;
+  background:linear-gradient(180deg,#fff6c8,#ffd23f 55%,#d89a1c); box-shadow:0 2px 10px rgba(255,200,60,0.6), inset 0 1px 0 rgba(255,255,255,0.8);
+}
+.gx-big-back img { width:72%; aspect-ratio:1; object-fit:cover; border-radius:18%; border:2px solid rgba(255,255,255,0.85); box-shadow:0 6px 18px rgba(0,0,0,0.5); }
+.gx-big-name { font-size:0.95rem; font-weight:900; color:#fff; text-align:center; line-height:1.3; text-shadow:0 1px 6px rgba(0,0,0,0.6); }
+.gx-big-new { position:absolute; top:10px; right:10px; padding:1px 9px; border-radius:99px; background:linear-gradient(90deg,#ff5470,#ff8a3d); color:#fff; font-size:0.7rem; font-weight:900; }
+/* めくれる瞬間の光の輪と白いフラッシュ */
+.gx-burst { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; pointer-events:none; opacity:0;
+  border:6px solid rgba(255,255,255,0.9); box-shadow:0 0 30px rgba(255,180,255,0.9), inset 0 0 30px rgba(255,220,120,0.8); }
+.gx-closeup.burst .gx-burst { animation:gxBurst 0.8s ease-out forwards; }
+@keyframes gxBurst { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(28); } }
+.gx-flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:2; }
+.gx-closeup.burst .gx-flash { animation:gxFlash 0.45s ease-out forwards; }
+@keyframes gxFlash { 0% { opacity:0.85; } 100% { opacity:0; } }
+/* 後ろでゆっくり回る光 */
+.gx-glow { position:absolute; left:50%; top:50%; width:min(120vw, 560px); aspect-ratio:1; transform:translate(-50%,-50%); pointer-events:none; opacity:0; transition:opacity 0.6s;
+  background:conic-gradient(from 0deg, transparent, rgba(255,215,0,0.25), transparent 25%, rgba(255,102,204,0.25), transparent 50%, rgba(0,238,255,0.25), transparent 75%, rgba(255,215,0,0.25), transparent);
+  -webkit-mask:radial-gradient(circle, #000 20%, transparent 65%); mask:radial-gradient(circle, #000 20%, transparent 65%);
+  animation:gxSpinGlow 10s linear infinite; }
+.gx-closeup.revealed .gx-glow { opacity:1; }
+@keyframes gxSpinGlow { to { transform:translate(-50%,-50%) rotate(360deg); } }
+.gx-cu-hint { position:relative; z-index:1; margin-top:22px; font-size:0.72rem; color:rgba(255,255,255,0.55); opacity:0; transition:opacity 0.4s; }
+.gx-closeup.revealed .gx-cu-hint { opacity:1; }
+
 /* 結果のボタン */
-.gx-actions {
-  position:relative; z-index:2; width:100%; max-width:520px; display:flex; flex-direction:column; align-items:center; gap:10px;
-  padding:0 20px calc(22px + env(safe-area-inset-bottom)); box-sizing:border-box;
-  opacity:0; transform:translateY(16px); transition:opacity 0.3s, transform 0.3s;
-}
+.gx-actions { width:100%; display:flex; gap:10px; opacity:0; transform:translateY(16px); transition:opacity 0.3s, transform 0.3s; }
 .gx-actions.show { opacity:1; transform:none; }
 .gx-actions[hidden] { display:none; }
-.gx-actions-row { display:flex; gap:10px; width:100%; }
-.gx-actions-row .btn { flex:1; justify-content:center; padding:10px; font-weight:800; min-height:52px; }
-.gx-actions-row .btn.gx-again { flex:1.4; flex-direction:column; gap:1px; line-height:1.2; }
+.gx-actions .btn { flex:1; justify-content:center; padding:10px; font-weight:800; min-height:52px; }
+.gx-actions .btn.gx-again { flex:1.4; flex-direction:column; gap:1px; line-height:1.2; }
 .gx-again small { font-size:0.7rem; font-weight:bold; opacity:0.85; }
-.gx-points { font-size:0.75rem; color:rgba(255,255,255,0.6); }
-.gx-points b { color:#fff; }
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
-  .gx-rays, .gx-cu-icon::before, .gx-cu-rank { animation:none !important; }
-  .gx-overlay.charging .gx-charge { animation:none; }
+  .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
+  .gx-overlay.charging .gx-charge, .gx-big.charging .gx-big-front { animation:none; }
 }
 
 /* ===== 討伐ガチャ ===== */
@@ -1266,12 +1332,15 @@ function _gxOverlay() {
   ov.setAttribute('role', 'dialog');
   ov.setAttribute('aria-modal', 'true');
   ov.innerHTML = `
-    <div class="gx-rays"></div>
+    <div class="gx-aurora"></div>
+    <div class="gx-stars"></div>
     <div class="gx-charge"></div>
-    <div class="gx-top"><span class="gx-title" id="gx-title"></span><button type="button" class="gx-skip" id="gx-skip">SKIP ›</button></div>
+    <div class="gx-top"><span class="gx-title" id="gx-title"></span><button type="button" class="gx-skip" id="gx-skip" hidden>SKIP ›</button></div>
     <div class="gx-stage" id="gx-stage"></div>
-    <div class="gx-closeup" id="gx-closeup" hidden></div>
-    <div class="gx-actions" id="gx-actions" hidden></div>`;
+    <div class="gx-bottom">
+      <div class="gx-actions" id="gx-actions" hidden></div>
+    </div>
+    <div class="gx-closeup" id="gx-closeup" hidden></div>`;
   document.body.appendChild(ov);
   return ov;
 }
@@ -1284,10 +1353,12 @@ function openGxOverlay(title) {
   document.getElementById('gx-actions').hidden = true;
   document.getElementById('gx-actions').classList.remove('show');
   document.getElementById('gx-skip').hidden = true;
+  document.body.classList.remove('gx-result');
   ov.className = 'gx-overlay';
   if (ov.hidden) {
     ov.hidden = false;
     lockBodyScroll();
+    document.body.classList.add('gx-open');
     requestAnimationFrame(() => ov.classList.add('open'));
   } else {
     ov.classList.add('open');
@@ -1300,20 +1371,52 @@ function closeGxOverlay() {
   if (!ov || ov.hidden) return;
   ov.classList.remove('open');
   setTimeout(() => { ov.hidden = true; document.getElementById('gx-stage').innerHTML = ''; }, 250);
+  document.body.classList.remove('gx-open', 'gx-result');
   unlockBodyScroll();
 }
 
-// SSを大きく見せる。タップか一定時間で閉じる
-function _gxCloseup(icon) {
+// SSの演出：虹のカードを中央に大きく出し、震えて光ったあとにめくって中身を見せる。タップか一定時間で閉じる
+async function _gxSsReveal(icon) {
   const cu = document.getElementById('gx-closeup');
+  cu.className = 'gx-closeup';
   cu.innerHTML = `
-    <div class="gx-cu-rank">SS</div>
-    <div class="gx-cu-icon"><img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"></div>
-    <div class="gx-cu-name">${escHtml(icon.name)}</div>
-    ${icon.is_dup ? '' : '<div class="gx-cu-new">NEW</div>'}
-    <div class="gx-cu-hint">タップで次へ</div>`;
+    <div class="gx-glow"></div>
+    <div class="gx-burst"></div>
+    <div class="gx-cu-intro">${escHtml(icon.name)}</div>
+    <div class="gx-big">
+      <div class="gx-big-inner">
+        <div class="gx-big-face gx-big-front"><img src="/img/logo.png" alt=""></div>
+        <div class="gx-big-face gx-big-back">
+          ${icon.is_dup ? '' : '<span class="gx-big-new">NEW</span>'}
+          <span class="gx-big-rank">SS</span>
+          <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}">
+          <div class="gx-big-name">${escHtml(icon.name)}</div>
+        </div>
+      </div>
+    </div>
+    <div class="gx-cu-hint">タップで次へ</div>
+    <div class="gx-flash"></div>`;
   cu.hidden = false;
   requestAnimationFrame(() => cu.classList.add('show'));
+  const big = cu.querySelector('.gx-big');
+  const intro = cu.querySelector('.gx-cu-intro');
+  const ssAudio = _sePlay('/sounds/ss_sound.mp3');
+  // 名前 → カード登場 → 溜め → めくる
+  await _gxWait(250);
+  intro.classList.add('in');
+  await _gxWait(1400);
+  intro.classList.add('out');
+  cu.classList.add('card-in');
+  await _gxWait(450);
+  big.classList.add('charging');
+  await _gxWait(900);
+  _seStop(ssAudio);
+  _sePlay('/sounds/turn.mp3');
+  big.classList.remove('charging');
+  big.classList.add('flipped');
+  cu.classList.add('burst');
+  await _gxWait(350);
+  cu.classList.add('revealed');
   return new Promise(resolve => {
     let done = false;
     const finish = () => {
@@ -1321,10 +1424,10 @@ function _gxCloseup(icon) {
       done = true;
       cu.removeEventListener('click', finish);
       cu.classList.remove('show');
-      setTimeout(() => { cu.hidden = true; resolve(); }, 220);
+      setTimeout(() => { cu.hidden = true; cu.innerHTML = ''; resolve(); }, 220);
     };
-    setTimeout(() => cu.addEventListener('click', finish), 400); // 出た直後の誤タップで飛ばさない
-    setTimeout(finish, 3200);
+    setTimeout(() => cu.addEventListener('click', finish), 300); // めくれた直後の誤タップで飛ばさない
+    setTimeout(finish, 3500);
   });
 }
 
@@ -1354,11 +1457,12 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
 
   const cardEls = results.map((icon, i) => {
     const card = document.createElement('div');
-    card.className = `g-card rarity-${icon.rarity} display-rarity-${dispRarities[i]}${results.length === 1 ? ' single' : ''}`;
+    card.className = `g-card rarity-${icon.rarity} display-rarity-${dispRarities[i]}`;
     card.innerHTML = `
       <div class="g-card-inner" id="gc-${i}">
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
         <div class="g-card-back">
+          <span class="g-shine"></span>
           <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}">
           <div class="g-name">${escHtml(icon.name)}</div>
           ${icon.is_dup ? '' : '<span class="g-new">NEW</span>'}
@@ -1399,25 +1503,31 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     const card = cardEls[i];
     if (i > 0 && !skip) await _gxWait(results.length === 1 ? 0 : 260);
 
-    if (actual === 'SS' || (!skip && (isFakeout || actual === 'S'))) {
-      if (isFakeout) {
-        card.classList.remove(`display-rarity-${dispRarities[i]}`);
-        card.classList.add(`display-rarity-${actual}`);
-      }
-      const audio = actual === 'SS' ? _sePlay('/sounds/ss_sound.mp3') : actual === 'S' ? _sePlay('/sounds/s_sound.mp3') : null;
+    if (isFakeout && (actual === 'SS' || !skip)) {
+      card.classList.remove(`display-rarity-${dispRarities[i]}`);
+      card.classList.add(`display-rarity-${actual}`);
+    }
+    if (actual === 'SS') {
+      // SSは大きく出してからめくる。小さいカードは演出の裏でめくっておく
+      card.classList.add('reveal-SS');
+      await _gxWait(500);
+      card.classList.remove('reveal-SS');
+      document.getElementById(`gc-${i}`).classList.add('flipped');
+      await _gxSsReveal(icon);
+      continue;
+    }
+    if (!skip && (isFakeout || actual === 'S')) {
+      const audio = actual === 'S' ? _sePlay('/sounds/s_sound.mp3') : null;
       await _gxWait(80);
       card.classList.add(`reveal-${actual}`);
-      await _gxWait(actual === 'SS' ? 1250 : 950);
+      await _gxWait(950);
       _seStop(audio);
       card.classList.remove(`reveal-${actual}`);
     }
-
     _sePlay('/sounds/turn.mp3');
     document.getElementById(`gc-${i}`).classList.add('flipped');
-    if (actual === 'SS') {
-      await _gxWait(450);
-      await _gxCloseup(icon);
-    }
+    // 表が見えたタイミングで光らせる（SKIP中も軽いのでそのまま）
+    setTimeout(() => card.classList.add('pop'), 280);
   }
   skipBtn.hidden = true;
   await _gxWait(skip ? 500 : 700);
@@ -1428,12 +1538,10 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   const againLabel = `<span>もう一度引く</span><small>${againType === 'single' ? '単発' : '10連'} ${cost}pt</small>`;
   const canAgain = againType && cost != null && currentPoints >= cost;
   actions.innerHTML = `
-    <div class="gx-points">所持 <b>${Number(currentPoints).toLocaleString('ja-JP')}</b> pt</div>
-    <div class="gx-actions-row">
-      <button type="button" class="btn btn-secondary" data-act="close">閉じる</button>
-      ${againType ? `<button type="button" class="btn btn-primary gx-again" data-act="again"${canAgain ? '' : ' disabled'}>${againLabel}</button>` : ''}
-    </div>`;
+    <button type="button" class="btn btn-secondary" data-act="close">閉じる</button>
+    ${againType ? `<button type="button" class="btn btn-primary gx-again" data-act="again"${canAgain ? '' : ' disabled'}>${againLabel}</button>` : ''}`;
   actions.hidden = false;
+  document.body.classList.add('gx-result');
   requestAnimationFrame(() => actions.classList.add('show'));
 
   return new Promise(resolve => {
