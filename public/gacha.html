@@ -266,7 +266,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   60% { opacity:1; transform:scale(3); }
   100% { opacity:0; transform:scale(16); }
 }
-.gx-top { position:relative; z-index:2; width:100%; max-width:640px; display:flex; align-items:center; min-height:44px; padding:12px 16px 0; box-sizing:border-box; }
+.gx-top { position:relative; z-index:4; width:100%; max-width:640px; display:flex; align-items:center; min-height:44px; padding:12px 16px 0; box-sizing:border-box; }
 .gx-title { font-size:0.8rem; font-weight:bold; letter-spacing:0.08em; color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }
 .gx-stage { position:relative; z-index:1; flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:0 8px; box-sizing:border-box; }
 .gx-stage .gacha-cards { --cw:min(16.2vw, 104px); width:calc(5 * var(--cw) + 4 * 9px); max-width:none; column-gap:9px; row-gap:30px; }
@@ -321,10 +321,16 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-big-inner { position:absolute; inset:0; transform-style:preserve-3d; transition:transform 0.7s cubic-bezier(.3,1.4,.5,1); }
 .gx-big.flipped .gx-big-inner { transform:rotateY(180deg); }
 .gx-big-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+.gx-big { --edge:linear-gradient(135deg,#4fc3f7,#b3ecff,#4fc3f7); --glowc:79,195,247; }
+.gx-big[data-r="S"] { --edge:linear-gradient(135deg,#ffd700,#fff3b0,#d4a017,#ffd700); --glowc:255,215,0; }
+.gx-big[data-r="SS"] { --edge:linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700); --glowc:255,180,255; }
 .gx-big-front {
-  background:linear-gradient(#1c1838,#1c1838) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
-  border:3px solid transparent; box-shadow:0 0 30px rgba(255,200,255,0.6);
+  background:linear-gradient(#1c1838,#1c1838) padding-box, var(--edge) border-box;
+  border:3px solid transparent; box-shadow:0 0 30px rgba(var(--glowc),0.6); transition:box-shadow 0.3s;
 }
+.gx-big.instant .gx-big-inner { transition:none; }
+/* 今めくっている小さいカード */
+.gx-stage .g-card.gx-current { transform:scale(1.12); filter:brightness(1.4); }
 .gx-big-front img { width:60%; opacity:0.8; }
 .gx-big.charging .gx-big-front { animation:gxShake 0.9s ease-in both; }
 @keyframes gxShake {
@@ -332,30 +338,50 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   30% { transform:scale(1.03) rotate(-1.5deg); }
   50% { transform:scale(1.05) rotate(1.5deg); }
   70% { transform:scale(1.07) rotate(-1deg); }
-  100% { box-shadow:0 0 70px #fff, 0 0 120px rgba(255,150,255,0.8); filter:brightness(2.2); transform:scale(1.1); }
+  100% { box-shadow:0 0 70px #fff, 0 0 120px rgba(var(--glowc),0.85); filter:brightness(2.2); transform:scale(1.1); }
 }
+.gx-big[data-r="A"].charging .gx-big-front { animation-duration:0.35s; }
+.gx-big[data-r="S"].charging .gx-big-front { animation-duration:0.65s; }
 .gx-big-back {
   transform:rotateY(180deg); gap:10px; padding:14px 12px;
-  background:linear-gradient(160deg, #2a2150 0%, #15112e 60%) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#ffd700) border-box;
-  border:3px solid transparent; box-shadow:0 0 40px rgba(255,210,120,0.55);
+  background:linear-gradient(160deg, #2a2150 0%, #15112e 60%) padding-box, var(--edge) border-box;
+  border:3px solid transparent; box-shadow:0 0 40px rgba(var(--glowc),0.55);
 }
 /* 表面をなでる光 */
 .gx-big-back::after {
   content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%; transform:skewX(-20deg);
   background:linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
 }
-.gx-big.flipped .gx-big-back::after { animation:gxSweep 1.1s 0.55s ease-out both; }
+.gx-big[data-r="SS"].flipped .gx-big-back::after { animation:gxSweep 1.1s 0.55s ease-out both; }
 @keyframes gxSweep { to { left:130%; } }
 .gx-big-rank {
   padding:2px 16px; border-radius:6px; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:1.5rem; line-height:1.1; letter-spacing:0.12em; color:#2a1a00;
   background:linear-gradient(180deg,#fff6c8,#ffd23f 55%,#d89a1c); box-shadow:0 2px 10px rgba(255,200,60,0.6), inset 0 1px 0 rgba(255,255,255,0.8);
 }
+.gx-big[data-r="SS"] .gx-big-rank {
+  color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.45);
+  background:linear-gradient(110deg,#ff5fa2,#ffb347,#ffe66d,#5ef0c8,#5ab8ff,#b07cff,#ff5fa2); background-size:220% 100%;
+  box-shadow:0 2px 14px rgba(255,140,255,0.7), inset 0 1px 0 rgba(255,255,255,0.7); animation:gxRainbowSlide 3s linear infinite;
+}
+@keyframes gxRainbowSlide { to { background-position:220% 0; } }
+.gx-big[data-r="A"] .gx-big-rank { color:#002a3a; background:linear-gradient(180deg,#e6f8ff,#7fd8ff 55%,#3aa8d8); box-shadow:0 2px 10px rgba(79,195,247,0.6), inset 0 1px 0 rgba(255,255,255,0.8); }
 .gx-big-back img { width:72%; aspect-ratio:1; object-fit:cover; border-radius:18%; border:2px solid rgba(255,255,255,0.85); box-shadow:0 6px 18px rgba(0,0,0,0.5); }
 .gx-big-name { font-size:0.95rem; font-weight:900; color:#fff; text-align:center; line-height:1.3; text-shadow:0 1px 6px rgba(0,0,0,0.6); }
-.gx-big-new { position:absolute; top:10px; right:10px; padding:1px 9px; border-radius:99px; background:linear-gradient(90deg,#ff5470,#ff8a3d); color:#fff; font-size:0.7rem; font-weight:900; }
+/* NEWはカードの外（右上の角）に、めくれたあとで出す */
+.gx-big-new {
+  position:absolute; top:-12px; right:-12px; z-index:2; padding:3px 12px; border-radius:99px;
+  background:linear-gradient(90deg,#ff5470,#ff8a3d); color:#fff; font-size:0.78rem; font-weight:900; letter-spacing:0.05em;
+  box-shadow:0 3px 10px rgba(230,57,80,0.55); opacity:0; transform:scale(0.5); transition:opacity 0.25s, transform 0.3s cubic-bezier(.2,1.6,.4,1);
+}
+.gx-closeup.revealed .gx-big-new { opacity:1; transform:none; }
 /* めくれる瞬間の光の輪と白いフラッシュ */
 .gx-burst { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; pointer-events:none; opacity:0;
   border:6px solid rgba(255,255,255,0.9); box-shadow:0 0 30px rgba(255,180,255,0.9), inset 0 0 30px rgba(255,220,120,0.8); }
+.gx-closeup[data-r="A"] .gx-burst { border-width:4px; box-shadow:0 0 24px rgba(79,195,247,0.9), inset 0 0 20px rgba(79,195,247,0.7); }
+.gx-closeup[data-r="S"] .gx-burst { box-shadow:0 0 30px rgba(255,215,0,0.95), inset 0 0 30px rgba(255,215,0,0.8); }
+.gx-closeup[data-r="A"] .gx-glow { display:none; }
+.gx-closeup[data-r="S"] .gx-glow { background:conic-gradient(from 0deg, transparent, rgba(255,215,0,0.28), transparent 25%, rgba(255,215,0,0.28), transparent 50%, rgba(255,215,0,0.28), transparent 75%, rgba(255,215,0,0.28), transparent); }
+.gx-closeup[data-r="A"] .gx-flash { display:none; }
 .gx-closeup.burst .gx-burst { animation:gxBurst 0.8s ease-out forwards; }
 @keyframes gxBurst { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(28); } }
 .gx-flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:2; }
@@ -1375,60 +1401,92 @@ function closeGxOverlay() {
   unlockBodyScroll();
 }
 
-// SSの演出：虹のカードを中央に大きく出し、震えて光ったあとにめくって中身を見せる。タップか一定時間で閉じる
-async function _gxSsReveal(icon) {
+// 1枚ずつ中央に大きく出してめくる演出。
+//  SS：暗転 → 名前 → 虹のカード → 溜め → めくる（長め）
+//  S・A：カード → 短い溜め → めくる（名前の前置きなし）
+// 演出の途中でタップすると、その1枚はめくれた状態まで飛ばす。めくれたあとはタップか一定時間で次へ
+let _gxActiveReveal = null;
+const GX_REVEAL = {
+  A:  { charge: 350, hold: 1100, sound: null },
+  S:  { charge: 650, hold: 1500, sound: '/sounds/s_sound.mp3' },
+  SS: { charge: 900, hold: 3500, sound: '/sounds/ss_sound.mp3' },
+};
+async function _gxReveal(icon, shownRarity) {
+  const r = icon.rarity;
+  const cfg = GX_REVEAL[r] || GX_REVEAL.A;
   const cu = document.getElementById('gx-closeup');
   cu.className = 'gx-closeup';
+  cu.dataset.r = r;
   cu.innerHTML = `
     <div class="gx-glow"></div>
     <div class="gx-burst"></div>
-    <div class="gx-cu-intro">${escHtml(icon.name)}</div>
-    <div class="gx-big">
+    ${r === 'SS' ? `<div class="gx-cu-intro">${escHtml(icon.name)}</div>` : ''}
+    <div class="gx-big" data-r="${shownRarity}">
       <div class="gx-big-inner">
         <div class="gx-big-face gx-big-front"><img src="/img/logo.png" alt=""></div>
         <div class="gx-big-face gx-big-back">
-          ${icon.is_dup ? '' : '<span class="gx-big-new">NEW</span>'}
-          <span class="gx-big-rank">SS</span>
+          <span class="gx-big-rank">${escHtml(r)}</span>
           <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}">
           <div class="gx-big-name">${escHtml(icon.name)}</div>
         </div>
       </div>
+      ${icon.is_dup ? '' : '<span class="gx-big-new">NEW</span>'}
     </div>
     <div class="gx-cu-hint">タップで次へ</div>
     <div class="gx-flash"></div>`;
   cu.hidden = false;
-  requestAnimationFrame(() => cu.classList.add('show'));
   const big = cu.querySelector('.gx-big');
   const intro = cu.querySelector('.gx-cu-intro');
-  const ssAudio = _sePlay('/sounds/ss_sound.mp3');
-  // 名前 → カード登場 → 溜め → めくる
-  await _gxWait(250);
-  intro.classList.add('in');
-  await _gxWait(1400);
-  intro.classList.add('out');
+
+  // タップ1回目：めくれた状態まで飛ばす / 2回目（めくれたあと）：次へ
+  const audio = cfg.sound ? _sePlay(cfg.sound) : null;
+  let jumped = false, revealed = false, finished = false, finishResolve;
+  const finishedP = new Promise(res => { finishResolve = res; });
+  let wakeUp = null;
+  const wait = ms => new Promise(res => { const t = setTimeout(res, ms); wakeUp = () => { clearTimeout(t); res(); }; });
+  const onTap = () => {
+    if (revealed) { finish(); return; }
+    jumped = true;
+    if (wakeUp) wakeUp();
+  };
+  function finish() {
+    if (finished) return;
+    finished = true;
+    cu.removeEventListener('click', onTap);
+    cu.classList.remove('show');
+    setTimeout(() => { cu.hidden = true; cu.innerHTML = ''; finishResolve(); }, 200);
+  }
+  cu.addEventListener('click', onTap);
+  // SKIPボタンから今の1枚を閉じられるようにしておく
+  _gxActiveReveal = { rarity: r, close: () => { jumped = true; if (wakeUp) wakeUp(); _seStop(audio); finish(); } };
+  finishedP.then(() => { _gxActiveReveal = null; });
+  requestAnimationFrame(() => cu.classList.add('show'));
+
+  if (!jumped) await wait(r === 'SS' ? 250 : 120);
+  if (intro && !jumped) {
+    intro.classList.add('in');
+    await wait(1400);
+  }
+  if (intro) intro.classList.add('out');
   cu.classList.add('card-in');
-  await _gxWait(450);
-  big.classList.add('charging');
-  await _gxWait(900);
-  _seStop(ssAudio);
-  _sePlay('/sounds/turn.mp3');
+  if (!jumped) await wait(r === 'SS' ? 450 : 300);
+  // 低く見せていたカードは、溜めの間に本来のレアリティの色に変わる
+  big.dataset.r = r;
+  if (!jumped) {
+    big.classList.add('charging');
+    await wait(cfg.charge);
+  }
+  _seStop(audio);
   big.classList.remove('charging');
+  if (jumped) big.classList.add('instant');
+  _sePlay('/sounds/turn.mp3');
   big.classList.add('flipped');
   cu.classList.add('burst');
-  await _gxWait(350);
+  if (!jumped) await wait(350);
   cu.classList.add('revealed');
-  return new Promise(resolve => {
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      cu.removeEventListener('click', finish);
-      cu.classList.remove('show');
-      setTimeout(() => { cu.hidden = true; cu.innerHTML = ''; resolve(); }, 220);
-    };
-    setTimeout(() => cu.addEventListener('click', finish), 300); // めくれた直後の誤タップで飛ばさない
-    setTimeout(finish, 3500);
-  });
+  revealed = true;
+  setTimeout(finish, cfg.hold);
+  return finishedP;
 }
 
 // カードを配ってめくる演出。最後に結果とボタンを出し、押されたボタン（'again' / 'close'）を返す。
@@ -1476,7 +1534,10 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   let skip = false;
   const skipBtn = document.getElementById('gx-skip');
   skipBtn.hidden = false;
-  skipBtn.onclick = () => { skip = true; skipBtn.hidden = true; cardEls.forEach(c => c.classList.add('card-visible')); };
+  skipBtn.onclick = () => {
+    skip = true; skipBtn.hidden = true; cardEls.forEach(c => c.classList.add('card-visible'));
+    if (_gxActiveReveal && _gxActiveReveal.rarity !== 'SS') _gxActiveReveal.close(); // SSは最後まで見せる
+  };
 
   // 溜め：虹（SS確定）なら確定音
   let kakuteiAudio = null;
@@ -1501,33 +1562,27 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     const actual = icon.rarity;
     const isFakeout = dispRarities[i] !== actual;
     const card = cardEls[i];
-    if (i > 0 && !skip) await _gxWait(results.length === 1 ? 0 : 260);
+    if (i > 0 && skip && actual !== 'SS') await _gxWait(30);
 
-    if (isFakeout && (actual === 'SS' || !skip)) {
-      card.classList.remove(`display-rarity-${dispRarities[i]}`);
-      card.classList.add(`display-rarity-${actual}`);
-    }
-    if (actual === 'SS') {
-      // SSは大きく出してからめくる。小さいカードは演出の裏でめくっておく
-      card.classList.add('reveal-SS');
-      await _gxWait(500);
-      card.classList.remove('reveal-SS');
+    // SKIP後はSS以外を小さいカードのままめくる（光の輪だけ）
+    if (skip && actual !== 'SS') {
+      if (isFakeout) {
+        card.classList.remove(`display-rarity-${dispRarities[i]}`);
+        card.classList.add(`display-rarity-${actual}`);
+      }
+      _sePlay('/sounds/turn.mp3');
       document.getElementById(`gc-${i}`).classList.add('flipped');
-      await _gxSsReveal(icon);
+      setTimeout(() => card.classList.add('pop'), 280);
       continue;
     }
-    if (!skip && (isFakeout || actual === 'S')) {
-      const audio = actual === 'S' ? _sePlay('/sounds/s_sound.mp3') : null;
-      await _gxWait(80);
-      card.classList.add(`reveal-${actual}`);
-      await _gxWait(950);
-      _seStop(audio);
-      card.classList.remove(`reveal-${actual}`);
-    }
-    _sePlay('/sounds/turn.mp3');
+    // 1枚ずつ中央に大きく出してめくる。小さいカードは演出の裏でめくっておく
+    card.classList.add('gx-current');
+    await _gxWait(180);
+    card.classList.remove('gx-current', `display-rarity-${dispRarities[i]}`);
+    card.classList.add(`display-rarity-${actual}`);
     document.getElementById(`gc-${i}`).classList.add('flipped');
-    // 表が見えたタイミングで光らせる（SKIP中も軽いのでそのまま）
-    setTimeout(() => card.classList.add('pop'), 280);
+    await _gxReveal(icon, dispRarities[i]);
+    card.classList.add('pop');
   }
   skipBtn.hidden = true;
   await _gxWait(skip ? 500 : 700);
