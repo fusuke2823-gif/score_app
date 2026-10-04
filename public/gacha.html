@@ -1692,7 +1692,7 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   for (let round = 0; round < 2 && !fast(); round++) {
     deck.classList.remove('riffle'); void deck.offsetWidth; deck.classList.add('riffle');
     await waitOrSkip(260);
-    _sePlay('/sounds/putcard.mp3');
+    _sePlay('/sounds/turn.mp3');
     await waitOrSkip(300);
     const up = steps[round + 1];
     if (up && !fast()) {
@@ -1775,9 +1775,7 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     // 昇格：低く見せていたカードは、大きく出す前に小さいカードの上で本来のレアリティに上がる
     if (isFakeout && !skip) {
       card.classList.add('upgrading');
-      const upAudio = _sePlay(actual === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
       await _gxWait(520);
-      _seStop(upAudio);
       card.classList.remove('upgrading', `display-rarity-${dispRarities[i]}`);
       card.classList.add(`display-rarity-${actual}`, 'upgraded');
       await _gxWait(650);
