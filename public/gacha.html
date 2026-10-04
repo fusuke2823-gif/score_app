@@ -261,21 +261,37 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-deck[data-t="SS"] { --dc:240,140,255; }
 .gx-deck.in { opacity:1; transform:none; }
 .gx-deck.out { opacity:0; transform:scale(0.7); transition:opacity 0.35s, transform 0.35s; }
+/* 札そのものはレアリティの色を持たない（全部が虹だと「全部SS」に見えるため）。色は束の後ろから漏れる光で出す */
 .gx-deck-card {
   position:absolute; inset:0; border-radius:10px; display:flex; align-items:center; justify-content:center;
-  background:#201c3a; border:2px solid rgba(var(--dc),0.85);
-  box-shadow:0 0 14px rgba(var(--dc),0.7), 0 4px 10px rgba(0,0,0,0.5);
-  transform:translate(calc(var(--k) * -1.2px), calc(var(--k) * -1.6px)); transition:border-color 0.3s, box-shadow 0.3s;
+  background:#201c3a; border:2px solid rgba(255,255,255,0.28);
+  box-shadow:0 4px 10px rgba(0,0,0,0.55);
+  transform:translate(calc(var(--k) * -0.8px), calc(var(--k) * -1.1px)); transition:box-shadow 0.3s;
+}
+.gx-deck-aura { position:absolute; inset:0; border-radius:12px; transition:box-shadow 0.4s;
+  box-shadow:0 0 26px 7px rgba(var(--dc),0.95), 0 0 70px 18px rgba(var(--dc),0.55); }
+.gx-deck[data-t="SS"] .gx-deck-aura {
+  box-shadow:0 0 18px 4px rgba(255,215,0,0.85), 0 0 40px 10px rgba(255,102,204,0.6), 0 0 70px 16px rgba(0,238,255,0.4);
+  animation:gxAuraSpin 1.6s linear infinite;
+}
+@keyframes gxAuraSpin {
+  0%   { box-shadow:0 0 18px 4px rgba(255,215,0,0.85), 0 0 40px 10px rgba(255,102,204,0.6), 0 0 70px 16px rgba(0,238,255,0.4); }
+  33%  { box-shadow:0 0 18px 4px rgba(255,102,204,0.85), 0 0 40px 10px rgba(0,238,255,0.6), 0 0 70px 16px rgba(255,215,0,0.4); }
+  66%  { box-shadow:0 0 18px 4px rgba(0,238,255,0.85), 0 0 40px 10px rgba(255,215,0,0.6), 0 0 70px 16px rgba(255,102,204,0.4); }
+  100% { box-shadow:0 0 18px 4px rgba(255,215,0,0.85), 0 0 40px 10px rgba(255,102,204,0.6), 0 0 70px 16px rgba(0,238,255,0.4); }
 }
 .gx-deck-card img { width:62%; opacity:0.7; }
-/* リフル：束を左右に割って交互に重ね戻す */
-.gx-deck.riffle .gx-deck-card:nth-child(odd) { animation:gxRiffleL 0.56s cubic-bezier(.4,0,.3,1); }
-.gx-deck.riffle .gx-deck-card:nth-child(even) { animation:gxRiffleR 0.56s cubic-bezier(.4,0,.3,1); }
-@keyframes gxRiffleL { 0% { transform:translate(0,0); } 45% { transform:translate(-72%, 6%) rotate(-14deg); } 100% { transform:translate(calc(var(--k) * -1.2px), calc(var(--k) * -1.6px)); } }
-@keyframes gxRiffleR { 0% { transform:translate(0,0); } 45% { transform:translate(72%, 6%) rotate(14deg); } 100% { transform:translate(calc(var(--k) * -1.2px), calc(var(--k) * -1.6px)); } }
+/* シャッフル：札が1枚ずつ違う距離・角度で左右に広がり、交互に重なって戻る */
+.gx-deck.riffle .gx-deck-card { animation:gxRiffle 0.62s cubic-bezier(.4,0,.3,1) both; animation-delay:var(--dl); }
+@keyframes gxRiffle {
+  0% { transform:translate(calc(var(--k) * -0.8px), calc(var(--k) * -1.1px)); }
+  45% { transform:translate(var(--sx), var(--sy)) rotate(var(--sr)); }
+  100% { transform:translate(calc(var(--k) * -0.8px), calc(var(--k) * -1.1px)); }
+}
 /* 格上げの前に束が震えて、すき間から光が漏れる */
 .gx-deck.shake { animation:gxDeckShake 0.45s linear; }
-.gx-deck.shake .gx-deck-card { box-shadow:0 0 26px rgba(255,255,255,0.9), 0 0 50px rgba(var(--dc),0.9); }
+.gx-deck.shake .gx-deck-card { box-shadow:0 0 14px rgba(255,255,255,0.7), 0 4px 10px rgba(0,0,0,0.5); }
+.gx-deck.shake .gx-deck-aura { box-shadow:0 0 30px 8px rgba(255,255,255,0.9), 0 0 80px 20px rgba(var(--dc),0.8); }
 @keyframes gxDeckShake {
   0%,100% { transform:none; } 10% { transform:translate(-3px,1px) rotate(-2deg); } 20% { transform:translate(3px,-1px) rotate(2deg); }
   30% { transform:translate(-4px,0) rotate(-3deg); } 40% { transform:translate(4px,1px) rotate(3deg); } 50% { transform:translate(-5px,-1px) rotate(-3deg); }
@@ -287,17 +303,14 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 @keyframes gxDeckRing { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(14); } }
 /* 配る直前にぐっと光る */
 .gx-deck.charge { transform:scale(1.08); }
-.gx-deck.charge .gx-deck-card { box-shadow:0 0 30px rgba(var(--dc),1), 0 0 60px rgba(var(--dc),0.6); }
-.gx-deck.dealing { transform:scale(0.92); }
+.gx-deck.charge .gx-deck-aura { box-shadow:0 0 34px 8px rgba(var(--dc),1), 0 0 90px 20px rgba(var(--dc),0.6); }
+.gx-deck.lowered { transform:translateY(var(--deck-y, 0px)) scale(0.92); }
+.gx-deck.lowered.dealing { transform:translateY(var(--deck-y, 0px)) scale(0.88); }
+.gx-deck.lowered.out { opacity:0; transform:translateY(var(--deck-y, 0px)) scale(0.7); }
 /* 配るとき：山札を一番手前に置き、カードは山札の下から出ていく。配るたびに山札が減る */
 .gx-deck { z-index:3; }
 .gx-stage .gacha-cards { position:relative; z-index:1; }
 .gx-deck-card.used { opacity:0; transition:opacity 0.15s; }
-/* 虹の束はカードの縁も虹色にする */
-.gx-deck[data-t="SS"] .gx-deck-card {
-  border-color:transparent;
-  background:linear-gradient(#201c3a,#201c3a) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#7cff8a,#ffd700) border-box;
-}
 .gx-top { position:relative; z-index:4; width:100%; max-width:640px; display:flex; align-items:center; min-height:44px; padding:12px 16px 0; box-sizing:border-box; }
 .gx-title { font-size:0.8rem; font-weight:bold; letter-spacing:0.08em; color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }
 .gx-stage { position:relative; z-index:1; flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:0 8px; box-sizing:border-box; }
@@ -439,7 +452,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
   .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
-  .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake { animation:none !important; }
+  .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake, .gx-deck-aura { animation:none !important; }
 }
 
 /* ===== 討伐ガチャ ===== */
@@ -1600,8 +1613,16 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   const steps = _gxTintSteps(tint);
   const deck = document.createElement('div');
   deck.className = 'gx-deck';
-  deck.innerHTML = '<div class="gx-deck-ring"></div>' +
-    Array.from({ length: 6 }, (_, k) => `<div class="gx-deck-card" style="--k:${k}"><img src="/img/logo.png" alt=""></div>`).join('');
+  // 札は12枚。シャッフルで1枚ずつ違う距離・角度で広がるように値をずらす
+  const DECK_N = 12;
+  deck.innerHTML = '<div class="gx-deck-aura"></div><div class="gx-deck-ring"></div>' +
+    Array.from({ length: DECK_N }, (_, k) => {
+      const side = k % 2 ? 1 : -1;
+      const spread = 38 + (k * 37) % 46;      // 38〜84%
+      const rot = side * (6 + (k * 13) % 16);  // 6〜21度
+      const sy = ((k * 29) % 22) - 8;         // -8〜13%
+      return `<div class="gx-deck-card" style="--k:${k};--sx:${side * spread}%;--sy:${sy}%;--sr:${rot}deg;--dl:${k * 14}ms"><img src="/img/logo.png" alt=""></div>`;
+    }).join('');
   stage.appendChild(deck);
   const setTint = t => { ov.classList.remove('tint-A', 'tint-S', 'tint-SS'); ov.classList.add(`tint-${t}`); deck.dataset.t = t; };
   setTint(steps[0]);
@@ -1632,6 +1653,18 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     await waitOrSkip(tint === 'SS' ? 700 : 450);
   }
 
+  // 山札を画面の下のほうへ動かしてから、上に並ぶ場所へ配る
+  {
+    const wrapRect = wrap.getBoundingClientRect();
+    const d0 = deck.getBoundingClientRect();
+    const stageRect = stage.getBoundingClientRect();
+    const targetCy = Math.min(wrapRect.bottom + d0.height * 0.5 + 28, stageRect.bottom - d0.height * 0.5 - 8);
+    const dy = Math.max(0, targetCy - (d0.top + d0.height / 2));
+    deck.classList.remove('charge');
+    deck.style.setProperty('--deck-y', `${dy}px`);
+    deck.classList.add('lowered');
+    if (!fast()) await waitOrSkip(420);
+  }
   // 束から配る：各カードを束の位置から自分の場所へ飛ばす
   const deckRect = deck.getBoundingClientRect();
   const dcx = deckRect.left + deckRect.width / 2, dcy = deckRect.top + deckRect.height / 2;
