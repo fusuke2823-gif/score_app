@@ -279,7 +279,9 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 }
 /* 虹のときだけ：束の周りから虹色の粒が立ちのぼる */
 .gx-deck-sparks { position:absolute; inset:-20% -70% 0; pointer-events:none; display:none; }
-.gx-deck[data-t="SS"] .gx-deck-sparks { display:block; }
+.gx-deck[data-t="SS"] .gx-deck-sparks { display:block; transition:opacity 0.2s; }
+/* 山札が下へ動くときは粒を消す（粒が一緒についていかないように） */
+.gx-deck.lowered .gx-deck-sparks { opacity:0; }
 .gx-deck-sparks i {
   position:absolute; bottom:20%; left:var(--x); width:6px; height:6px; border-radius:50%; background:var(--c);
   box-shadow:0 0 10px 2px var(--c); opacity:0; animation:gxSpark 1.6s ease-out infinite; animation-delay:var(--d);
