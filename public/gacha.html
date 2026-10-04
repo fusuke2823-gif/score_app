@@ -951,7 +951,7 @@ async function confirmExchange() {
     const r = res.result;
     document.getElementById('gacha-stage').scrollIntoView({ behavior: 'smooth', block: 'center' });
     await animatePull([r]);
-    if (r.is_dup) showGpToast(`<span style="color:#ffd700">【SS】${escHtml(r.name)}</span>（${t('gacha.dup_return', r.dup_pts)}）`);
+    if (r.is_dup && r.dup_pts > 0) showGpToast(`<span style="color:#ffd700">【SS】${escHtml(r.name)}</span>（${t('gacha.dup_return', r.dup_pts)}）`);
     const myData = await apiFetch('/gacha/my');
     renderMyIcons(myData.icons);
     loadExchangeList();
@@ -1162,7 +1162,7 @@ async function animatePull(results) {
         <div class="g-card-back">
           <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}">
           <div class="g-name">${escHtml(icon.name)}</div>
-          ${icon.is_dup ? `<span class="g-dup">重複+${icon.dup_pts}pt</span>` : '<span class="g-new">NEW</span>'}
+          ${icon.is_dup ? `<span class="g-dup">${icon.dup_pts > 0 ? `重複+${icon.dup_pts}pt` : '重複'}</span>` : '<span class="g-new">NEW</span>'}
         </div>
       </div>`;
     wrap.appendChild(card);
