@@ -335,6 +335,18 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 /* A・Sのカードがめくれたときの簡易演出：光の輪が広がり、表面を光がなでる */
 .gx-stage .g-card { position:relative; --pop:79,195,247; }
 .gx-stage .g-card.rarity-S { --pop:255,215,0; }
+.gx-stage .g-card.rarity-SS { --pop:255,150,240; }
+/* 昇格：小さいカードが震えて光り、本来のレアリティの枠に変わって光の輪が広がる */
+.gx-stage .g-card.upgrading .g-card-front { animation:gxUpShake 0.52s linear; }
+@keyframes gxUpShake {
+  0% { filter:brightness(1); transform:none; }
+  20% { transform:translateX(-3px) rotate(-3deg); } 40% { transform:translateX(3px) rotate(3deg); }
+  60% { transform:translateX(-4px) rotate(-3deg); filter:brightness(1.6); } 80% { transform:translateX(4px) rotate(3deg); }
+  100% { transform:none; filter:brightness(2.4); box-shadow:0 0 30px #fff; }
+}
+.gx-stage .g-card.upgraded::after { animation:gxCardRing 0.65s ease-out; border-width:3px; }
+.gx-stage .g-card.upgraded .g-card-front { animation:gxUpFlash 0.65s ease-out; }
+@keyframes gxUpFlash { 0% { filter:brightness(2.6); box-shadow:0 0 40px rgba(var(--pop),1); } 100% { filter:none; } }
 .gx-stage .g-card::after {
   content:''; position:absolute; inset:-3px; border-radius:12px; pointer-events:none; opacity:0;
   border:2px solid rgba(var(--pop),1); box-shadow:0 0 16px rgba(var(--pop),0.9);
@@ -456,16 +468,35 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-closeup.revealed .gx-cu-hint { opacity:1; }
 
 /* 結果のボタン */
-.gx-actions { width:100%; display:flex; gap:10px; opacity:0; transform:translateY(16px); transition:opacity 0.3s, transform 0.3s; }
+.gx-actions { width:100%; display:flex; align-items:center; justify-content:center; gap:18px; opacity:0; transform:translateY(16px); transition:opacity 0.3s, transform 0.3s; }
 .gx-actions.show { opacity:1; transform:none; }
 .gx-actions[hidden] { display:none; }
-.gx-actions .btn { flex:1; justify-content:center; padding:10px; font-weight:800; min-height:52px; }
-.gx-actions .btn.gx-again { flex:1.4; flex-direction:column; gap:1px; line-height:1.2; }
-.gx-again small { font-size:0.7rem; font-weight:bold; opacity:0.85; }
+/* 閉じる：控えめな丸ボタン */
+.gx-close {
+  display:flex; flex-direction:column; align-items:center; gap:4px; padding:0; border:none; background:none; cursor:pointer;
+  color:rgba(255,255,255,0.75); font-family:inherit; font-size:0.72rem; font-weight:bold; letter-spacing:0.08em;
+}
+.gx-close-ring {
+  width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  border:1.5px solid rgba(255,255,255,0.35); background:rgba(255,255,255,0.06); transition:background 0.2s, border-color 0.2s;
+}
+.gx-close:hover .gx-close-ring { background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.6); }
+/* もう一度：引く画面と同じボタン画像に「もう一度」の札を付ける */
+.gx-again { position:relative; padding:0; border:none; background:none; cursor:pointer; transition:transform 0.15s, filter 0.2s; }
+.gx-again img { display:block; width:min(44vw, 180px); height:auto; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
+.gx-again:hover:not(:disabled) { transform:translateY(-3px); }
+.gx-again:disabled { filter:grayscale(1) brightness(0.6); cursor:not-allowed; }
+.gx-again-tag {
+  position:absolute; top:-11px; left:50%; transform:translateX(-50%); white-space:nowrap;
+  padding:2px 12px; border-radius:99px; font-size:0.7rem; font-weight:900; letter-spacing:0.08em; color:#241800;
+  background:linear-gradient(90deg,#ffd700,#ffb300); box-shadow:0 2px 8px rgba(255,190,0,0.5);
+}
+.gx-again:not(:disabled) img { animation:gxAgainPulse 1.8s ease-in-out infinite; }
+@keyframes gxAgainPulse { 0%,100% { filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); } 50% { filter:drop-shadow(0 0 14px rgba(255,200,80,0.55)) drop-shadow(0 6px 16px rgba(0,0,0,0.5)); } }
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
   .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
-  .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake, .gx-deck-aura, .gx-deck-sparks i { animation:none !important; }
+  .gx-again img, .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake, .gx-deck-aura, .gx-deck-sparks i { animation:none !important; }
 }
 
 /* ===== 討伐ガチャ ===== */
@@ -1469,7 +1500,7 @@ const GX_REVEAL = {
   S:  { charge: 650, hold: 1500, sound: '/sounds/s_sound.mp3' },
   SS: { charge: 900, hold: 3500, sound: '/sounds/ss_sound.mp3' },
 };
-async function _gxReveal(icon, shownRarity) {
+async function _gxReveal(icon, shownRarity, onRevealed = null) {
   const r = icon.rarity;
   const cfg = GX_REVEAL[r] || GX_REVEAL.A;
   const cu = document.getElementById('gx-closeup');
@@ -1546,6 +1577,7 @@ async function _gxReveal(icon, shownRarity) {
   if (!jumped) await wait(350);
   cu.classList.add('revealed');
   revealed = true;
+  if (onRevealed) onRevealed();
   setTimeout(finish, cfg.hold);
   return finishedP;
 }
@@ -1737,13 +1769,28 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
       setTimeout(() => card.classList.add('pop'), 280);
       continue;
     }
-    // 1枚ずつ中央に大きく出してめくる。小さいカードは演出の裏でめくっておく
+    // 1枚ずつ中央に大きく出してめくる
     card.classList.add('gx-current');
-    await _gxWait(180);
-    card.classList.remove('gx-current', `display-rarity-${dispRarities[i]}`);
-    card.classList.add(`display-rarity-${actual}`);
-    document.getElementById(`gc-${i}`).classList.add('flipped');
-    await _gxReveal(icon, dispRarities[i]);
+    await _gxWait(220);
+    // 昇格：低く見せていたカードは、大きく出す前に小さいカードの上で本来のレアリティに上がる
+    if (isFakeout && !skip) {
+      card.classList.add('upgrading');
+      const upAudio = _sePlay(actual === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
+      await _gxWait(520);
+      _seStop(upAudio);
+      card.classList.remove('upgrading', `display-rarity-${dispRarities[i]}`);
+      card.classList.add(`display-rarity-${actual}`, 'upgraded');
+      await _gxWait(650);
+      card.classList.remove('upgraded');
+    } else if (isFakeout) {
+      card.classList.remove(`display-rarity-${dispRarities[i]}`);
+      card.classList.add(`display-rarity-${actual}`);
+    }
+    card.classList.remove('gx-current');
+    // 小さいカードは、大きいカードがめくれて中身が見えてから表にする（先に表にするとネタバレになる）
+    const flipSmall = () => document.getElementById(`gc-${i}`).classList.add('flipped');
+    await _gxReveal(icon, actual, flipSmall);
+    flipSmall();
     card.classList.add('pop');
   }
   skipBtn.hidden = true;
@@ -1752,11 +1799,17 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   // 結果のボタン
   const actions = document.getElementById('gx-actions');
   const cost = againType === 'single' ? gSettings?.single_cost : againType === 'multi' ? gSettings?.multi_cost : null;
-  const againLabel = `<span>もう一度引く</span><small>${againType === 'single' ? '単発' : '10連'} ${cost}pt</small>`;
   const canAgain = againType && cost != null && currentPoints >= cost;
+  const againImg = againType === 'single' ? '/img/gacha_1.png' : '/img/gacha_10.png';
   actions.innerHTML = `
-    <button type="button" class="btn btn-secondary" data-act="close">閉じる</button>
-    ${againType ? `<button type="button" class="btn btn-primary gx-again" data-act="again"${canAgain ? '' : ' disabled'}>${againLabel}</button>` : ''}`;
+    <button type="button" class="gx-close" data-act="close" aria-label="閉じる">
+      <span class="gx-close-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
+      閉じる
+    </button>
+    ${againType ? `<button type="button" class="gx-again" data-act="again"${canAgain ? '' : ' disabled title="ポイントが足りません"'} aria-label="もう一度引く（${againType === 'single' ? '単発' : '10連'} ${cost}pt）">
+      <span class="gx-again-tag">${canAgain ? 'もう一度' : 'ポイント不足'}</span>
+      <img src="${againImg}" alt="">
+    </button>` : ''}`;
   actions.hidden = false;
   document.body.classList.add('gx-result');
   requestAnimationFrame(() => actions.classList.add('show'));
