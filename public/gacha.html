@@ -254,27 +254,55 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 }
 @keyframes gxStars { to { background-position:0 -680px; } }
 .gx-overlay::after { content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0,0,0,0.65) 100%); }
-/* 引いた直後の光（溜め） */
-.gx-charge {
-  position:absolute; left:50%; top:45%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; pointer-events:none; z-index:1;
-  background:radial-gradient(circle, #fff 0%, rgba(var(--gx-tint),0.9) 35%, transparent 70%);
-  opacity:0; transform:scale(0.2);
+/* 最初の演出：カードの束 */
+.gx-deck { position:absolute; left:50%; top:50%; width:var(--dw); height:calc(var(--dw) * 1.39); margin:calc(var(--dw) * -0.695) 0 0 calc(var(--dw) * -0.5);
+  --dw:min(24vw, 128px); --dc:79,195,247; z-index:2; opacity:0; transform:scale(0.6); transition:opacity 0.3s, transform 0.4s cubic-bezier(.2,1.4,.4,1); pointer-events:none; }
+.gx-deck[data-t="S"] { --dc:255,205,60; }
+.gx-deck[data-t="SS"] { --dc:240,140,255; }
+.gx-deck.in { opacity:1; transform:none; }
+.gx-deck.out { opacity:0; transform:scale(0.7); transition:opacity 0.35s, transform 0.35s; }
+.gx-deck-glow { position:absolute; inset:-60%; border-radius:50%; background:radial-gradient(circle, rgba(var(--dc),0.55) 0%, rgba(var(--dc),0.15) 40%, transparent 70%); animation:gxDeckGlow 1.2s ease-in-out infinite alternate; }
+.gx-deck[data-t="SS"] .gx-deck-glow { background:radial-gradient(circle, rgba(255,230,140,0.5) 0%, rgba(255,120,220,0.3) 30%, rgba(80,200,255,0.18) 50%, transparent 70%); }
+@keyframes gxDeckGlow { from { opacity:0.6; transform:scale(0.9); } to { opacity:1; transform:scale(1.08); } }
+.gx-deck-card {
+  position:absolute; inset:0; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  background:#201c3a; border:2px solid rgba(var(--dc),0.85);
+  box-shadow:0 0 14px rgba(var(--dc),0.7), 0 4px 10px rgba(0,0,0,0.5);
+  transform:translate(calc(var(--k) * -1.2px), calc(var(--k) * -1.6px)); transition:border-color 0.3s, box-shadow 0.3s;
 }
-.gx-overlay.charging .gx-charge { animation:gxCharge var(--gx-charge-ms, 1000ms) ease-in forwards; }
-@keyframes gxCharge {
-  0% { opacity:0; transform:scale(0.2); }
-  25% { opacity:0.8; transform:scale(1.8); }
-  38% { opacity:0.6; transform:scale(1.3); }
-  55% { opacity:0.9; transform:scale(2.6); }
-  68% { opacity:0.75; transform:scale(2.1); }
-  82% { opacity:1; transform:scale(3.6); }
-  100% { opacity:0; transform:scale(18); }
+.gx-deck-card img { width:62%; opacity:0.7; }
+/* リフル：束を左右に割って交互に重ね戻す */
+.gx-deck.riffle .gx-deck-card:nth-child(odd) { animation:gxRiffleL 0.56s cubic-bezier(.4,0,.3,1); }
+.gx-deck.riffle .gx-deck-card:nth-child(even) { animation:gxRiffleR 0.56s cubic-bezier(.4,0,.3,1); }
+@keyframes gxRiffleL { 0% { transform:translate(0,0); } 45% { transform:translate(-72%, 6%) rotate(-14deg); } 100% { transform:translate(calc(var(--k) * -1.2px), calc(var(--k) * -1.6px)); } }
+@keyframes gxRiffleR { 0% { transform:translate(0,0); } 45% { transform:translate(72%, 6%) rotate(14deg); } 100% { transform:translate(calc(var(--k) * -1.2px), calc(var(--k) * -1.6px)); } }
+/* 格上げの前に束が震えて、すき間から光が漏れる */
+.gx-deck.shake { animation:gxDeckShake 0.45s linear; }
+.gx-deck.shake .gx-deck-card { box-shadow:0 0 26px rgba(255,255,255,0.9), 0 0 50px rgba(var(--dc),0.9); }
+@keyframes gxDeckShake {
+  0%,100% { transform:none; } 10% { transform:translate(-3px,1px) rotate(-2deg); } 20% { transform:translate(3px,-1px) rotate(2deg); }
+  30% { transform:translate(-4px,0) rotate(-3deg); } 40% { transform:translate(4px,1px) rotate(3deg); } 50% { transform:translate(-5px,-1px) rotate(-3deg); }
+  60% { transform:translate(5px,0) rotate(3deg); } 70% { transform:translate(-4px,1px) rotate(-2deg); } 80% { transform:translate(4px,-1px) rotate(2deg); } 90% { transform:translate(-2px,0); }
+}
+.gx-deck-ring { position:absolute; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; opacity:0;
+  border:4px solid rgba(255,255,255,0.95); box-shadow:0 0 30px rgba(var(--dc),1), inset 0 0 20px rgba(var(--dc),0.9); }
+.gx-deck.burst .gx-deck-ring { animation:gxDeckRing 0.6s ease-out; }
+@keyframes gxDeckRing { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(14); } }
+/* 配る直前にぐっと光る */
+.gx-deck.charge { transform:scale(1.08); }
+.gx-deck.charge .gx-deck-card { box-shadow:0 0 30px rgba(var(--dc),1), 0 0 60px rgba(var(--dc),0.6); }
+.gx-deck.dealing { transform:scale(0.92); z-index:0; }
+.gx-stage .gacha-cards { position:relative; z-index:1; }
+/* 虹の束はカードの縁も虹色にする */
+.gx-deck[data-t="SS"] .gx-deck-card {
+  border-color:transparent;
+  background:linear-gradient(#201c3a,#201c3a) padding-box, linear-gradient(135deg,#ffd700,#ff66cc,#00eeff,#7cff8a,#ffd700) border-box;
 }
 .gx-top { position:relative; z-index:4; width:100%; max-width:640px; display:flex; align-items:center; min-height:44px; padding:12px 16px 0; box-sizing:border-box; }
 .gx-title { font-size:0.8rem; font-weight:bold; letter-spacing:0.08em; color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }
 .gx-stage { position:relative; z-index:1; flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:0 8px; box-sizing:border-box; }
 .gx-stage .gacha-cards { --cw:min(16.2vw, 104px); width:calc(5 * var(--cw) + 4 * 9px); max-width:none; column-gap:9px; row-gap:30px; }
-.gx-stage .g-card { width:var(--cw); height:calc(var(--cw) * 1.39); opacity:0; transform:translateY(-60px) scale(0.5) rotate(-10deg); transition:opacity 0.3s, transform 0.4s cubic-bezier(.2,1.2,.4,1); }
+.gx-stage .g-card { width:var(--cw); height:calc(var(--cw) * 1.39); opacity:0; transform:var(--from, translateY(-60px) scale(0.5) rotate(-10deg)); transition:opacity 0.15s, transform 0.45s cubic-bezier(.2,1.1,.4,1); }
 .gx-stage .g-card.card-visible { opacity:1; transform:none; }
 .gx-stage .g-card-back img { width:62%; height:auto; aspect-ratio:1; }
 .gx-stage .g-card-back .g-name { max-width:92%; font-size:0.64rem; }
@@ -411,7 +439,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
   .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
-  .gx-overlay.charging .gx-charge, .gx-big.charging .gx-big-front { animation:none; }
+  .gx-big.charging .gx-big-front, .gx-deck-glow, .gx-deck.riffle .gx-deck-card, .gx-deck.shake { animation:none !important; }
 }
 
 /* ===== 討伐ガチャ ===== */
@@ -1364,7 +1392,6 @@ function _gxOverlay() {
   ov.innerHTML = `
     <div class="gx-aurora"></div>
     <div class="gx-stars"></div>
-    <div class="gx-charge"></div>
     <div class="gx-top"><span class="gx-title" id="gx-title"></span><button type="button" class="gx-skip" id="gx-skip" hidden>SKIP ›</button></div>
     <div class="gx-stage" id="gx-stage"></div>
     <div class="gx-bottom">
@@ -1496,6 +1523,18 @@ async function _gxReveal(icon, shownRarity) {
   return finishedP;
 }
 
+// 最初の演出の光の色の段階。最後の色（見た目の一番高いレアリティ）より低い色から始めて、途中で格上げすることがある
+function _gxTintSteps(finalTint) {
+  const r = Math.random();
+  if (finalTint === 'SS') {
+    if (r < 0.10) return ['A', 'S', 'SS'];
+    if (r < 0.45) return ['S', 'SS'];
+    return ['SS'];
+  }
+  if (finalTint === 'S') return r < 0.25 ? ['A', 'S'] : ['S'];
+  return ['A'];
+}
+
 // カードを配ってめくる演出。最後に結果とボタンを出し、押されたボタン（'again' / 'close'）を返す。
 // againType: 「もう一度引く」の種類（'single' / 'multi'）。null ならボタンを出さない（GP交換など）
 async function animatePull(results, { againType = null, title = '' } = {}) {
@@ -1522,7 +1561,6 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   // 10連の10枚目はS以上確定なので、見た目も必ず金以上にする
   if (results.length === 10 && dispRarities[9] === 'A') dispRarities[9] = 'S';
   const tint = dispRarities.includes('SS') ? 'SS' : dispRarities.includes('S') ? 'S' : 'A';
-  ov.classList.add(`tint-${tint}`);
 
   const cardEls = results.map((icon, i) => {
     const card = document.createElement('div');
@@ -1541,30 +1579,80 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     return card;
   });
 
-  // SKIP：SS以外の演出を飛ばす（SSのアップは必ず見せる）
+  // SKIP：今の1枚を閉じ、残りのA・Sは小さいカードのまま一気にめくる。SSは最後まで見せる
   let skip = false;
   const skipBtn = document.getElementById('gx-skip');
   skipBtn.hidden = false;
-  skipBtn.onclick = () => {
+  skipBtn.onclick = e => {
+    e.stopPropagation();
     skip = true; skipBtn.hidden = true; cardEls.forEach(c => c.classList.add('card-visible'));
-    if (_gxActiveReveal && _gxActiveReveal.rarity !== 'SS') _gxActiveReveal.close(); // SSは最後まで見せる
+    if (_gxActiveReveal && _gxActiveReveal.rarity !== 'SS') _gxActiveReveal.close();
   };
+  // 最初の演出（シャッフル・配る）の間は、画面のタップでその演出だけ飛ばす（めくる演出はそのまま）
+  let introSkip = false;
+  const onIntroTap = () => { introSkip = true; };
+  ov.addEventListener('click', onIntroTap);
 
-  // 溜め：見た目の一番高いレアリティほど長く光る
-  const chargeMs = { A: 1000, S: 1300, SS: 1700 }[tint];
-  ov.style.setProperty('--gx-charge-ms', `${chargeMs}ms`);
-  ov.classList.remove('charging'); void ov.offsetWidth; ov.classList.add('charging');
-  await _gxWait(chargeMs);
+  // ===== 最初の演出：カードの束をシャッフル（たまに途中で光の色が格上げ）→ 束から配る =====
+  // SKIPされたら途中でも抜ける待ち時間
+  const waitOrSkip = async ms => { const end = Date.now() + ms; while (!skip && !introSkip && Date.now() < end) await _gxWait(40); };
+  const fast = () => skip || introSkip;
+  const steps = _gxTintSteps(tint);
+  const deck = document.createElement('div');
+  deck.className = 'gx-deck';
+  deck.innerHTML = '<div class="gx-deck-glow"></div><div class="gx-deck-ring"></div>' +
+    Array.from({ length: 6 }, (_, k) => `<div class="gx-deck-card" style="--k:${k}"><img src="/img/logo.png" alt=""></div>`).join('');
+  stage.appendChild(deck);
+  const setTint = t => { ov.classList.remove('tint-A', 'tint-S', 'tint-SS'); ov.classList.add(`tint-${t}`); deck.dataset.t = t; };
+  setTint(steps[0]);
+  requestAnimationFrame(() => deck.classList.add('in'));
+  await waitOrSkip(350);
 
-  // 配る
+  // シャッフル（2回）。格上げがある場合は、途中で束が震えて光の色が上がる
+  for (let round = 0; round < 2 && !fast(); round++) {
+    deck.classList.remove('riffle'); void deck.offsetWidth; deck.classList.add('riffle');
+    await waitOrSkip(260);
+    _sePlay('/sounds/putcard.mp3');
+    await waitOrSkip(300);
+    const up = steps[round + 1];
+    if (up && !fast()) {
+      deck.classList.add('shake');
+      await waitOrSkip(450);
+      deck.classList.remove('shake');
+      const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
+      setTimeout(() => _seStop(upAudio), 700);
+      setTint(up);
+      deck.classList.remove('burst'); void deck.offsetWidth; deck.classList.add('burst');
+      await waitOrSkip(450);
+    }
+  }
+  setTint(tint);
+  if (!fast()) {
+    deck.classList.add('charge');
+    await waitOrSkip(tint === 'SS' ? 700 : 450);
+  }
+
+  // 束から配る：各カードを束の位置から自分の場所へ飛ばす
+  const deckRect = deck.getBoundingClientRect();
+  const dcx = deckRect.left + deckRect.width / 2, dcy = deckRect.top + deckRect.height / 2;
+  cardEls.forEach(card => {
+    const r = card.getBoundingClientRect();
+    const dx = dcx - (r.left + r.width / 2), dy = dcy - (r.top + r.height / 2);
+    card.style.setProperty('--from', `translate(${dx}px, ${dy}px) scale(0.9) rotate(${(Math.random() * 16 - 8).toFixed(1)}deg)`);
+  });
+  deck.classList.remove('charge');
+  deck.classList.add('dealing');
   for (const card of cardEls) {
-    if (skip) break;
+    if (fast()) break;
     _sePlay('/sounds/putcard.mp3');
     card.classList.add('card-visible');
-    await _gxWait(130);
+    await _gxWait(120);
   }
   cardEls.forEach(c => c.classList.add('card-visible'));
-  if (!skip) await _gxWait(600);
+  deck.classList.add('out');
+  setTimeout(() => deck.remove(), 400);
+  ov.removeEventListener('click', onIntroTap);
+  await _gxWait(fast() ? 450 : 600);
 
   // めくる
   for (let i = 0; i < results.length; i++) {
@@ -1574,7 +1662,7 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     const card = cardEls[i];
     if (i > 0 && skip && actual !== 'SS') await _gxWait(30);
 
-    // SKIP後はSS以外を小さいカードのままめくる（光の輪だけ）
+    // SKIP後はSS以外を小さいカードのまま一気にめくる（光の輪だけ）
     if (skip && actual !== 'SS') {
       if (isFakeout) {
         card.classList.remove(`display-rarity-${dispRarities[i]}`);
