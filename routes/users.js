@@ -204,15 +204,19 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const extAttrRankResult = await pool.query(
       `WITH attr_ranks AS (
          SELECT event_id, attribute, user_id,
-           RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank
+           RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank,
+           COUNT(*) OVER (PARTITION BY event_id, attribute) AS n
          FROM scores
          WHERE approved_score IS NOT NULL AND ranking_scope IN ('public', 'external')
        )
-       SELECT event_id, attribute, rank FROM attr_ranks WHERE user_id = $1`,
+       SELECT event_id, attribute, rank, n::int FROM attr_ranks WHERE user_id = $1`,
       [req.params.id]
     );
-    const extAttrRankMap = {};
-    extAttrRankResult.rows.forEach(r => { extAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
+    const extAttrRankMap = {}, attrParticipantsMap = {};
+    extAttrRankResult.rows.forEach(r => {
+      extAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank;
+      attrParticipantsMap[`${r.event_id}_${r.attribute}`] = r.n;
+    });
 
     res.json({
       ...user,
@@ -223,6 +227,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       ranks: extRankMap,
       participants: participantsMap,
       attr_ranks: extAttrRankMap,
+      attr_participants: attrParticipantsMap,
     });
   } catch (err) {
     console.error(err);

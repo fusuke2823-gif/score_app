@@ -93,6 +93,7 @@
 .res-row:not(.is-best) .res-score { font-size:0.92rem; color:var(--text-secondary); }
 .res-attr-rank { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
 .res-attr-rank b { color:var(--text-primary); font-size:0.85rem; }
+.res-attr-rank i { font-style:normal; font-size:0.66rem; }
 .res-thumb { position:relative; width:64px; height:36px; padding:0; border:1px solid var(--border-light); border-radius:6px; overflow:hidden; background:var(--bg-primary); cursor:pointer; }
 .res-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.2s; }
 .res-thumb:hover img { transform:scale(1.08); }
@@ -418,6 +419,7 @@ function resultCardHTML(e, data, hidden) {
   const podium = RES_PODIUM[rank];
   const rows = e.scores.map((s, k) => {
     const attrRank = s.attr_rank_ext;
+    const attrTotal = data.attr_participants?.[`${e.event_id}_${s.attribute}`];
     const thumb = s.approved_image_url
       ? `<button type="button" class="res-thumb" onclick="openModal('${escHtml(s.approved_image_url)}','${s.youtube_url ? escHtml(s.youtube_url) : ''}',${s.youtube_score ? s.youtube_score : 'null'})" aria-label="リザルト画像を見る">
           <img src="${escHtml(thumbUrl(s.approved_image_url))}" alt="" loading="lazy">${s.youtube_url ? `<span class="res-yt">${RES_PLAY}</span>` : ''}
@@ -427,7 +429,7 @@ function resultCardHTML(e, data, hidden) {
       <div class="res-row${k === 0 ? ' is-best' : ''}">
         ${attrBadge(s.attribute, true)}
         <span class="res-score">${formatScore(s.approved_score)}</span>
-        <span class="res-attr-rank">${attrRank ? `<span>属性 <b>${attrRank}</b>位</span>` : ''}</span>
+        <span class="res-attr-rank">${attrRank ? `<span>属性 <b>${attrRank}</b>位${attrTotal ? `<i> / ${attrTotal}人</i>` : ''}</span>` : ''}</span>
         ${thumb}
       </div>`;
   }).join('');
