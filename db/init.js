@@ -768,6 +768,19 @@ const initDB = async () => {
       -- 共闘目標：目標スコア（全員の合計、100%の値）。NULLなら共闘目標なし
       ALTER TABLE events ADD COLUMN IF NOT EXISTS coop_target BIGINT;
       INSERT INTO settings (key, value) VALUES ('coop_tiers', '[{"pct":100,"pts":100},{"pct":150,"pts":200},{"pct":200,"pts":300}]') ON CONFLICT (key) DO NOTHING;
+      -- 属性の自動判定（utils/attrJudge.js）：画像ごとの特徴の数値（承認済みの投稿のものがお手本になる）
+      CREATE TABLE IF NOT EXISTS score_vectors (
+        image_url TEXT PRIMARY KEY,
+        score_id INTEGER REFERENCES scores(id) ON DELETE SET NULL,
+        event_type VARCHAR(30),
+        roles TEXT[],
+        mvp BYTEA NOT NULL,
+        icons BYTEA NOT NULL,
+        excluded BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      ALTER TABLE scores ADD COLUMN IF NOT EXISTS attr_check JSONB;
+      INSERT INTO settings (key, value) VALUES ('attr_check_mode', 'record') ON CONFLICT (key) DO NOTHING;
       CREATE TABLE IF NOT EXISTS ext_distribution_details (
         event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

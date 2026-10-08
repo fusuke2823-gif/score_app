@@ -7,6 +7,7 @@ const { authenticateToken } = require('../middleware/auth');
 const { sendScoreNotification } = require('../utils/mailer');
 const { extractScoreResult, isAiCheckEnabled } = require('../utils/gemini');
 const { approveScoreRow } = require('./rankUtils');
+const { getAttrCheckMode, judgeSubmission } = require('../utils/attrJudge');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -111,6 +112,7 @@ router.post('/', authenticateToken, (req, res, next) => {
 
     runAiCheckInBackground({
       scoreId: scoreRow.id,
+      imageUrl,
       buffer: req.file.buffer,
       mimeType: req.file.mimetype,
       eventId: event_id,
@@ -129,7 +131,7 @@ router.post('/', authenticateToken, (req, res, next) => {
 
 // レスポンスを返した後にバックグラウンドで実行するAIチェック。
 // 例外は投げず内部でログのみ（呼び出し側はawaitしない前提）。
-async function runAiCheckInBackground({ scoreId, buffer, mimeType, eventId, eventType, eventName, attribute, scoreNum, userId, username }) {
+async function runAiCheckInBackground({ scoreId, imageUrl, buffer, mimeType, eventId, eventType, eventName, attribute, scoreNum, userId, username }) {
   try {
     if (!(await isAiCheckEnabled())) return;
 
@@ -159,6 +161,20 @@ async function runAiCheckInBackground({ scoreId, buffer, mimeType, eventId, even
       }
     } else if (ai.ok && !ai.readable) {
       aiNote = 'AI読み取り不可(手動確認してください)';
+    }
+
+    // 属性の自動判定（utils/attrJudge.js）。record は記録だけ、enforce は自動承認の条件に使う
+    let attrCheck = null;
+    const attrMode = ai.ok && ai.readable ? await getAttrCheckMode() : 'off';
+    if (attrMode !== 'off') {
+      attrCheck = await judgeSubmission({ imageUrl, scoreId, eventType, roles: ai.roles, attribute });
+      attrCheck.mode = attrMode;
+      await pool.query('UPDATE scores SET attr_check = $2 WHERE id = $1', [scoreId, JSON.stringify(attrCheck)]);
+      // 処理の失敗（attrCheck.error）は今までどおりの扱い。判定できて手動へ回すべきときだけ止める
+      if (attrMode === 'enforce' && !attrCheck.error && attrCheck.route === 'manual') {
+        autoApprove = false;
+        aiNote = aiNote ? `${aiNote} ／ ${attrCheck.note}` : attrCheck.note;
+      }
     }
     // ai.ok === false（APIキー未設定・タイムアウト・エラー等）の場合は無言でスキップし、従来通り手動承認へ
 

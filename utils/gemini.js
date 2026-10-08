@@ -9,9 +9,10 @@ const RESPONSE_SCHEMA = {
   properties: {
     readable: { type: 'boolean' },
     final_score: { type: ['integer', 'null'] },
-    event_type_guess: { type: 'string', enum: ['score_attack', 'score_attack_ex', 'seraph', 'unknown'] }
+    event_type_guess: { type: 'string', enum: ['score_attack', 'score_attack_ex', 'seraph', 'unknown'] },
+    roles: { type: 'array', items: { type: 'string' } }
   },
-  required: ['readable', 'final_score', 'event_type_guess']
+  required: ['readable', 'final_score', 'event_type_guess', 'roles']
 };
 
 const PROMPT = `これはスマートフォンRPGのスコアアタック系リザルト画面です。日本語版だけでなく繁体字・英語など他言語のクライアントの場合もあります。文字列の一致ではなく画面の意味・構造で判断してください。
@@ -22,7 +23,9 @@ const PROMPT = `これはスマートフォンRPGのスコアアタック系リ�
    - score_attack: 上部の対象名が敵ボスの固有名詞で、ボーナス内訳が2項目ある（被弾なし系のボーナスと、ターン最大ダメージ系のボーナスの両方がある）
    - score_attack_ex: 上部の対象名が敵ボスの固有名詞で、ボーナス内訳が1項目のみ（ターン最大ダメージ系のボーナスだけ）
    - seraph: 上部の対象名がボスの名前ではなく演習・訓練の名称で、ターンクリア倍率が存在せず、下部に戦術カードのようなアイコン列がある
-   - 上記のいずれにも自信を持って当てはまらない場合は unknown`;
+   - 上記のいずれにも自信を持って当てはまらない場合は unknown
+
+3. roles: 画面の左側に、編成メンバー6人の丸い顔アイコンが上から下へ縦（または弧を描くよう）に並び、それぞれのアイコンの上に役割を表す英字3文字の札（ATK, BLA, BRK, BUF, DBF, DEF, HLR, ADM など）が付いています。上から順に6人分の札の文字を配列で返してください（読めない場合は "?"）。`;
 
 async function isAiCheckEnabled() {
   try {
@@ -58,11 +61,13 @@ async function extractScoreResult(buffer, mimeType) {
     if (!parsed.readable || typeof parsed.final_score !== 'number') {
       return { ok: true, readable: false };
     }
+    const roles = Array.isArray(parsed.roles) ? parsed.roles.map(r => String(r).toUpperCase().trim()) : [];
     return {
       ok: true,
       readable: true,
       score: parsed.final_score,
-      eventTypeGuess: parsed.event_type_guess || 'unknown'
+      eventTypeGuess: parsed.event_type_guess || 'unknown',
+      roles: roles.length === 6 ? roles : null // 6人分読めたときだけ使う（属性の自動判定用）
     };
   } catch (err) {
     return { ok: false, reason: err.name === 'AbortError' ? 'timeout' : 'error' };

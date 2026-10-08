@@ -10,6 +10,7 @@ const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
 const { PULL_COST: SPECIAL_GACHA_PULL_COST } = require('./specialGacha');
 const { COOP_TIERS_KEY, getCoopTiers, getCoopStatus } = require('../utils/coop');
+const { getAttrCheckMode, rejudgeStored, invalidateRefs } = require('../utils/attrJudge');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
@@ -21,6 +22,81 @@ cloudinary.config({
 });
 
 router.use(authenticateToken, requireAdmin);
+
+// ===== 属性の自動判定（utils/attrJudge.js） =====
+// 集計：期間内に判定した投稿の振り分けと、AIの推定と最終的な属性の食い違い（テスト中も本番中も見る）
+router.get('/attr-check/stats', async (req, res) => {
+  const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 30));
+  try {
+    const { rows } = await pool.query(
+      `SELECT s.id, s.status, s.attribute, s.attr_check, u.username, e.event_number, s.approved_image_url
+       FROM scores s JOIN users u ON u.id = s.user_id JOIN events e ON e.id = s.event_id
+       WHERE s.attr_check IS NOT NULL AND (s.attr_check->>'at')::timestamptz > NOW() - ($1 || ' days')::interval`,
+      [String(days)]
+    );
+    const by = f => rows.reduce((m, r) => { const k = f(r); m[k] = (m[k] || 0) + 1; return m; }, {});
+    const judged = rows.filter(r => !r.attr_check.error);
+    const ms = judged.map(r => r.attr_check.ms).filter(Number.isFinite).sort((a, b) => a - b);
+    // 承認済みで、AIの推定と最終的な属性が違うもの＝AIの間違い、または属性ミスの見逃し
+    const disagreements = rows.filter(r => r.status === 'approved' && r.attr_check.pred && r.attr_check.pred !== r.attribute)
+      .map(r => ({ id: r.id, username: r.username, event_number: r.event_number, attribute: r.attribute, pred: r.attr_check.pred, tier: r.attr_check.tier, image_url: r.approved_image_url }));
+    const vec = await pool.query(
+      `SELECT COUNT(*)::int AS total,
+              COUNT(*) FILTER (WHERE v.excluded)::int AS excluded,
+              COUNT(s.id) FILTER (WHERE NOT v.excluded AND v.roles IS NOT NULL)::int AS refs
+       FROM score_vectors v LEFT JOIN scores s ON s.approved_image_url = v.image_url AND s.approved_score IS NOT NULL`
+    );
+    res.json({
+      days, mode: await getAttrCheckMode(),
+      judged: judged.length, errors: rows.length - judged.length,
+      routes: by(r => r.attr_check.route || 'error'),
+      reasons: by(r => r.attr_check.reason || 'error'),
+      ms: ms.length ? { median: ms[Math.floor(ms.length / 2)], p90: ms[Math.floor(ms.length * 0.9)] } : null,
+      disagreements,
+      vectors: vec.rows[0],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 点検：イベント内の投稿を、今のお手本で判定し直す（自分自身はお手本から除く）。属性チェックのタブで使う
+router.get('/attr-check/review', async (req, res) => {
+  const eventId = parseInt(req.query.event_id, 10);
+  if (!eventId) return res.status(400).json({ error: 'event_id を指定してください' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT s.id, s.attribute, COALESCE(s.approved_image_url, s.pending_image_url) AS image_url, v.excluded
+       FROM scores s JOIN score_vectors v ON v.image_url = COALESCE(s.approved_image_url, s.pending_image_url)
+       WHERE s.event_id = $1`,
+      [eventId]
+    );
+    const out = {};
+    for (const r of rows) {
+      const j = await rejudgeStored(r.image_url, r.attribute);
+      if (j) out[r.id] = { tier: j.tier, pred: j.pred, route: j.route, note: j.note, signals: j.signals, excluded: r.excluded, image_url: r.image_url };
+    }
+    res.json(out);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 「お手本にしない」の切り替え（黒い帯や加工などで、他の投稿の判定をゆがめる画像を外す）
+router.post('/attr-check/exclude', async (req, res) => {
+  const { image_url, excluded } = req.body || {};
+  if (!image_url) return res.status(400).json({ error: 'image_url を指定してください' });
+  try {
+    await pool.query('UPDATE score_vectors SET excluded = $2 WHERE image_url = $1', [image_url, !!excluded]);
+    invalidateRefs();
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
 
 // 承認待ちスコア一覧
 router.get('/pending', async (req, res) => {
@@ -460,7 +536,8 @@ router.get('/settings', async (req, res) => {
     res.json({
       notify_on_submit: map['notify_on_submit'] === 'true',
       app_version: map['app_version'] || '4.03.22',
-      ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false'
+      ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false',
+      attr_check_mode: await getAttrCheckMode(),
     });
   } catch (err) {
     console.error(err);
@@ -470,8 +547,12 @@ router.get('/settings', async (req, res) => {
 
 // 通知設定更新
 router.put('/settings', async (req, res) => {
-  const { notify_on_submit, app_version, ai_score_check_enabled } = req.body;
+  const { notify_on_submit, app_version, ai_score_check_enabled, attr_check_mode } = req.body;
   try {
+    if (attr_check_mode !== undefined) {
+      if (!['off', 'record', 'enforce'].includes(attr_check_mode)) return res.status(400).json({ error: '無効なモードです' });
+      await pool.query("INSERT INTO settings (key, value) VALUES ('attr_check_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [attr_check_mode]);
+    }
     if (notify_on_submit !== undefined) {
       await pool.query(
         "INSERT INTO settings (key, value) VALUES ('notify_on_submit', $1) ON CONFLICT (key) DO UPDATE SET value = $1",

@@ -6,6 +6,17 @@
 <title>設定 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+/* 属性の自動判定 */
+.attr-mode { display:flex; flex-direction:column; gap:6px; }
+.attr-mode label { display:flex; align-items:baseline; gap:8px; cursor:pointer; font-size:0.9rem; }
+.attr-mode small { color:var(--text-muted); font-size:0.75rem; }
+.attr-stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
+.attr-stats-grid > div { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:2px; }
+.attr-stats-grid span { font-size:0.7rem; color:var(--text-muted); }
+.attr-stats-grid b { font-size:1rem; }
+.attr-dis { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
+.attr-dis a { display:flex; gap:8px; align-items:center; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:6px; color:var(--text-secondary); font-size:0.74rem; text-decoration:none; }
+.attr-dis img { width:72px; aspect-ratio:16/9; object-fit:cover; border-radius:4px; flex-shrink:0; }
 .section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
@@ -96,6 +107,25 @@
       <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
         環境変数 <code>GEMINI_API_KEY</code> が設定されている場合のみ機能します。オフにすると常に手動承認になります。
       </p>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">属性の自動判定</div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;line-height:1.7">
+        リザルト画像のADM・MVP・編成から属性を推定し、過去の承認済み投稿（お手本）と比べます。上のAI自動承認がオンのときだけ動きます。
+      </p>
+      <div class="attr-mode" role="radiogroup">
+        <label><input type="radio" name="attr-mode" value="off" onchange="saveAttrMode(this.value)"> オフ<small>判定しない</small></label>
+        <label><input type="radio" name="attr-mode" value="record" onchange="saveAttrMode(this.value)"> 記録だけ<small>判定して記録する。承認には使わない（テスト）</small></label>
+        <label><input type="radio" name="attr-mode" value="enforce" onchange="saveAttrMode(this.value)"> 有効<small>属性が食い違う・判定できない投稿は手動確認へ</small></label>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">
+        <div style="font-weight:bold;font-size:0.9rem">集計</div>
+        <select class="form-select" id="attr-stats-days" style="width:auto;padding:2px 8px;font-size:0.8rem" onchange="loadAttrStats()">
+          <option value="7">7日</option><option value="30" selected>30日</option><option value="90">90日</option>
+        </select>
+      </div>
+      <div id="attr-stats"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
     <div class="card" style="margin-bottom:16px">
@@ -264,6 +294,8 @@ async function loadSettings() {
     document.getElementById('notify-toggle').checked = s.notify_on_submit;
     document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
     document.getElementById('ai-check-toggle').checked = s.ai_score_check_enabled;
+    document.querySelectorAll('input[name="attr-mode"]').forEach(r => { r.checked = r.value === s.attr_check_mode; });
+    loadAttrStats();
     setVersionFields(s.app_version || '4.03.00');
   } catch (err) {
     showAlert('#settings-alert', err.message);
@@ -321,6 +353,47 @@ async function saveNotifySetting() {
   } catch (err) {
     showAlert('#settings-alert', err.message);
   }
+}
+
+// ===== 属性の自動判定 =====
+const ATTR_REASON_LABEL = {
+  match_sure: '確定・一致', match_single: '参考・一致', match_dual_other: 'MVP2属性＋他の手がかり・一致',
+  mismatch_sure: '確定・不一致', mismatch_single: '参考・不一致', mismatch_dual_other: 'MVP2属性＋他の手がかり・不一致',
+  dual_mvp_only: 'MVPが2属性（他の手がかりなし）', dual_out: 'MVPの候補と食い違い', conflict: '手がかりが食い違い', none: '判定なし', error: '処理のエラー',
+};
+async function saveAttrMode(mode) {
+  try {
+    await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ attr_check_mode: mode }) });
+    showAlert('#settings-alert', { off: '属性の自動判定をオフにしました', record: '属性の自動判定を「記録だけ」にしました', enforce: '属性の自動判定を有効にしました' }[mode], 'success');
+  } catch (err) { showAlert('#settings-alert', err.message); }
+}
+async function loadAttrStats() {
+  const el = document.getElementById('attr-stats');
+  try {
+    const st = await apiFetch(`/admin/attr-check/stats?days=${document.getElementById('attr-stats-days').value}`);
+    document.querySelectorAll('input[name="attr-mode"]').forEach(r => { r.checked = r.value === st.mode; });
+    const total = st.judged + st.errors;
+    const auto = st.routes.auto || 0, manual = st.routes.manual || 0;
+    const pct = (a, b) => (b ? Math.round(a / b * 1000) / 10 + '%' : '-');
+    const reasons = Object.entries(st.reasons).sort((a, b) => b[1] - a[1])
+      .map(([k, n]) => `<tr><td>${escHtml(ATTR_REASON_LABEL[k] || k)}</td><td style="text-align:right">${n}件</td><td style="text-align:right">${pct(n, total)}</td></tr>`).join('');
+    el.innerHTML = `
+      <div class="attr-stats-grid">
+        <div><span>判定した投稿</span><b>${total}件</b></div>
+        <div><span>自動承認${st.mode === 'record' ? 'になる' : ''}</span><b>${pct(auto, total)}</b></div>
+        <div><span>手動確認${st.mode === 'record' ? 'になる' : ''}</span><b>${pct(manual, total)}</b></div>
+        <div><span>処理時間（中央値）</span><b>${st.ms ? (st.ms.median / 1000).toFixed(1) + '秒' : '-'}</b></div>
+        <div><span>お手本の数</span><b>${st.vectors.refs}件</b></div>
+        <div><span>お手本から除外</span><b>${st.vectors.excluded}件</b></div>
+      </div>
+      ${reasons ? `<table class="table" style="font-size:0.8rem;margin-top:10px"><tbody>${reasons}</tbody></table>` : ''}
+      <div style="font-weight:bold;font-size:0.85rem;margin:14px 0 6px">AIの推定と、承認された属性が違う投稿（${st.disagreements.length}件）</div>
+      ${st.disagreements.length ? `<div class="attr-dis">${st.disagreements.map(d => `
+        <a href="${escHtml(d.image_url || '#')}" target="_blank" rel="noopener">
+          ${d.image_url ? `<img src="${escHtml(thumbUrl(d.image_url))}" alt="" loading="lazy">` : ''}
+          <span>第${d.event_number}回 ${escHtml(d.username)}<br>承認 <b>${escHtml(d.attribute)}</b> ／ AI ${escHtml(d.pred)}（${escHtml({ sure: '確定', single: '参考', dual_other: '参考・MVP2属性' }[d.tier] || d.tier)}）</span>
+        </a>`).join('')}</div>` : '<div style="font-size:0.8rem;color:var(--text-muted)">ありません</div>'}`;
+  } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
 }
 
 async function saveAiCheckSetting() {

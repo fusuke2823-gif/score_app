@@ -20,6 +20,16 @@
 .review-card img { width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:6px; cursor:pointer; display:block; margin-bottom:8px; background:var(--bg-primary); }
 .review-card .rname { font-size:0.8rem; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .review-card .rscore { font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; }
+/* 属性の自動判定 */
+.ai-attr { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:0.74rem; font-weight:bold; padding:2px 8px; border-radius:4px; margin-bottom:6px; background:rgba(255,255,255,0.06); color:var(--text-secondary); }
+.ai-attr.ok { background:rgba(46,204,113,0.14); color:#2ecc71; }
+.ai-attr.ng { background:rgba(231,76,60,0.16); color:#ff6b5e; }
+.ai-attr.warn { background:rgba(243,156,18,0.16); color:#f5b041; }
+.ai-attr small { font-weight:normal; opacity:0.85; }
+.review-card.is-mismatch { border-color:#e74c3c; box-shadow:0 0 0 1px #e74c3c inset; }
+.review-card.is-excluded img { opacity:0.45; }
+.review-ex { margin-top:6px; font-size:0.7rem; background:none; border:1px dashed var(--border-light); color:var(--text-muted); border-radius:4px; padding:1px 6px; cursor:pointer; }
+.review-tools { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px; font-size:0.85rem; }
 .review-attr-fix { display:flex; gap:4px; align-items:center; }
 .review-attr-fix select { flex:1; font-size:0.75rem; padding:2px 4px; }
 </style>
@@ -115,6 +125,10 @@
         <option value="rejected">却下</option>
       </select>
     </div>
+    <div class="review-tools">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="review-ai-only" onchange="loadReviewScores()"> AIと食い違うものだけ表示</label>
+      <span id="review-ai-summary" style="color:var(--text-muted);font-size:0.8rem"></span>
+    </div>
     <div id="review-list"></div>
   </div>
 </main>
@@ -150,6 +164,21 @@ function closeDupModal() {
   document.getElementById('dup-modal').style.display = 'none';
 }
 
+// ===== 属性の自動判定の表示 =====
+const AI_TIER_LABEL = { sure: '確定', single: '参考', dual_other: '参考（MVPは2属性）', dual_mvp_only: 'MVPが2属性', dual_out: '手がかりが食い違い', conflict: '手がかりが食い違い', none: '判定なし' };
+const AI_SIG_LABEL = { adm: 'ADM', mvp: 'MVP', member: '編成' };
+// ac: 判定結果、attr: 比べる属性（投稿・承認済みの属性）
+function aiAttrHTML(ac, attr) {
+  if (!ac) return '';
+  if (ac.error) return `<div class="ai-attr warn">AI属性: 判定エラー</div>`;
+  const sigs = Object.entries(ac.signals || {}).filter(([, v]) => v && v.pred).map(([k, v]) => `${AI_SIG_LABEL[k]}:${v.pred}`).join(' ');
+  const mode = ac.mode === 'record' ? ' <small>（記録のみ）</small>' : '';
+  if (!ac.pred) return `<div class="ai-attr warn">AI属性: ${AI_TIER_LABEL[ac.tier] || ac.tier}${sigs ? ` <small>${sigs}</small>` : ''}${mode}</div>`;
+  const cls = ac.pred === attr ? 'ok' : 'ng';
+  return `<div class="ai-attr ${cls}">AI属性: ${ac.pred}（${AI_TIER_LABEL[ac.tier] || ac.tier}）${cls === 'ng' ? ` ≠ ${attr}` : ''} <small>${sigs}</small>${mode}</div>`;
+}
+let _pendingById = {};
+
 async function loadPending() {
   const el = document.getElementById('pending-list');
   el.innerHTML = '<div class="loading"><div class="spinner"></div>読み込み中...</div>';
@@ -162,6 +191,7 @@ async function loadPending() {
       return;
     }
 
+    _pendingById = Object.fromEntries(items.map(i => [i.id, i]));
     el.innerHTML = items.map(item => `
       <div class="pending-item" id="pending-${item.id}">
         <div class="pending-info">
@@ -192,6 +222,7 @@ async function loadPending() {
             ${item.dup_image_url ? `<button onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')" style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em;border:none;cursor:pointer">⚠ 既存スコアと一致</button>` : ''}
           </div>
           ${item.ai_note ? `<div style="background:rgba(231,76,60,0.15);color:#e74c3c;font-size:0.78rem;font-weight:bold;padding:4px 8px;border-radius:4px;margin-bottom:6px;display:inline-block">AI: ${escHtml(item.ai_note)}</div>` : ''}
+          ${item.attr_check ? `<div>${aiAttrHTML(item.attr_check, item.attribute)}</div>` : ''}
           <div id="score-display-${item.id}" style="display:flex;align-items:center;gap:6px">
             <span class="pending-score">${formatScore(item.pending_score)}</span>
             <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="startEditScore(${item.id})" title="スコアを修正">✎ 修正</button>
@@ -276,6 +307,13 @@ async function approveScore(id, clearYoutube = false) {
   const eventEditEl = document.getElementById(`event-edit-${id}`);
   if (eventEditEl && eventEditEl.style.display !== 'none') {
     body.event_id = Number(document.getElementById(`event-input-${id}`).value);
+  }
+  // AIが「確定」で別の属性と判定しているのに、その属性以外で承認しようとしたら確認する
+  const item = _pendingById[id];
+  const ac = item && item.attr_check;
+  const finalAttr = body.attribute || (item && item.attribute);
+  if (ac && !ac.error && ac.tier === 'sure' && ac.pred && ac.pred !== finalAttr) {
+    if (!await showConfirm(`AIは「${ac.pred}」と判定しています（確定）。\n「${finalAttr}」で承認しますか？`)) return;
   }
   try {
     const res = await apiFetch(`/admin/scores/${id}/approve`, {
@@ -371,12 +409,21 @@ async function loadReviewScores() {
   if (status) url += `&status=${status}`;
 
   try {
-    const scores = await apiFetch(url);
+    const [allScores, ai] = await Promise.all([apiFetch(url), apiFetch(`/admin/attr-check/review?event_id=${eventId}`).catch(() => ({}))]);
+    _reviewAi = ai;
+    const isMismatch = s => ai[s.id] && ai[s.id].pred && ai[s.id].pred !== s.attribute;
+    const mismatchCount = allScores.filter(isMismatch).length;
+    document.getElementById('review-ai-summary').textContent = Object.keys(ai).length
+      ? `AIで判定できた ${Object.values(ai).filter(a => a.pred).length} / ${allScores.length}件 ・ 食い違い ${mismatchCount}件`
+      : 'AIの判定結果はまだありません';
+    const aiOnly = document.getElementById('review-ai-only').checked;
+    const scores = aiOnly ? allScores.filter(isMismatch) : allScores;
     if (scores.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>スコアがありません</p></div>';
+      el.innerHTML = `<div class="empty-state"><p>${aiOnly ? 'AIと食い違うスコアはありません' : 'スコアがありません'}</p></div>`;
       return;
     }
-    const groups = ATTRIBUTES.map(attr => ({ attr, items: scores.filter(s => s.attribute === attr) }))
+    // 食い違いを上に並べる
+    const groups = ATTRIBUTES.map(attr => ({ attr, items: scores.filter(s => s.attribute === attr).sort((a, b) => isMismatch(b) - isMismatch(a)) }))
       .filter(g => g.items.length > 0);
 
     el.innerHTML = groups.map(g => `
@@ -386,8 +433,9 @@ async function loadReviewScores() {
           ${g.items.map(s => {
             const img = s.approved_image_url || s.pending_image_url;
             const score = s.status === 'pending' ? s.pending_score : s.approved_score;
+            const a = ai[s.id];
             return `
-            <div class="review-card">
+            <div class="review-card${isMismatch(s) ? ' is-mismatch' : ''}${a && a.excluded ? ' is-excluded' : ''}">
               ${img ? `<img src="${escHtml(mediumUrl(img))}" alt="" onclick="window.open('${escHtml(img)}','_blank')">` : `<div style="width:100%;aspect-ratio:16/9;border-radius:6px;background:var(--bg-primary);margin-bottom:8px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.75rem">画像なし</div>`}
               <div class="rname"><a href="/user.html?id=${s.user_id}" target="_blank">${escHtml(s.username)}</a></div>
               <div class="rscore">${formatScore(score)} ${statusBadge(s.status)}</div>
@@ -397,6 +445,8 @@ async function loadReviewScores() {
                 </select>
                 <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.72rem" onclick="reviewFixAttr(${s.id})">修正</button>
               </div>
+              ${a ? `<div style="margin-top:6px">${aiAttrHTML(a, s.attribute)}</div>
+                <button type="button" class="review-ex" onclick="toggleExclude(${s.id})">${a.excluded ? 'お手本に戻す' : 'お手本にしない'}</button>` : ''}
             </div>`;
           }).join('')}
         </div>
@@ -404,6 +454,17 @@ async function loadReviewScores() {
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+
+let _reviewAi = {};
+async function toggleExclude(id) {
+  const a = _reviewAi[id];
+  if (!a) return;
+  try {
+    await apiFetch('/admin/attr-check/exclude', { method: 'POST', body: JSON.stringify({ image_url: a.image_url, excluded: !a.excluded }) });
+    showAlert('#alert', a.excluded ? 'お手本に戻しました' : 'お手本から外しました', 'success');
+    loadReviewScores();
+  } catch (err) { showAlert('#alert', err.message); }
 }
 
 async function reviewFixAttr(id) {
