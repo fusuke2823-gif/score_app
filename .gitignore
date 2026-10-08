@@ -1,3 +1,11 @@
 node_modules/
 .env
 *.log
+
+# 属性推定の実験スクリプトの出力
+scripts/.attr-eval-cache.json
+scripts/.attr-eval-roles.json
+scripts/.attr-eval-fixes.json
+scripts/attr-eval-misses.csv
+scripts/attr-eval-crops/
+scripts/attr-eval-noadm.json
