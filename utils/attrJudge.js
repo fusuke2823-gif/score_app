@@ -18,6 +18,7 @@ const T_MVP = 0.91;      // MVPの立ち絵を「似ている」とみなす類�
 const SHARE_MVP = 0.75;  // MVPで決まるのに必要な票の割合
 const T_FACE = 0.65;     // 顔（共通の特徴を引いた後）を「同じキャラ」とみなす類似度
 const SHARE_ADM = 0.8;   // ADMで決まるのに必要な票の割合（似ている上位15件で多数決）
+const ADM_MARGIN = 0.05; // ADMは一番似ている顔から、この差以内のものだけで多数決（少し似ているだけの別のADMが大量に混ざるのを防ぐ）
 const SHARE_MEMBER = 0.6;
 const DUAL_SHARE = 0.15; // MVPの票で、この割合以上の属性が2つ以上あれば「2属性スタイル」
 
@@ -200,6 +201,7 @@ async function judgeVectors(target, { db = pool } = {}) {
       if (s >= T_FACE) cands.push({ r, s });
     }
     cands.sort((a, b) => b.s - a.s);
+    if (cands.length) { const best = cands[0].s; while (cands.length && cands[cands.length - 1].s < best - ADM_MARGIN) cands.pop(); }
     const va = cands.length >= 2 ? voteOf(cands.slice(0, 15)) : null;
     signals.adm = { pred: va && va.share >= SHARE_ADM ? va.top : null, n: cands.length, share: va ? round(va.share) : null };
   } else {
@@ -208,6 +210,9 @@ async function judgeVectors(target, { db = pool } = {}) {
 
   // 編成：メンバーごとに、同じ役割で顔が似ているお手本の属性の分布を作り、偏りの強いメンバーほど重く合算
   if (roles) {
+    // お手本の属性ごとの件数（光・無は少ない）。件数の多い属性に票が寄りすぎないよう、半分の強さで補正する
+    const prior = Object.fromEntries(ATTRS.map(a => [a, 0]));
+    for (const r of refs) if (prior[r.attribute] !== undefined) prior[r.attribute]++;
     const total = Object.fromEntries(ATTRS.map(a => [a, 0]));
     let used = 0;
     for (let x = 0; x < 6; x++) {
@@ -221,7 +226,8 @@ async function judgeVectors(target, { db = pool } = {}) {
       }
       if (n < 3) continue;
       used++;
-      const sq = ATTRS.map(a => (dist[a] / n) ** 2), sum = sq.reduce((p, q) => p + q, 0);
+      const adj = ATTRS.map(a => (prior[a] ? dist[a] / Math.sqrt(prior[a]) : 0)), adjSum = adj.reduce((p, q) => p + q, 0) || 1;
+      const sq = adj.map(x => (x / adjSum) ** 2), sum = sq.reduce((p, q) => p + q, 0) || 1;
       ATTRS.forEach((a, k) => { total[a] += sq[k] / sum; });
     }
     const sumT = Object.values(total).reduce((p, q) => p + q, 0);
