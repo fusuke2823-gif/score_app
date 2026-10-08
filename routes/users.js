@@ -185,8 +185,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
       [req.params.id]
     );
 
-    const viewerIsInternal = !!(req.user && req.user.is_internal);
-
     // 外部順位（ranking_scope='public' or 'external'）と、その回の参加人数
     const extRankResult = await pool.query(
       `WITH event_ranks AS (
@@ -216,39 +214,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
     const extAttrRankMap = {};
     extAttrRankResult.rows.forEach(r => { extAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
 
-    // 内部順位 ― 閲覧者・対象者ともに内部ユーザーの場合のみ計算
-    let intRankMap = null, intAttrRankMap = null;
-    if (viewerIsInternal && user.is_internal) {
-      const intRankResult = await pool.query(
-        `WITH event_ranks AS (
-           SELECT s.event_id, s.user_id,
-             RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
-           FROM scores s
-           JOIN users u ON u.id = s.user_id
-           WHERE s.approved_score IS NOT NULL AND u.is_internal = TRUE
-           GROUP BY s.event_id, s.user_id
-         )
-         SELECT event_id, rank FROM event_ranks WHERE user_id = $1`,
-        [req.params.id]
-      );
-      intRankMap = {};
-      intRankResult.rows.forEach(r => { intRankMap[r.event_id] = r.rank; });
-
-      const intAttrRankResult = await pool.query(
-        `WITH attr_ranks AS (
-           SELECT s.event_id, s.attribute, s.user_id,
-             RANK() OVER (PARTITION BY s.event_id, s.attribute ORDER BY s.approved_score DESC) AS rank
-           FROM scores s
-           JOIN users u ON u.id = s.user_id
-           WHERE s.approved_score IS NOT NULL AND u.is_internal = TRUE
-         )
-         SELECT event_id, attribute, rank FROM attr_ranks WHERE user_id = $1`,
-        [req.params.id]
-      );
-      intAttrRankMap = {};
-      intAttrRankResult.rows.forEach(r => { intAttrRankMap[`${r.event_id}_${r.attribute}`] = r.rank; });
-    }
-
     res.json({
       ...user,
       equipped_icon_url: optimizeUrl(user.equipped_icon_url),
@@ -258,8 +223,6 @@ router.get('/:id', optionalAuth, async (req, res) => {
       ranks: extRankMap,
       participants: participantsMap,
       attr_ranks: extAttrRankMap,
-      ranks_internal: intRankMap,
-      attr_ranks_internal: intAttrRankMap,
     });
   } catch (err) {
     console.error(err);

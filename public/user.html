@@ -87,14 +87,12 @@
 .res-rank-num { font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:1.7rem; line-height:1; font-variant-numeric:tabular-nums; color:var(--pod, var(--text-primary)); }
 .res-rank-unit { font-size:0.75rem; font-weight:bold; color:var(--pod, var(--text-secondary)); }
 .res-rank-total { font-size:0.7rem; color:var(--text-muted); margin-left:4px; }
-.res-rank-int { flex-basis:100%; text-align:right; font-size:0.66rem; color:var(--accent); }
 .res-rows { padding:0 14px 8px 16px; }
 .res-row { display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:7px 0; border-top:1px solid rgba(255,255,255,0.06); }
 .res-score { font-weight:bold; font-size:1rem; font-variant-numeric:tabular-nums; }
 .res-row:not(.is-best) .res-score { font-size:0.92rem; color:var(--text-secondary); }
 .res-attr-rank { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
 .res-attr-rank b { color:var(--text-primary); font-size:0.85rem; }
-.res-attr-rank small { font-size:0.62rem; }
 .res-thumb { position:relative; width:64px; height:36px; padding:0; border:1px solid var(--border-light); border-radius:6px; overflow:hidden; background:var(--bg-primary); cursor:pointer; }
 .res-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.2s; }
 .res-thumb:hover img { transform:scale(1.08); }
@@ -265,7 +263,6 @@ async function load() {
         };
       }
       s.attr_rank_ext = data.attr_ranks[`${s.event_id}_${s.attribute}`] || null;
-      s.attr_rank_int = data.attr_ranks_internal?.[`${s.event_id}_${s.attribute}`] || null;
       eventMap[s.event_id].scores.push(s);
     });
 
@@ -418,10 +415,9 @@ function resultCardHTML(e, data, hidden) {
   const type = RES_TYPES[e.event_type];
   const rank = data.ranks[e.event_id];
   const total = data.participants?.[e.event_id];
-  const rankInt = data.ranks_internal?.[e.event_id];
   const podium = RES_PODIUM[rank];
   const rows = e.scores.map((s, k) => {
-    const attrRank = data.ranks_internal ? s.attr_rank_int : s.attr_rank_ext;
+    const attrRank = s.attr_rank_ext;
     const thumb = s.approved_image_url
       ? `<button type="button" class="res-thumb" onclick="openModal('${escHtml(s.approved_image_url)}','${s.youtube_url ? escHtml(s.youtube_url) : ''}',${s.youtube_score ? s.youtube_score : 'null'})" aria-label="リザルト画像を見る">
           <img src="${escHtml(thumbUrl(s.approved_image_url))}" alt="" loading="lazy">${s.youtube_url ? `<span class="res-yt">${RES_PLAY}</span>` : ''}
@@ -431,7 +427,7 @@ function resultCardHTML(e, data, hidden) {
       <div class="res-row${k === 0 ? ' is-best' : ''}">
         ${attrBadge(s.attribute, true)}
         <span class="res-score">${formatScore(s.approved_score)}</span>
-        <span class="res-attr-rank">${attrRank ? `<span>属性 <b>${attrRank}</b>位</span>` : ''}${data.ranks_internal && s.attr_rank_ext ? `<small>外部${s.attr_rank_ext}位</small>` : ''}</span>
+        <span class="res-attr-rank">${attrRank ? `<span>属性 <b>${attrRank}</b>位</span>` : ''}</span>
         ${thumb}
       </div>`;
   }).join('');
@@ -445,7 +441,6 @@ function resultCardHTML(e, data, hidden) {
         ${rank ? `<div class="res-rank">
           ${podium ? RES_CROWN(podium) : ''}<span class="res-rank-num">${rank}</span><span class="res-rank-unit">位</span>
           ${total ? `<span class="res-rank-total">/ ${total}人</span>` : ''}
-          ${rankInt ? `<span class="res-rank-int">内部 ${rankInt}位</span>` : ''}
         </div>` : ''}
       </header>
       <div class="res-rows">${rows}</div>
