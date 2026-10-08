@@ -14,7 +14,7 @@
   <div id="content-ja">
     <h1 class="page-title">プライバシーポリシー</h1>
     <div class="card" style="max-width:720px;margin:0 auto;line-height:1.8;font-size:0.92rem">
-      <p style="color:var(--text-muted);margin-bottom:24px">最終更新日: 2026年4月9日</p>
+      <p style="color:var(--text-muted);margin-bottom:24px">最終更新日: 2026年10月8日</p>
 
       <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">1. 収集する情報</h2>
       <p>本サービス（hebuban-rankboard.com、以下「当サービス」）では、以下の情報を収集します。</p>
@@ -22,8 +22,10 @@
         <li>ユーザー名</li>
         <li>パスワード（bcryptによりハッシュ化して保存。平文では保存しません）</li>
         <li>Googleアカウントでログインした場合のGoogle ID（メールアドレスは取得・保存しません）</li>
-        <li>スコア投稿データ（スコア値・属性・リザルト画像）</li>
+        <li>スコア投稿データ（スコア値・属性・リザルト画像・任意で登録した動画のURL）</li>
+        <li>任意で登録したXのユーザー名・YouTubeチャンネル</li>
         <li>ポイント履歴・ログイン履歴</li>
+        <li>閲覧したページの記録（アクセス状況の集計に使用）</li>
       </ul>
 
       <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">2. 情報の利用目的</h2>
@@ -31,23 +33,34 @@
         <li>ランキングの表示・管理</li>
         <li>ポイント・称号の付与</li>
         <li>ログインボーナス等のサービス提供</li>
+        <li>投稿内容の確認（AIを含む自動処理による、スコア・イベントの種別・属性などの読み取りや判定）</li>
         <li>不正利用の防止</li>
+        <li>サービスの改善（自動判定の精度向上やアクセス状況の集計を含む）</li>
       </ul>
+      <p>投稿されたリザルト画像は、他のユーザーの投稿内容を自動で判定する際の比較対象（お手本）として利用することがあります。この処理は当サービスのサーバー内で行います。</p>
 
       <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">3. 第三者への提供</h2>
-      <p>収集した個人情報は、法令に基づく場合を除き、第三者に提供しません。</p>
+      <p>収集した個人情報は、法令に基づく場合を除き、第三者に提供しません。ただし、サービスの運営に必要な範囲で、次項の外部サービスに情報の保管や処理を委託します。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">4. Google OAuth について</h2>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">4. 利用している外部サービス</h2>
+      <ul style="margin:8px 0 8px 20px">
+        <li>Render.com：サーバーおよびデータベース（PostgreSQL）の運用</li>
+        <li>Cloudinary：リザルト画像などの画像の保管・配信</li>
+        <li>Google（Gemini API）：投稿内容の自動確認のため、投稿時にリザルト画像を送信し、スコアやイベントの種別の読み取りを行います</li>
+      </ul>
+      <p>各サービスでの情報の取り扱いは、それぞれのサービスのプライバシーポリシーに従います。</p>
+
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">5. Google OAuth について</h2>
       <p>当サービスはGoogleアカウントによるログイン機能を提供しています。Google認証時にはGoogleが発行するIDトークンを検証し、ユーザーを識別するためのIDのみを保存します。Googleアカウントのメールアドレス・連絡先・その他の個人情報は取得・保存しません。</p>
       <p>Googleのプライバシーポリシーについては <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--accent)">こちら</a> をご確認ください。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">5. データの保管・セキュリティ</h2>
-      <p>データはRender.comのサービス上のPostgreSQLデータベースに保管されます。通信はHTTPSにより暗号化されています。</p>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">6. データの保管・セキュリティ</h2>
+      <p>データはRender.comのサービス上のPostgreSQLデータベースに、画像はCloudinaryに保管されます。通信はHTTPSにより暗号化されています。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">6. データの削除</h2>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">7. データの削除</h2>
       <p>アカウントの削除はプロフィール画面から行えます。削除するとすべてのデータが消去されます。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">7. お問い合わせ</h2>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">8. お問い合わせ</h2>
       <p>プライバシーに関するご質問はアプリ内のフィードバック機能からお問い合わせください。</p>
     </div>
   </div>
@@ -56,7 +69,7 @@
   <div id="content-zh" style="display:none">
     <h1 class="page-title">隱私政策</h1>
     <div class="card" style="max-width:720px;margin:0 auto;line-height:1.8;font-size:0.92rem">
-      <p style="color:var(--text-muted);margin-bottom:24px">最後更新：2026年4月9日</p>
+      <p style="color:var(--text-muted);margin-bottom:24px">最後更新：2026年10月8日</p>
 
       <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">1. 收集的資訊</h2>
       <p>本服務（hebuban-rankboard.com，以下稱「本服務」）收集以下資訊：</p>
@@ -64,8 +77,10 @@
         <li>使用者名稱</li>
         <li>密碼（以 bcrypt 雜湊後儲存，不以明文儲存）</li>
         <li>使用 Google 帳戶登入時的 Google ID（不取得・儲存電子郵件地址）</li>
-        <li>分數投稿資料（分數值・屬性・結果截圖）</li>
+        <li>分數投稿資料（分數值・屬性・結果截圖・任意登錄的影片網址）</li>
+        <li>任意登錄的 X 使用者名稱・YouTube 頻道</li>
         <li>點數歷史・登入歷史</li>
+        <li>瀏覽頁面的紀錄（用於統計存取狀況）</li>
       </ul>
 
       <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">2. 資訊使用目的</h2>
@@ -73,23 +88,34 @@
         <li>顯示・管理排行榜</li>
         <li>點數・稱號的給予</li>
         <li>登入獎勵等服務提供</li>
+        <li>確認投稿內容（透過包含 AI 在內的自動處理，讀取・判定分數・活動種類・屬性等）</li>
         <li>防止不當使用</li>
+        <li>改善服務（包含提升自動判定的準確度及統計存取狀況）</li>
       </ul>
+      <p>投稿的結果截圖可能會作為自動判定其他用戶投稿內容時的比對對象（範本）使用。此處理在本服務的伺服器內進行。</p>
 
       <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">3. 向第三方提供</h2>
-      <p>收集的個人資訊除法令規定的情況外，不向第三方提供。</p>
+      <p>收集的個人資訊除法令規定的情況外，不向第三方提供。但在服務運營所需的範圍內，會委託下一項所列的外部服務保管或處理資訊。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">4. 關於 Google OAuth</h2>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">4. 使用的外部服務</h2>
+      <ul style="margin:8px 0 8px 20px">
+        <li>Render.com：伺服器及資料庫（PostgreSQL）的運營</li>
+        <li>Cloudinary：結果截圖等圖片的保管・傳送</li>
+        <li>Google（Gemini API）：為自動確認投稿內容，投稿時會傳送結果截圖，用於讀取分數及活動種類</li>
+      </ul>
+      <p>各服務對資訊的處理，依各服務的隱私政策為準。</p>
+
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">5. 關於 Google OAuth</h2>
       <p>本服務提供使用 Google 帳戶登入的功能。Google 認證時驗證 Google 發行的 ID Token，僅儲存用於識別用戶的 ID。不取得・儲存 Google 帳戶的電子郵件地址・聯絡資訊・其他個人資訊。</p>
       <p>關於 Google 的隱私政策，請參考 <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color:var(--accent)">這裡</a>。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">5. 資料儲存・安全性</h2>
-      <p>資料儲存於 Render.com 服務上的 PostgreSQL 資料庫。通訊以 HTTPS 加密。</p>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">6. 資料儲存・安全性</h2>
+      <p>資料儲存於 Render.com 服務上的 PostgreSQL 資料庫，圖片儲存於 Cloudinary。通訊以 HTTPS 加密。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">6. 資料刪除</h2>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">7. 資料刪除</h2>
       <p>帳戶刪除可在個人檔案頁面進行。刪除後所有資料將被清除。</p>
 
-      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">7. 聯絡方式</h2>
+      <h2 style="font-size:1rem;font-weight:bold;margin:24px 0 8px">8. 聯絡方式</h2>
       <p>關於隱私的問題，請透過應用程式內的意見箱聯絡。</p>
     </div>
   </div>
