@@ -167,7 +167,7 @@ async function runAiCheckInBackground({ scoreId, imageUrl, buffer, mimeType, eve
     let attrCheck = null;
     const attrMode = ai.ok && ai.readable ? await getAttrCheckMode() : 'off';
     if (attrMode !== 'off') {
-      attrCheck = await judgeSubmission({ imageUrl, scoreId, eventType, roles: ai.roles, attribute });
+      attrCheck = await judgeSubmission({ imageUrl, scoreId, eventType, typeGuess: ai.eventTypeGuess, roles: ai.roles, boxes: ai.boxes, attribute });
       attrCheck.mode = attrMode;
       await pool.query('UPDATE scores SET attr_check = $2 WHERE id = $1', [scoreId, JSON.stringify(attrCheck)]);
       // 処理の失敗（attrCheck.error）は今までどおりの扱い。判定できて手動へ回すべきときだけ止める

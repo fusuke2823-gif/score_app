@@ -10,9 +10,12 @@ const RESPONSE_SCHEMA = {
     readable: { type: 'boolean' },
     final_score: { type: ['integer', 'null'] },
     event_type_guess: { type: 'string', enum: ['score_attack', 'score_attack_ex', 'seraph', 'unknown'] },
-    roles: { type: 'array', items: { type: 'string' } }
+    members: {
+      type: 'array',
+      items: { type: 'object', properties: { role: { type: 'string' }, box: { type: 'array', items: { type: 'integer' } } }, required: ['role', 'box'] }
+    }
   },
-  required: ['readable', 'final_score', 'event_type_guess', 'roles']
+  required: ['readable', 'final_score', 'event_type_guess', 'members']
 };
 
 const PROMPT = `これはスマートフォンRPGのスコアアタック系リザルト画面です。日本語版だけでなく繁体字・英語など他言語のクライアントの場合もあります。文字列の一致ではなく画面の意味・構造で判断してください。
@@ -25,7 +28,7 @@ const PROMPT = `これはスマートフォンRPGのスコアアタック系リ�
    - seraph: 上部の対象名がボスの名前ではなく演習・訓練の名称で、ターンクリア倍率が存在せず、下部に戦術カードのようなアイコン列がある
    - 上記のいずれにも自信を持って当てはまらない場合は unknown
 
-3. roles: 画面の左側に、編成メンバー6人の丸い顔アイコンが上から下へ縦（または弧を描くよう）に並び、それぞれのアイコンの上に役割を表す英字3文字の札（ATK, BLA, BRK, BUF, DBF, DEF, HLR, ADM など）が付いています。上から順に6人分の札の文字を配列で返してください（読めない場合は "?"）。`;
+3. members: 画面の左側に縦（または弧状）に並ぶ編成メンバー6人の丸い顔アイコンについて、上から順に、役割の札の文字（ATK, BLA, BRK, BUF, DBF, DEF, HLR, ADM など。読めない場合は "?"）と、顔アイコンの丸の部分の外接矩形 box=[ymin, xmin, ymax, xmax]（画像全体を0〜1000に正規化した整数）を返してください。札の文字は矩形に含めないでください。`;
 
 async function isAiCheckEnabled() {
   try {
@@ -61,13 +64,17 @@ async function extractScoreResult(buffer, mimeType) {
     if (!parsed.readable || typeof parsed.final_score !== 'number') {
       return { ok: true, readable: false };
     }
-    const roles = Array.isArray(parsed.roles) ? parsed.roles.map(r => String(r).toUpperCase().trim()) : [];
+    // 属性の自動判定用：6人分の役割と顔の位置（6人分そろったときだけ使う）
+    const members = Array.isArray(parsed.members) ? parsed.members : [];
+    const okBox = b => Array.isArray(b) && b.length === 4 && b.every(Number.isFinite) && b[2] > b[0] && b[3] > b[1];
+    const six = members.length === 6;
     return {
       ok: true,
       readable: true,
       score: parsed.final_score,
       eventTypeGuess: parsed.event_type_guess || 'unknown',
-      roles: roles.length === 6 ? roles : null // 6人分読めたときだけ使う（属性の自動判定用）
+      roles: six ? members.map(m => String(m.role).toUpperCase().trim()) : null,
+      boxes: six && members.every(m => okBox(m.box)) ? members.map(m => m.box) : null
     };
   } catch (err) {
     return { ok: false, reason: err.name === 'AbortError' ? 'timeout' : 'error' };

@@ -12,22 +12,26 @@ import { GoogleGenAI } from '@google/genai';
 
 const require = createRequire(import.meta.url);
 const DIR = path.dirname(fileURLToPath(import.meta.url));
-const OUT = path.join(DIR, '.attr-eval-roles.json');
+const OUT = path.join(DIR, process.argv.includes('--v2') ? '.attr-eval-roles2.json' : '.attr-eval-roles.json');
 const MODEL = 'gemini-3.8-flash';
 const arg = (name, def) => { const i = process.argv.indexOf(`--${name}`); return i >= 0 ? process.argv[i + 1] : def; };
 
+// 役割の札・6人の顔の位置・MVPの絵の位置・画面の種類をまとめて読む（位置は画像全体を0〜1000に正規化した [ymin, xmin, ymax, xmax]）
 const SCHEMA = {
   type: 'object',
   properties: {
-    roles: { type: 'array', items: { type: 'string' } },
+    event_type_guess: { type: 'string', enum: ['score_attack', 'score_attack_ex', 'seraph', 'unknown'] },
+    members: { type: 'array', items: { type: 'object', properties: { role: { type: 'string' }, box: { type: 'array', items: { type: 'integer' } } }, required: ['role', 'box'] } },
+    mvp_box: { type: 'array', items: { type: 'integer' } },
     mvp_index: { type: ['integer', 'null'] },
   },
-  required: ['roles', 'mvp_index'],
+  required: ['event_type_guess', 'members', 'mvp_box', 'mvp_index'],
 };
-const PROMPT = `これはスマートフォンRPGのリザルト画面です。画面の左側に、編成メンバー6人の丸い顔アイコンが上から下へ縦（または弧を描くよう）に並び、それぞれのアイコンの上に役割を表す英字3文字の札（ATK, BLA, BRK, BUF, DBF, DEF, HLR, ADM など）が付いています。
-
-- roles: 上から順に6人分の役割の札の文字を配列で返してください（読めない場合は "?"）。
-- mvp_index: 「MVP」のマークが付いているアイコンが上から何番目か（0始まり）。見つからなければ null。`;
+const PROMPT = `これはスマートフォンRPGのリザルト画面です。
+- members: 画面の左側に縦（または弧状）に並ぶ編成メンバー6人の丸い顔アイコンについて、上から順に、役割の札の文字（ATK, BLA, BRK, BUF, DBF, DEF, HLR, ADM など。読めない場合は "?"）と、顔アイコンの丸の部分の外接矩形 box=[ymin, xmin, ymax, xmax]（画像全体を0〜1000に正規化した整数）を返してください。札の文字は矩形に含めないでください。
+- mvp_box: 画面中央に大きく描かれたMVPキャラクターの顔を中心とした範囲（顔〜胸あたり）の矩形 [ymin, xmin, ymax, xmax]（0〜1000）。遭遇戦の画面では中央左の大きな円の中の絵です。
+- mvp_index: 「MVP」のマークが付いているアイコンが上から何番目か（0始まり）。見つからなければ null。
+- event_type_guess: score_attack（ボス名とボーナス2項目）／score_attack_ex（ボス名とボーナス1項目）／seraph（演習名・戦術カード列あり）／unknown`;
 
 const sizedUrl = url => (url.includes('res.cloudinary.com') ? url.replace(/\/upload\/(?:[^/]+\/)?(v\d+\/)/, '/upload/w_1280,c_limit/$1') : url);
 
@@ -38,7 +42,14 @@ async function readRoles(ai, buffer, mimeType) {
     response_format: { type: 'text', mime_type: 'application/json', schema: SCHEMA },
   });
   const p = JSON.parse(res.output_text);
-  return { roles: (p.roles || []).map(r => String(r).toUpperCase().trim()), mvp: p.mvp_index };
+  const members = Array.isArray(p.members) ? p.members : [];
+  return {
+    roles: members.map(m => String(m.role).toUpperCase().trim()),
+    boxes: members.map(m => m.box),
+    mvpBox: p.mvp_box,
+    type: p.event_type_guess,
+    mvp: p.mvp_index,
+  };
 }
 
 async function main() {

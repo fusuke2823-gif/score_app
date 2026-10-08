@@ -5,6 +5,8 @@ node_modules/
 # 属性推定の実験スクリプトの出力
 scripts/.attr-eval-cache.json
 scripts/.attr-eval-roles.json
+scripts/.attr-eval-roles2.json
+scripts/.attr-eval-cache2-*.json
 scripts/.attr-eval-fixes.json
 scripts/attr-eval-misses.csv
 scripts/attr-eval-crops/

@@ -20,7 +20,11 @@ import { CLIPVisionModelWithProjection, AutoProcessor, RawImage } from '@hugging
 const require = createRequire(import.meta.url);
 const { Pool } = require('pg');
 const DIR = path.dirname(fileURLToPath(import.meta.url));
-const CACHE_FILE = path.join(DIR, '.attr-eval-cache.json');
+// --crop gemini … Geminiが返した位置（6人の顔の矩形・画面の種類）で切り出す。mvp=gemini ならMVPもGeminiの矩形
+const CROP = process.argv.includes('--crop') ? process.argv[process.argv.indexOf('--crop') + 1] : 'fixed';
+const MVP_MODE = process.argv.includes('--mvp') ? process.argv[process.argv.indexOf('--mvp') + 1] : 'fixed';
+const CACHE_FILE = path.join(DIR, CROP === 'gemini' ? `.attr-eval-cache2-${MVP_MODE}.json` : '.attr-eval-cache.json');
+const ROLES2 = CROP === 'gemini' ? JSON.parse(fs.readFileSync(path.join(DIR, '.attr-eval-roles2.json'), 'utf8')) : null;
 
 const arg = (name, def) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -83,7 +87,9 @@ async function main() {
   console.log(`対象: ${rows.length}件（種類: ${TYPES.join(', ')}）`);
 
   const cache = fs.existsSync(CACHE_FILE) ? JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) : {};
-  const todo = rows.filter(r => !cache[r.id] || (cache[r.id].layoutVersion || 1) !== LAYOUT_VERSION && r.event_type === 'seraph');
+  const todo = CROP === 'gemini'
+    ? rows.filter(r => !cache[r.id] && ROLES2[r.id]?.boxes?.length === 6)
+    : rows.filter(r => !cache[r.id] || (cache[r.id].layoutVersion || 1) !== LAYOUT_VERSION && r.event_type === 'seraph');
   if (todo.length) {
     console.log(`画像を変換します: ${todo.length}件（変換済み ${rows.length - todo.length}件は再利用）`);
     const processor = await AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch32');
@@ -98,12 +104,31 @@ async function main() {
         const img = await RawImage.fromBlob(await res.blob());
         const c = contentBox(img.width, img.height);
         const box = (x0, y0, x1, y1) => [Math.round(c.x + x0 * c.w), Math.round(c.y + y0 * c.h), Math.round(c.x + x1 * c.w), Math.round(c.y + y1 * c.h)];
-        const L = LAYOUTS[r.event_type] || LAYOUTS.score_attack;
-        const mvpImg = await img.crop(box(L.mvp.x0, L.mvp.y0, L.mvp.x1, L.mvp.y1));
+        const g = CROP === 'gemini' ? ROLES2[r.id] : null;
+        // 画面の種類：Geminiが読んだ種類 → だめならイベントの種類
+        const type = g && g.type && g.type !== 'unknown' ? g.type : r.event_type;
+        const L = LAYOUTS[type] || LAYOUTS.score_attack;
+        const clampBox = ([y0, x0, y1, x1]) => {
+          const X0 = Math.max(0, Math.round(x0 / 1000 * img.width)), Y0 = Math.max(0, Math.round(y0 / 1000 * img.height));
+          const X1 = Math.min(img.width - 1, Math.round(x1 / 1000 * img.width)), Y1 = Math.min(img.height - 1, Math.round(y1 / 1000 * img.height));
+          return [X0, Y0, Math.max(X0 + 4, X1), Math.max(Y0 + 4, Y1)];
+        };
+        const mvpImg = g && MVP_MODE === 'gemini' && g.mvpBox?.length === 4
+          ? await img.crop(clampBox(g.mvpBox))
+          : await img.crop(box(L.mvp.x0, L.mvp.y0, L.mvp.x1, L.mvp.y1));
         const iconImgs = [];
-        for (const [cx, cy] of L.icons) {
-          const rr = L.r * c.h, x = c.x + cx * c.w, y = c.y + cy * c.h;
-          iconImgs.push(await img.crop([Math.round(x - rr), Math.round(y - rr), Math.round(x + rr), Math.round(y + rr)]));
+        if (g) {
+          // 顔の矩形の中心から、短い辺の長さの正方形で切り出す（札の文字が入りにくいよう0.9倍）
+          for (const [y0, x0, y1, x1] of g.boxes) {
+            const cx = (x0 + x1) / 2000 * img.width, cy = (y0 + y1) / 2000 * img.height;
+            const rr = Math.min((x1 - x0) / 1000 * img.width, (y1 - y0) / 1000 * img.height) / 2 * 0.9;
+            iconImgs.push(await img.crop([Math.round(cx - rr), Math.round(cy - rr), Math.round(cx + rr), Math.round(cy + rr)]));
+          }
+        } else {
+          for (const [cx, cy] of L.icons) {
+            const rr = L.r * c.h, x = c.x + cx * c.w, y = c.y + cy * c.h;
+            iconImgs.push(await img.crop([Math.round(x - rr), Math.round(y - rr), Math.round(x + rr), Math.round(y + rr)]));
+          }
         }
         if (done < DEBUG_CROPS || (DEBUG_CROPS && r.event_type === 'seraph' && done < DEBUG_CROPS * 3)) {
           const d = path.join(DIR, 'attr-eval-crops');
@@ -129,7 +154,7 @@ async function main() {
   }
 
   // 役割の読み取り結果（attr-eval-roles.mjs）と、投稿ミスだった属性の付け直し（実験の中だけで使う）
-  const rolesFile = path.join(DIR, '.attr-eval-roles.json'), fixesFile = path.join(DIR, '.attr-eval-fixes.json');
+  const rolesFile = path.join(DIR, CROP === 'gemini' ? '.attr-eval-roles2.json' : '.attr-eval-roles.json'), fixesFile = path.join(DIR, '.attr-eval-fixes.json');
   const roles = fs.existsSync(rolesFile) ? JSON.parse(fs.readFileSync(rolesFile, 'utf8')) : {};
   const fixes = fs.existsSync(fixesFile) ? JSON.parse(fs.readFileSync(fixesFile, 'utf8')) : {};
   const items = rows.filter(r => cache[r.id]).map(r => ({

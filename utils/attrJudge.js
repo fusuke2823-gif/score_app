@@ -21,6 +21,7 @@ const SHARE_ADM = 0.8;   // ADMで決まるのに必要な票の割合（似て�
 const ADM_MARGIN = 0.05; // ADMは一番似ている顔から、この差以内のものだけで多数決（少し似ているだけの別のADMが大量に混ざるのを防ぐ）
 const SHARE_MEMBER = 0.6;
 const DUAL_SHARE = 0.15; // MVPの票で、この割合以上の属性が2つ以上あれば「2属性スタイル」
+const ADM_LOOSE_K = 5, ADM_LOOSE_MIN = 0.5; // ADMの似た顔が基準に届かなくても、上位5件（0.5以上）が全部同じ属性なら決める（小さくぼやけた顔向け）
 
 // ===== 切り出し位置（16:9 の画面に対する割合）。スコアアタック・EX と遭遇戦で画面の作りが違う =====
 const LAYOUTS = {
@@ -88,7 +89,9 @@ function touchIdle() {
 }
 
 // 画像URLから、MVPの立ち絵と6人の顔の特徴の数値を出す（同時に1件ずつ処理してメモリの山を作らない）
-function computeVectors(imageUrl, eventType) {
+//   layoutType … 画面の種類（Geminiが画像から読んだ種類を優先。MVPの切り出し位置を決める）
+//   boxes      … Geminiが返した6人の顔の位置 [ymin, xmin, ymax, xmax]（0〜1000）。無ければ固定の位置で切り出す
+function computeVectors(imageUrl, layoutType, boxes = null) {
   const job = _queue.then(async () => {
     const { processor, model, RawImage } = await getModel();
     touchIdle();
@@ -96,14 +99,23 @@ function computeVectors(imageUrl, eventType) {
     if (!res.ok) throw new Error(`image HTTP ${res.status}`);
     const img = await RawImage.fromBlob(await res.blob());
     const c = contentBox(img.width, img.height);
-    const L = LAYOUTS[eventType] || LAYOUTS.score_attack;
+    const L = LAYOUTS[layoutType] || LAYOUTS.score_attack;
     const embed = async im => normalize((await model(await processor(im))).image_embeds.data);
     const box = (x0, y0, x1, y1) => [Math.round(c.x + x0 * c.w), Math.round(c.y + y0 * c.h), Math.round(c.x + x1 * c.w), Math.round(c.y + y1 * c.h)];
     const mvp = await embed(await img.crop(box(L.mvp.x0, L.mvp.y0, L.mvp.x1, L.mvp.y1)));
     const icons = [];
-    for (const [cx, cy] of L.icons) {
-      const rr = L.r * c.h, x = c.x + cx * c.w, y = c.y + cy * c.h;
-      icons.push(await embed(await img.crop([Math.round(x - rr), Math.round(y - rr), Math.round(x + rr), Math.round(y + rr)])));
+    if (boxes && boxes.length === 6) {
+      // 顔の矩形の中心から、短い辺の長さ×0.9の正方形で切り出す（札の文字が入りにくいように）
+      for (const [y0, x0, y1, x1] of boxes) {
+        const cx = (x0 + x1) / 2000 * img.width, cy = (y0 + y1) / 2000 * img.height;
+        const rr = Math.max(2, Math.min((x1 - x0) / 1000 * img.width, (y1 - y0) / 1000 * img.height) / 2 * 0.9);
+        icons.push(await embed(await img.crop([Math.round(cx - rr), Math.round(cy - rr), Math.round(cx + rr), Math.round(cy + rr)])));
+      }
+    } else {
+      for (const [cx, cy] of L.icons) {
+        const rr = L.r * c.h, x = c.x + cx * c.w, y = c.y + cy * c.h;
+        icons.push(await embed(await img.crop([Math.round(x - rr), Math.round(y - rr), Math.round(x + rr), Math.round(y + rr)])));
+      }
     }
     return { mvp, icons };
   });
@@ -200,6 +212,18 @@ async function judgeVectors(target, { db = pool } = {}) {
       const s = dot(iconsC[ai], r.v.iconsC[aj]);
       if (s >= T_FACE) cands.push({ r, s });
     }
+    if (!cands.length) {
+      const loose = [];
+      for (const r of refs) {
+        const aj = r.v.roles.indexOf('ADM');
+        if (aj < 0) continue;
+        const s = dot(iconsC[ai], r.v.iconsC[aj]);
+        if (s >= ADM_LOOSE_MIN) loose.push({ r, s });
+      }
+      loose.sort((a, b) => b.s - a.s);
+      const top = loose.slice(0, ADM_LOOSE_K);
+      if (top.length === ADM_LOOSE_K && top.every(x => x.r.attribute === top[0].r.attribute)) cands.push(...top);
+    }
     cands.sort((a, b) => b.s - a.s);
     if (cands.length) { const best = cands[0].s; while (cands.length && cands[cands.length - 1].s < best - ADM_MARGIN) cands.pop(); }
     const va = cands.length >= 2 ? voteOf(cands.slice(0, 15)) : null;
@@ -288,11 +312,13 @@ async function getAttrCheckMode(db = pool) {
 }
 
 // 投稿1件の判定：特徴を計算して保存し、お手本と比べて結果を返す（失敗しても例外は投げない）
-async function judgeSubmission({ imageUrl, scoreId, eventType, roles, attribute }) {
+async function judgeSubmission({ imageUrl, scoreId, eventType, typeGuess, roles, boxes, attribute }) {
   const t0 = Date.now();
   try {
-    const { mvp, icons } = await computeVectors(imageUrl, eventType);
-    await saveVectors(pool, { imageUrl, scoreId, eventType, roles, mvp, icons });
+    // 切り出しに使う画面の種類は、Geminiが画像から読んだ種類を優先（イベントの登録上の種類と画面が違うことがある）
+    const layoutType = typeGuess && typeGuess !== 'unknown' ? typeGuess : eventType;
+    const { mvp, icons } = await computeVectors(imageUrl, layoutType, boxes);
+    await saveVectors(pool, { imageUrl, scoreId, eventType: layoutType, roles, mvp, icons });
     const result = await judgeVectors({ mvp, icons, roles, url: imageUrl });
     const r = routeFor(result, attribute);
     return { ...result, ...r, submitted: attribute, ms: Date.now() - t0, at: new Date().toISOString() };
