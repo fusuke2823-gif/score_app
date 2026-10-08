@@ -65,6 +65,45 @@
 .hist-summary .l { font-size:0.66rem; color:var(--text-secondary); }
 .hist-summary .v { font-weight:bold; font-size:0.95rem; }
 
+/* 過去のリザルト */
+.res-head { display:flex; align-items:baseline; justify-content:space-between; margin:24px 2px 10px; }
+.res-title { font-size:1rem; font-weight:bold; }
+.res-count { font-size:0.75rem; color:var(--text-muted); }
+.res-list { display:grid; gap:10px; }
+@media (min-width:760px) { .res-list { grid-template-columns:1fr 1fr; align-items:start; } }
+.res-card {
+  position:relative; border-radius:12px; overflow:hidden; background:var(--bg-card); border:1px solid var(--border);
+  backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); --rt:var(--accent);
+}
+.res-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--rt); opacity:0.85; }
+.res-card.is-podium { border-color:color-mix(in srgb, var(--pod) 45%, transparent); box-shadow:0 0 14px color-mix(in srgb, var(--pod) 18%, transparent); }
+.res-card-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 14px 8px 16px; }
+.res-card-info { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.res-type { align-self:flex-start; font-size:0.62rem; font-weight:800; letter-spacing:0.06em; padding:1px 7px; border-radius:4px; color:var(--rt); background:color-mix(in srgb, var(--rt) 16%, transparent); border:1px solid color-mix(in srgb, var(--rt) 45%, transparent); }
+.res-name { font-size:0.92rem; font-weight:bold; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.res-name:hover { color:var(--accent); }
+.res-rank { display:flex; align-items:baseline; gap:2px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; max-width:45%; }
+.res-rank svg { align-self:center; margin-right:3px; }
+.res-rank-num { font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:1.7rem; line-height:1; font-variant-numeric:tabular-nums; color:var(--pod, var(--text-primary)); }
+.res-rank-unit { font-size:0.75rem; font-weight:bold; color:var(--pod, var(--text-secondary)); }
+.res-rank-total { font-size:0.7rem; color:var(--text-muted); margin-left:4px; }
+.res-rank-int { flex-basis:100%; text-align:right; font-size:0.66rem; color:var(--accent); }
+.res-rows { padding:0 14px 8px 16px; }
+.res-row { display:grid; grid-template-columns:auto 1fr auto auto; align-items:center; gap:10px; padding:7px 0; border-top:1px solid rgba(255,255,255,0.06); }
+.res-score { font-weight:bold; font-size:1rem; font-variant-numeric:tabular-nums; }
+.res-row:not(.is-best) .res-score { font-size:0.92rem; color:var(--text-secondary); }
+.res-attr-rank { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; text-align:right; display:flex; flex-direction:column; align-items:flex-end; }
+.res-attr-rank b { color:var(--text-primary); font-size:0.85rem; }
+.res-attr-rank small { font-size:0.62rem; }
+.res-thumb { position:relative; width:64px; height:36px; padding:0; border:1px solid var(--border-light); border-radius:6px; overflow:hidden; background:var(--bg-primary); cursor:pointer; }
+.res-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.2s; }
+.res-thumb:hover img { transform:scale(1.08); }
+.res-thumb.is-empty { cursor:default; border-style:dashed; opacity:0.4; }
+.res-yt { position:absolute; right:3px; bottom:3px; width:18px; height:13px; border-radius:3px; background:#ff0033; display:flex; align-items:center; justify-content:center; }
+.res-yt svg { width:10px; height:10px; }
+.res-more { display:block; width:100%; margin-top:10px; padding:10px; border-radius:10px; border:1px dashed var(--border-light); background:none; color:var(--text-secondary); font-family:inherit; font-size:0.85rem; font-weight:bold; cursor:pointer; }
+.res-more:hover { color:var(--text-primary); border-color:var(--accent); }
+
 .back-link { text-decoration:none; }
 .back-link:hover { color:var(--text-primary) !important; }
 .score-grid {
@@ -221,6 +260,7 @@ async function load() {
           event_id: s.event_id,
           event_number: s.event_number,
           event_name: s.event_name,
+          event_type: s.event_type,
           scores: []
         };
       }
@@ -330,36 +370,16 @@ async function load() {
 
       <div id="history-card"></div>
 
+      <div class="res-head">
+        <div class="res-title">過去のリザルト</div>
+        ${events.length ? `<div class="res-count">${events.length}回参加</div>` : ''}
+      </div>
       ${events.length === 0
         ? `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('user.no_scores')}</p></div>`
-        : `<div class="score-grid">
-            ${events.map(e => `
-              <div class="event-score-card">
-                <div class="event-score-header">
-                  <div>
-                    <a href="/ranking.html?id=${e.event_id}" class="event-score-title">${escHtml(e.event_name)}</a>
-                  </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap">
-                    ${data.ranks_internal?.[e.event_id] ? `<span class="event-rank-badge" style="font-size:0.72rem">内部 ${data.ranks_internal[e.event_id]}位</span>` : ''}
-                    ${data.ranks[e.event_id] ? `<span class="event-rank-badge" style="font-size:0.72rem;background:var(--bg-secondary);color:var(--text-secondary)">${data.ranks_internal ? '外部 ' : ''}${data.ranks[e.event_id]}位</span>` : ''}
-                  </div>
-                </div>
-                <div class="attr-score-list">
-                  ${e.scores.map(s => `
-                    <div class="attr-score-item">
-                      ${attrBadge(s.attribute, true)}
-                      <span class="attr-score-val">${formatScore(s.approved_score)}</span>
-                      ${data.ranks_internal ? `
-                        ${s.attr_rank_int ? `<span style="font-size:0.72rem;color:var(--accent)">内部${s.attr_rank_int}位</span>` : ''}
-                        ${s.attr_rank_ext ? `<span style="font-size:0.72rem;color:var(--text-muted)">外部${s.attr_rank_ext}位</span>` : ''}
-                      ` : `${s.attr_rank_ext ? `<span style="font-size:0.75rem;color:var(--text-muted)">${s.attr_rank_ext}位</span>` : ''}`}
-                      ${s.approved_image_url
-                        ? `<img class="attr-score-img${s.youtube_url ? ' has-yt' : ''}" src="${escHtml(thumbUrl(s.approved_image_url))}" alt="result" loading="lazy" onclick="openModal('${escHtml(s.approved_image_url)}','${s.youtube_url ? escHtml(s.youtube_url) : ''}',${s.youtube_score ? s.youtube_score : 'null'})">`
-                        : ''}
-                    </div>`).join('')}
-                </div>
-              </div>`).join('')}
-          </div>`
+        : `<div class="res-list" id="res-list">
+            ${events.map((e, idx) => resultCardHTML(e, data, idx >= RES_INITIAL)).join('')}
+          </div>
+          ${events.length > RES_INITIAL ? `<button type="button" class="res-more" id="res-more" onclick="showAllResults()">もっと見る（残り${events.length - RES_INITIAL}回）</button>` : ''}`
       }
     `;
   loadHistory();
@@ -381,6 +401,60 @@ async function load() {
     showAlert('#alert', err.message);
     document.getElementById('content').innerHTML = '';
   }
+}
+
+// ===== 過去のリザルト =====
+const RES_INITIAL = 5; // 最初に見せる回数（残りは「もっと見る」）
+const RES_TYPES = {
+  score_attack: { label: 'スコアタ', color: '#ff6b80' },
+  seraph: { label: '遭遇戦', color: '#4fc3f7' },
+  score_attack_ex: { label: 'EX', color: '#e0b84a' },
+};
+const RES_PODIUM = { 1: '#ffd700', 2: '#c0c0c0', 3: '#cd7f32' };
+const RES_CROWN = c => `<svg width="16" height="13" viewBox="0 0 24 18" fill="${c}" aria-hidden="true"><path d="M2 16h20l1.5-11-6.5 5-5-8-5 8-6.5-5z"/></svg>`;
+const RES_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>';
+
+function resultCardHTML(e, data, hidden) {
+  const type = RES_TYPES[e.event_type];
+  const rank = data.ranks[e.event_id];
+  const total = data.participants?.[e.event_id];
+  const rankInt = data.ranks_internal?.[e.event_id];
+  const podium = RES_PODIUM[rank];
+  const rows = e.scores.map((s, k) => {
+    const attrRank = data.ranks_internal ? s.attr_rank_int : s.attr_rank_ext;
+    const thumb = s.approved_image_url
+      ? `<button type="button" class="res-thumb" onclick="openModal('${escHtml(s.approved_image_url)}','${s.youtube_url ? escHtml(s.youtube_url) : ''}',${s.youtube_score ? s.youtube_score : 'null'})" aria-label="リザルト画像を見る">
+          <img src="${escHtml(thumbUrl(s.approved_image_url))}" alt="" loading="lazy">${s.youtube_url ? `<span class="res-yt">${RES_PLAY}</span>` : ''}
+        </button>`
+      : '<span class="res-thumb is-empty"></span>';
+    return `
+      <div class="res-row${k === 0 ? ' is-best' : ''}">
+        ${attrBadge(s.attribute, true)}
+        <span class="res-score">${formatScore(s.approved_score)}</span>
+        <span class="res-attr-rank">${attrRank ? `<span>属性 <b>${attrRank}</b>位</span>` : ''}${data.ranks_internal && s.attr_rank_ext ? `<small>外部${s.attr_rank_ext}位</small>` : ''}</span>
+        ${thumb}
+      </div>`;
+  }).join('');
+  return `
+    <article class="res-card${podium ? ' is-podium' : ''}"${hidden ? ' hidden' : ''} style="${type ? `--rt:${type.color};` : ''}${podium ? `--pod:${podium};` : ''}">
+      <header class="res-card-head">
+        <div class="res-card-info">
+          ${type ? `<span class="res-type">${type.label}</span>` : ''}
+          <a href="/ranking.html?id=${e.event_id}" class="res-name">${escHtml(e.event_name)}</a>
+        </div>
+        ${rank ? `<div class="res-rank">
+          ${podium ? RES_CROWN(podium) : ''}<span class="res-rank-num">${rank}</span><span class="res-rank-unit">位</span>
+          ${total ? `<span class="res-rank-total">/ ${total}人</span>` : ''}
+          ${rankInt ? `<span class="res-rank-int">内部 ${rankInt}位</span>` : ''}
+        </div>` : ''}
+      </header>
+      <div class="res-rows">${rows}</div>
+    </article>`;
+}
+
+function showAllResults() {
+  document.querySelectorAll('#res-list .res-card[hidden]').forEach(c => { c.hidden = false; });
+  document.getElementById('res-more')?.remove();
 }
 
 function toggleEditForm() {

@@ -170,6 +170,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
          s.event_id,
          e.event_number,
          e.name AS event_name,
+         COALESCE(e.display_type, e.event_type) AS event_type,
+         e.submission_end,
          s.attribute,
          s.approved_score,
          s.approved_image_url,
@@ -185,20 +187,21 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     const viewerIsInternal = !!(req.user && req.user.is_internal);
 
-    // 外部順位（ranking_scope='public' or 'external'）
+    // 外部順位（ranking_scope='public' or 'external'）と、その回の参加人数
     const extRankResult = await pool.query(
       `WITH event_ranks AS (
          SELECT s.event_id, s.user_id,
-           RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank
+           RANK() OVER (PARTITION BY s.event_id ORDER BY MAX(s.approved_score) DESC) AS rank,
+           COUNT(*) OVER (PARTITION BY s.event_id) AS participants
          FROM scores s
          WHERE s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'external')
          GROUP BY s.event_id, s.user_id
        )
-       SELECT event_id, rank FROM event_ranks WHERE user_id = $1`,
+       SELECT event_id, rank, participants::int FROM event_ranks WHERE user_id = $1`,
       [req.params.id]
     );
-    const extRankMap = {};
-    extRankResult.rows.forEach(r => { extRankMap[r.event_id] = r.rank; });
+    const extRankMap = {}, participantsMap = {};
+    extRankResult.rows.forEach(r => { extRankMap[r.event_id] = r.rank; participantsMap[r.event_id] = r.participants; });
 
     const extAttrRankResult = await pool.query(
       `WITH attr_ranks AS (
@@ -253,6 +256,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       equipped_title_desc: equippedTitle?.description || null,
       scores: scoresResult.rows.map(r => ({ ...r, approved_image_url: optimizeUrl(r.approved_image_url) })),
       ranks: extRankMap,
+      participants: participantsMap,
       attr_ranks: extAttrRankMap,
       ranks_internal: intRankMap,
       attr_ranks_internal: intAttrRankMap,
