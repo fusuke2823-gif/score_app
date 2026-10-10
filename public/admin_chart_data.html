@@ -15,6 +15,8 @@
 .icon-tile .rm { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#e57373; font-size:0.7rem; line-height:18px; padding:0; cursor:pointer; display:none; }
 .icon-tile:hover .rm { display:block; }
 @media (hover:none) { .icon-tile .rm { display:block; } }
+.sync-row { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; font-size:0.8rem; margin-bottom:10px; cursor:pointer; }
+.sync-row small { color:var(--text-muted); font-size:0.72rem; }
 .icon-tile.busy { opacity:0.5; pointer-events:none; }
 </style>
 </head>
@@ -48,6 +50,7 @@
         <input type="file" id="char-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
         <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">インポート</button>
       </div>
+      <label class="sync-row"><input type="checkbox" id="char-csv-sync"> CSVにない行を削除する<small>（チャートで使われている行は残します。CSVに全件そろっているときだけ使ってください）</small></label>
       <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('characters','キャラクター')">キャラクターを全削除</button>
     </div>
 
@@ -72,17 +75,19 @@
         <input type="file" id="style-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
         <button class="btn btn-primary btn-sm" onclick="upload('styles','style-csv')">インポート</button>
       </div>
+      <label class="sync-row"><input type="checkbox" id="style-csv-sync"> CSVにない行を削除する<small>（チャートで使われている行は残します。CSVに全件そろっているときだけ使ってください）</small></label>
       <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('styles','スタイル')">スタイルを全削除</button>
     </div>
 
     <!-- 技 -->
     <div class="card" style="padding:16px">
       <div style="font-weight:bold;margin-bottom:8px">技 CSV</div>
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: character_name(空=全キャラ共通),skill_name,has_target(0/1),style_name(空=全スタイル共通),is_special(0/1)</div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: skill_name,abbreviation(略称),style_name(空=キャラ共通),character_name(空=全キャラ共通),has_target(0/1),is_special(0/1)</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <input type="file" id="skill-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
         <button class="btn btn-primary btn-sm" onclick="upload('skills','skill-csv')">インポート</button>
       </div>
+      <label class="sync-row"><input type="checkbox" id="skill-csv-sync"> CSVにない行を削除する<small>（チャートで使われている行は残します。CSVに全件そろっているときだけ使ってください）</small></label>
       <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteSkills()">技データを全削除</button>
     </div>
   </div>
@@ -112,12 +117,14 @@ async function upload(type, inputId) {
   if (!file) return showAlert('#alert', 'ファイルを選択してください');
   const fd = new FormData();
   fd.append('csv', file);
+  fd.append('sync', document.getElementById(inputId + '-sync').checked ? '1' : '0');
   try {
     const res = await apiFormFetch(`/admin/chart-data/import-${type}`, fd);
     showAlert('#alert', res.message, 'success');
     // スキップ理由を1行ずつ表示する
     document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
     loadStats();
+    loadIcons();
   } catch (e) { showAlert('#alert', e.message); }
 }
 
@@ -126,11 +133,14 @@ async function deleteSkills() {
 }
 
 async function deleteData(type, label) {
-  if (!await showConfirm(`${label}データを全削除しますか？`, { danger: true })) return;
+  const note = type === 'characters' ? '（そのキャラのスタイル・技も消えます）' : type === 'styles' ? '（そのスタイル専用の技も消えます）' : '';
+  if (!await showConfirm(`${label}を全削除しますか？${note}\nチャートで使われているものは残ります。`, { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/chart-data/${type}`, { method: 'DELETE' });
     showAlert('#alert', res.message, 'success');
+    document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
     loadStats();
+    loadIcons();
   } catch (e) { showAlert('#alert', e.message); }
 }
 

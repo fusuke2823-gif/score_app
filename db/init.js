@@ -631,7 +631,6 @@ const initDB = async () => {
     `);
 
     // チャート（編成・ターンごとの行動）とそのマスタ（キャラ・スタイル・技）
-    // 定義は scripts/create-chart-tables.js と scripts/add-*-abbreviation.js に合わせている
     await client.query(`
       CREATE TABLE IF NOT EXISTS chart_characters (
         id SERIAL PRIMARY KEY,

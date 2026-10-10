@@ -6,26 +6,10 @@
 <title>マイチャート - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.chart-card {
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
-  display: flex; align-items: center; gap: 12px;
-  transition: border-color 0.15s, background 0.15s;
-}
-.chart-card:hover { border-color: var(--accent); background: var(--bg-secondary); }
-.chart-card-title { font-weight: bold; font-size: 0.92rem; }
-.chart-card-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
-.chart-code-badge {
-  font-size: 0.72rem; font-family: monospace; letter-spacing: 0.05em;
-  background: var(--bg-secondary); border: 1px solid var(--border);
-  border-radius: 4px; padding: 1px 6px; color: var(--text-muted);
-}
-.draft-badge { font-size:0.7rem; color:#ffd580; border:1px solid #ffd58088; border-radius:4px; padding:1px 6px; }
-.event-group-header {
-  font-size: 0.88rem; font-weight: bold; padding: 6px 0;
-  border-bottom: 1px solid var(--border); margin: 20px 0 8px;
-  color: var(--text-muted);
-}
+.event-group-header { font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin:22px 0 8px; display:flex; align-items:center; gap:8px; }
+.event-group-header::after { content:''; flex:1; height:1px; background:var(--border); }
+.event-group-header small { font-weight:normal; font-size:0.72rem; }
+.chart-card-actions .danger { background:rgba(200,50,50,0.15); color:#e57373; border:1px solid #e5737366; }
 </style>
 </head>
 <body>
@@ -60,26 +44,12 @@ async function load() {
       if (!groups.has(c.event_id)) groups.set(c.event_id, { name: c.event_name, items: [] });
       groups.get(c.event_id).items.push(c);
     }
-    let html = '';
-    for (const [, g] of groups) {
-      html += `<div class="event-group-header">${escHtml(g.name)}</div>`;
-      html += g.items.map(c => `
-        <div class="chart-card">
-          <span class="attr-badge attr-${escHtml(c.attribute)} small" style="flex-shrink:0">${t('attr.'+c.attribute)||c.attribute}</span>
-          <div style="flex:1;min-width:0;cursor:pointer" onclick="location.href='/chart-view.html?id=${c.id}'">
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-              <span class="chart-card-title">${escHtml(c.title)}</span>
-              <span class="chart-code-badge">${escHtml(c.chart_code)}</span>
-              ${c.is_public ? '' : '<span class="draft-badge">下書き</span>'}
-            </div>
-            <div class="chart-card-meta">${new Date(c.created_at).toLocaleDateString('ja-JP')}</div>
-          </div>
-          <div style="display:flex;gap:6px;flex-shrink:0">
-            <a href="/chart-editor.html?id=${c.id}" class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">${t('chart.edit')}</a>
-            <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="event.stopPropagation();deleteChart(${c.id})">${t('chart.delete')}</button>
-          </div>
-        </div>`).join('');
-    }
+    const actions = c => `
+      <a href="/chart-editor.html?id=${c.id}" class="btn btn-secondary btn-sm">${t('chart.edit')}</a>
+      <button class="btn btn-sm danger" onclick="deleteChart(${c.id})">${t('chart.delete')}</button>`;
+    const html = [...groups.values()].map(g => `
+      <div class="event-group-header">${escHtml(g.name)}<small>${g.items.length}</small></div>
+      <div class="chart-list">${g.items.map(c => chartCardHTML(c, { actions: actions(c), showDraft: true })).join('')}</div>`).join('');
     el.innerHTML = html;
   } catch(e) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(e.message)}</div>`;

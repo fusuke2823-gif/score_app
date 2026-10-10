@@ -2044,6 +2044,34 @@ async function inTransaction(fn) {
   }
 }
 
+// CSVにない行・全削除の対象のうち、チャートで使われていないものだけ消す
+// kind: characters / styles / skills、keepIds: 残す行のid（CSVにあった行）
+const CHART_MASTER = {
+  characters: { table: 'chart_characters', label: 'キャラ', used: 'SELECT 1 FROM chart_members u WHERE u.character_id = t.id' },
+  styles: { table: 'chart_styles', label: 'スタイル', used: 'SELECT 1 FROM chart_members u WHERE u.style_id = t.id' },
+  skills: { table: 'chart_skills', label: '技', used: 'SELECT 1 FROM chart_actions u WHERE u.skill_id = t.id' },
+};
+async function deleteUnusedChartRows(client, kind, keepIds = []) {
+  const m = CHART_MASTER[kind];
+  const kept = await client.query(
+    `SELECT t.name FROM ${m.table} t WHERE NOT (t.id = ANY($1::int[])) AND EXISTS (${m.used}) ORDER BY t.id`, [keepIds]);
+  const del = await client.query(
+    `DELETE FROM ${m.table} t WHERE NOT (t.id = ANY($1::int[])) AND NOT EXISTS (${m.used})`, [keepIds]);
+  return { deleted: del.rowCount, kept: kept.rows.map(r => r.name) };
+}
+function deleteResultMessage(prefix, r) {
+  let msg = `${prefix}: ${r.deleted}件削除`;
+  if (r.kept.length) msg += `・${r.kept.length}件はチャートで使用中のため残しました（${r.kept.slice(0, 5).join('、')}${r.kept.length > 5 ? ' ほか' : ''}）`;
+  return msg;
+}
+// CSV取り込み後の同期（sync=1 のとき）。スキップがあったときは消しすぎないよう何もしない
+async function syncAfterImport(client, req, kind, keepIds, skips) {
+  if (req.body?.sync !== '1') return '';
+  const label = CHART_MASTER[kind].label;
+  if (skips.length) return `\nスキップした行があるため、CSVにない${label}の削除はしませんでした`;
+  return '\n' + deleteResultMessage(`CSVにない${label}`, await deleteUnusedChartRows(client, kind, keepIds));
+}
+
 router.get('/chart-data/stats', async (req, res) => {
   try {
     const [chars, styles, skills] = await Promise.all([
@@ -2097,18 +2125,19 @@ router.post('/chart-data/import-characters', upload.single('csv'), async (req, r
     const rows = parseCSVBuffer(req.file.buffer);
     const message = await inTransaction(async client => {
       let count = 0, updated = 0;
-      const skips = [];
+      const skips = [], ids = [];
       for (const { line, cols: [sort_order, name, abbreviation] } of rows) {
         if (!name) { skips.push(`${line}行目: キャラ名が空です`); continue; }
         const r = await client.query(
           `INSERT INTO chart_characters (name, abbreviation, sort_order) VALUES ($1, $2, $3)
            ON CONFLICT (name) DO UPDATE SET abbreviation=$2, sort_order=$3
-           RETURNING (xmax = 0) AS inserted`,
+           RETURNING id, (xmax = 0) AS inserted`,
           [name, abbreviation || null, parseInt(sort_order) || 0]
         );
+        ids.push(r.rows[0].id);
         if (r.rows[0].inserted) count++; else updated++;
       }
-      return importResultMessage('キャラクター', count, updated, skips);
+      return importResultMessage('キャラクター', count, updated, skips) + await syncAfterImport(client, req, 'characters', ids, skips);
     });
     res.json({ message });
   } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
@@ -2121,6 +2150,7 @@ router.post('/chart-data/import-styles', upload.single('csv'), async (req, res) 
     const message = await inTransaction(async client => {
       let count = 0, updated = 0;
       const skips = [];
+      const ids = [];
       for (const { line, cols: [style_name, abbreviation, character_name, has_special] } of rows) {
         if (!character_name || !style_name) { skips.push(`${line}行目: スタイル名かキャラ名が空です`); continue; }
         const c = await client.query('SELECT id FROM chart_characters WHERE name=$1', [character_name]);
@@ -2128,12 +2158,13 @@ router.post('/chart-data/import-styles', upload.single('csv'), async (req, res) 
         const r = await client.query(
           `INSERT INTO chart_styles (character_id, name, abbreviation, has_special_skill) VALUES ($1, $2, $3, $4)
            ON CONFLICT (character_id, name) DO UPDATE SET abbreviation=$3, has_special_skill=$4
-           RETURNING (xmax = 0) AS inserted`,
+           RETURNING id, (xmax = 0) AS inserted`,
           [c.rows[0].id, style_name, abbreviation || null, has_special === '1']
         );
+        ids.push(r.rows[0].id);
         if (r.rows[0].inserted) count++; else updated++;
       }
-      return importResultMessage('スタイル', count, updated, skips);
+      return importResultMessage('スタイル', count, updated, skips) + await syncAfterImport(client, req, 'styles', ids, skips);
     });
     res.json({ message });
   } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
@@ -2146,6 +2177,7 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
     const message = await inTransaction(async client => {
       let count = 0, updated = 0;
       const skips = [];
+      const ids = [];
       for (const { line, cols: [skill_name, abbreviation, style_name, character_name, has_target, is_special] } of rows) {
         if (!skill_name) { skips.push(`${line}行目: 技名が空です`); continue; }
         let charId = null;
@@ -2173,47 +2205,32 @@ router.post('/chart-data/import-skills', upload.single('csv'), async (req, res) 
             'UPDATE chart_skills SET abbreviation=$1, has_target=$2, is_special=$3 WHERE id=$4',
             [abbreviation || null, has_target === '1', is_special === '1', exists.rows[0].id]
           );
+          ids.push(exists.rows[0].id);
           updated++;
           continue;
         }
-        await client.query(
-          `INSERT INTO chart_skills (character_id, name, abbreviation, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5, $6)`,
+        const ins = await client.query(
+          `INSERT INTO chart_skills (character_id, name, abbreviation, has_target, style_id, is_special) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [charId, skill_name, abbreviation || null, has_target === '1', styleId, is_special === '1']
         );
+        ids.push(ins.rows[0].id);
         count++;
       }
-      return importResultMessage('技', count, updated, skips);
+      return importResultMessage('技', count, updated, skips) + await syncAfterImport(client, req, 'skills', ids, skips);
     });
     res.json({ message });
   } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
-router.delete('/chart-data/skills', async (req, res) => {
-  try {
-    await pool.query('DELETE FROM chart_actions WHERE skill_id IN (SELECT id FROM chart_skills)');
-    await pool.query('DELETE FROM chart_skills');
-    res.json({ message: '技データを全削除しました' });
-  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
-});
-
-router.delete('/chart-data/styles', async (req, res) => {
-  try {
-    await pool.query('DELETE FROM chart_actions WHERE skill_id IN (SELECT id FROM chart_skills WHERE style_id IS NOT NULL)');
-    await pool.query('DELETE FROM chart_skills WHERE style_id IS NOT NULL');
-    await pool.query('DELETE FROM chart_styles');
-    res.json({ message: 'スタイルデータを全削除しました（スタイル専用技も削除）' });
-  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
-});
-
-router.delete('/chart-data/characters', async (req, res) => {
-  try {
-    await pool.query('DELETE FROM chart_actions WHERE skill_id IN (SELECT id FROM chart_skills)');
-    await pool.query('DELETE FROM chart_skills');
-    await pool.query('DELETE FROM chart_styles');
-    await pool.query('DELETE FROM chart_characters');
-    res.json({ message: 'キャラクターデータを全削除しました（スタイル・技も削除）' });
-  } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
-});
+// 全削除：チャートで使われている行は残す（キャラを消すとそのスタイル・技も、スタイルを消すとその専用技も消える）
+for (const kind of ['skills', 'styles', 'characters']) {
+  router.delete(`/chart-data/${kind}`, async (req, res) => {
+    try {
+      const r = await inTransaction(client => deleteUnusedChartRows(client, kind));
+      res.json({ message: deleteResultMessage(`${CHART_MASTER[kind].label}の全削除`, r) });
+    } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
+  });
+}
 
 // ===== お知らせ =====
 router.get('/announcements', async (req, res) => {

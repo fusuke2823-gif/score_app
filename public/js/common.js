@@ -12,7 +12,7 @@ const _i18n = {
     'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.empty':'お知らせはまだありません',
     'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
     'chart.board':'チャート掲示板','chart.all_events':'全イベント',
-    'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索','chart.search_any':'ID・タイトル・ユーザー名で検索','chart.turns':'{n}行',
+    'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索','chart.search_any':'ID・タイトル・ユーザー名で検索','chart.turns':'{n}行','chart.draft':'下書き',
     'chart.search':'検索','chart.reset':'リセット',
     'chart.no_charts':'チャートがありません',
     'chart.edit':'編集','chart.delete':'削除','chart.delete_confirm':'このチャートを削除しますか？',
@@ -185,7 +185,7 @@ const _i18n = {
     'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.empty':'目前沒有公告',
     'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
     'chart.board':'攻略圖表看板','chart.all_events':'全部活動',
-    'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名','chart.search_any':'以ID・標題・用戶名搜尋','chart.turns':'{n}行',
+    'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名','chart.search_any':'以ID・標題・用戶名搜尋','chart.turns':'{n}行','chart.draft':'草稿',
     'chart.search':'搜尋','chart.reset':'重置',
     'chart.no_charts':'沒有攻略圖表',
     'chart.edit':'編輯','chart.delete':'刪除','chart.delete_confirm':'確定刪除此攻略圖表？',
@@ -467,6 +467,40 @@ function thumbUrl(url) {
 function chartIconUrl(url, size = 96) {
   if (!url || !url.includes('res.cloudinary.com')) return url;
   return url.replace(/\/upload\/(?:[^/]+\/)?(v\d+\/)/, `/upload/q_auto,f_auto,w_${size},h_${size},c_fill/$1`);
+}
+
+// チャートのカード（掲示板・マイチャートで共通）。actions を渡すとカード右下にボタンを置く
+function chartCardHTML(c, { actions = '', showDraft = false } = {}) {
+  const ATTR_COLOR = { '火': 'var(--fire)', '氷': 'var(--ice)', '雷': 'var(--thunder)', '光': 'var(--light)', '闇': 'var(--dark)', '無': 'var(--none)' };
+  const bySlot = {};
+  (c.members || []).forEach(m => { bySlot[m.slot] = m; });
+  const faces = [1, 2, 3, 4, 5, 6].map(slot => {
+    const m = bySlot[slot];
+    if (!m) return '<div class="chart-face"><div class="ph"></div><span>&nbsp;</span></div>';
+    const short = m.abbreviation || m.name;
+    const img = m.icon_url
+      ? `<img src="${escHtml(chartIconUrl(m.icon_url, 104))}" alt="${escHtml(m.name)}" title="${escHtml(m.name)} / ${escHtml(m.style)} ${m.refine_count}凸" loading="lazy">`
+      : `<div class="ph" title="${escHtml(m.name)}">${escHtml(short.charAt(0))}</div>`;
+    return `<div class="chart-face">${img}<span>${escHtml(m.style || short)}</span></div>`;
+  }).join('');
+  return `
+    <div class="chart-card" style="--ac:${ATTR_COLOR[c.attribute] || 'var(--border)'}">
+      <a class="chart-card-link" href="/chart-view.html?id=${c.id}" aria-label="${escHtml(c.title)}"></a>
+      <div class="chart-card-top">
+        <span class="attr-badge attr-${escHtml(c.attribute)} small" style="flex-shrink:0">${t('attr.' + c.attribute) || c.attribute}</span>
+        <span class="chart-card-title">${escHtml(c.title)}</span>
+        ${showDraft && !c.is_public ? `<span class="chart-draft-badge">${t('chart.draft')}</span>` : ''}
+        <span class="chart-code-badge">${escHtml(c.chart_code)}</span>
+      </div>
+      <div class="chart-faces">${faces}</div>
+      <div class="chart-card-meta">
+        <span class="user">${escHtml(c.username)}</span>
+        <span>${new Date(c.created_at).toLocaleDateString('ja-JP')}</span>
+        <span>${t('chart.turns').replace('{n}', c.turn_count || 0)}</span>
+        ${c.description ? `<span class="desc">${escHtml(c.description)}</span>` : ''}
+        ${actions ? `<span class="chart-card-actions">${actions}</span>` : ''}
+      </div>
+    </div>`;
 }
 
 function mediumUrl(url) {
