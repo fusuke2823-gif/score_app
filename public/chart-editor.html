@@ -60,7 +60,7 @@
 .ce-tile-skill { font-size:0.64rem; line-height:1.25; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; min-height:1.6em; }
 .ce-tile-skill.none { color:var(--text-muted); opacity:0.6; }
 .ce-tile-target { font-size:0.58rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center; }
-.ce-tile-order { position:absolute; top:3px; left:3px; font-size:0.8rem; font-weight:bold; color:#fff; background:var(--accent); border-radius:50%; width:17px; height:17px; line-height:17px; text-align:center; }
+.ce-tile-order { position:absolute; top:3px; left:3px; display:flex; align-items:center; justify-content:center; box-sizing:border-box; width:17px; height:17px; border-radius:50%; border:1.5px solid #fff; color:#fff; font-size:0.66rem; font-weight:bold; line-height:1; background:rgba(0,0,0,0.35); }
 /* スマホ：左上に小さく顔、その下に技名 */
 @media (max-width:699px) {
   .ce-tile, .ce-tiles.full .ce-tile { flex-direction:column; align-items:flex-start; gap:4px; padding:5px 6px 6px; }

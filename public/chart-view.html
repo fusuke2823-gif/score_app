@@ -6,18 +6,22 @@
 <title>チャート - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+/* 背景の絵が透けて文字が読みにくいので、このページの面は不透明に近くする */
+main { --cv-surface:rgba(16,15,32,0.92); --cv-sub:#a6a6c4; }
 .fav-btn { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-muted); font:inherit; font-size:0.82rem; cursor:pointer; transition:color 0.15s, border-color 0.15s; }
 .fav-btn:hover:not(:disabled) { color:#ff6b9a; border-color:#ff6b9a88; }
 .fav-btn.on { color:#ff6b9a; border-color:#ff6b9a88; background:rgba(255,107,154,0.1); }
 .fav-btn:disabled { cursor:default; }
 .fav-btn.pop svg { animation:favPop 0.3s ease-out; }
 @keyframes favPop { 50% { transform:scale(1.35); } }
+.cv-desc { font-size:0.86rem; line-height:1.6; margin-top:10px; padding:10px 12px; border-radius:8px; background:var(--cv-surface); border:1px solid var(--border); color:var(--text-primary); white-space:pre-wrap; }
+.cv-meta { font-size:0.8rem; color:var(--cv-sub); }
 .draft-badge { font-size:0.7rem; color:#ffd580; border:1px solid #ffd58088; border-radius:4px; padding:1px 6px; }
 /* メンバー（スロットごとの色で、タイムラインの行と対応させる） */
 .cv-members { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0 16px; }
 @media (max-width:600px) { .cv-members { grid-template-columns:repeat(2,1fr); } }
 .cv-member {
-  position:relative; background:var(--bg-card); border:1px solid var(--border);
+  position:relative; background:var(--cv-surface); border:1px solid var(--border);
   border-radius:8px; padding:7px 10px 7px 14px; min-width:0; overflow:hidden;
 }
 .cv-member::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--mc); }
@@ -34,32 +38,32 @@
   .cv-member.has-icon .cv-member-name { font-size:0.8rem; gap:4px; }
 }
 .cv-member-name .cv-slot { font-size:0.68rem; color:var(--mc); font-weight:bold; }
-.cv-member-style { font-size:0.72rem; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.cv-refine { margin-left:auto; font-size:0.68rem; font-weight:normal; color:var(--text-muted); border:1px solid var(--border); border-radius:4px; padding:0 5px; flex-shrink:0; }
+.cv-member-style { font-size:0.74rem; color:var(--cv-sub); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cv-refine { margin-left:auto; font-size:0.68rem; font-weight:normal; color:var(--cv-sub); border:1px solid var(--border); border-radius:4px; padding:0 5px; flex-shrink:0; }
 
 /* 表示切り替え */
 .cv-bar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.cv-bar-title { font-size:0.85rem; font-weight:bold; color:var(--text-muted); }
-.cv-seg { display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
-.cv-seg button { background:transparent; border:none; color:var(--text-muted); font-size:0.75rem; padding:4px 10px; cursor:pointer; }
-.cv-seg button.on { background:var(--bg-secondary); color:var(--text-primary); font-weight:bold; }
+.cv-bar-title { font-size:0.88rem; font-weight:bold; color:var(--text-primary); }
+.cv-seg { display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; background:var(--cv-surface); }
+.cv-seg button { background:transparent; border:none; color:var(--cv-sub); font-size:0.75rem; padding:4px 10px; cursor:pointer; }
+.cv-seg button.on { background:var(--accent); color:#fff; font-weight:bold; }
 
 /* タイムライン */
 .cv-tl { position:relative; }
 .cv-turn { display:grid; grid-template-columns:78px 1fr; gap:10px; position:relative; }
-.cv-turn + .cv-turn { margin-top:6px; }
+.cv-turn + .cv-turn { margin-top:8px; }
 .cv-turn-label {
   align-self:start; text-align:center; font-size:0.74rem; font-weight:bold; line-height:1.25;
   border:1px solid var(--tc); color:var(--tc); border-radius:6px; padding:5px 2px;
-  background:var(--bg-card); position:relative; z-index:1; word-break:break-all;
+  background:var(--cv-surface); position:relative; z-index:1; word-break:break-all;
 }
 .cv-turn-label small { display:block; font-size:0.62rem; font-weight:normal; opacity:0.85; }
-.cv-tl::before { content:''; position:absolute; left:39px; top:6px; bottom:6px; width:1px; background:var(--border); }
-.cv-acts { background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:4px 0; min-width:0; }
-.cv-act { display:grid; grid-template-columns:16px 84px 1fr; align-items:center; gap:6px; padding:5px 10px; font-size:0.85rem; }
+.cv-tl::before { content:''; position:absolute; left:39px; top:6px; bottom:6px; width:2px; background:rgba(255,255,255,0.12); }
+.cv-acts { background:var(--cv-surface); border:1px solid var(--border); border-radius:8px; padding:2px 0; min-width:0; }
+.cv-act { display:grid; grid-template-columns:18px 84px 1fr; align-items:center; gap:6px; padding:7px 10px; font-size:0.92rem; line-height:1.35; }
 /* 全員アイコンありなら顔だけ出して技名を広く取る */
-.cv-tl.faces .cv-act { grid-template-columns:16px 28px 1fr; gap:8px; }
-.cv-act + .cv-act { border-top:1px solid var(--border); }
+.cv-tl.faces .cv-act { grid-template-columns:18px 30px 1fr; gap:9px; }
+.cv-act + .cv-act { border-top:1px solid rgba(255,255,255,0.07); }
 .cv-turn-label .lbl-short { display:none; }
 /* スマホ：見出しを短くして技名の幅を広げる */
 @media (max-width:600px) {
@@ -69,19 +73,24 @@
   .cv-turn-label small { font-size:0.58rem; }
   .cv-turn-label .lbl-full { display:none; }
   .cv-turn-label .lbl-short { display:block; }
-  .cv-act { grid-template-columns:12px 72px 1fr; gap:5px; padding:5px 8px; }
-  .cv-tl.faces .cv-act { grid-template-columns:12px 26px 1fr; gap:7px; }
+  .cv-tl::before { width:2px; }
+  .cv-act { grid-template-columns:16px 72px 1fr; gap:5px; padding:7px 8px; font-size:0.9rem; }
+  .cv-tl.faces .cv-act { grid-template-columns:16px 28px 1fr; gap:7px; }
   .cv-target { margin-left:4px; }
 }
-.cv-order { color:var(--accent); font-size:0.8rem; text-align:center; }
-.cv-who { display:flex; align-items:center; gap:5px; font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; }
-.cv-who img { width:26px; height:26px; border-radius:20%; object-fit:cover; flex-shrink:0; }
+.cv-order:not(:empty) { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; box-sizing:border-box; border-radius:50%; border:1.5px solid #fff; color:#fff; font-size:0.64rem; font-weight:bold; line-height:1; justify-self:center; }
+.cv-who { display:flex; align-items:center; gap:5px; font-size:0.78rem; color:var(--cv-sub); white-space:nowrap; overflow:hidden; }
+.cv-who img { width:28px; height:28px; border-radius:20%; object-fit:cover; flex-shrink:0; }
 .cv-who i { width:7px; height:7px; border-radius:50%; background:var(--mc); flex-shrink:0; }
-.cv-skill { min-width:0; overflow-wrap:anywhere; }
+.cv-skill { min-width:0; font-weight:500; letter-spacing:0.01em; white-space:nowrap; overflow:hidden; display:block; }
+.cv-skill.wrap { white-space:normal; overflow-wrap:anywhere; }
+.cv-skill-line { display:flex; align-items:baseline; min-width:0; }
+.cv-skill-line .cv-skill { flex:0 1 auto; }
+.cv-skill-line .cv-target { flex-shrink:0; }
 .cv-skill.style { color:#ffd580; }
 .cv-skill.char { color:#7ecfff; }
 .cv-skill.special { color:#e0aaff; }
-.cv-target { font-size:0.72rem; color:var(--text-muted); margin-left:6px; white-space:nowrap; }
+.cv-target { font-size:0.74rem; color:var(--cv-sub); margin-left:6px; white-space:nowrap; }
 .cv-target b { color:var(--mc); font-weight:normal; }
 /* PCは1ターンの行動を横に並べる */
 @media (min-width:900px) {
@@ -91,24 +100,42 @@
   .cv-acts .cv-empty { grid-column:1 / -1; }
 }
 .cv-empty { padding:6px 10px; font-size:0.78rem; color:var(--text-muted); }
-.cv-legend { display:flex; gap:12px; justify-content:flex-end; font-size:0.68rem; color:var(--text-muted); margin-top:10px; flex-wrap:wrap; }
+.cv-legend { display:flex; gap:12px; justify-content:flex-end; font-size:0.7rem; color:var(--cv-sub); margin-top:10px; flex-wrap:wrap; }
 .cv-legend span::before { content:''; display:inline-block; width:8px; height:8px; border-radius:2px; background:currentColor; margin-right:4px; vertical-align:middle; }
 
 /* 表 */
 .chart-table-wrap { overflow-x:auto; }
-.chart-table { border-collapse:separate; border-spacing:0; width:100%; min-width:640px; font-size:0.82rem; table-layout:fixed; }
+.chart-table-wrap { border:1px solid var(--border); border-radius:8px; background:var(--cv-surface); }
+.chart-table { border-collapse:separate; border-spacing:0; width:100%; min-width:640px; font-size:0.84rem; table-layout:fixed; }
 .chart-table th img { width:30px; height:30px; border-radius:20%; object-fit:cover; display:block; margin:0 auto 3px; }
 .chart-table th {
-  background:var(--bg-secondary); padding:7px 8px; text-align:center;
-  border-bottom:1px solid var(--border); border-right:1px solid var(--border); font-size:0.78rem; font-weight:bold;
-  border-top:3px solid var(--mc, transparent);
+  background:rgba(255,255,255,0.04); padding:8px 6px; text-align:center;
+  border-bottom:1px solid var(--border); border-right:1px solid rgba(255,255,255,0.07); font-size:0.8rem; font-weight:bold;
 }
-.chart-table td { border-bottom:1px solid var(--border); border-right:1px solid var(--border); padding:5px 7px; vertical-align:middle; }
-.chart-table tr > :first-child { position:sticky; left:0; background:var(--bg-secondary); z-index:1; border-left:1px solid var(--border); }
+.chart-table td { border-bottom:1px solid rgba(255,255,255,0.07); border-right:1px solid rgba(255,255,255,0.07); padding:7px 8px; vertical-align:middle; }
+.chart-table tr:last-child td { border-bottom:none; }
+.chart-table tr > :last-child { border-right:none; }
+.chart-table tr > :first-child { position:sticky; left:0; background:#14132a; z-index:1; border-right:1px solid var(--border); }
 .turn-label { font-size:0.76rem; font-weight:bold; text-align:center; color:var(--tc); }
-.action-cell { text-align:center; font-size:0.76rem; height:40px; line-height:1.3; }
-.action-order { color:var(--accent); margin-right:2px; }
-.action-target { font-size:0.68rem; color:var(--text-muted); display:block; }
+.action-cell { position:relative; text-align:center; font-size:0.84rem; height:44px; line-height:1.35; }
+.action-cell .cv-order { position:absolute; top:50%; left:5px; transform:translateY(-50%); }
+.action-cell.has-order { padding-left:24px; }
+.turn-label small { display:block; font-weight:normal; font-size:0.66rem; }
+.turn-label .lbl-short { display:none; }
+.chart-table th.turn-col { width:84px; }
+@media (max-width:600px) {
+  .chart-table { min-width:560px; font-size:0.78rem; }
+  .chart-table th.turn-col { width:48px; }
+  .chart-table th { font-size:0.72rem; padding:6px 3px; }
+  .chart-table td { padding:6px 4px; }
+  .action-cell { font-size:0.76rem; }
+  .action-cell.has-order { padding-left:20px; }
+  .action-cell .cv-order { left:3px; }
+  .turn-label { font-size:0.7rem; }
+  .turn-label .lbl-full { display:none; }
+  .turn-label .lbl-short { display:block; }
+}
+.action-target { font-size:0.7rem; color:var(--cv-sub); display:block; }
 </style>
 </head>
 <body>
@@ -169,9 +196,9 @@ function renderTimeline() {
       const target = a.target_slot
         ? `<span class="cv-target">→ <b style="--mc:${SLOT_COLORS[a.target_slot]}">${escHtml(shortName(tm))}</b></span>` : '';
       return `<div class="cv-act">
-        <span class="cv-order">${a.order_num ? ORDER_LABELS[a.order_num] : ''}</span>
+        <span class="cv-order">${a.order_num || ''}</span>
         <span class="cv-who" style="--mc:${SLOT_COLORS[a.member_slot]}">${faceHTML(m, 64) ? faceHTML(m, 64) : `<i></i>${escHtml(shortName(m))}`}</span>
-        <span><span class="cv-skill ${escHtml(a.skill_type || '')}">${escHtml(a.abbreviation || a.skill_name)}</span>${target}</span>
+        <span class="cv-skill-line">${skillNameHTML(a)}${target}</span>
       </div>`;
     }).join('');
     return `<div class="cv-turn">
@@ -189,7 +216,7 @@ function renderTimeline() {
 function renderTable() {
   const members = chartData.members;
   const head = members.map(m => `<th style="--mc:${SLOT_COLORS[m.slot]};line-height:1.3">${faceHTML(m, 64)}${escHtml(shortName(m))}
-    <div style="font-size:0.66rem;color:var(--text-muted);font-weight:normal;margin-top:1px">${escHtml(m.style_abbreviation || m.style_name)} ${m.refine_count}凸</div></th>`).join('');
+    <div style="font-size:0.68rem;color:var(--cv-sub);font-weight:normal;margin-top:1px">${escHtml(m.style_abbreviation || m.style_name)} ${m.refine_count}凸</div></th>`).join('');
   let nIdx = 0;
   const rows = chartData.turns.map(t => {
     if (t.turn_type === 'normal') nIdx++;
@@ -199,18 +226,38 @@ function renderTable() {
     const cells = members.map(m => {
       const a = bySlot[m.slot];
       if (!a) return '<td class="action-cell"></td>';
-      const order = a.order_num ? `<span class="action-order">${ORDER_LABELS[a.order_num]}</span>` : '';
+      const order = a.order_num ? `<span class="cv-order">${a.order_num}</span>` : '';
       const target = a.target_slot ? `<span class="action-target">→${escHtml(shortName(memberOf(a.target_slot)))}</span>` : '';
-      return `<td class="action-cell">${order}<span class="cv-skill ${escHtml(a.skill_type || '')}">${escHtml(a.abbreviation || a.skill_name)}</span>${target}</td>`;
+      return `<td class="action-cell${a.order_num ? ' has-order' : ''}">${order}${skillNameHTML(a)}${target}</td>`;
     }).join('');
-    return `<tr><td><div class="turn-label" style="--tc:${info.color}">${info.main}${info.sub ? `<br><small style="font-weight:normal">${info.sub}</small>` : ''}</div></td>${cells}</tr>`;
+    return `<tr><td><div class="turn-label" style="--tc:${info.color}" title="${info.main}${info.sub ? `（${info.sub}）` : ''}">
+      <span class="lbl-full">${info.main}${info.sub ? `<small>${info.sub}</small>` : ''}</span>
+      <span class="lbl-short">${info.short || info.main}${info.shortSub ? `<small>${info.shortSub}</small>` : ''}</span></div></td>${cells}</tr>`;
   }).join('');
   return `<div class="chart-table-wrap"><table class="chart-table">
-    <thead><tr><th style="width:84px">ターン</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    <thead><tr><th class="turn-col">ターン</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
+
+// 技名は正式名称を1行で。入りきらなければ略称、それでも入らなければ折り返す
+function skillNameHTML(a) {
+  const full = a.skill_name, abbr = a.abbreviation && a.abbreviation !== a.skill_name ? a.abbreviation : '';
+  return `<span class="cv-skill ${escHtml(a.skill_type || '')}" data-full="${escHtml(full)}"${abbr ? ` data-abbr="${escHtml(abbr)}"` : ''} title="${escHtml(full)}">${escHtml(full)}</span>`;
+}
+function fitSkillNames() {
+  const els = [...document.querySelectorAll('#cv-body .cv-skill[data-full]')];
+  els.forEach(el => { el.textContent = el.dataset.full; el.classList.remove('wrap'); });
+  els.forEach(el => {
+    if (el.scrollWidth <= el.clientWidth + 1) return;
+    if (el.dataset.abbr) { el.textContent = el.dataset.abbr; if (el.scrollWidth <= el.clientWidth + 1) return; }
+    el.classList.add('wrap');
+  });
+}
+let fitTimer = null;
+window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitSkillNames, 120); });
 
 function renderChartBody() {
   document.getElementById('cv-body').innerHTML = viewMode === 'table' ? renderTable() : renderTimeline();
+  fitSkillNames();
   document.querySelectorAll('.cv-seg button').forEach(b => b.classList.toggle('on', b.dataset.mode === viewMode));
 }
 
@@ -252,7 +299,7 @@ async function load() {
             <span style="font-size:0.72rem;font-family:monospace;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text-muted)">${escHtml(data.chart_code)}</span>
             ${data.is_public ? '' : '<span class="draft-badge" title="自分だけに表示されています">下書き</span>'}
           </div>
-          <div style="font-size:0.8rem;color:var(--text-muted)">
+          <div class="cv-meta">
             ${escHtml(data.event_name)} &nbsp;·&nbsp;
             <a href="/user.html?id=${data.user_id}" style="color:var(--accent)">${escHtml(data.username)}</a>
             &nbsp;·&nbsp; ${new Date(data.created_at).toLocaleDateString('ja-JP')}
@@ -260,7 +307,7 @@ async function load() {
         </div>
         <div style="display:flex;gap:6px;align-items:center">${data.is_public ? favBtnHTML(data, isOwner) : ''}${ownerBtns}</div>
       </div>
-      ${data.description ? `<div style="font-size:0.84rem;margin-top:10px;padding:8px 12px;border-left:3px solid var(--border);color:var(--text-muted);white-space:pre-wrap">${escHtml(data.description)}</div>` : ''}
+      ${data.description ? `<div class="cv-desc">${escHtml(data.description)}</div>` : ''}
 
       <div class="cv-members">${members}</div>
 
