@@ -617,7 +617,7 @@ function openAddSheet() {
   document.getElementById('add-sheet-body').innerHTML = `
     ${od ? `<div class="add-sec"><div class="add-sec-title" style="color:var(--accent)">OD（${od.total}ゲージ）の途中です</div>
       <button class="add-btn add-cont" style="--tc:${OD_COLORS[od.total]}" onclick="addOD('${od.type}',${od.total})">続き：OD ${od.index + 1}/${odTurns(od.total)}</button></div>` : ''}
-    <div class="add-sec"><div class="add-sec-title">ターン</div><div class="add-btns">
+    <div class="add-sec"><div class="add-sec-title">ターン</div><div class="add-btns od">
       <button class="add-btn" ${od ? 'disabled' : `onclick="addTurn('normal')"`}>次ターン</button>
       <button class="add-btn" style="--tc:#7ecfff" onclick="addTurn('extra')">追加ターン</button>
     </div></div>
