@@ -20,6 +20,7 @@
   background: var(--bg-secondary); border: 1px solid var(--border);
   border-radius: 4px; padding: 1px 6px; color: var(--text-muted);
 }
+.draft-badge { font-size:0.7rem; color:#ffd580; border:1px solid #ffd58088; border-radius:4px; padding:1px 6px; }
 .event-group-header {
   font-size: 0.88rem; font-weight: bold; padding: 6px 0;
   border-bottom: 1px solid var(--border); margin: 20px 0 8px;
@@ -69,6 +70,7 @@ async function load() {
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <span class="chart-card-title">${escHtml(c.title)}</span>
               <span class="chart-code-badge">${escHtml(c.chart_code)}</span>
+              ${c.is_public ? '' : '<span class="draft-badge">下書き</span>'}
             </div>
             <div class="chart-card-meta">${new Date(c.created_at).toLocaleDateString('ja-JP')}</div>
           </div>

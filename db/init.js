@@ -672,6 +672,8 @@ const initDB = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
+      -- 非公開（下書き）のチャートは作った本人にしか見えない
+      ALTER TABLE charts ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE;
 
       CREATE TABLE IF NOT EXISTS chart_members (
         id SERIAL PRIMARY KEY,

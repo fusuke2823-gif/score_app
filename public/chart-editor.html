@@ -6,100 +6,161 @@
 <title>チャート編集 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.section-label { font-size:0.82rem; font-weight:bold; color:var(--text-muted); margin:20px 0 8px; text-transform:uppercase; letter-spacing:0.05em; }
-.member-slot {
-  display:flex; align-items:center; gap:8px; padding:8px 10px;
-  background:var(--bg-card); border:1px solid var(--border); border-radius:8px; margin-bottom:6px;
-}
-.slot-num { font-size:0.78rem; color:var(--text-muted); width:20px; flex-shrink:0; text-align:center; }
-.slot-select { flex:1; min-width:0; }
+.section-label { font-size:0.82rem; font-weight:bold; color:var(--text-muted); margin:22px 0 8px; display:flex; align-items:center; gap:8px; }
+.pub-row { display:flex; align-items:center; gap:12px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); cursor:pointer; }
+.pub-row input { display:none; }
+.pub-switch { width:40px; height:22px; border-radius:11px; background:var(--bg-secondary); border:1px solid var(--border); position:relative; flex-shrink:0; transition:background 0.15s; }
+.pub-switch::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--text-muted); transition:transform 0.15s, background 0.15s; }
+.pub-row input:checked + .pub-switch { background:var(--accent); border-color:var(--accent); }
+.pub-row input:checked + .pub-switch::after { transform:translateX(18px); background:#fff; }
+.pub-text { font-size:0.86rem; font-weight:bold; }
+.pub-text small { display:block; font-weight:normal; font-size:0.72rem; color:var(--text-muted); margin-top:1px; }
+.section-label small { font-weight:normal; font-size:0.72rem; }
 
-/* チャートグリッド */
-.chart-table-wrap { overflow-x:auto; margin-top:12px; }
-.chart-table { border-collapse:collapse; width:100%; min-width:600px; font-size:0.82rem; table-layout:fixed; }
-.chart-table th {
-  background:var(--bg-secondary); padding:6px 8px; text-align:center;
-  border:1px solid var(--border); white-space:nowrap; font-size:0.78rem; font-weight:bold;
-}
-.chart-table th.turn-col { width:90px; }
-.chart-table td { border:1px solid var(--border); padding:4px; vertical-align:middle; }
-.turn-label {
-  text-align:center; white-space:nowrap; font-size:0.78rem; font-weight:bold;
-  color:var(--text-muted);
-}
-.turn-label.normal { color:var(--text-primary); }
-.turn-label.extra { color:#7ecfff; }
-.turn-label.special { color:#e0aaff; }
-.note-input { width:100%; background:transparent; border:none; outline:none; color:var(--text-primary); font-size:0.78rem; resize:none; padding:2px; }
-.action-cell {
-  cursor:pointer; height:38px; padding:4px 6px; text-align:center;
-  position:relative; transition:background 0.1s; overflow:hidden;
-}
-.action-cell:hover { background:rgba(255,255,255,0.05); }
-.action-cell.filled { background:rgba(var(--accent-rgb,100,100,220),0.08); }
-.action-cell.disabled { cursor:default; opacity:0.3; }
-.action-cell-inner { font-size:0.75rem; line-height:1.3; white-space:nowrap; }
-@media (max-width:768px) {
-  .action-cell-inner { font-size:0.6rem; }
-  .action-order { font-size:0.55rem; }
-  .action-target { font-size:0.55rem; }
-}
-.action-order { font-size:0.68rem; color:var(--accent); display:inline-block; margin-right:2px; }
-.action-target { font-size:0.68rem; color:var(--text-primary); display:block; }
-.delete-row-btn {
-  background:none; border:none; cursor:pointer; color:#e57373; font-size:0.9rem; padding:4px 6px;
-}
+/* 顔（アイコン、なければスロット色の四角に頭文字） */
+.face { width:var(--fs,32px); height:var(--fs,32px); border-radius:20%; object-fit:cover; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center;
+  background:var(--bg-secondary); color:#fff; font-weight:bold; font-size:calc(var(--fs,32px) * 0.45); overflow:hidden; }
+.face.ph { background:color-mix(in srgb, var(--mc, #666) 45%, #1a1a2e); }
 
-/* ターン追加ボタン群 */
-.turn-add-btns { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
-.turn-add-btn { font-size:0.78rem; padding:5px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background:var(--bg-card); color:var(--text-primary); cursor:pointer; }
-.turn-add-btn:hover { border-color:var(--accent); }
-.od-group { display:flex; gap:3px; }
-.od-btn { font-size:0.72rem; padding:5px 7px; border-radius:6px; border:1px solid rgba(255,255,255,0.25); background:var(--bg-card); color:var(--text-primary); cursor:pointer; }
+/* メンバー */
+.ce-members { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+@media (max-width:600px) { .ce-members { grid-template-columns:repeat(2,1fr); } }
+.ce-member { display:flex; align-items:center; gap:9px; padding:8px 10px; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; cursor:pointer; min-width:0; text-align:left; color:var(--text-primary); font:inherit; }
+.ce-member:hover { border-color:var(--mc); }
+.ce-member.empty { border-style:dashed; color:var(--text-muted); }
+.ce-member-body { min-width:0; flex:1; }
+.ce-member-name { font-weight:bold; font-size:0.84rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ce-member-sub { font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
 
-/* スキル選択モーダル */
-.skill-modal { display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; padding:12px; }
-.skill-modal.open { display:flex; }
-.skill-modal-box { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:16px; width:100%; max-width:420px; height:80vh; display:flex; flex-direction:column; gap:0; }
-.skill-modal-left { display:flex; flex-direction:column; flex-shrink:0; }
-.skill-modal-right { display:flex; flex-direction:column; flex:1; min-height:0; }
-.skill-list { flex:1; overflow-y:auto; margin:8px 0; }
-@media (max-height:500px) and (orientation:landscape) {
-  .skill-modal-box { flex-direction:row; max-width:700px; gap:12px; }
-  .skill-modal-left { flex:1; overflow-y:auto; }
-  .skill-modal-right { border-left:1px solid var(--border); padding-left:12px; }
-  .skill-list { margin:0; }
+/* ターン */
+.ce-turn { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:8px 10px 10px; }
+.ce-turn + .ce-turn { margin-top:8px; }
+.ce-turn-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.ce-turn-label { font-size:0.76rem; font-weight:bold; color:var(--tc); border:1px solid var(--tc); border-radius:6px; padding:2px 8px; }
+.ce-turn-count { font-size:0.7rem; color:var(--text-muted); }
+.ce-turn-del { margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer; padding:2px 4px; display:flex; }
+.ce-turn-del:hover { color:#e57373; }
+.ce-tiles { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+.ce-tile { position:relative; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px 5px; border-radius:7px; border:1px solid var(--border); background:var(--bg-secondary); cursor:pointer; min-width:0; color:var(--text-primary); font:inherit; }
+.ce-tile:hover { border-color:var(--border-light); }
+.ce-tile.on { background:rgba(255,255,255,0.06); }
+.ce-tile.off { opacity:0.28; cursor:default; }
+.ce-tile.off:hover { border-color:var(--border); }
+.ce-tile .face { --fs:30px; }
+.ce-tile:not(.on) .face { filter:grayscale(0.6); opacity:0.7; }
+.ce-tile-text { display:flex; flex-direction:column; align-items:center; gap:2px; width:100%; min-width:0; }
+.ce-tiles.full { grid-template-columns:repeat(3,1fr); }
+/* 横並び（PCは常に、スマホは3人そろったターン） */
+.ce-tiles.full .ce-tile { flex-direction:row; align-items:center; gap:7px; padding:6px 8px; }
+.ce-tiles.full .ce-tile-text { align-items:flex-start; }
+.ce-tiles.full .ce-tile-skill, .ce-tiles.full .ce-tile-target { text-align:left; }
+.ce-tiles.full .ce-tile-skill { min-height:0; font-size:0.72rem; }
+.ce-tile-skill { font-size:0.64rem; line-height:1.25; text-align:center; width:100%; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; min-height:1.6em; }
+.ce-tile-skill.none { color:var(--text-muted); opacity:0.6; }
+.ce-tile-target { font-size:0.58rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center; }
+.ce-tile-order { position:absolute; top:3px; left:3px; font-size:0.8rem; font-weight:bold; color:#fff; background:var(--accent); border-radius:50%; width:17px; height:17px; line-height:17px; text-align:center; }
+/* スマホ：左上に小さく顔、その下に技名 */
+@media (max-width:699px) {
+  .ce-tile, .ce-tiles.full .ce-tile { flex-direction:column; align-items:flex-start; gap:4px; padding:5px 6px 6px; }
+  .ce-tile .face { --fs:22px !important; }
+  .ce-tile-text, .ce-tiles.full .ce-tile-text { align-items:flex-start; }
+  .ce-tile-skill, .ce-tile-target { text-align:left; }
+  .ce-tile-skill { font-size:0.66rem; min-height:0; -webkit-line-clamp:3; }
+  .ce-tiles.full .ce-tile-skill { font-size:0.74rem; }
+  .ce-tile-order { left:auto; right:4px; top:5px; }
+  .ce-tile-skill.none { align-self:center; font-size:0.8rem; }
 }
-.skill-item { padding:7px 10px 7px 12px; border-radius:6px; cursor:pointer; font-size:0.85rem; color:var(--text-primary); border-left:3px solid #ffd580; background:rgba(255,213,128,0.07); margin-bottom:2px; }
-.skill-item.char-skill { border-left-color:#7ecfff; background:rgba(126,207,255,0.07); }
-.skill-item.global-skill { border-left-color:rgba(255,255,255,0.5); background:rgba(255,255,255,0.04); }
-.skill-item:hover, .skill-item.char-skill:hover, .skill-item.global-skill:hover { background:var(--bg-secondary); }
-.skill-search { width:100%; margin-bottom:8px; }
-.skill-tabs { display:flex; gap:4px; margin-bottom:8px; }
-.skill-tab { flex:1; padding:5px 4px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); background:var(--bg-card); color:var(--text-primary); cursor:pointer; font-size:0.75rem; text-align:center; }
-.skill-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-.modal-section-label { font-size:0.72rem; color:var(--text-primary); margin:8px 0 4px; font-weight:bold; }
-.order-btns { display:flex; gap:6px; margin:4px 0 8px; flex-wrap:wrap; }
-.order-btn { padding:4px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); background:var(--bg-card); color:var(--text-primary); cursor:pointer; font-size:0.82rem; }
-.order-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-.target-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin:4px 0 8px; }
-.target-btn { padding:6px 4px; border-radius:6px; border:1px solid rgba(255,255,255,0.3); background:var(--bg-secondary); color:var(--text-primary); cursor:pointer; font-size:0.8rem; text-align:center; }
-.target-btn:hover { border-color:var(--accent); background:rgba(var(--accent-rgb,100,100,220),0.15); }
-.target-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+@media (min-width:700px) {
+  .ce-tile { flex-direction:row; align-items:center; gap:8px; padding:7px 9px; }
+  .ce-tile .face { --fs:34px; }
+  .ce-tile-text { align-items:flex-start; }
+  .ce-tile-skill, .ce-tile-target { text-align:left; }
+  .ce-tile-skill { font-size:0.8rem; min-height:0; }
+  .ce-tiles.full .ce-tile-skill { font-size:0.8rem; }
+  .ce-tile-target { font-size:0.68rem; }
+}
+.sk-style, .sk-item.sk-style { color:#ffd580; } .sk-char, .sk-item.sk-char { color:#7ecfff; } .sk-special, .sk-item.sk-special { color:#e0aaff; }
+.ce-empty { text-align:center; color:var(--text-muted); padding:20px; font-size:0.85rem; border:1px dashed var(--border); border-radius:10px; }
+
+/* 下の固定バー */
+.ce-bar { position:sticky; bottom:0; z-index:50; margin:16px -16px 0; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px;
+  background:rgba(12,11,24,0.88); backdrop-filter:blur(8px); border-top:1px solid var(--border); }
+.ce-bar .btn { flex:1; justify-content:center; text-align:center; white-space:nowrap; padding-left:8px; padding-right:8px; min-width:0; }
+.ce-bar .ce-next { flex:1.2; }
+
+/* シート（スマホは下から、PCは中央） */
+.sheet { display:none; position:fixed; inset:0; z-index:600; background:rgba(0,0,0,0.6); }
+.sheet.open { display:flex; align-items:flex-end; justify-content:center; }
+.sheet-box { background:var(--bg-modal); backdrop-filter:var(--glass-blur); border:1px solid var(--border); border-bottom:none; border-radius:14px 14px 0 0; width:100%; max-width:560px; max-height:86vh; display:flex; flex-direction:column; animation:sheetUp 0.18s ease-out; }
+@keyframes sheetUp { from { transform:translateY(30px); opacity:0; } to { transform:none; opacity:1; } }
+@media (min-width:700px) {
+  .sheet.open { align-items:center; }
+  .sheet-box { border-radius:14px; border-bottom:1px solid var(--border); max-height:80vh; }
+}
+.sheet-head { display:flex; align-items:center; gap:10px; padding:12px 14px 10px; border-bottom:1px solid var(--border); }
+.sheet-title { font-weight:bold; font-size:0.92rem; min-width:0; flex:1; }
+.sheet-title small { display:block; font-weight:normal; font-size:0.72rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sheet-x { background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px; display:flex; }
+.sheet-body { overflow-y:auto; padding:10px 14px; flex:1; min-height:0; }
+.sheet-foot { border-top:1px solid var(--border); padding:10px 14px calc(10px + env(safe-area-inset-bottom)); }
+.sheet-search { width:100%; margin-bottom:8px; }
+.text-btn { background:none; border:none; cursor:pointer; font-size:0.8rem; color:var(--text-muted); padding:4px 2px; }
+.text-btn.danger { color:#e57373; }
+
+/* キャラ選択 */
+.char-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:6px; }
+.char-pick { display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; border-radius:8px; border:1px solid transparent; background:none; cursor:pointer; color:var(--text-primary); font:inherit; }
+.char-pick:hover { border-color:var(--border); background:var(--bg-secondary); }
+.char-pick.cur { border-color:var(--accent); }
+.char-pick:disabled { opacity:0.25; cursor:default; }
+.char-pick .face { --fs:44px; }
+.char-pick span { font-size:0.66rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.style-list { display:flex; flex-direction:column; gap:4px; }
+.style-pick { display:flex; align-items:baseline; gap:8px; text-align:left; padding:9px 12px; border-radius:7px; border:1px solid var(--border); background:var(--bg-secondary); color:var(--text-primary); cursor:pointer; font:inherit; font-size:0.86rem; }
+.style-pick:hover { border-color:var(--accent); }
+.style-pick.cur { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, var(--bg-secondary)); }
+.style-pick small { color:var(--text-muted); font-size:0.72rem; margin-left:auto; white-space:nowrap; }
+.seg { display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden; }
+.seg button { background:transparent; border:none; color:var(--text-muted); font:inherit; font-size:0.8rem; padding:5px 11px; cursor:pointer; }
+.seg button + button { border-left:1px solid var(--border); }
+.seg button.on { background:var(--accent); color:#fff; }
+.field-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; font-size:0.78rem; color:var(--text-muted); }
+
+/* 技選択 */
+.sk-group { font-size:0.7rem; color:var(--text-muted); margin:10px 0 4px; display:flex; align-items:center; gap:6px; }
+.sk-group:first-child { margin-top:0; }
+.sk-group::after { content:''; flex:1; height:1px; background:var(--border); }
+.sk-item { color:var(--text-primary); display:block; width:100%; text-align:left; padding:8px 12px; margin-bottom:3px; border-radius:7px; border:1px solid transparent; background:var(--bg-secondary); cursor:pointer; font:inherit; font-size:0.86rem; }
+.sk-item:hover { border-color:var(--border); }
+.sk-item.cur { border-color:var(--accent); }
+.sk-item small { color:var(--text-muted); font-size:0.7rem; margin-left:6px; }
+.target-row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+.target-pick { display:flex; flex-direction:column; align-items:center; gap:2px; background:none; border:1px solid transparent; border-radius:7px; padding:4px; cursor:pointer; color:var(--text-primary); font:inherit; font-size:0.62rem; width:52px; }
+.target-pick .face { --fs:32px; }
+.target-pick.on { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.foot-label { font-size:0.72rem; color:var(--text-muted); margin-right:4px; }
+.need-target { color:var(--accent); font-size:0.75rem; margin-top:6px; }
+
+/* ターン追加 */
+.add-sec { margin-bottom:14px; }
+.add-sec-title { font-size:0.74rem; color:var(--text-muted); margin-bottom:6px; }
+.add-btns { display:flex; gap:6px; flex-wrap:wrap; }
+.add-btn { padding:8px 14px; border-radius:8px; border:1px solid var(--tc, var(--border)); color:var(--tc, var(--text-primary)); background:var(--bg-secondary); cursor:pointer; font:inherit; font-size:0.84rem; }
+.add-btns.od { display:grid; grid-template-columns:repeat(5,1fr); }
+.add-btns.od .add-btn { padding:8px 2px; font-size:0.8rem; white-space:nowrap; }
+.add-btn:disabled { opacity:0.25; cursor:default; }
+.add-btn small { display:block; font-size:0.66rem; opacity:0.8; }
 </style>
 </head>
 <body>
 <nav id="nav"></nav>
-<main class="container" style="padding-top:20px;padding-bottom:60px">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-    <a href="/charts.html" style="color:var(--text-muted);font-size:0.85rem">← チャート掲示板</a>
-  </div>
-  <h2 id="page-title" style="font-size:1.1rem;font-weight:bold;margin-bottom:16px">チャート作成</h2>
+<main class="container" style="padding-top:20px;padding-bottom:0">
+  <a href="/charts.html" style="color:var(--text-muted);font-size:0.85rem">← チャート掲示板</a>
+  <h2 id="page-title" style="font-size:1.1rem;font-weight:bold;margin:12px 0 4px">チャート作成</h2>
   <div id="alert"></div>
 
-  <!-- メタデータ -->
   <div class="section-label">基本情報</div>
-  <div class="card" style="padding:14px 16px;margin-bottom:4px">
+  <div class="card" style="padding:14px 16px">
     <div class="form-group">
       <label class="form-label">イベント</label>
       <select class="form-input" id="event-select"><option value="">選択してください</option></select>
@@ -116,86 +177,73 @@
       <label class="form-label">説明（任意）</label>
       <textarea class="form-input" id="desc-input" placeholder="備考・注意点など" rows="2" style="resize:vertical"></textarea>
     </div>
+    <label class="pub-row">
+      <input type="checkbox" id="public-input" onchange="updatePublicUI()">
+      <span class="pub-switch"></span>
+      <span class="pub-text" id="pub-text"></span>
+    </label>
   </div>
 
-  <!-- メンバー編成 -->
-  <div class="section-label">メンバー編成</div>
-  <div id="members-area"></div>
+  <div class="section-label">メンバー編成 <small>押して変更</small></div>
+  <div class="ce-members" id="members-area"></div>
 
-  <!-- チャートグリッド -->
-  <div class="section-label">チャート</div>
-  <div class="card" style="padding:12px 14px">
-    <div class="chart-table-wrap">
-      <table class="chart-table" id="chart-table">
-        <colgroup id="chart-colgroup"></colgroup>
-        <thead id="chart-thead"></thead>
-        <tbody id="chart-tbody"></tbody>
-      </table>
-    </div>
-    <div class="turn-add-btns" id="turn-add-btns">
-      <button id="next-turn-btn" class="turn-add-btn" onclick="addTurn('normal')">次ターン</button>
-      <button class="turn-add-btn" onclick="addTurn('extra')">追加ターン</button>
-      <div class="od-group">
-        <span style="font-size:0.72rem;color:var(--text-primary);align-self:center">先OD:</span>
-        <button class="od-btn" data-type="od_pre" data-total="1" style="color:#ff9ec4" onclick="addOD('od_pre',1)">1</button>
-        <button class="od-btn" data-type="od_pre" data-total="2" style="color:#a8e6a3" onclick="addOD('od_pre',2)">2</button>
-        <button class="od-btn" data-type="od_pre" data-total="3" style="color:#ffd580" onclick="addOD('od_pre',3)">3</button>
-      </div>
-      <div class="od-group">
-        <span style="font-size:0.72rem;color:var(--text-primary);align-self:center">後OD:</span>
-        <button class="od-btn" data-type="od_post" data-total="1" style="color:#ff9ec4" onclick="addOD('od_post',1)">1</button>
-        <button class="od-btn" data-type="od_post" data-total="2" style="color:#a8e6a3" onclick="addOD('od_post',2)">2</button>
-        <button class="od-btn" data-type="od_post" data-total="3" style="color:#ffd580" onclick="addOD('od_post',3)">3</button>
-      </div>
-      <div id="special-btns"></div>
-      <button class="turn-add-btn" style="color:#e57373;border-color:#7a3333;margin-left:auto" onclick="deleteLastTurn()">最後の行を削除</button>
-    </div>
+  <div class="section-label">チャート <small id="turn-summary"></small></div>
+  <div id="turns-area"></div>
+
+  <div class="ce-bar">
+    <button class="btn btn-secondary ce-next" id="next-btn" onclick="addNext()">＋ 次ターン</button>
+    <button class="btn btn-secondary" onclick="openAddSheet()">その他 ▾</button>
+    <button class="btn btn-primary" id="save-btn" onclick="saveChart()">下書き保存</button>
   </div>
-
-  <button class="btn btn-primary" id="save-btn" style="margin-top:20px;width:100%" onclick="saveChart()">保存する</button>
 </main>
 
-<!-- スキル選択モーダル -->
-<div class="skill-modal" id="skill-modal" onclick="if(event.target===this)closeSkillModal()">
-  <div class="skill-modal-box">
-    <div class="skill-modal-left">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <div style="font-weight:bold;font-size:0.9rem" id="modal-char-name">スキル選択</div>
-        <button onclick="clearAction();closeSkillModal()" style="background:none;border:none;color:#e57373;cursor:pointer;font-size:0.82rem">クリア</button>
+<!-- メンバー選択 -->
+<div class="sheet" id="member-sheet" onclick="if(event.target===this)closeSheet('member-sheet')">
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <div class="sheet-title" id="member-sheet-title"></div>
+      <button class="sheet-x" onclick="closeSheet('member-sheet')" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sheet-body" id="member-sheet-body"></div>
+  </div>
+</div>
+
+<!-- 技選択 -->
+<div class="sheet" id="skill-sheet" onclick="if(event.target===this)closeSheet('skill-sheet')">
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <span id="skill-sheet-face"></span>
+      <div class="sheet-title" id="skill-sheet-title"></div>
+      <button class="text-btn danger" onclick="clearAction()">外す</button>
+      <button class="sheet-x" onclick="closeSheet('skill-sheet')" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <div class="sheet-body">
+      <input class="form-input sheet-search" id="skill-search" type="text" placeholder="技名で検索" oninput="renderSkillList()">
+      <div id="skill-list"></div>
+    </div>
+    <div class="sheet-foot">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="foot-label">順番</span>
+        <span class="seg" id="order-seg">
+          <button data-n="0" onclick="selectOrder(0)">なし</button><button data-n="1" onclick="selectOrder(1)">①</button><button data-n="2" onclick="selectOrder(2)">②</button><button data-n="3" onclick="selectOrder(3)">③</button>
+        </span>
       </div>
-
-      <input class="form-input skill-search" id="skill-search" type="text" placeholder="技名検索..." oninput="filterSkills()">
-
-      <!-- 順番 -->
-      <div class="modal-section-label">順番（任意）</div>
-      <div class="order-btns">
-        <button class="order-btn" data-n="0" onclick="selectOrder(0)">なし</button>
-        <button class="order-btn" data-n="1" onclick="selectOrder(1)">①</button>
-        <button class="order-btn" data-n="2" onclick="selectOrder(2)">②</button>
-        <button class="order-btn" data-n="3" onclick="selectOrder(3)">③</button>
-      </div>
-
-      <!-- 対象 -->
       <div id="target-section" style="display:none">
-        <div class="modal-section-label">対象</div>
-        <div class="target-btns" id="target-btns"></div>
+        <div class="need-target" id="need-target">対象を選んでください</div>
+        <div class="target-row" id="target-btns"></div>
       </div>
-
-      <!-- タブ -->
-      <div class="skill-tabs" id="skill-tabs">
-        <button class="skill-tab active" data-tab="all" onclick="selectSkillTab('all')">全て</button>
-        <button class="skill-tab" data-tab="style" onclick="selectSkillTab('style')" style="color:#ffd580">スタイル</button>
-        <button class="skill-tab" data-tab="char" onclick="selectSkillTab('char')" style="color:#7ecfff">キャラ</button>
-        <button class="skill-tab" data-tab="global" onclick="selectSkillTab('global')">共通</button>
-      </div>
-
-      <button onclick="closeSkillModal()" style="margin-top:auto;padding-top:8px;width:100%" class="btn btn-secondary btn-sm">閉じる</button>
     </div>
+  </div>
+</div>
 
-    <!-- スキルリスト -->
-    <div class="skill-modal-right">
-      <div class="skill-list" id="skill-list"></div>
+<!-- ターン追加 -->
+<div class="sheet" id="add-sheet" onclick="if(event.target===this)closeSheet('add-sheet')">
+  <div class="sheet-box">
+    <div class="sheet-head">
+      <div class="sheet-title">ターンを追加</div>
+      <button class="sheet-x" onclick="closeSheet('add-sheet')" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
+    <div class="sheet-body" id="add-sheet-body"></div>
   </div>
 </div>
 
@@ -205,18 +253,14 @@ renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
 
-function skillTypeStyle(skill) {
-  if (!skill) return '';
-  if (skill.is_special) return ' style="color:#e0aaff"';
-  if (skill.style_id !== null) return ' style="color:#ffd580"';
-  if (skill.character_id !== null) return ' style="color:#7ecfff"';
-  return '';
-}
-
 const ORDER_LABELS = ['', '①', '②', '③'];
 const ATTRS = ['火','氷','雷','光','闇','無'];
-const urlParams = new URLSearchParams(location.search);
-const editId = urlParams.get('id');
+const SLOT_COLORS = ['', '#ff6b81', '#ffa94d', '#ffe066', '#69db9c', '#5cc8ff', '#b197fc'];
+const OD_COLORS = ['', '#ff9ec4', '#a8e6a3', '#ffd580', '#5b8cff', '#b46cff'];
+// ODのターン数はゲージ数と同じ。ただし3ゲージ以上は3ターンまで
+const odTurns = gauge => Math.min(gauge, 3);
+const TRASH = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
+const editId = new URLSearchParams(location.search).get('id');
 
 // ゲームデータ
 let gameData = { characters: [], styles: [], skills: [] };
@@ -224,21 +268,11 @@ let charMap = {}, styleMap = {}, skillMap = {};
 
 // チャート状態
 const state = {
-  event_id: '',
-  attribute: '',
-  title: '',
-  description: '',
-  members: Array.from({length:6}, (_,i) => ({ slot:i+1, character_id:null, style_id:null, refine_count:0 })),
+  event_id: '', attribute: '', title: '', description: '',
+  members: Array.from({ length: 6 }, (_, i) => ({ slot: i + 1, character_id: null, style_id: null, refine_count: 0 })),
   turns: [],
 };
-
 let selectedAttr = '';
-let normalCount = 0; // 通常ターンの連番カウント用
-
-// モーダル状態
-let modalCtx = { turnIdx: null, slot: null, action: {} };
-let allSkillsForModal = [];
-let activeSkillTab = 'all';
 
 // ---- 初期化 ----
 async function init() {
@@ -249,13 +283,21 @@ async function init() {
     for (const s of gameData.skills) skillMap[s.id] = s;
     renderAttrBtns();
     renderMembers();
-    renderGrid();
+    renderTurns();
     if (editId) await loadExisting();
-  } catch(e) { showAlert('#alert', e.message); }
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+let eventMap = {};
+// 5ゲージのODはスコアタEXだけ
+function maxGauge() {
+  const e = eventMap[document.getElementById('event-select').value];
+  return e && (e.event_type === 'score_attack_ex' || e.display_type === 'score_attack_ex') ? 5 : 4;
 }
 
 async function loadEvents() {
   const events = await apiFetch('/events');
+  for (const e of events) eventMap[e.id] = e;
   const sel = document.getElementById('event-select');
   events.forEach(e => {
     const opt = document.createElement('option');
@@ -273,33 +315,48 @@ async function loadExisting() {
     selectAttr(data.attribute);
     document.getElementById('title-input').value = data.title;
     document.getElementById('desc-input').value = data.description || '';
-
+    document.getElementById('public-input').checked = !!data.is_public;
+    updatePublicUI();
     for (const m of data.members) {
-      const slot = state.members[m.slot - 1];
-      slot.character_id = m.character_id;
-      slot.style_id = m.style_id;
-      slot.refine_count = m.refine_count;
+      Object.assign(state.members[m.slot - 1], { character_id: m.character_id, style_id: m.style_id, refine_count: m.refine_count });
     }
-    renderMembers();
-
-    state.turns = [];
-    normalCount = 0;
-    for (const t of data.turns) {
-      if (t.turn_type === 'normal') normalCount++;
+    state.turns = data.turns.map(t => {
       const turn = { turn_type: t.turn_type, od_index: t.od_index, od_total: t.od_total, note: t.note || '', actions: {} };
-      for (const a of t.actions) {
-        turn.actions[a.member_slot] = { skill_id: a.skill_id, skill_name: a.skill_name, target_slot: a.target_slot, order_num: a.order_num };
-      }
-      state.turns.push(turn);
-    }
-    renderGrid();
-  } catch(e) { showAlert('#alert', e.message); }
+      for (const a of t.actions) turn.actions[a.member_slot] = { skill_id: a.skill_id, skill_name: a.skill_name, target_slot: a.target_slot, order_num: a.order_num };
+      return turn;
+    });
+    renderMembers();
+    renderTurns();
+  } catch (e) { showAlert('#alert', e.message); }
 }
+
+// ---- 共通 ----
+function faceHTML(charId, slot, size) {
+  const c = charId && charMap[charId];
+  const style = `--fs:${size}px;--mc:${SLOT_COLORS[slot] || 'transparent'}`;
+  if (c?.icon_url) return `<img class="face" style="${style}" src="${escHtml(chartIconUrl(c.icon_url, size * 2))}" alt="${escHtml(c.name)}" title="${escHtml(c.name)}">`;
+  const ch = c ? (c.abbreviation || c.name).charAt(0) : (slot || '?');
+  return `<span class="face ph" style="${style}">${escHtml(String(ch))}</span>`;
+}
+function shortName(slot) {
+  const c = charMap[state.members[slot - 1]?.character_id];
+  return c ? (c.abbreviation || c.name) : `${slot}`;
+}
+function skillClass(sk) {
+  if (!sk) return '';
+  if (sk.is_special) return 'sk-special';
+  if (sk.style_id !== null) return 'sk-style';
+  if (sk.character_id !== null) return 'sk-char';
+  return '';
+}
+function openSheet(id) { document.getElementById(id).classList.add('open'); }
+function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('.sheet.open').forEach(el => el.classList.remove('open')); });
 
 // ---- 属性 ----
 function renderAttrBtns() {
   document.getElementById('attr-btns').innerHTML = ATTRS.map(a =>
-    `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.'+a)||a}</button>`
+    `<button class="attr-btn attr-${escHtml(a)}" data-attr="${escHtml(a)}" onclick="selectAttr('${escHtml(a)}')">${t('attr.' + a) || a}</button>`
   ).join('');
 }
 function selectAttr(a) {
@@ -310,172 +367,178 @@ function selectAttr(a) {
 
 // ---- メンバー ----
 function renderMembers() {
-  const area = document.getElementById('members-area');
-  area.innerHTML = state.members.map((m, i) => {
-    const chars = gameData.characters;
-    const styles = m.character_id ? gameData.styles.filter(s => s.character_id === m.character_id) : [];
-    const charOpts = `<option value="">キャラ未選択</option>` +
-      chars.map(c => `<option value="${c.id}"${m.character_id===c.id?' selected':''}>${escHtml(c.name)}</option>`).join('');
-    const styleOpts = styles.length
-      ? `<option value="">スタイル選択</option>` + styles.map(s => `<option value="${s.id}"${m.style_id===s.id?' selected':''}>${escHtml(s.name)}</option>`).join('')
-      : `<option value="">-</option>`;
-    const refineOpts = [0,1,2,3,4].map(n => `<option value="${n}"${m.refine_count===n?' selected':''}>${n}凸</option>`).join('');
-    return `
-      <div class="member-slot">
-        <span class="slot-num">${i+1}</span>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onCharChange(${i}, this.value)">
-          ${charOpts}
-        </select>
-        <select class="form-input slot-select" style="font-size:0.82rem;padding:5px 8px" onchange="onStyleChange(${i}, this.value)">
-          ${styleOpts}
-        </select>
-        <select class="form-input" style="font-size:0.78rem;padding:5px 6px;width:60px" onchange="state.members[${i}].refine_count=parseInt(this.value)">
-          ${refineOpts}
-        </select>
-      </div>`;
+  document.getElementById('members-area').innerHTML = state.members.map((m, i) => {
+    const slot = i + 1;
+    const c = charMap[m.character_id], st = styleMap[m.style_id];
+    if (!c) return `<button class="ce-member empty" style="--mc:${SLOT_COLORS[slot]}" onclick="openMemberSheet(${i})">
+      ${faceHTML(null, slot, 36)}<div class="ce-member-body"><div class="ce-member-name">メンバー${slot}</div><div class="ce-member-sub">未選択</div></div></button>`;
+    return `<button class="ce-member" style="--mc:${SLOT_COLORS[slot]}" onclick="openMemberSheet(${i})">
+      ${faceHTML(c.id, slot, 36)}
+      <div class="ce-member-body">
+        <div class="ce-member-name">${escHtml(c.name)}</div>
+        <div class="ce-member-sub">${st ? escHtml(st.abbreviation || st.name) : '<span style="color:var(--accent)">スタイル未選択</span>'} ・ ${m.refine_count}凸</div>
+      </div></button>`;
   }).join('');
 }
 
-function onCharChange(i, val) {
-  state.members[i].character_id = val ? parseInt(val) : null;
-  state.members[i].style_id = null;
-  renderMembers();
-  renderGrid();
-}
-function onStyleChange(i, val) {
-  state.members[i].style_id = val ? parseInt(val) : null;
-  renderGrid();
+let memberCtx = { idx: 0, charId: null, refine: 0, step: 'char' };
+
+function openMemberSheet(idx) {
+  const m = state.members[idx];
+  memberCtx = { idx, charId: m.character_id, refine: m.refine_count, step: m.character_id ? 'style' : 'char' };
+  renderMemberSheet();
+  openSheet('member-sheet');
 }
 
-// ---- グリッド ----
-function getTurnLabel(t, normalIdx) {
-  switch(t.turn_type) {
-    case 'normal': return `${normalIdx}ターン`;
-    case 'extra': return '追加ターン';
-    case 'od_pre': return `先OD${t.od_index}/${t.od_total}`;
-    case 'od_post': return `後OD${t.od_index}/${t.od_total}`;
-    case 'special': return t.special_label || '特殊技発動';
+function renderMemberSheet() {
+  const { idx, charId, refine, step } = memberCtx;
+  const slot = idx + 1;
+  const m = state.members[idx];
+  const body = document.getElementById('member-sheet-body');
+  if (step === 'char') {
+    document.getElementById('member-sheet-title').innerHTML = `メンバー${slot}のキャラ`;
+    const used = new Set(state.members.filter((_, i) => i !== idx).map(x => x.character_id).filter(Boolean));
+    body.innerHTML = `
+      <input class="form-input sheet-search" id="char-search" type="text" placeholder="キャラ名で検索" oninput="filterChars(this.value)">
+      <div class="char-grid" id="char-grid">${gameData.characters.map(c => `
+        <button class="char-pick${c.id === m.character_id ? ' cur' : ''}" data-q="${escHtml((c.name + ' ' + (c.abbreviation || '')).toLowerCase())}"
+          ${used.has(c.id) ? 'disabled title="他の枠で使用中"' : ''} onclick="pickChar(${c.id})">
+          ${faceHTML(c.id, slot, 44)}<span>${escHtml(c.abbreviation || c.name)}</span></button>`).join('')}</div>
+      ${m.character_id ? `<div style="margin-top:12px;text-align:right"><button class="text-btn danger" onclick="clearMember()">この枠を空にする</button></div>` : ''}`;
+    return;
   }
+  const c = charMap[charId];
+  document.getElementById('member-sheet-title').innerHTML = `${escHtml(c.name)}<small>スタイルを選ぶと決定します</small>`;
+  const styles = gameData.styles.filter(s => s.character_id === charId);
+  const curStyle = charId === m.character_id ? m.style_id : null;
+  body.innerHTML = `
+    <div class="field-row">
+      <button class="text-btn" onclick="memberCtx.step='char';renderMemberSheet()">← キャラを変える</button>
+    </div>
+    <div class="field-row"><span>凸</span><span class="seg">${[0, 1, 2, 3, 4].map(n => `<button class="${n === refine ? 'on' : ''}" onclick="memberCtx.refine=${n};renderMemberSheet()">${n}</button>`).join('')}</span></div>
+    <div class="style-list">${styles.map(st => `
+      <button class="style-pick${st.id === curStyle ? ' cur' : ''}" onclick="pickStyle(${st.id})">${escHtml(st.name)}${st.abbreviation ? `<small>${escHtml(st.abbreviation)}</small>` : ''}</button>`).join('') || '<div style="color:var(--text-muted);font-size:0.85rem">スタイルが登録されていません</div>'}
+    </div>`;
 }
 
-function renderSpecialBtns() {
-  const btns = [];
-  state.members.forEach((m, i) => {
-    if (!m.character_id || !m.style_id) return;
-    const style = styleMap[m.style_id];
-    if (!style?.has_special_skill) return;
-    const skill = gameData.skills.find(s => s.style_id === m.style_id && s.is_special);
-    if (!skill) return;
-    btns.push(`<button class="turn-add-btn" style="color:#e0aaff;border-color:#6a4a8a" onclick="addSpecialTurn(${i+1},${skill.id},'${escHtml(skill.name)}')">${escHtml(skill.name)}</button>`);
+function filterChars(q) {
+  q = q.trim().toLowerCase();
+  document.querySelectorAll('#char-grid .char-pick').forEach(b => { b.style.display = !q || b.dataset.q.includes(q) ? '' : 'none'; });
+}
+
+function pickChar(charId) {
+  memberCtx.charId = charId;
+  memberCtx.step = 'style';
+  renderMemberSheet();
+}
+
+// そのメンバーの行動のうち、新しい編成で使えなくなるものを数える
+function invalidActions(slot, charId, styleId) {
+  const bad = [];
+  state.turns.forEach(t => {
+    const a = t.actions[slot];
+    if (!a) return;
+    const sk = skillMap[a.skill_id];
+    if (!sk) return;
+    const ok = (sk.character_id === null && sk.style_id === null) || (sk.character_id === charId && (sk.style_id === null || sk.style_id === styleId));
+    if (!ok) bad.push(t);
   });
-  document.getElementById('special-btns').innerHTML = btns.join('');
+  return bad;
 }
 
-function renderGrid() {
-  // ヘッダー
-  const memberHeaders = state.members.map((m, i) => {
-    const c = m.character_id && charMap[m.character_id];
-    const s = m.style_id && styleMap[m.style_id];
-    const cname = c ? escHtml(c.abbreviation || c.name) : `スロット${i+1}`;
-    const sub = s ? `<div style="font-size:0.68rem;color:#a8e6a3;margin-top:1px">${escHtml(s.abbreviation || s.name)}&nbsp;${m.refine_count}凸</div>` : '';
-    return `<th style="white-space:normal;line-height:1.3">${cname}${sub}</th>`;
-  }).join('');
-  document.getElementById('chart-colgroup').innerHTML = `<col style="width:90px">${state.members.map(() => '<col>').join('')}`;
-  document.getElementById('chart-thead').innerHTML = `<tr><th class="turn-col">ターン</th>${memberHeaders}</tr>`;
+async function pickStyle(styleId) {
+  const { idx, charId, refine } = memberCtx;
+  const slot = idx + 1;
+  const bad = invalidActions(slot, charId, styleId);
+  if (bad.length && !await showConfirm(`このメンバーの行動のうち${bad.length}件が使えなくなるので外します。よろしいですか？`)) return;
+  bad.forEach(t => delete t.actions[slot]);
+  Object.assign(state.members[idx], { character_id: charId, style_id: styleId, refine_count: refine });
+  closeSheet('member-sheet');
+  renderMembers();
+  renderTurns();
+}
 
-  // ボディ
+async function clearMember() {
+  const slot = memberCtx.idx + 1;
+  const n = state.turns.filter(t => t.actions[slot]).length;
+  if (n && !await showConfirm(`このメンバーの行動${n}件も外します。よろしいですか？`)) return;
+  state.turns.forEach(t => delete t.actions[slot]);
+  Object.assign(state.members[memberCtx.idx], { character_id: null, style_id: null, refine_count: 0 });
+  closeSheet('member-sheet');
+  renderMembers();
+  renderTurns();
+}
+
+// ---- ターン ----
+function turnInfo(t, normalIdx) {
+  switch (t.turn_type) {
+    case 'normal': return { label: `${normalIdx}ターン`, color: 'var(--text-primary)' };
+    case 'extra': return { label: '追加ターン', color: '#7ecfff' };
+    case 'od_pre': return { label: `OD ${t.od_index}/${odTurns(t.od_total)}（${t.od_total}ゲージ・ターン前）`, color: OD_COLORS[t.od_total] };
+    case 'od_post': return { label: `OD ${t.od_index}/${odTurns(t.od_total)}（${t.od_total}ゲージ・ターン後）`, color: OD_COLORS[t.od_total] };
+    case 'special': return { label: '特殊技', color: '#e0aaff' };
+  }
+  return { label: '', color: 'var(--text-muted)' };
+}
+
+function canAct(turn, slot) {
+  const m = state.members[slot - 1];
+  if (!m.character_id || !m.style_id) return false;
+  if (turn.turn_type === 'special') return !!styleMap[m.style_id]?.has_special_skill;
+  if (turn.actions[slot]) return true;
+  return Object.keys(turn.actions).length < 3;
+}
+
+// 途中のODターンを消すと段数がずれるので、ODは最後の行だけ消せる
+function canDelete(idx) {
+  const t = state.turns[idx];
+  return idx === state.turns.length - 1 || (t.turn_type !== 'od_pre' && t.turn_type !== 'od_post');
+}
+
+function renderTurns() {
   let nIdx = 0;
-  const rows = state.turns.map((turn, tIdx) => {
+  const html = state.turns.map((turn, tIdx) => {
     if (turn.turn_type === 'normal') nIdx++;
-    const label = getTurnLabel(turn, nIdx);
-    const isLast = tIdx === state.turns.length - 1;
-    const actionCount = Object.keys(turn.actions).length;
-
-    const cells = state.members.map((m, i) => {
+    const info = turnInfo(turn, nIdx);
+    const n = Object.keys(turn.actions).length;
+    // 3人行動したターンは、行動した3人だけを出す
+    const full = turn.turn_type !== 'special' && n >= 3;
+    const tiles = state.members.map((m, i) => {
       const slot = i + 1;
       const a = turn.actions[slot];
-      const canAct = turn.turn_type !== 'special' || (m.style_id && styleMap[m.style_id]?.has_special_skill);
-      if (!m.character_id || !m.style_id) return `<td class="action-cell disabled"></td>`;
-
-      let inner = '';
-      if (a) {
-        const orderLabel = a.order_num ? `<span class="action-order">${ORDER_LABELS[a.order_num]}</span>` : '';
-        const targetLabel = a.target_slot ? `<span class="action-target">→${getSlotName(a.target_slot)}</span>` : '';
-        const displayName = skillMap[a.skill_id]?.abbreviation || a.skill_name;
-        const nameStyle = skillTypeStyle(skillMap[a.skill_id]);
-        inner = `<div class="action-cell-inner">${orderLabel}<span${nameStyle}>${escHtml(displayName)}</span>${targetLabel}</div>`;
-      }
-      const filled = a ? ' filled' : '';
-      const disabled = (!canAct && !a) ? ' disabled' : '';
-      const onclick = canAct || a ? `onclick="openSkillModal(${tIdx},${slot})"` : '';
-      return `<td class="action-cell${filled}${disabled}" ${onclick}>${inner}</td>`;
+      if (full && !a) return '';
+      const ok = canAct(turn, slot);
+      const sk = a && skillMap[a.skill_id];
+      const name = a ? (sk?.abbreviation || a.skill_name || sk?.name) : (m.character_id ? '' : '');
+      return `<button class="ce-tile${a ? ' on' : ''}${!ok && !a ? ' off' : ''}" style="--mc:${SLOT_COLORS[slot]}"
+          ${ok || a ? `onclick="openSkillSheet(${tIdx},${slot})"` : 'disabled'}>
+        ${a?.order_num ? `<span class="ce-tile-order">${a.order_num}</span>` : ''}
+        ${faceHTML(m.character_id, slot, 34)}
+        <span class="ce-tile-text">
+          <span class="ce-tile-skill ${a ? skillClass(sk) : 'none'}">${a ? escHtml(name) : (ok ? '＋' : '')}</span>
+          ${a?.target_slot ? `<span class="ce-tile-target">→${escHtml(shortName(a.target_slot))}</span>` : ''}
+        </span>
+      </button>`;
     }).join('');
-
-    const noteVal = escHtml(turn.note || '');
-    return `<tr>
-      <td><div class="turn-label ${turn.turn_type}"${(turn.turn_type==='od_pre'||turn.turn_type==='od_post')?` style="color:${['','#ff9ec4','#a8e6a3','#ffd580'][turn.od_total]||''}"`:''} >${label}</div></td>
-      ${cells}
-    </tr>`;
+    return `<div class="ce-turn" id="turn-${tIdx}">
+      <div class="ce-turn-head">
+        <span class="ce-turn-label" style="--tc:${info.color}">${info.label}</span>
+        ${turn.turn_type !== 'special' ? `<span class="ce-turn-count">行動 ${n}/3</span>` : ''}
+        ${canDelete(tIdx) ? `<button class="ce-turn-del" onclick="deleteTurn(${tIdx})" title="このターンを消す" aria-label="このターンを消す">${TRASH}</button>` : ''}
+      </div>
+      <div class="ce-tiles${full ? ' full' : ''}">${tiles}</div>
+    </div>`;
   }).join('');
-
-  const colCount = 1 + state.members.length;
-  document.getElementById('chart-tbody').innerHTML = rows || `<tr><td colspan="${colCount}" style="text-align:center;color:var(--text-muted);padding:16px;font-size:0.85rem">ターンを追加してください</td></tr>`;
-  renderSpecialBtns();
-  updateODBtnState();
+  document.getElementById('turns-area').innerHTML = html || '<div class="ce-empty">下の「＋ 次ターン」でターンを追加してください</div>';
+  document.getElementById('turn-summary').textContent = state.turns.length ? `${state.turns.length}行` : '';
+  updateNextBtn();
 }
 
-function updateODBtnState() {
-  const od = getCurrentODState();
-  const inProgress = od && od.index < od.total;
-  const lastType = getLastRealTurn()?.turn_type;
-
-  // 先OD blocked: OD進行中
-  const preODBlocked = inProgress;
-  // 後OD blocked: OD進行中 OR 直前が通常/追加ターン以外
-  const postODBlocked = inProgress || (lastType !== 'normal' && lastType !== 'extra');
-  // 次ターン blocked: OD進行中のみ
-  const nextTurnBlocked = inProgress;
-
-  document.querySelectorAll('.od-btn').forEach(btn => {
-    const isCurrentOD = inProgress && btn.dataset.type === od.type && parseInt(btn.dataset.total) === od.total;
-    let blocked;
-    if (inProgress) {
-      blocked = !isCurrentOD;
-    } else {
-      blocked = btn.dataset.type === 'od_pre' ? preODBlocked : postODBlocked;
-    }
-    btn.disabled = blocked;
-    btn.style.opacity = blocked ? '0.3' : '';
-    btn.style.cursor = blocked ? 'not-allowed' : '';
-  });
-
-  const nextBtn = document.getElementById('next-turn-btn');
-  if (nextBtn) {
-    nextBtn.disabled = nextTurnBlocked;
-    nextBtn.style.opacity = nextTurnBlocked ? '0.3' : '';
-    nextBtn.style.cursor = nextTurnBlocked ? 'not-allowed' : '';
-  }
-}
-
-function getSlotName(slot) {
-  const m = state.members[slot - 1];
-  const c = m?.character_id && charMap[m.character_id];
-  if (c) return c.abbreviation || c.name;
-  return `${slot}`;
-}
-
-// ---- ターン追加 ----
-function addTurn(type) {
-  if (type === 'normal') normalCount++;
-  state.turns.push({ turn_type: type, od_index: null, od_total: null, note: '', actions: {} });
-  renderGrid();
-}
-
-function addSpecialTurn(slot, skillId, skillName) {
-  const turn = { turn_type: 'special', od_index: null, od_total: null, note: '', special_label: skillName, actions: {} };
-  turn.actions[slot] = { skill_id: skillId, skill_name: skillName, target_slot: null, order_num: null };
-  state.turns.push(turn);
-  renderGrid();
+async function deleteTurn(idx) {
+  const t = state.turns[idx];
+  if (Object.keys(t.actions).length && !await showConfirm('このターンを消しますか？')) return;
+  state.turns.splice(idx, 1);
+  renderTurns();
 }
 
 function getCurrentODState() {
@@ -483,189 +546,203 @@ function getCurrentODState() {
   for (let i = state.turns.length - 1; i >= 0; i--) {
     const t = state.turns[i];
     if (t.turn_type === 'special' || t.turn_type === 'extra') continue;
-    if (t.turn_type === 'od_pre' || t.turn_type === 'od_post') {
-      return { type: t.turn_type, index: t.od_index, total: t.od_total };
-    }
+    if (t.turn_type === 'od_pre' || t.turn_type === 'od_post') return { type: t.turn_type, index: t.od_index, total: t.od_total };
     break;
   }
   return null;
 }
 
 function getLastRealTurn() {
-  // specialを飛ばして最後のターンを返す
   for (let i = state.turns.length - 1; i >= 0; i--) {
     if (state.turns[i].turn_type !== 'special') return state.turns[i];
   }
   return null;
 }
 
-function addOD(type, total) {
+function odInProgress() {
   const od = getCurrentODState();
-  const inProgress = od && od.index < od.total;
-  if (inProgress && (od.type !== type || od.total !== total)) return; // 別のOD進行中
-  if (inProgress && od.type === type && od.total === total && od.index >= od.total) return;
+  return od && od.index < odTurns(od.total) ? od : null;
+}
 
+function pushTurn(turn) {
+  state.turns.push({ od_index: null, od_total: null, note: '', actions: {}, ...turn });
+  renderTurns();
+  closeSheet('add-sheet');
+  document.getElementById(`turn-${state.turns.length - 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function addTurn(type) {
+  if (type === 'normal' && odInProgress()) return;
+  pushTurn({ turn_type: type });
+}
+
+function addOD(type, total) {
+  const od = odInProgress();
+  if (od && (od.type !== type || od.total !== total)) return;
   const lastType = getLastRealTurn()?.turn_type;
   // 後OD開始は通常or追加ターンの直後のみ
-  if (!inProgress && type === 'od_post' && lastType !== 'normal' && lastType !== 'extra') return;
-
-  const od_index = (inProgress && od.type === type && od.total === total) ? od.index + 1 : 1;
-  state.turns.push({ turn_type: type, od_index, od_total: total, note: '', actions: {} });
-  renderGrid();
+  if (!od && type === 'od_post' && lastType !== 'normal' && lastType !== 'extra') return;
+  pushTurn({ turn_type: type, od_index: od ? od.index + 1 : 1, od_total: total });
 }
 
-function deleteLastTurn() {
-  if (!state.turns.length) return;
-  const last = state.turns[state.turns.length - 1];
-  if (last.turn_type === 'normal') normalCount = Math.max(0, normalCount - 1);
-  state.turns.pop();
-  renderGrid();
+function addSpecialTurn(slot, skillId) {
+  const sk = skillMap[skillId];
+  pushTurn({ turn_type: 'special', actions: { [slot]: { skill_id: skillId, skill_name: sk.name, target_slot: null, order_num: null } } });
 }
 
-// ---- スキル選択モーダル ----
+// 下のバーの「次」：OD中なら次の段、それ以外は通常ターン
+function addNext() {
+  const od = odInProgress();
+  if (od) addOD(od.type, od.total); else addTurn('normal');
+}
+function updateNextBtn() {
+  const od = odInProgress();
+  document.getElementById('next-btn').textContent = od ? `＋ OD ${od.index + 1}/${odTurns(od.total)}` : '＋ 次ターン';
+}
+
+function openAddSheet() {
+  const od = odInProgress();
+  const lastType = getLastRealTurn()?.turn_type;
+  const postOk = lastType === 'normal' || lastType === 'extra';
+  const odBtn = (type, total) => {
+    const cont = od && od.type === type && od.total === total;
+    const ok = cont || (!od && (type === 'od_pre' || postOk));
+    const label = cont ? `${total}ゲージ<small>${od.index + 1}/${odTurns(total)}ターン目</small>` : `${total}ゲージ`;
+    return `<button class="add-btn" style="--tc:${OD_COLORS[total]}" ${ok ? `onclick="addOD('${type}',${total})"` : 'disabled'}>${label}</button>`;
+  };
+  const specials = [];
+  state.members.forEach((m, i) => {
+    if (!m.style_id || !styleMap[m.style_id]?.has_special_skill) return;
+    const sk = gameData.skills.find(s => s.style_id === m.style_id && s.is_special);
+    if (sk) specials.push(`<button class="add-btn" style="--tc:#e0aaff" onclick="addSpecialTurn(${i + 1},${sk.id})">${escHtml(sk.abbreviation || sk.name)}<small>${escHtml(shortName(i + 1))}</small></button>`);
+  });
+  document.getElementById('add-sheet-body').innerHTML = `
+    ${od ? `<div style="font-size:0.78rem;color:var(--accent);margin-bottom:10px">OD（${od.total}ゲージ）${od.index}/${odTurns(od.total)} の途中です。続きのターンを追加してください</div>` : ''}
+    <div class="add-sec"><div class="add-sec-title">ターン</div><div class="add-btns">
+      <button class="add-btn" ${od ? 'disabled' : `onclick="addTurn('normal')"`}>次ターン</button>
+      <button class="add-btn" style="--tc:#7ecfff" onclick="addTurn('extra')">追加ターン</button>
+    </div></div>
+    <div class="add-sec"><div class="add-sec-title">OD（ターン前に発動）</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_pre', k + 1)).join('')}</div></div>
+    <div class="add-sec"><div class="add-sec-title">OD（ターン後に発動）${!od && !postOk ? '<span style="margin-left:6px">…通常ターンか追加ターンの後に追加できます</span>' : ''}</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_post', k + 1)).join('')}</div></div>
+    ${specials.length ? `<div class="add-sec"><div class="add-sec-title">特殊技</div><div class="add-btns">${specials.join('')}</div></div>` : ''}`;
+  openSheet('add-sheet');
+}
+
+// ---- 技選択 ----
+let modalCtx = { turnIdx: null, slot: null, action: {} };
+let allSkillsForModal = [];
+
 function getAvailableSkills(slot, turnType) {
   const m = state.members[slot - 1];
   if (!m?.character_id || !m?.style_id) return [];
-  const charId = m.character_id;
-  const styleId = m.style_id;
-
-  if (turnType === 'special') {
-    return gameData.skills.filter(s => s.style_id === styleId && s.is_special);
-  }
-  const rank = s => s.style_id !== null ? 0 : s.character_id !== null ? 1 : 2;
+  const charId = m.character_id, styleId = m.style_id;
+  if (turnType === 'special') return gameData.skills.filter(s => s.style_id === styleId && s.is_special);
   const hasShikiBehavior = gameData.skills.some(s => s.style_id === styleId && s.name === '指揮行動');
   return gameData.skills.filter(s => {
     if (s.is_special) return false;
     if (hasShikiBehavior && s.name === '通常攻撃') return false;
     if (s.character_id === null && s.style_id === null) return true;
-    if (s.character_id === charId && s.style_id === null) return true;
-    if (s.character_id === charId && s.style_id === styleId) return true;
+    if (s.character_id === charId && (s.style_id === null || s.style_id === styleId)) return true;
     return false;
-  }).sort((a, b) => rank(a) - rank(b));
+  });
 }
 
-function openSkillModal(turnIdx, slot) {
+function openSkillSheet(turnIdx, slot) {
   const turn = state.turns[turnIdx];
   const m = state.members[slot - 1];
   const existing = turn.actions[slot] || {};
   modalCtx = { turnIdx, slot, action: { ...existing } };
-
-  const charName = m.character_id && charMap[m.character_id] ? charMap[m.character_id].name : '';
-  const styleName = m.style_id && styleMap[m.style_id] ? styleMap[m.style_id].name : '';
-  document.getElementById('modal-char-name').textContent = `${charName}${styleName ? ' / ' + styleName : ''}`;
+  const c = charMap[m.character_id], st = styleMap[m.style_id];
+  document.getElementById('skill-sheet-face').innerHTML = faceHTML(m.character_id, slot, 36);
+  document.getElementById('skill-sheet-title').innerHTML = `${escHtml(c?.name || '')}<small>${escHtml(st?.name || '')}</small>`;
   document.getElementById('skill-search').value = '';
-  activeSkillTab = 'all';
-  document.querySelectorAll('.skill-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === 'all'));
-
   allSkillsForModal = getAvailableSkills(slot, turn.turn_type);
-  renderSkillList(getTabFilteredSkills());
-
-  // 順番
-  document.querySelectorAll('.order-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n) === (existing.order_num || 0)));
-
-  // 対象
-  updateTargetSection(existing.skill_id);
-
-  document.getElementById('skill-modal').classList.add('open');
+  renderSkillList();
+  document.querySelectorAll('#order-seg button').forEach(b => b.classList.toggle('on', +b.dataset.n === (existing.order_num || 0)));
+  updateTargetSection();
+  openSheet('skill-sheet');
+  document.querySelector('#skill-list .sk-item.cur')?.scrollIntoView({ block: 'center' });
 }
 
-function renderSkillList(skills) {
-  const html = skills.map(s => {
-    const cls = s.character_id === null ? 'global-skill'
-              : s.style_id === null ? 'char-skill'
-              : '';
-    return `<div class="skill-item ${cls}" onclick="selectSkill(${s.id},'${escHtml(s.name)}')">${escHtml(s.name)}</div>`;
-  }).join('');
+function renderSkillList() {
+  const q = document.getElementById('skill-search').value.trim().toLowerCase();
+  const list = allSkillsForModal.filter(s => !q || s.name.toLowerCase().includes(q) || (s.abbreviation || '').toLowerCase().includes(q));
+  const groups = [
+    ['特殊技', list.filter(s => s.is_special)],
+    ['このスタイルの技', list.filter(s => !s.is_special && s.style_id !== null)],
+    ['キャラの技', list.filter(s => s.style_id === null && s.character_id !== null)],
+    ['共通の技', list.filter(s => s.character_id === null)],
+  ];
+  const cur = modalCtx.action.skill_id;
+  const html = groups.filter(([, arr]) => arr.length).map(([label, arr]) => `
+    <div class="sk-group">${label}</div>
+    ${arr.map(s => `<button class="sk-item ${skillClass(s)}${s.id === cur ? ' cur' : ''}" onclick="selectSkill(${s.id})">${escHtml(s.name)}${s.abbreviation && s.abbreviation !== s.name ? `<small>${escHtml(s.abbreviation)}</small>` : ''}</button>`).join('')}`).join('');
   document.getElementById('skill-list').innerHTML = html || '<div style="padding:8px;color:var(--text-muted);font-size:0.82rem">技がありません</div>';
 }
 
-function getTabFilteredSkills() {
-  return allSkillsForModal.filter(s => {
-    if (activeSkillTab === 'style')  return s.style_id !== null;
-    if (activeSkillTab === 'char')   return s.character_id !== null && s.style_id === null;
-    if (activeSkillTab === 'global') return s.character_id === null;
-    return true;
-  });
-}
-
-function selectSkillTab(tab) {
-  activeSkillTab = tab;
-  document.querySelectorAll('.skill-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-  document.getElementById('skill-search').value = '';
-  renderSkillList(getTabFilteredSkills());
-}
-
-function filterSkills() {
-  const q = document.getElementById('skill-search').value.toLowerCase();
-  const base = getTabFilteredSkills();
-  renderSkillList(q ? base.filter(s => s.name.toLowerCase().includes(q)) : base);
-}
-
-function selectSkill(skillId, skillName) {
+function selectSkill(skillId) {
   const skill = skillMap[skillId];
   modalCtx.action.skill_id = skillId;
-  modalCtx.action.skill_name = skillName;
-  if (!skill?.has_target) modalCtx.action.target_slot = null;
-  updateTargetSection(skillId);
-  applyAction();
-  if (!skill?.has_target) closeSkillModal();
+  modalCtx.action.skill_name = skill.name;
+  if (!skill.has_target) modalCtx.action.target_slot = null;
+  if (!applyAction()) return;
+  if (!skill.has_target) { closeSheet('skill-sheet'); return; }
+  renderSkillList();
+  updateTargetSection();
 }
 
-function updateTargetSection(skillId) {
-  const skill = skillId ? skillMap[skillId] : null;
+function updateTargetSection() {
+  const skill = skillMap[modalCtx.action.skill_id];
   const sec = document.getElementById('target-section');
-  if (skill?.has_target) {
-    sec.style.display = '';
-    const current = modalCtx.action.target_slot;
-    document.getElementById('target-btns').innerHTML = state.members.map((m, i) => {
-      const c = m.character_id && charMap[m.character_id];
-      const name = c ? (c.abbreviation || c.name) : `スロット${i+1}`;
-      const active = current === (i+1) ? ' active' : '';
-      return `<button class="target-btn${active}" onclick="selectTarget(${i+1})">${escHtml(name)}</button>`;
-    }).join('');
-  } else {
-    sec.style.display = 'none';
-  }
+  if (!skill?.has_target) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  const current = modalCtx.action.target_slot;
+  document.getElementById('need-target').style.display = current ? 'none' : '';
+  document.getElementById('target-btns').innerHTML = state.members.map((m, i) => !m.character_id ? '' : `
+    <button class="target-pick${current === i + 1 ? ' on' : ''}" onclick="selectTarget(${i + 1})">${faceHTML(m.character_id, i + 1, 32)}${escHtml(shortName(i + 1))}</button>`).join('');
 }
 
 function selectTarget(slot) {
   modalCtx.action.target_slot = slot;
-  document.querySelectorAll('.target-btn').forEach((b, i) => b.classList.toggle('active', i+1 === slot));
   applyAction();
-  closeSkillModal();
+  closeSheet('skill-sheet');
 }
 
 function selectOrder(n) {
   modalCtx.action.order_num = n || null;
-  document.querySelectorAll('.order-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.n) === n));
+  document.querySelectorAll('#order-seg button').forEach(b => b.classList.toggle('on', +b.dataset.n === n));
   if (modalCtx.action.skill_id) applyAction();
 }
 
 function applyAction() {
   const { turnIdx, slot, action } = modalCtx;
-  if (!action.skill_id) return;
-  // 前衛3人制限チェック（special以外）
+  if (!action.skill_id) return false;
   const turn = state.turns[turnIdx];
-  if (turn.turn_type !== 'special') {
-    const count = Object.keys(turn.actions).filter(k => parseInt(k) !== slot).length;
-    if (count >= 3 && !turn.actions[slot]) {
-      showAlert('#alert', '1ターンに行動できるのは3キャラまでです');
-      return;
-    }
+  if (turn.turn_type !== 'special' && !turn.actions[slot] && Object.keys(turn.actions).length >= 3) {
+    showMessage('1ターンに行動できるのは3キャラまでです');
+    return false;
   }
-  state.turns[turnIdx].actions[slot] = { ...action };
-  renderGrid();
+  turn.actions[slot] = { ...action };
+  renderTurns();
+  return true;
 }
 
 function clearAction() {
   const { turnIdx, slot } = modalCtx;
   if (turnIdx !== null) delete state.turns[turnIdx].actions[slot];
-  renderGrid();
+  renderTurns();
+  closeSheet('skill-sheet');
 }
 
-function closeSkillModal() {
-  document.getElementById('skill-modal').classList.remove('open');
+// ---- 公開 ----
+function updatePublicUI() {
+  const on = document.getElementById('public-input').checked;
+  document.getElementById('pub-text').innerHTML = on
+    ? '公開する<small>チャート掲示板に表示され、誰でも見られます</small>'
+    : '公開しない（下書き）<small>自分だけが見られます。マイチャートから開けます</small>';
+  document.getElementById('save-btn').textContent = on ? '保存して公開' : '下書き保存';
 }
+updatePublicUI();
 
 // ---- 保存 ----
 async function saveChart() {
@@ -674,16 +751,20 @@ async function saveChart() {
   state.description = document.getElementById('desc-input').value.trim();
   state.attribute = selectedAttr;
 
-  if (!state.event_id) return showAlert('#alert', 'イベントを選択してください');
-  if (!state.attribute) return showAlert('#alert', '属性を選択してください');
-  if (!state.title) return showAlert('#alert', 'タイトルを入力してください');
-  if (!state.members.some(m => m.character_id && m.style_id)) return showAlert('#alert', 'メンバーを設定してください');
+  const fail = msg => { showAlert('#alert', msg); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  if (!state.event_id) return fail('イベントを選択してください');
+  if (!state.attribute) return fail('属性を選択してください');
+  if (!state.title) return fail('タイトルを入力してください');
+  if (!state.members.some(m => m.character_id && m.style_id)) return fail('メンバーを設定してください');
+  if (state.members.some(m => m.character_id && !m.style_id)) return fail('スタイルが未選択のメンバーがいます');
+  if (state.turns.some(t => t.od_total > maxGauge())) return fail('5ゲージのODはスコアタEXのイベントでのみ使えます');
 
   const payload = {
     event_id: parseInt(state.event_id),
     attribute: state.attribute,
     title: state.title,
     description: state.description,
+    is_public: document.getElementById('public-input').checked,
     members: state.members.filter(m => m.character_id && m.style_id),
     turns: state.turns.map((t, i) => ({
       seq_order: i + 1,
@@ -704,14 +785,11 @@ async function saveChart() {
   btn.disabled = true;
   try {
     const url = editId ? `/charts/${editId}` : '/charts';
-    const method = editId ? 'PUT' : 'POST';
-    const res = await apiFetch(url, { method, body: JSON.stringify(payload) });
-    showAlert('#alert', res.message, 'success');
-    if (!editId && res.id) {
-      setTimeout(() => location.href = `/chart-view.html?id=${res.id}`, 800);
-    }
-  } catch(e) {
-    showAlert('#alert', e.message);
+    const res = await apiFetch(url, { method: editId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+    showMessage(payload.is_public ? '保存して公開しました' : '下書きを保存しました');
+    if (!editId && res.id) setTimeout(() => location.href = `/chart-view.html?id=${res.id}`, 800);
+  } catch (e) {
+    fail(e.message);
   } finally {
     btn.disabled = false;
   }

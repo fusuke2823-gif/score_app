@@ -32,21 +32,43 @@ router.get('/game-data', async (req, res) => {
   }
 });
 
+// ODのゲージ数は1〜5、何ターン目かはゲージ数（3以上は3）まで
+function invalidTurns(turns) {
+  return (turns || []).some(t => (t.turn_type === 'od_pre' || t.turn_type === 'od_post') &&
+    !(Number.isInteger(t.od_total) && t.od_total >= 1 && t.od_total <= 5 &&
+      Number.isInteger(t.od_index) && t.od_index >= 1 && t.od_index <= Math.min(t.od_total, 3)));
+}
+
 // チャート一覧
 router.get('/', optionalAuth, async (req, res) => {
-  const { event_id, attribute, user_id, code, username } = req.query;
+  const { event_id, attribute, user_id, code, username, q } = req.query;
   try {
     const conditions = [];
     const params = [];
     if (event_id) { params.push(event_id); conditions.push(`c.event_id = $${params.length}`); }
     if (attribute) { params.push(attribute); conditions.push(`c.attribute = $${params.length}`); }
     if (user_id) { params.push(user_id); conditions.push(`c.user_id = $${params.length}`); }
+    // 下書きは自分のチャート一覧（user_id が自分）のときだけ含める
+    if (!(user_id && req.user && String(req.user.id) === String(user_id))) conditions.push('c.is_public');
     if (code) { params.push(code.toUpperCase()); conditions.push(`c.chart_code = $${params.length}`); }
     if (username) { params.push(`%${username}%`); conditions.push(`u.username ILIKE $${params.length}`); }
+    // q：チャートID・タイトル・ユーザー名のどれかに当たれば出す
+    if (q && q.trim()) {
+      params.push(q.trim().toUpperCase()); const ci = params.length;
+      params.push(`%${q.trim()}%`); const li = params.length;
+      conditions.push(`(c.chart_code = $${ci} OR c.title ILIKE $${li} OR u.username ILIKE $${li})`);
+    }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const result = await pool.query(
       `SELECT c.id, c.user_id, u.username, c.event_id, e.name AS event_name, e.event_number,
-              c.attribute, c.title, c.description, c.chart_code, c.created_at, c.updated_at
+              c.attribute, c.title, c.description, c.chart_code, c.is_public, c.created_at, c.updated_at,
+              (SELECT COUNT(*)::int FROM chart_turns ct WHERE ct.chart_id = c.id) AS turn_count,
+              (SELECT json_agg(json_build_object('slot', cm.slot, 'name', cc.name, 'abbreviation', cc.abbreviation,
+                        'icon_url', cc.icon_url, 'style', COALESCE(cs.abbreviation, cs.name), 'refine_count', cm.refine_count) ORDER BY cm.slot)
+                 FROM chart_members cm
+                 JOIN chart_characters cc ON cc.id = cm.character_id
+                 JOIN chart_styles cs ON cs.id = cm.style_id
+                WHERE cm.chart_id = c.id) AS members
        FROM charts c
        JOIN users u ON u.id = c.user_id
        JOIN events e ON e.id = c.event_id
@@ -73,8 +95,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
        WHERE c.id = $1`,
       [req.params.id]
     );
-    if (!chartRes.rows.length) return res.status(404).json({ error: 'チャートが見つかりません' });
     const chart = chartRes.rows[0];
+    if (!chart || (!chart.is_public && chart.user_id !== req.user?.id)) return res.status(404).json({ error: 'チャートが見つかりません' });
 
     const [members, turns, actions] = await Promise.all([
       pool.query(
@@ -122,18 +144,19 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
 // チャート作成
 router.post('/', authenticateToken, async (req, res) => {
-  const { event_id, attribute, title, description, members, turns } = req.body;
+  const { event_id, attribute, title, description, members, turns, is_public } = req.body;
   if (!event_id || !attribute || !title) return res.status(400).json({ error: '必須項目が不足しています' });
   if (!members?.length) return res.status(400).json({ error: 'メンバーを設定してください' });
+  if (invalidTurns(turns)) return res.status(400).json({ error: 'ODの設定が正しくありません' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const code = await uniqueCode();
     const chartRes = await client.query(
-      `INSERT INTO charts (user_id, event_id, attribute, title, description, chart_code)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [req.user.id, event_id, attribute, title.trim(), description?.trim() || null, code]
+      `INSERT INTO charts (user_id, event_id, attribute, title, description, chart_code, is_public)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [req.user.id, event_id, attribute, title.trim(), description?.trim() || null, code, is_public === true]
     );
     const chartId = chartRes.rows[0].id;
 
@@ -177,19 +200,20 @@ router.post('/', authenticateToken, async (req, res) => {
 
 // チャート更新
 router.put('/:id', authenticateToken, async (req, res) => {
-  const { event_id, attribute, title, description, members, turns } = req.body;
+  const { event_id, attribute, title, description, members, turns, is_public } = req.body;
   if (!title) return res.status(400).json({ error: 'タイトルは必須です' });
+  if (invalidTurns(turns)) return res.status(400).json({ error: 'ODの設定が正しくありません' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const existing = await client.query('SELECT id, user_id FROM charts WHERE id=$1', [req.params.id]);
-    if (!existing.rows.length) return res.status(404).json({ error: '見つかりません' });
-    if (existing.rows[0].user_id !== req.user.id) return res.status(403).json({ error: '権限がありません' });
+    if (!existing.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: '見つかりません' }); }
+    if (existing.rows[0].user_id !== req.user.id) { await client.query('ROLLBACK'); return res.status(403).json({ error: '権限がありません' }); }
 
     await client.query(
-      `UPDATE charts SET event_id=$1, attribute=$2, title=$3, description=$4, updated_at=NOW() WHERE id=$5`,
-      [event_id, attribute, title.trim(), description?.trim() || null, req.params.id]
+      `UPDATE charts SET event_id=$1, attribute=$2, title=$3, description=$4, is_public=$5, updated_at=NOW() WHERE id=$6`,
+      [event_id, attribute, title.trim(), description?.trim() || null, is_public === true, req.params.id]
     );
 
     await client.query('DELETE FROM chart_members WHERE chart_id=$1', [req.params.id]);

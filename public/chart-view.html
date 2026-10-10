@@ -6,6 +6,7 @@
 <title>チャート - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+.draft-badge { font-size:0.7rem; color:#ffd580; border:1px solid #ffd58088; border-radius:4px; padding:1px 6px; }
 /* メンバー（スロットごとの色で、タイムラインの行と対応させる） */
 .cv-members { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0 16px; }
 @media (max-width:600px) { .cv-members { grid-template-columns:repeat(2,1fr); } }
@@ -17,7 +18,7 @@
 .cv-member.has-icon { display:flex; align-items:center; gap:9px; padding-left:10px; }
 .cv-member.has-icon::before { display:none; }
 .cv-member-body { min-width:0; flex:1; }
-.cv-face { width:38px; height:38px; border-radius:20%; object-fit:cover; flex-shrink:0; box-shadow:0 0 0 2px var(--mc); background:var(--bg-secondary); }
+.cv-face { width:38px; height:38px; border-radius:20%; object-fit:cover; flex-shrink:0; background:var(--bg-secondary); }
 .cv-member-name { font-weight:bold; font-size:0.86rem; display:flex; align-items:center; gap:6px; }
 .cv-member-name > span:not(.cv-slot):not(.cv-refine), .cv-member-name { white-space:nowrap; }
 .cv-member-name .cv-nm { overflow:hidden; text-overflow:ellipsis; min-width:0; }
@@ -55,7 +56,7 @@
 .cv-act + .cv-act { border-top:1px solid var(--border); }
 .cv-order { color:var(--accent); font-size:0.8rem; text-align:center; }
 .cv-who { display:flex; align-items:center; gap:5px; font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; }
-.cv-who img { width:26px; height:26px; border-radius:20%; object-fit:cover; flex-shrink:0; box-shadow:0 0 0 1.5px var(--mc); }
+.cv-who img { width:26px; height:26px; border-radius:20%; object-fit:cover; flex-shrink:0; }
 .cv-who i { width:7px; height:7px; border-radius:50%; background:var(--mc); flex-shrink:0; }
 .cv-skill { min-width:0; overflow-wrap:anywhere; }
 .cv-skill.style { color:#ffd580; }
@@ -108,7 +109,8 @@ if (!chartId) { location.href = '/charts.html'; throw new Error('no id'); }
 
 const ORDER_LABELS = ['', '①', '②', '③'];
 const SLOT_COLORS = ['', '#ff6b81', '#ffa94d', '#ffe066', '#69db9c', '#5cc8ff', '#b197fc'];
-const OD_COLORS = ['', '#ff9ec4', '#a8e6a3', '#ffd580'];
+const OD_COLORS = ['', '#ff9ec4', '#a8e6a3', '#ffd580', '#5b8cff', '#b46cff'];
+const odTurns = gauge => Math.min(gauge, 3);
 let chartData = null;
 let viewMode = 'timeline';
 try { viewMode = localStorage.getItem('chartViewMode') === 'table' ? 'table' : 'timeline'; } catch (e) {}
@@ -118,8 +120,8 @@ function turnInfo(t, normalIdx) {
   switch (t.turn_type) {
     case 'normal': return { main: `${normalIdx}ターン`, color: 'var(--text-primary)' };
     case 'extra': return { main: '追加ターン', color: '#7ecfff' };
-    case 'od_pre': return { main: `OD ${t.od_index}/${t.od_total}`, sub: 'ターン前', color: OD_COLORS[t.od_total] || '#ff9ec4' };
-    case 'od_post': return { main: `OD ${t.od_index}/${t.od_total}`, sub: 'ターン後', color: OD_COLORS[t.od_total] || '#ff9ec4' };
+    case 'od_pre': return { main: `OD ${t.od_index}/${odTurns(t.od_total)}`, sub: `${t.od_total}ゲージ・前`, color: OD_COLORS[t.od_total] || '#ff9ec4' };
+    case 'od_post': return { main: `OD ${t.od_index}/${odTurns(t.od_total)}`, sub: `${t.od_total}ゲージ・後`, color: OD_COLORS[t.od_total] || '#ff9ec4' };
     case 'special': return { main: '特殊技', color: '#e0aaff' };
   }
   return { main: '', color: 'var(--text-muted)' };
@@ -225,6 +227,7 @@ async function load() {
             <span class="attr-badge attr-${escHtml(data.attribute)} small">${t('attr.'+data.attribute)||data.attribute}</span>
             <h2 style="font-size:1.05rem;font-weight:bold;margin:0">${escHtml(data.title)}</h2>
             <span style="font-size:0.72rem;font-family:monospace;background:var(--bg-secondary);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--text-muted)">${escHtml(data.chart_code)}</span>
+            ${data.is_public ? '' : '<span class="draft-badge" title="自分だけに表示されています">下書き</span>'}
           </div>
           <div style="font-size:0.8rem;color:var(--text-muted)">
             ${escHtml(data.event_name)} &nbsp;·&nbsp;
