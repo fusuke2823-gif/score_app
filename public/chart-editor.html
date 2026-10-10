@@ -595,12 +595,21 @@ function addTurn(type) {
   pushTurn({ turn_type: type });
 }
 
+// ターン後のODは、通常ターンの後（間に追加ターンが挟まってもよい）だけ始められる
+// 例：通常→後OD、通常→追加→後OD はOK。先OD→追加→後OD はNG
+function canStartPostOD() {
+  for (let i = state.turns.length - 1; i >= 0; i--) {
+    const t = state.turns[i].turn_type;
+    if (t === 'special' || t === 'extra') continue;
+    return t === 'normal';
+  }
+  return false;
+}
+
 function addOD(type, total) {
   const od = odInProgress();
   if (od && (od.type !== type || od.total !== total)) return;
-  const lastType = getLastRealTurn()?.turn_type;
-  // 後OD開始は通常or追加ターンの直後のみ
-  if (!od && type === 'od_post' && lastType !== 'normal' && lastType !== 'extra') return;
+  if (!od && type === 'od_post' && !canStartPostOD()) return;
   pushTurn({ turn_type: type, od_index: od ? od.index + 1 : 1, od_total: total });
 }
 
@@ -625,8 +634,7 @@ function updateNextBtn() {
 
 function openAddSheet() {
   const od = odInProgress();
-  const lastType = getLastRealTurn()?.turn_type;
-  const postOk = lastType === 'normal' || lastType === 'extra';
+  const postOk = canStartPostOD();
   const odBtn = (type, total) => {
     const cont = od && od.type === type && od.total === total;
     const ok = cont || (!od && (type === 'od_pre' || postOk));
