@@ -41,10 +41,15 @@ function invalidTurns(turns) {
 
 // チャート一覧
 router.get('/', optionalAuth, async (req, res) => {
-  const { event_id, attribute, user_id, code, username, q } = req.query;
+  const { event_id, attribute, user_id, code, username, q, sort, favorites } = req.query;
   try {
     const conditions = [];
-    const params = [];
+    const params = [req.user?.id ?? null]; // $1 は見ている人（♡を付けたかどうか用）
+    // favorites=1：自分が♡を付けたチャート
+    if (favorites === '1') {
+      if (!req.user) return res.status(401).json({ error: 'ログインが必要です' });
+      conditions.push('EXISTS (SELECT 1 FROM chart_favorites f WHERE f.chart_id = c.id AND f.user_id = $1)');
+    }
     if (event_id) { params.push(event_id); conditions.push(`c.event_id = $${params.length}`); }
     if (attribute) { params.push(attribute); conditions.push(`c.attribute = $${params.length}`); }
     if (user_id) { params.push(user_id); conditions.push(`c.user_id = $${params.length}`); }
@@ -68,12 +73,14 @@ router.get('/', optionalAuth, async (req, res) => {
                  FROM chart_members cm
                  JOIN chart_characters cc ON cc.id = cm.character_id
                  JOIN chart_styles cs ON cs.id = cm.style_id
-                WHERE cm.chart_id = c.id) AS members
+                WHERE cm.chart_id = c.id) AS members,
+              (SELECT COUNT(*)::int FROM chart_favorites f WHERE f.chart_id = c.id) AS favorite_count,
+              EXISTS (SELECT 1 FROM chart_favorites f WHERE f.chart_id = c.id AND f.user_id = $1::int) AS favorited
        FROM charts c
        JOIN users u ON u.id = c.user_id
        JOIN events e ON e.id = c.event_id
        ${where}
-       ORDER BY e.event_number DESC, c.created_at DESC
+       ORDER BY e.event_number DESC, ${sort === 'popular' ? 'favorite_count DESC, ' : ''}c.created_at DESC
        LIMIT 200`,
       params
     );
@@ -131,8 +138,13 @@ router.get('/:id', optionalAuth, async (req, res) => {
       actionsByTurn[a.chart_turn_id].push(a);
     }
 
+    const fav = await pool.query(
+      `SELECT COUNT(*)::int AS n, COALESCE(BOOL_OR(user_id = $2::int), FALSE) AS mine FROM chart_favorites WHERE chart_id = $1`,
+      [chart.id, req.user?.id ?? null]);
     res.json({
       ...chart,
+      favorite_count: fav.rows[0].n,
+      favorited: fav.rows[0].mine,
       members: members.rows,
       turns: turns.rows.map(t => ({ ...t, actions: actionsByTurn[t.id] || [] })),
     });
@@ -264,6 +276,33 @@ router.delete('/:id', authenticateToken, async (req, res) => {
     );
     if (!result.rows.length) return res.status(404).json({ error: '見つかりません' });
     res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ♡を付ける（公開中の他人のチャートだけ）
+router.post('/:id/favorite', authenticateToken, async (req, res) => {
+  try {
+    const c = await pool.query('SELECT user_id, is_public FROM charts WHERE id=$1', [req.params.id]);
+    if (!c.rows.length || !c.rows[0].is_public) return res.status(404).json({ error: 'チャートが見つかりません' });
+    if (c.rows[0].user_id === req.user.id) return res.status(400).json({ error: '自分のチャートには付けられません' });
+    await pool.query('INSERT INTO chart_favorites (user_id, chart_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, req.params.id]);
+    const n = await pool.query('SELECT COUNT(*)::int AS n FROM chart_favorites WHERE chart_id=$1', [req.params.id]);
+    res.json({ favorited: true, favorite_count: n.rows[0].n });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ♡を外す
+router.delete('/:id/favorite', authenticateToken, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM chart_favorites WHERE user_id=$1 AND chart_id=$2', [req.user.id, req.params.id]);
+    const n = await pool.query('SELECT COUNT(*)::int AS n FROM chart_favorites WHERE chart_id=$1', [req.params.id]);
+    res.json({ favorited: false, favorite_count: n.rows[0].n });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

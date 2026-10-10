@@ -12,7 +12,7 @@ const _i18n = {
     'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.empty':'お知らせはまだありません',
     'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
     'chart.board':'チャート掲示板','chart.all_events':'全イベント',
-    'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索','chart.search_any':'ID・タイトル・ユーザー名で検索','chart.turns':'{n}行','chart.draft':'下書き',
+    'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索','chart.search_any':'ID・タイトル・ユーザー名で検索','chart.turns':'{n}行','chart.draft':'下書き','chart.sort_new':'新しい順','chart.sort_popular':'人気順','chart.tab_mine':'作ったチャート','chart.tab_fav':'お気に入り','chart.no_favs':'お気に入りはまだありません。チャートの♡を押すとここに入ります',
     'chart.search':'検索','chart.reset':'リセット',
     'chart.no_charts':'チャートがありません',
     'chart.edit':'編集','chart.delete':'削除','chart.delete_confirm':'このチャートを削除しますか？',
@@ -185,7 +185,7 @@ const _i18n = {
     'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.empty':'目前沒有公告',
     'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
     'chart.board':'攻略圖表看板','chart.all_events':'全部活動',
-    'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名','chart.search_any':'以ID・標題・用戶名搜尋','chart.turns':'{n}行','chart.draft':'草稿',
+    'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名','chart.search_any':'以ID・標題・用戶名搜尋','chart.turns':'{n}行','chart.draft':'草稿','chart.sort_new':'最新','chart.sort_popular':'人氣','chart.tab_mine':'我的圖表','chart.tab_fav':'收藏','chart.no_favs':'尚無收藏。按下圖表的♡即可加入',
     'chart.search':'搜尋','chart.reset':'重置',
     'chart.no_charts':'沒有攻略圖表',
     'chart.edit':'編輯','chart.delete':'刪除','chart.delete_confirm':'確定刪除此攻略圖表？',
@@ -469,6 +469,11 @@ function chartIconUrl(url, size = 96) {
   return url.replace(/\/upload\/(?:[^/]+\/)?(v\d+\/)/, `/upload/q_auto,f_auto,w_${size},h_${size},c_fill/$1`);
 }
 
+// チャートのお気に入り（♡）のアイコン
+function heartSvg(filled, size = 14) {
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.4 1.1 5 3 1.6-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>`;
+}
+
 // チャートのカード（掲示板・マイチャートで共通）。actions を渡すとカード右下にボタンを置く
 function chartCardHTML(c, { actions = '', showDraft = false } = {}) {
   const ATTR_COLOR = { '火': 'var(--fire)', '氷': 'var(--ice)', '雷': 'var(--thunder)', '光': 'var(--light)', '闇': 'var(--dark)', '無': 'var(--none)' };
@@ -497,7 +502,7 @@ function chartCardHTML(c, { actions = '', showDraft = false } = {}) {
         <span class="user">${escHtml(c.username)}</span>
         <span>${new Date(c.created_at).toLocaleDateString('ja-JP')}</span>
         <span>${t('chart.turns').replace('{n}', c.turn_count || 0)}</span>
-        ${c.description ? `<span class="desc">${escHtml(c.description)}</span>` : ''}
+        ${c.is_public ? `<span class="chart-fav${c.favorited ? ' on' : ''}">${heartSvg(c.favorited, 12)}${c.favorite_count || 0}</span>` : ''}
         ${actions ? `<span class="chart-card-actions">${actions}</span>` : ''}
       </div>
     </div>`;

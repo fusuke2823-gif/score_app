@@ -6,6 +6,12 @@
 <title>チャート - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+.fav-btn { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-muted); font:inherit; font-size:0.82rem; cursor:pointer; transition:color 0.15s, border-color 0.15s; }
+.fav-btn:hover:not(:disabled) { color:#ff6b9a; border-color:#ff6b9a88; }
+.fav-btn.on { color:#ff6b9a; border-color:#ff6b9a88; background:rgba(255,107,154,0.1); }
+.fav-btn:disabled { cursor:default; }
+.fav-btn.pop svg { animation:favPop 0.3s ease-out; }
+@keyframes favPop { 50% { transform:scale(1.35); } }
 .draft-badge { font-size:0.7rem; color:#ffd580; border:1px solid #ffd58088; border-radius:4px; padding:1px 6px; }
 /* メンバー（スロットごとの色で、タイムラインの行と対応させる） */
 .cv-members { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:14px 0 16px; }
@@ -235,7 +241,7 @@ async function load() {
             &nbsp;·&nbsp; ${new Date(data.created_at).toLocaleDateString('ja-JP')}
           </div>
         </div>
-        <div style="display:flex;gap:6px">${ownerBtns}</div>
+        <div style="display:flex;gap:6px;align-items:center">${data.is_public ? favBtnHTML(data, isOwner) : ''}${ownerBtns}</div>
       </div>
       ${data.description ? `<div style="font-size:0.84rem;margin-top:10px;padding:8px 12px;border-left:3px solid var(--border);color:var(--text-muted);white-space:pre-wrap">${escHtml(data.description)}</div>` : ''}
 
@@ -254,6 +260,25 @@ async function load() {
   } catch(e) {
     el.innerHTML = `<div class="alert alert-error" style="margin-top:16px">${escHtml(e.message)}</div>`;
   }
+}
+
+function favBtnHTML(data, isOwner) {
+  const title = isOwner ? '自分のチャートには付けられません' : (data.favorited ? 'お気に入りから外す' : 'お気に入りに入れる');
+  return `<button class="fav-btn${data.favorited ? ' on' : ''}" id="fav-btn" title="${title}" aria-label="${title}" aria-pressed="${data.favorited}" ${isOwner ? 'disabled' : `onclick="toggleFavorite()"`}>${heartSvg(data.favorited, 16)}<span>${data.favorite_count || 0}</span></button>`;
+}
+
+let favBusy = false;
+async function toggleFavorite() {
+  if (favBusy) return;
+  favBusy = true;
+  try {
+    const r = await apiFetch(`/charts/${chartData.id}/favorite`, { method: chartData.favorited ? 'DELETE' : 'POST' });
+    Object.assign(chartData, r);
+    const btn = document.getElementById('fav-btn');
+    btn.outerHTML = favBtnHTML(chartData, false);
+    if (r.favorited) document.getElementById('fav-btn').classList.add('pop');
+  } catch (e) { showMessage(e.message); }
+  finally { favBusy = false; }
 }
 
 async function deleteChart(id) {

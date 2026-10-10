@@ -674,6 +674,15 @@ const initDB = async () => {
       -- 非公開（下書き）のチャートは作った本人にしか見えない
       ALTER TABLE charts ADD COLUMN IF NOT EXISTS is_public BOOLEAN NOT NULL DEFAULT FALSE;
 
+      -- チャートのお気に入り（♡）
+      CREATE TABLE IF NOT EXISTS chart_favorites (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        chart_id INTEGER NOT NULL REFERENCES charts(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (user_id, chart_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_chart_favorites_chart ON chart_favorites(chart_id);
+
       CREATE TABLE IF NOT EXISTS chart_members (
         id SERIAL PRIMARY KEY,
         chart_id INTEGER REFERENCES charts(id) ON DELETE CASCADE,
