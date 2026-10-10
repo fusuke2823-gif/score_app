@@ -1996,9 +1996,27 @@ router.post('/pending-videos/:id/reject', async (req, res) => {
 // ---- チャートゲームデータ管理 ----
 
 // 戻り値は { line: CSV上の行番号, cols: 列の配列 }（ヘッダ行は除く）
+// 1\u884C\u3092\u5217\u306B\u5206\u3051\u308B\uFF08"..." \u3067\u56F2\u3093\u3060\u5217\u306F\u30AB\u30F3\u30DE\u3092\u542B\u3081\u3089\u308C\u308B\u3002"" \u306F " 1\u6587\u5B57\uFF09
+function splitCSVLine(text) {
+  const cols = [];
+  let cur = '', quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cur += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { cols.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  cols.push(cur);
+  return cols.map(s => s.trim());
+}
+
 function parseCSVBuffer(buf) {
   return buf.toString('utf-8').replace(/^\uFEFF/, '').split('\n')
-    .map((text, i) => ({ line: i + 1, cols: text.split(',').map(s => s.trim()) }))
+    .map((text, i) => ({ line: i + 1, cols: splitCSVLine(text) }))
     .slice(1)
     .filter(r => r.cols.some(Boolean));
 }
@@ -2039,6 +2057,38 @@ router.get('/chart-data/stats', async (req, res) => {
       skills: parseInt(skills.rows[0].count),
     });
   } catch (err) { res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+// チャート用アイコン（キャラごとに1枚）
+router.get('/chart-data/characters', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT id, name, abbreviation, sort_order, icon_url FROM chart_characters ORDER BY sort_order, name');
+    res.json(r.rows);
+  } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.post('/chart-data/characters/:id/icon', upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: '画像ファイルが必要です' });
+  try {
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream({ folder: 'hbr-ranking/chart-icons', resource_type: 'image' }, (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        })
+        .end(req.file.buffer);
+    });
+    const r = await pool.query('UPDATE chart_characters SET icon_url=$1 WHERE id=$2 RETURNING id', [uploadResult.secure_url, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: 'キャラが見つかりません' });
+    res.json({ icon_url: uploadResult.secure_url });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
+});
+
+router.delete('/chart-data/characters/:id/icon', async (req, res) => {
+  try {
+    await pool.query('UPDATE chart_characters SET icon_url=NULL WHERE id=$1', [req.params.id]);
+    res.json({ message: '削除しました' });
+  } catch (err) { console.error(err); res.status(500).json({ error: 'サーバーエラー' }); }
 });
 
 router.post('/chart-data/import-characters', upload.single('csv'), async (req, res) => {

@@ -463,6 +463,12 @@ function thumbUrl(url) {
   return url.replace(/\/upload\/[^/]+\//, '/upload/q_60,f_auto,w_300,c_limit/');
 }
 
+// チャート用アイコン（正方形に切り抜いた小さい画像）
+function chartIconUrl(url, size = 96) {
+  if (!url || !url.includes('res.cloudinary.com')) return url;
+  return url.replace(/\/upload\/(?:[^/]+\/)?(v\d+\/)/, `/upload/q_auto,f_auto,w_${size},h_${size},c_fill/$1`);
+}
+
 function mediumUrl(url) {
   if (!url || !url.includes('res.cloudinary.com')) return url;
   return url.replace(/\/upload\/[^/]+\//, '/upload/q_auto,f_auto,w_640,c_limit/');

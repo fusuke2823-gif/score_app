@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>チャートデータ管理 - HBR管理</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:8px; }
+.icon-tile { position:relative; text-align:center; cursor:pointer; border:1px solid var(--border); border-radius:8px; padding:6px 4px; background:var(--bg-secondary); }
+.icon-tile:hover { border-color:var(--accent); }
+.icon-tile img, .icon-tile .ph { width:52px; height:52px; border-radius:20%; object-fit:cover; display:block; margin:0 auto 4px; }
+.icon-tile .ph { border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:var(--text-muted); }
+.icon-tile .nm { font-size:0.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.icon-tile .rm { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#e57373; font-size:0.7rem; line-height:18px; padding:0; cursor:pointer; display:none; }
+.icon-tile:hover .rm { display:block; }
+@media (hover:none) { .icon-tile .rm { display:block; } }
+.icon-tile.busy { opacity:0.5; pointer-events:none; }
+</style>
 </head>
 <body>
 <nav id="nav"></nav>
@@ -37,6 +49,19 @@
         <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">インポート</button>
       </div>
       <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('characters','キャラクター')">キャラクターを全削除</button>
+    </div>
+
+    <!-- チャート用アイコン -->
+    <div class="card" style="padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <div style="font-weight:bold">チャート用アイコン <span id="icon-count" style="font-weight:normal;font-size:0.8rem;color:var(--text-muted)"></span></div>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer">まとめてアップロード
+          <input type="file" accept="image/*" multiple style="display:none" onchange="bulkIcons(this)">
+        </label>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">キャラを押して画像を選ぶと差し替えます。正方形（顔が中央）の画像を推奨。まとめてアップロードはファイル名をキャラ名か略称にしてください（例：茅森月歌.png）</div>
+      <div id="icon-grid" class="icon-grid"></div>
+      <input type="file" id="icon-one" accept="image/*" style="display:none">
     </div>
 
     <!-- スタイル -->
@@ -109,7 +134,78 @@ async function deleteData(type, label) {
   } catch (e) { showAlert('#alert', e.message); }
 }
 
+let chars = [];
+
+async function loadIcons() {
+  try {
+    chars = await apiFetch('/admin/chart-data/characters');
+    renderIcons();
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+function renderIcons() {
+  document.getElementById('icon-count').textContent = `${chars.filter(c => c.icon_url).length} / ${chars.length}`;
+  document.getElementById('icon-grid').innerHTML = chars.map(c => `
+    <div class="icon-tile" id="icon-${c.id}" onclick="pickIcon(${c.id})" title="${escHtml(c.name)}">
+      ${c.icon_url ? `<img src="${escHtml(chartIconUrl(c.icon_url))}" alt="">` : '<div class="ph">未設定</div>'}
+      <div class="nm">${escHtml(c.abbreviation || c.name)}</div>
+      ${c.icon_url ? `<button class="rm" onclick="event.stopPropagation();removeIcon(${c.id})" title="アイコンを外す">×</button>` : ''}
+    </div>`).join('');
+}
+
+function pickIcon(id) {
+  const input = document.getElementById('icon-one');
+  input.value = '';
+  input.onchange = () => { if (input.files[0]) uploadIcon(id, input.files[0]).then(renderIcons); };
+  input.click();
+}
+
+async function uploadIcon(id, file) {
+  document.getElementById('icon-' + id)?.classList.add('busy');
+  const fd = new FormData();
+  fd.append('image', file);
+  try {
+    const r = await apiFormFetch(`/admin/chart-data/characters/${id}/icon`, fd);
+    chars.find(c => c.id === id).icon_url = r.icon_url;
+    return true;
+  } catch (e) {
+    showAlert('#alert', `${chars.find(c => c.id === id)?.name}: ${e.message}`);
+    return false;
+  } finally {
+    document.getElementById('icon-' + id)?.classList.remove('busy');
+  }
+}
+
+async function removeIcon(id) {
+  const c = chars.find(c => c.id === id);
+  if (!await showConfirm(`${c.name} のアイコンを外しますか？`, { danger: true })) return;
+  try {
+    await apiFetch(`/admin/chart-data/characters/${id}/icon`, { method: 'DELETE' });
+    c.icon_url = null;
+    renderIcons();
+  } catch (e) { showAlert('#alert', e.message); }
+}
+
+// ファイル名（拡張子なし）をキャラ名か略称に合わせる
+async function bulkIcons(input) {
+  const files = [...input.files];
+  input.value = '';
+  const norm = s => (s || '').normalize('NFKC').replace(/\s/g, '');
+  const unmatched = [];
+  let ok = 0;
+  for (const f of files) {
+    const base = norm(f.name.replace(/\.[^.]+$/, ''));
+    const c = chars.find(c => norm(c.name) === base) || chars.find(c => norm(c.abbreviation) === base);
+    if (!c) { unmatched.push(f.name); continue; }
+    if (await uploadIcon(c.id, f)) ok++;
+    renderIcons();
+  }
+  showAlert('#alert', `${ok}件アップロードしました` + (unmatched.length ? `\nキャラが見つからないファイル: ${unmatched.join('、')}` : ''), unmatched.length ? 'error' : 'success');
+  document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
+}
+
 loadStats();
+loadIcons();
 </script>
 </body>
 </html>
