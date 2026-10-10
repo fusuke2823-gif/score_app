@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
 /* 背景の絵が透けて文字が読みにくいので、このページの面は不透明に近くする */
-main { --cv-surface:rgba(16,15,32,0.92); --cv-sub:#a6a6c4; }
+main { --cv-surface:rgba(16,15,32,0.8); --cv-sub:#a6a6c4; }
 .fav-btn { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:16px; border:1px solid var(--border); background:var(--bg-card); color:var(--text-muted); font:inherit; font-size:0.82rem; cursor:pointer; transition:color 0.15s, border-color 0.15s; }
 .fav-btn:hover:not(:disabled) { color:#ff6b9a; border-color:#ff6b9a88; }
 .fav-btn.on { color:#ff6b9a; border-color:#ff6b9a88; background:rgba(255,107,154,0.1); }
@@ -115,7 +115,7 @@ main { --cv-surface:rgba(16,15,32,0.92); --cv-sub:#a6a6c4; }
 .chart-table td { border-bottom:1px solid rgba(255,255,255,0.07); border-right:1px solid rgba(255,255,255,0.07); padding:7px 8px; vertical-align:middle; }
 .chart-table tr:last-child td { border-bottom:none; }
 .chart-table tr > :last-child { border-right:none; }
-.chart-table tr > :first-child { position:sticky; left:0; background:#14132a; z-index:1; border-right:1px solid var(--border); }
+.chart-table tr > :first-child { position:sticky; left:0; background:rgba(20,19,42,0.94); z-index:1; border-right:1px solid var(--border); }
 .turn-label { font-size:0.76rem; font-weight:bold; text-align:center; color:var(--tc); }
 .action-cell { position:relative; text-align:center; font-size:0.84rem; height:44px; line-height:1.35; }
 .action-cell .cv-order { position:absolute; top:50%; left:5px; transform:translateY(-50%); }
