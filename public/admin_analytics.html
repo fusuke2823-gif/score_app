@@ -89,7 +89,7 @@
     <div class="loading"><div class="spinner"></div></div>
   </div>
 
-  <div class="view-tabs">
+  <div class="view-tabs" id="view-tabs">
     <button class="view-tab active" onclick="switchView('daily')">日別</button>
     <button class="view-tab" onclick="switchView('weekly')">週間</button>
     <button class="view-tab" onclick="switchView('monthly')">月間</button>
@@ -102,6 +102,11 @@
     <div id="unit-toggle" class="unit-toggle" style="display:none">
       <button class="active" onclick="setUnit('u')">人数</button>
       <button onclick="setUnit('h')">回数</button>
+    </div>
+    <div id="pt-unit-toggle" class="unit-toggle" style="display:none">
+      <button class="active" onclick="setPtUnit('p')">ポイント</button>
+      <button onclick="setPtUnit('h')">回数</button>
+      <button onclick="setPtUnit('u')">人数</button>
     </div>
     <div id="cumulative-toggle" class="unit-toggle" style="display:none">
       <button class="active" onclick="setCumulative(false)">期間ごと</button>
@@ -123,6 +128,17 @@ let currentView = 'daily';
 let selectedMetric = '';
 let selectedUnit = 'u';
 let selectedCumulative = false;
+let selectedPtUnit = 'p';
+
+// ポイントの集計項目（キーはサーバーの routes/analytics.js と合わせる）
+const POINT_METRICS = [
+  ['gacha', 'ガチャのポイント消費（通常＋討伐）'],
+  ['gacha_normal', '通常ガチャのポイント消費'],
+  ['gacha_special', '討伐ガチャのポイント消費'],
+  ['shop', 'ショップのポイント消費'],
+  ['earn', 'ポイントの獲得（配布・ボーナスなど）'],
+];
+const isPointMetric = m => m.startsWith('__pt_');
 let visibleSeries = { int: true, ext: true, tot: true };
 
 function toggleSeriesVisibility(key) {
@@ -158,7 +174,8 @@ function setRangePreset(preset) {
   document.querySelectorAll('#range-presets .view-tab').forEach((b, i) => {
     b.classList.toggle('active', ['3m', '6m', '1y', 'all'][i] === preset);
   });
-  const end = isoDate(new Date());
+  // 今日はまだ途中で数字が小さく出るので、期間の終わりは昨日にする
+  const end = isoDate(new Date(Date.now() - 86400000));
   let start;
   if (preset === 'all') {
     start = 'all';
@@ -233,11 +250,16 @@ async function load(start, end) {
 
 function renderMetricOptions() {
   const sel = document.getElementById('metric-select');
-  const keepSelection = selectedMetric && (selectedMetric === '__newusers__' || allPages.includes(selectedMetric));
+  const keepSelection = selectedMetric && (selectedMetric === '__newusers__' || isPointMetric(selectedMetric) || allPages.includes(selectedMetric));
   sel.innerHTML = `
     <option value="">集計項目を選択してください</option>
     <option value="__newusers__">新規登録</option>
-    ${allPages.map(p => `<option value="${escHtml(p)}">${escHtml(pageLabel(p))}のページビュー</option>`).join('')}
+    <optgroup label="ポイント">
+      ${POINT_METRICS.map(([k, label]) => `<option value="__pt_${k}">${label}</option>`).join('')}
+    </optgroup>
+    <optgroup label="ページビュー">
+      ${allPages.map(p => `<option value="${escHtml(p)}">${escHtml(pageLabel(p))}のページビュー</option>`).join('')}
+    </optgroup>
   `;
   sel.value = keepSelection ? selectedMetric : '';
   if (!keepSelection) selectedMetric = '';
@@ -246,7 +268,9 @@ function renderMetricOptions() {
 function onMetricChange() {
   selectedMetric = document.getElementById('metric-select').value;
   const isNewUsers = selectedMetric === '__newusers__';
-  document.getElementById('unit-toggle').style.display = (selectedMetric && !isNewUsers) ? 'flex' : 'none';
+  const isPt = isPointMetric(selectedMetric);
+  document.getElementById('unit-toggle').style.display = (selectedMetric && !isNewUsers && !isPt) ? 'flex' : 'none';
+  document.getElementById('pt-unit-toggle').style.display = isPt ? 'flex' : 'none';
   document.getElementById('cumulative-toggle').style.display = isNewUsers ? 'flex' : 'none';
   renderMetric();
 }
@@ -255,6 +279,14 @@ function setCumulative(v) {
   selectedCumulative = v;
   document.querySelectorAll('#cumulative-toggle button').forEach((b, i) => {
     b.classList.toggle('active', [false, true][i] === v);
+  });
+  renderMetric();
+}
+
+function setPtUnit(u) {
+  selectedPtUnit = u;
+  document.querySelectorAll('#pt-unit-toggle button').forEach((b, i) => {
+    b.classList.toggle('active', ['p', 'h', 'u'][i] === u);
   });
   renderMetric();
 }
@@ -269,7 +301,7 @@ function setUnit(u) {
 
 function switchView(view) {
   currentView = view;
-  document.querySelectorAll('.view-tab').forEach((b, i) => {
+  document.querySelectorAll('#view-tabs .view-tab').forEach((b, i) => {
     b.classList.toggle('active', ['daily','weekly','monthly'][i] === view);
   });
   renderMetric();
@@ -338,6 +370,22 @@ function buildMetricSeries() {
       series: SERIES_DEFS.map(sd => ({
         ...sd,
         values: periods.map(p => get(p, `new_${sd.key}`)),
+      })),
+    };
+  }
+
+  if (isPointMetric(selectedMetric)) {
+    const metric = selectedMetric.slice('__pt_'.length);
+    const ptMap = new Map(((data.points || {})[currentView] || []).map(r => [periodKey(r.period), r]));
+    const k = { int: `i${selectedPtUnit}`, ext: `e${selectedPtUnit}`, tot: `t${selectedPtUnit}` };
+    return {
+      labels,
+      series: SERIES_DEFS.map(sd => ({
+        ...sd,
+        values: periods.map(p => {
+          const m = (ptMap.get(periodKey(p.toISOString())) || { metrics: {} }).metrics[metric];
+          return m ? (m[k[sd.key]] || 0) : 0;
+        }),
       })),
     };
   }
@@ -438,7 +486,8 @@ function renderLineChart(container, labels, series) {
   const labelStep = Math.max(1, Math.ceil(n / 9));
   let xLabelsSvg = '';
   labels.forEach((lb, i) => {
-    if (i % labelStep !== 0 && i !== n - 1) return;
+    // 最後のラベルは、直前に出したラベルと近すぎるときは出さない（重なり防止）
+    if (i % labelStep !== 0 && !(i === n - 1 && (n - 1) % labelStep >= Math.ceil(labelStep / 2))) return;
     xLabelsSvg += `<text x="${x(i).toFixed(1)}" y="${H - padB + 16}" text-anchor="middle" font-size="10" fill="#8888aa">${escHtml(lb)}</text>`;
   });
 
@@ -511,7 +560,7 @@ function renderLineChart(container, labels, series) {
   hit.addEventListener('touchend', handleLeave);
 }
 
-load();
+setRangePreset('3m');
 </script>
 </body>
 </html>

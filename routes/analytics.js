@@ -47,6 +47,53 @@ async function getNewUsers(trunc, start, end, excludeAdmin) {
   `, [trunc, start, end]);
 }
 
+// ポイントの増減（point_history）を項目ごとに集計する。1つの記録が複数の項目に入ることがある（通常ガチャ→ガチャ合計にも入る）
+// u：人数、h：回数、p：ポイント量（消費の項目は使った量を正の数で）
+const POINT_METRICS = `
+  CASE
+    WHEN ph.reason IN ('ガチャ（単発）', 'ガチャ（10連）') THEN ARRAY['gacha', 'gacha_normal']
+    WHEN ph.reason LIKE '討伐ガチャ%' AND ph.amount < 0 THEN ARRAY['gacha', 'gacha_special']
+    WHEN ph.reason LIKE '称号購入:%' OR ph.reason LIKE 'フレーム購入:%' THEN ARRAY['shop']
+    WHEN ph.amount > 0 THEN ARRAY['earn']
+    ELSE ARRAY[]::text[]
+  END`;
+async function getPointData(trunc, start, end, excludeAdmin) {
+  return pool.query(`
+    SELECT
+      to_char(DATE_TRUNC($1, ph.created_at), 'YYYY-MM-DD') AS period,
+      m.metric,
+      u.is_internal,
+      COUNT(DISTINCT ph.user_id) AS u,
+      COUNT(*) AS h,
+      SUM(ABS(ph.amount)) AS p
+    FROM point_history ph
+    JOIN users u ON u.id = ph.user_id ${excludeAdmin ? "AND u.role != 'admin'" : ''}
+    CROSS JOIN LATERAL unnest(${POINT_METRICS}) AS m(metric)
+    WHERE ph.created_at >= $2 AND ph.created_at < $3
+    GROUP BY 1, 2, 3 ORDER BY 1, 2
+  `, [trunc, start, end]);
+}
+
+// 期間ごと・項目ごとに内部／外部／合計をまとめる
+function mergePoints(rows) {
+  const map = new Map();
+  for (const r of rows) {
+    if (!map.has(r.period)) map.set(r.period, { period: r.period, metrics: {} });
+    const e = map.get(r.period);
+    if (!e.metrics[r.metric]) e.metrics[r.metric] = { iu: 0, eu: 0, tu: 0, ih: 0, eh: 0, th: 0, ip: 0, ep: 0, tp: 0 };
+    const t = e.metrics[r.metric];
+    const u = +r.u, h = +r.h, pt = +r.p;
+    if (r.is_internal) { t.iu += u; t.ih += h; t.ip += pt; } else { t.eu += u; t.eh += h; t.ep += pt; }
+    t.th += h; t.tp += pt;
+  }
+  return [...map.values()];
+}
+// 合計の人数は内部＋外部の単純な足し算でよい（1人は内部か外部のどちらか）
+function finishPoints(list) {
+  for (const e of list) for (const t of Object.values(e.metrics)) t.tu = t.iu + t.eu;
+  return list;
+}
+
 function merge(pvRows, newRows) {
   const map = new Map();
   const key = r => r.period instanceof Date ? r.period.toISOString() : String(r.period);
@@ -96,7 +143,7 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
 
     const excludeAdmin = req.query.excludeAdmin === '1';
 
-    const [users, baseline, dpv, dn, wpv, wn, mpv, mn] = await Promise.all([
+    const [users, baseline, dpv, dn, wpv, wn, mpv, mn, dpt, wpt, mpt] = await Promise.all([
       pool.query(`
         SELECT
           COUNT(*) FILTER (WHERE is_internal = TRUE)  AS int_n,
@@ -121,6 +168,9 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
       getNewUsers('week',  start, end, excludeAdmin),
       getPVData('month', start, end, excludeAdmin),
       getNewUsers('month', start, end, excludeAdmin),
+      getPointData('day',   start, end, excludeAdmin),
+      getPointData('week',  start, end, excludeAdmin),
+      getPointData('month', start, end, excludeAdmin),
     ]);
 
     const displayEnd = new Date(end);
@@ -133,6 +183,11 @@ router.get('/summary', authenticateToken, requireAdmin, async (req, res) => {
       daily:   merge(dpv.rows, dn.rows),
       weekly:  merge(wpv.rows, wn.rows),
       monthly: merge(mpv.rows, mn.rows),
+      points: {
+        daily:   finishPoints(mergePoints(dpt.rows)),
+        weekly:  finishPoints(mergePoints(wpt.rows)),
+        monthly: finishPoints(mergePoints(mpt.rows)),
+      },
     });
   } catch (err) {
     console.error(err);
