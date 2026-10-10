@@ -642,7 +642,7 @@ function openAddSheet() {
   document.getElementById('add-sheet-body').innerHTML = `
     ${od ? `<div class="add-sec-title" style="color:var(--accent);margin-bottom:12px">OD（${od.total}ゲージ）の途中です。続きは下の「OD ${od.index + 1}/${odTurns(od.total)}」で追加できます</div>` : ''}
     <div class="add-sec"><div class="add-sec-title">OD（ターン前に発動）</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_pre', k + 1)).join('')}</div></div>
-    <div class="add-sec"><div class="add-sec-title">OD（ターン後に発動）${!od && !postOk ? '<span style="margin-left:6px">…通常ターンか追加ターンの後に追加できます</span>' : ''}</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_post', k + 1)).join('')}</div></div>
+    <div class="add-sec"><div class="add-sec-title">OD（ターン後に発動）</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_post', k + 1)).join('')}</div></div>
     ${specials.length ? `<div class="add-sec"><div class="add-sec-title">特殊技</div><div class="add-btns">${specials.join('')}</div></div>` : ''}`;
   openSheet('add-sheet');
 }
