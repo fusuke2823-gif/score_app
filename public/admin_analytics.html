@@ -467,10 +467,12 @@ function renderLineChart(container, labels, series) {
     return;
   }
 
-  const W = 760, H = 260, padL = 46, padR = 16, padT = 16, padB = 30;
-  const plotW = W - padL - padR, plotH = H - padT - padB;
   const n = labels.length;
   const maxV = niceCeil(Math.max(1, ...visible.flatMap(s => s.values)));
+  // 縦軸の数字（最大値がいちばん長い）が切れないよう、左の余白を桁数に合わせる
+  const W = 760, H = 260, padR = 16, padT = 16, padB = 30;
+  const padL = Math.max(46, Math.round(Math.round(maxV).toLocaleString().length * 6.2) + 14);
+  const plotW = W - padL - padR, plotH = H - padT - padB;
   const x = i => n <= 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
   const y = v => padT + plotH - (v / maxV) * plotH;
 
