@@ -60,6 +60,19 @@
 /* 全員アイコンありなら顔だけ出して技名を広く取る */
 .cv-tl.faces .cv-act { grid-template-columns:16px 28px 1fr; gap:8px; }
 .cv-act + .cv-act { border-top:1px solid var(--border); }
+.cv-turn-label .lbl-short { display:none; }
+/* スマホ：見出しを短くして技名の幅を広げる */
+@media (max-width:600px) {
+  .cv-turn { grid-template-columns:46px 1fr; gap:6px; }
+  .cv-tl::before { left:23px; }
+  .cv-turn-label { font-size:0.7rem; padding:4px 1px; letter-spacing:-0.02em; }
+  .cv-turn-label small { font-size:0.58rem; }
+  .cv-turn-label .lbl-full { display:none; }
+  .cv-turn-label .lbl-short { display:block; }
+  .cv-act { grid-template-columns:12px 72px 1fr; gap:5px; padding:5px 8px; }
+  .cv-tl.faces .cv-act { grid-template-columns:12px 26px 1fr; gap:7px; }
+  .cv-target { margin-left:4px; }
+}
 .cv-order { color:var(--accent); font-size:0.8rem; text-align:center; }
 .cv-who { display:flex; align-items:center; gap:5px; font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; }
 .cv-who img { width:26px; height:26px; border-radius:20%; object-fit:cover; flex-shrink:0; }
@@ -124,11 +137,12 @@ try { viewMode = localStorage.getItem('chartViewMode') === 'table' ? 'table' : '
 // ターンの見出し（main は大きく出す部分、sub は補足）
 function turnInfo(t, normalIdx) {
   switch (t.turn_type) {
-    case 'normal': return { main: `${normalIdx}ターン`, color: 'var(--text-primary)' };
-    case 'extra': return { main: '追加ターン', color: '#7ecfff' };
-    case 'od_pre': return { main: `OD ${t.od_index}/${odTurns(t.od_total)}`, sub: `${t.od_total}ゲージ・前`, color: OD_COLORS[t.od_total] || '#ff9ec4' };
-    case 'od_post': return { main: `OD ${t.od_index}/${odTurns(t.od_total)}`, sub: `${t.od_total}ゲージ・後`, color: OD_COLORS[t.od_total] || '#ff9ec4' };
-    case 'special': return { main: '特殊技', color: '#e0aaff' };
+    // short / shortSub はスマホのリスト表示で使う短い表記
+    case 'normal': return { main: `${normalIdx}ターン`, short: `${normalIdx}T`, color: 'var(--text-primary)' };
+    case 'extra': return { main: '追加ターン', short: '追加', color: '#7ecfff' };
+    case 'od_pre': return { main: `OD ${t.od_index}/${odTurns(t.od_total)}`, sub: `${t.od_total}ゲージ・前`, short: `OD${t.od_index}/${odTurns(t.od_total)}`, shortSub: `${t.od_total}G前`, color: OD_COLORS[t.od_total] || '#ff9ec4' };
+    case 'od_post': return { main: `OD ${t.od_index}/${odTurns(t.od_total)}`, sub: `${t.od_total}ゲージ・後`, short: `OD${t.od_index}/${odTurns(t.od_total)}`, shortSub: `${t.od_total}G後`, color: OD_COLORS[t.od_total] || '#ff9ec4' };
+    case 'special': return { main: '特殊技', short: '特殊', color: '#e0aaff' };
   }
   return { main: '', color: 'var(--text-muted)' };
 }
@@ -161,7 +175,10 @@ function renderTimeline() {
       </div>`;
     }).join('');
     return `<div class="cv-turn">
-      <div class="cv-turn-label" style="--tc:${info.color}">${info.main}${info.sub ? `<small>${info.sub}</small>` : ''}</div>
+      <div class="cv-turn-label" style="--tc:${info.color}" title="${info.main}${info.sub ? `（${info.sub}）` : ''}">
+        <span class="lbl-full">${info.main}${info.sub ? `<small>${info.sub}</small>` : ''}</span>
+        <span class="lbl-short">${info.short || info.main}${info.shortSub ? `<small>${info.shortSub}</small>` : ''}</span>
+      </div>
       <div class="cv-acts">${acts || '<div class="cv-empty">行動なし</div>'}</div>
     </div>`;
   }).join('');
@@ -250,7 +267,7 @@ async function load() {
       <div class="cv-bar">
         <span class="cv-bar-title">チャート（${data.turns.length}行）</span>
         <span class="cv-seg">
-          <button data-mode="timeline" onclick="setViewMode('timeline')">ターン順</button>
+          <button data-mode="timeline" onclick="setViewMode('timeline')">リスト</button>
           <button data-mode="table" onclick="setViewMode('table')">表</button>
         </span>
       </div>
