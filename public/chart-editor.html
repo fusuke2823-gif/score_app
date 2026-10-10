@@ -7,7 +7,9 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
 .section-label { font-size:0.82rem; font-weight:bold; color:var(--text-muted); margin:22px 0 8px; display:flex; align-items:center; gap:8px; }
-.pub-row { display:flex; align-items:center; gap:12px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); cursor:pointer; }
+.pub-line { display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+.pub-line #save-btn { margin-left:auto; flex-shrink:0; white-space:nowrap; }
+.pub-row { display:flex; align-items:center; gap:12px; cursor:pointer; min-width:0; }
 .pub-row input { display:none; }
 .pub-switch { width:40px; height:22px; border-radius:11px; background:var(--bg-secondary); border:1px solid var(--border); position:relative; flex-shrink:0; transition:background 0.15s; }
 .pub-switch::after { content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--text-muted); transition:transform 0.15s, background 0.15s; }
@@ -85,8 +87,13 @@
 /* 下の固定バー */
 .ce-bar { position:sticky; bottom:0; z-index:50; margin:16px -16px 0; padding:10px 16px calc(10px + env(safe-area-inset-bottom)); display:flex; gap:8px;
   background:rgba(12,11,24,0.88); backdrop-filter:blur(8px); border-top:1px solid var(--border); }
-.ce-bar .btn { flex:1; justify-content:center; text-align:center; white-space:nowrap; padding-left:8px; padding-right:8px; min-width:0; }
-.ce-bar .ce-add { flex:1.4; }
+.ce-bar .btn { flex:1; justify-content:center; text-align:center; white-space:nowrap; padding-left:6px; padding-right:6px; min-width:0; font-size:0.84rem; }
+#next-btn.od { color:var(--tc); border-color:var(--tc); }
+#extra-btn { color:#7ecfff; }
+/* 上の保存ボタンが見えないときだけ、下のバーの上に出す */
+.ce-float-save { position:sticky; bottom:calc(66px + env(safe-area-inset-bottom)); z-index:51; float:right; margin:0 0 -40px; padding:7px 16px; border-radius:20px; font-size:0.84rem;
+  box-shadow:0 4px 14px rgba(0,0,0,0.45); opacity:0; transform:translateY(8px); pointer-events:none; transition:opacity 0.15s, transform 0.15s; }
+.ce-float-save.show { opacity:1; transform:none; pointer-events:auto; }
 
 /* シート（スマホは下から、PCは中央） */
 .sheet { display:none; position:fixed; inset:0; z-index:600; background:rgba(0,0,0,0.6); }
@@ -153,7 +160,6 @@
 .add-btn { padding:8px 14px; border-radius:8px; border:1px solid var(--tc, var(--border)); color:var(--tc, var(--text-primary)); background:var(--bg-secondary); cursor:pointer; font:inherit; font-size:0.84rem; }
 .add-btns.od { display:grid; grid-template-columns:repeat(5,1fr); }
 .add-btns.od .add-btn { padding:8px 2px; font-size:0.8rem; white-space:nowrap; }
-.add-btn.add-cont { width:100%; padding:11px; font-weight:bold; background:color-mix(in srgb, var(--tc) 14%, var(--bg-secondary)); }
 .add-btn:disabled { opacity:0.25; cursor:default; }
 .add-btn small { display:block; font-size:0.66rem; opacity:0.8; }
 </style>
@@ -183,22 +189,27 @@
       <label class="form-label">説明（任意）</label>
       <textarea class="form-input" id="desc-input" placeholder="備考・注意点など" rows="2" style="resize:vertical"></textarea>
     </div>
-    <label class="pub-row">
-      <input type="checkbox" id="public-input" onchange="updatePublicUI()">
-      <span class="pub-switch"></span>
-      <span class="pub-text" id="pub-text"></span>
-    </label>
+    <div class="pub-line">
+      <label class="pub-row">
+        <input type="checkbox" id="public-input" onchange="updatePublicUI()">
+        <span class="pub-switch"></span>
+        <span class="pub-text" id="pub-text"></span>
+      </label>
+      <button class="btn btn-primary" id="save-btn" onclick="saveChart()">下書き保存</button>
+    </div>
   </div>
 
   <div class="section-label">メンバー編成 <small>押して変更</small></div>
   <div class="ce-members" id="members-area"></div>
 
   <div class="section-label">チャート <small id="turn-summary"></small></div>
-  <div id="turns-area"></div>
+  <div id="turns-area" style="padding-bottom:48px"></div>
 
+  <button class="btn btn-primary ce-float-save" id="float-save" onclick="saveChart()" aria-hidden="true" tabindex="-1">下書き保存</button>
   <div class="ce-bar">
-    <button class="btn btn-secondary ce-add" id="add-btn" onclick="openAddSheet()">＋ ターン追加</button>
-    <button class="btn btn-primary" id="save-btn" onclick="saveChart()">下書き保存</button>
+    <button class="btn btn-secondary" id="next-btn" onclick="addNext()">次ターン</button>
+    <button class="btn btn-secondary" id="extra-btn" onclick="addTurn('extra')">追加ターン</button>
+    <button class="btn btn-secondary" id="add-btn" onclick="openAddSheet()">OD開始・その他</button>
   </div>
 </main>
 
@@ -248,7 +259,7 @@
 <div class="sheet" id="add-sheet" onclick="if(event.target===this)closeSheet('add-sheet')">
   <div class="sheet-box">
     <div class="sheet-head">
-      <div class="sheet-title">ターンを追加</div>
+      <div class="sheet-title">OD開始・その他</div>
       <button class="sheet-x" onclick="closeSheet('add-sheet')" aria-label="閉じる"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     <div class="sheet-body" id="add-sheet-body"></div>
@@ -537,7 +548,8 @@ function renderTurns() {
       <div class="ce-tiles${full ? ' full' : ''}">${tiles}</div>
     </div>`;
   }).join('');
-  document.getElementById('turns-area').innerHTML = html || '<div class="ce-empty">下の「＋ ターン追加」でターンを追加してください</div>';
+  updateNextBtn();
+  document.getElementById('turns-area').innerHTML = html || '<div class="ce-empty">下の「次ターン」でターンを追加してください</div>';
   document.getElementById('turn-summary').textContent = state.turns.length ? `${state.turns.length}行` : '';
 }
 
@@ -598,6 +610,19 @@ function addSpecialTurn(slot, skillId) {
 }
 
 
+// 下のバーの「次ターン」：2ゲージ以上のODの途中なら、ODの次のターンになる
+function addNext() {
+  const od = odInProgress();
+  if (od) addOD(od.type, od.total); else addTurn('normal');
+}
+function updateNextBtn() {
+  const od = odInProgress();
+  const btn = document.getElementById('next-btn');
+  btn.textContent = od ? `OD ${od.index + 1}/${odTurns(od.total)}` : '次ターン';
+  btn.classList.toggle('od', !!od);
+  btn.style.setProperty('--tc', od ? OD_COLORS[od.total] : '');
+}
+
 function openAddSheet() {
   const od = odInProgress();
   const lastType = getLastRealTurn()?.turn_type;
@@ -615,12 +640,7 @@ function openAddSheet() {
     if (sk) specials.push(`<button class="add-btn" style="--tc:#e0aaff" onclick="addSpecialTurn(${i + 1},${sk.id})">${escHtml(sk.abbreviation || sk.name)}<small>${escHtml(shortName(i + 1))}</small></button>`);
   });
   document.getElementById('add-sheet-body').innerHTML = `
-    ${od ? `<div class="add-sec"><div class="add-sec-title" style="color:var(--accent)">OD（${od.total}ゲージ）の途中です</div>
-      <button class="add-btn add-cont" style="--tc:${OD_COLORS[od.total]}" onclick="addOD('${od.type}',${od.total})">続き：OD ${od.index + 1}/${odTurns(od.total)}</button></div>` : ''}
-    <div class="add-sec"><div class="add-sec-title">ターン</div><div class="add-btns od">
-      <button class="add-btn" ${od ? 'disabled' : `onclick="addTurn('normal')"`}>次ターン</button>
-      <button class="add-btn" style="--tc:#7ecfff" onclick="addTurn('extra')">追加ターン</button>
-    </div></div>
+    ${od ? `<div class="add-sec-title" style="color:var(--accent);margin-bottom:12px">OD（${od.total}ゲージ）の途中です。続きは下の「OD ${od.index + 1}/${odTurns(od.total)}」で追加できます</div>` : ''}
     <div class="add-sec"><div class="add-sec-title">OD（ターン前に発動）</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_pre', k + 1)).join('')}</div></div>
     <div class="add-sec"><div class="add-sec-title">OD（ターン後に発動）${!od && !postOk ? '<span style="margin-left:6px">…通常ターンか追加ターンの後に追加できます</span>' : ''}</div><div class="add-btns od">${Array.from({ length: maxGauge() }, (_, k) => odBtn('od_post', k + 1)).join('')}</div></div>
     ${specials.length ? `<div class="add-sec"><div class="add-sec-title">特殊技</div><div class="add-btns">${specials.join('')}</div></div>` : ''}`;
@@ -750,8 +770,19 @@ function updatePublicUI() {
     ? '公開する<small>チャート掲示板に表示され、誰でも見られます</small>'
     : '公開しない（下書き）<small>自分だけが見られます。マイチャートから開けます</small>';
   document.getElementById('save-btn').textContent = on ? '保存して公開' : '下書き保存';
+  document.getElementById('float-save').textContent = on ? '保存して公開' : '下書き保存';
 }
 updatePublicUI();
+
+// 上の保存ボタンが画面外に出たら、固定の保存ボタンを出す
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver(([e]) => {
+    const f = document.getElementById('float-save');
+    f.classList.toggle('show', !e.isIntersecting);
+    f.setAttribute('aria-hidden', e.isIntersecting);
+    f.tabIndex = e.isIntersecting ? -1 : 0;
+  }).observe(document.getElementById('save-btn'));
+}
 
 // ---- 保存 ----
 async function saveChart() {
@@ -791,7 +822,8 @@ async function saveChart() {
   };
 
   const btn = document.getElementById('save-btn');
-  btn.disabled = true;
+  const fbtn = document.getElementById('float-save');
+  btn.disabled = fbtn.disabled = true;
   try {
     const url = editId ? `/charts/${editId}` : '/charts';
     const res = await apiFetch(url, { method: editId ? 'PUT' : 'POST', body: JSON.stringify(payload) });
@@ -800,7 +832,7 @@ async function saveChart() {
   } catch (e) {
     fail(e.message);
   } finally {
-    btn.disabled = false;
+    btn.disabled = fbtn.disabled = false;
   }
 }
 
