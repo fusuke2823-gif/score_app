@@ -334,10 +334,52 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
   }
 });
 
+// GP交換の条件：200GPを払う。交換するガチャを合計100回以上引いていること（10連は10回と数える）
+const EXCHANGE_GP_COST = 200;
+const EXCHANGE_PULLS_REQUIRED = 100;
+
+// そのガチャ（pool_id、プールなしは null）を引いた回数
+async function poolPullCount(db, userId, poolId) {
+  const r = await db.query(
+    `SELECT COALESCE(SUM(CASE WHEN pull_type = 'multi' THEN 10 ELSE 1 END), 0)::int AS n
+     FROM gacha_pull_logs WHERE user_id = $1 AND pool_id IS NOT DISTINCT FROM $2::int`,
+    [userId, poolId]);
+  return r.rows[0].n;
+}
+
+// 交換できるSS：PUがあればPUだけ、なければそのガチャのSS（プールなしは全SS）
+async function exchangeableIconIds(db, poolId) {
+  if (!poolId) {
+    const r = await db.query("SELECT id FROM gacha_icons WHERE is_active = TRUE AND rarity = 'SS'");
+    return r.rows.map(x => x.id);
+  }
+  const pu = await db.query(
+    `SELECT gi.id FROM gacha_pool_pickups gpp JOIN gacha_icons gi ON gi.id = gpp.icon_id
+     WHERE gpp.pool_id = $1 AND gi.is_active = TRUE AND gi.rarity = 'SS'`, [poolId]);
+  if (pu.rows.length) return pu.rows.map(x => x.id);
+  const r = await db.query(
+    `SELECT gi.id FROM gacha_pool_icons gpi JOIN gacha_icons gi ON gi.id = gpi.icon_id
+     WHERE gpi.pool_id = $1 AND gi.is_active = TRUE AND gi.rarity = 'SS'`, [poolId]);
+  return r.rows.map(x => x.id);
+}
+
+// GP交換の状態（そのガチャを引いた回数など）
+router.get('/exchange-status', authenticateToken, async (req, res) => {
+  try {
+    const poolId = req.query.pool_id ? parseInt(req.query.pool_id, 10) : null;
+    const pulls = await poolPullCount(pool, req.user.id, poolId);
+    res.json({ pulls, required: EXCHANGE_PULLS_REQUIRED, cost: EXCHANGE_GP_COST });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // GP交換（200GP → SSアイコン選択）
 router.post('/exchange', authenticateToken, async (req, res) => {
-  const GP_COST = 200;
+  const GP_COST = EXCHANGE_GP_COST;
   const { icon_id } = req.body;
+  const poolId = req.body.pool_id ? parseInt(req.body.pool_id, 10) : null;
   if (!icon_id) return res.status(400).json({ error: 'アイコンを選択してください' });
 
   const client = await pool.connect();
@@ -349,11 +391,18 @@ router.post('/exchange', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: `GPが不足しています（必要: ${GP_COST}GP）` });
     }
 
+    const pulls = await poolPullCount(client, req.user.id, poolId);
+    if (pulls < EXCHANGE_PULLS_REQUIRED) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: `このガチャをあと${EXCHANGE_PULLS_REQUIRED - pulls}回引くと交換できます` });
+    }
+
+    const allowed = await exchangeableIconIds(client, poolId);
     const iconResult = await client.query(
       'SELECT id, name, rarity, image_url FROM gacha_icons WHERE id=$1 AND rarity=$2 AND is_active=TRUE',
       [icon_id, 'SS']
     );
-    if (iconResult.rows.length === 0) {
+    if (iconResult.rows.length === 0 || !allowed.includes(iconResult.rows[0].id)) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: '対象のSSアイコンが見つかりません' });
     }

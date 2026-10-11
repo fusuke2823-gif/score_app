@@ -222,6 +222,95 @@
 .gx-fold[open] .gx-fold-arrow { transform:rotate(180deg); }
 .gx-fold-body { padding:0 16px 16px; }
 
+/* ===== ガチャ下部のパネル（GP交換・排出率） ===== */
+.gx-panel {
+  position:relative; margin-bottom:14px; border-radius:14px; overflow:hidden;
+  background:linear-gradient(180deg, rgba(30,26,62,0.82), rgba(14,12,32,0.86));
+  border:1px solid rgba(255,255,255,0.12); box-shadow:0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+  backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);
+}
+.gx-panel::before { content:''; position:absolute; left:0; right:0; top:0; height:2px; background:linear-gradient(90deg, transparent, var(--pa, #7ecfff), transparent); opacity:0.9; }
+.gx-panel-head { display:flex; align-items:center; gap:12px; padding:14px 16px; list-style:none; }
+summary.gx-panel-head { cursor:pointer; }
+summary.gx-panel-head::-webkit-details-marker { display:none; }
+.gx-panel-ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  color:var(--pa, #7ecfff); background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); }
+.gx-panel-titles { display:flex; flex-direction:column; line-height:1.15; min-width:0; }
+.gx-panel-eyebrow { white-space:nowrap; font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.58rem; letter-spacing:0.22em; color:var(--pa, #7ecfff); opacity:0.85; }
+.gx-panel-title { font-weight:bold; font-size:1rem; }
+.gx-panel-body { padding:0 16px 16px; }
+.gx-panel .gx-fold-arrow { margin-left:8px; color:var(--text-muted); transition:transform 0.2s; flex-shrink:0; }
+.gx-panel[open] .gx-fold-arrow { transform:rotate(180deg); }
+
+/* GP交換 */
+.gx-ex { --pa:#ffd34d; }
+.gx-ex[open] { padding-bottom:16px; }
+.gx-ex-price { margin-left:auto; display:flex; align-items:baseline; gap:3px; padding:5px 10px; border-radius:99px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,211,77,0.35); white-space:nowrap; }
+.gx-ex-price b { font-family:"Orbitron",sans-serif; font-weight:900; font-size:0.9rem; color:#ffd34d; }
+.gx-ex-price b.ss { background:linear-gradient(90deg,#ff7ab8,#ffd36b,#7dffcf,#6fc4ff,#c193ff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.gx-ex-price small { font-size:0.62rem; color:var(--text-secondary); font-weight:bold; }
+.gx-ex-price i { font-style:normal; color:var(--text-muted); margin:0 3px; font-size:0.8rem; }
+.gx-ex-meter { display:flex; align-items:center; gap:12px; padding:0 16px; }
+.gx-ex-num { display:flex; align-items:baseline; gap:4px; flex-shrink:0; min-width:92px; }
+.gx-ex-num b { font-family:"Orbitron",sans-serif; font-weight:900; font-size:1.7rem; line-height:1; color:#fff; font-variant-numeric:tabular-nums; }
+.gx-ex-num span { font-size:0.78rem; color:var(--text-muted); }
+.gx-ex-num em { font-style:normal; font-family:"Orbitron",sans-serif; font-weight:800; }
+.gx-ex-seg { flex:1; height:10px; border-radius:99px; background:rgba(255,255,255,0.08); overflow:hidden; }
+.gx-ex-seg i { display:block; height:100%; width:var(--f, 0%); border-radius:inherit; background:linear-gradient(90deg, #6fc4ff, #ffd34d); transition:width 0.5s ease-out; }
+.gx-ex-badge { display:none; font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.6rem; letter-spacing:0.14em; color:#1a1400; background:#ffd34d; padding:4px 8px; border-radius:6px; box-shadow:0 0 14px rgba(255,211,77,0.6); }
+.gx-ex.open .gx-ex-seg i { background:#ffd34d; box-shadow:0 0 10px rgba(255,211,77,0.8); }
+.gx-ex.open .gx-ex-num b { color:#ffd34d; text-shadow:0 0 12px rgba(255,211,77,0.55); }
+.gx-ex.open .gx-ex-badge { display:inline-block; }
+.gx-ex-note { font-size:0.76rem; color:var(--text-muted); margin:8px 16px 0; }
+.gx-ex-note:empty { display:none; }
+.gx-ex-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(78px,1fr)); gap:12px 8px; padding:0 16px; margin-top:16px; }
+.gx-ex-item { position:relative; text-align:center; cursor:pointer; background:none; border:none; padding:0; color:inherit; font:inherit; }
+.gx-ex-frame { position:relative; width:66px; height:66px; margin:0 auto 6px; padding:2px; border-radius:22%;
+  background:conic-gradient(from 210deg, #ff7ab8, #ffd36b, #7dffcf, #6fc4ff, #c193ff, #ff7ab8); box-shadow:0 0 12px rgba(255,170,240,0.35); transition:transform 0.15s, box-shadow 0.15s; }
+.gx-ex-frame img { width:100%; height:100%; object-fit:cover; border-radius:20%; display:block; background:#0d0b20; }
+.gx-ex.open .gx-ex-item:hover .gx-ex-frame { transform:translateY(-3px); box-shadow:0 6px 18px rgba(255,170,240,0.55); }
+.gx-ex-item span { display:block; font-size:0.7rem; color:var(--text-primary); word-break:break-all; line-height:1.3; }
+.gx-ex:not(.open) .gx-ex-frame { background:rgba(255,255,255,0.14); box-shadow:none; }
+.gx-ex:not(.open) .gx-ex-frame img { filter:grayscale(0.9) brightness(0.45); }
+.gx-ex:not(.open) .gx-ex-item span { color:var(--text-muted); }
+.gx-ex-lock { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#fff; opacity:0.9; display:none; }
+.gx-ex:not(.open) .gx-ex-lock { display:block; }
+
+/* 排出率 */
+.gx-rate { --pa:#9f8cff; }
+.gx-rate-mini { margin-left:auto; width:84px; height:8px; border-radius:99px; overflow:hidden; display:flex; background:rgba(255,255,255,0.08); flex-shrink:0; }
+.gx-rate-bar { display:flex; height:14px; border-radius:99px; overflow:hidden; background:rgba(255,255,255,0.08); margin:2px 0 14px; }
+.gx-rate-mini i, .gx-rate-bar i { display:block; height:100%; }
+.rb-SS { background:linear-gradient(90deg,#ff7ab8,#ffd36b,#7dffcf,#6fc4ff,#c193ff); min-width:6px; }
+.rb-S { background:#ffcf40; }
+.rb-A { background:#4fc3f7; }
+.gx-rate-row { display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid rgba(255,255,255,0.07); }
+.gx-rate-row:first-of-type { border-top:none; }
+.gx-rate-rar { font-family:"Orbitron",sans-serif; font-weight:900; font-size:1.05rem; width:40px; letter-spacing:0.06em; }
+.gx-rate-rar.r-A { color:#7fd8ff; text-shadow:0 0 8px rgba(79,195,247,0.6); }
+.gx-rate-rar.r-S { color:#ffd84a; text-shadow:0 0 8px rgba(255,200,40,0.6); }
+.gx-rate-rar.r-SS { background:linear-gradient(90deg,#ff7ab8,#ffd36b,#7dffcf,#6fc4ff,#c193ff); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 5px rgba(255,170,240,0.7)); }
+.gx-rate-label { flex:1; font-size:0.78rem; color:var(--text-muted); min-width:0; }
+.gx-rate-pct { font-family:"Orbitron",sans-serif; font-weight:800; font-size:1.05rem; font-variant-numeric:tabular-nums; }
+.gx-rate-pct small { font-size:0.7rem; margin-left:1px; opacity:0.8; }
+.gx-rate-pu { margin:2px 0 8px 52px; padding:10px 12px; border-radius:10px; background:rgba(255,211,77,0.07); border:1px solid rgba(255,211,77,0.22); }
+.gx-rate-pu-head { display:flex; justify-content:space-between; font-size:0.74rem; color:#ffe28a; margin-bottom:8px; }
+.gx-rate-pu-icons { display:flex; flex-wrap:wrap; gap:6px; }
+.gx-rate-pu-icons img { width:34px; height:34px; border-radius:20%; object-fit:cover; border:1.5px solid #ffd34d; }
+.gx-rate-pu-rest { display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-muted); margin-top:8px; }
+.gx-rate-note { font-size:0.72rem; color:var(--text-muted); margin:12px 0 0; line-height:1.6; }
+.gx-rate-pool { margin-top:12px; width:100%; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px; border-radius:10px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12); color:var(--text-primary); font:inherit; font-size:0.84rem; cursor:pointer; }
+.gx-rate-pool:hover { border-color:var(--pa); }
+@media (max-width:480px) {
+  .gx-panel-head { gap:10px; padding:13px 12px 13px 14px; }
+  .gx-ex-price { padding:4px 8px; }
+  .gx-ex-price b { font-size:0.8rem; }
+  .gx-ex-meter { flex-wrap:wrap; row-gap:8px; }
+  .gx-ex-seg { order:3; flex-basis:100%; }
+  .gx-ex-badge { margin-left:auto; }
+}
+
 /* ===== 通常ガチャ：全画面の演出 ===== */
 .gx-overlay {
   position:fixed; inset:0; z-index:2500; display:flex; flex-direction:column; align-items:center;
@@ -850,29 +939,34 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
       </button>
     </div>
 
-    <!-- 排出率・GP交換（開閉式） -->
-    <details class="gx-fold">
-      <summary>
-        <span class="gx-fold-title" data-i18n="gacha.rate_title">排出率</span>
+    <!-- GP交換（このガチャを100回引くと解放） -->
+    <details class="gx-panel gx-ex" id="gx-exchange" open>
+      <summary class="gx-panel-head">
+        <span class="gx-panel-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg></span>
+        <span class="gx-panel-titles"><span class="gx-panel-eyebrow">GP EXCHANGE</span><span class="gx-panel-title" data-i18n="gacha.exchange_title">GP交換</span></span>
+        <span class="gx-ex-price"><b>200</b><small>GP</small><i>→</i><b class="ss">SS</b><small>×1</small></span>
         <svg class="gx-fold-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <div class="gx-fold-body">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
-          <button class="btn btn-secondary btn-sm" onclick="openPoolModal()" data-i18n="gacha.pool_btn">排出対象を見る</button>
-        </div>
-        <div id="rate-info"><div class="loading"><div class="spinner"></div></div></div>
+      <div class="gx-ex-meter">
+        <div class="gx-ex-num"><b id="gx-ex-pulls">-</b><span>/ <em id="gx-ex-req">100</em></span></div>
+        <div class="gx-ex-seg" id="gx-ex-seg"></div>
+        <span class="gx-ex-badge">UNLOCKED</span>
       </div>
+      <div class="gx-ex-note" id="gx-ex-note"></div>
+      <div class="gx-ex-grid" id="exchange-ss-list"><div class="loading"><div class="spinner"></div></div></div>
     </details>
-    <details class="gx-fold" id="gx-exchange-fold">
-      <summary>
-        <span class="gx-fold-title" data-i18n="gacha.exchange_title">GP交換</span>
-        <span class="gx-fold-sub" data-i18n="gacha.exchange_desc">200GP → SSアイコン1枚（選択）</span>
+
+    <!-- 排出率（開閉式） -->
+    <details class="gx-panel gx-rate">
+      <summary class="gx-panel-head">
+        <span class="gx-panel-ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9h-9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/></svg></span>
+        <span class="gx-panel-titles"><span class="gx-panel-eyebrow">DROP RATES</span><span class="gx-panel-title" data-i18n="gacha.rate_title">排出率</span></span>
+        <span class="gx-rate-mini" id="gx-rate-mini"></span>
         <svg class="gx-fold-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </summary>
-      <div class="gx-fold-body">
-        <div id="exchange-ss-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
+      <div class="gx-panel-body">
+        <div id="rate-info"><div class="loading"><div class="spinner"></div></div></div>
+        <button class="gx-rate-pool" onclick="openPoolModal()"><span data-i18n="gacha.pool_btn">排出対象を見る</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
       </div>
     </details>
 
@@ -1032,39 +1126,34 @@ async function init() {
 }
 
 function updateRateInfo(settings, pickupIcons) {
-  const ssRate = settings.ss_rate;
+  const zh = getLang() === 'zh';
+  const ssRate = +settings.ss_rate, sRate = +settings.s_rate, aRate = +settings.a_rate;
   const puCount = pickupIcons.length;
-  let ssDetail = '';
+  const pct = v => `${(+v).toFixed(2).replace(/\.?0+$/, '')}<small>%</small>`;
+  const bar = `<i class="rb-SS" style="width:${ssRate}%"></i><i class="rb-S" style="width:${sRate}%"></i><i class="rb-A" style="width:${aRate}%"></i>`;
+  document.getElementById('gx-rate-mini').innerHTML = bar;
+  const row = (rar, label, v) => `
+    <div class="gx-rate-row"><span class="gx-rate-rar r-${rar}">${rar}</span><span class="gx-rate-label">${label}</span><span class="gx-rate-pct">${pct(v)}</span></div>`;
+  let pu = '';
   if (puCount > 0) {
-    const puTotalRate = (puCount * 0.75).toFixed(2);
     const normalRate = Math.max(0, ssRate - puCount * 0.75);
-    const puNote = getLang() === 'zh'
-      ? `★PickUp各0.75%｜通常SS：${normalRate.toFixed(2)}%（均等）`
-      : `★PickUp各0.75%｜通常SS：${normalRate.toFixed(2)}%（均等）`;
-    ssDetail = `
-      <div style="margin:4px 0 0 16px;font-size:0.75rem;color:var(--text-muted)">
-        <span style="color:#ffd700">★PickUp</span>：${pickupIcons.map(p => escHtml(p.name)).join('・')}（各0.75%）<br>
-        ${getLang() === 'zh' ? '通常SS' : '通常SS'}：${normalRate.toFixed(2)}%（${getLang() === 'zh' ? '均等' : '均等'}）
+    pu = `
+      <div class="gx-rate-pu">
+        <div class="gx-rate-pu-head"><span>PICK UP</span><span>${zh ? '各' : '各'}0.75%</span></div>
+        <div class="gx-rate-pu-icons">${pickupIcons.map(p => `<img src="${escHtml(thumbUrl(p.image_url))}" alt="${escHtml(p.name)}" title="${escHtml(p.name)}">`).join('')}</div>
+        <div class="gx-rate-pu-rest"><span>${zh ? '通常SS（均等）' : '通常SS（均等）'}</span><span>${normalRate.toFixed(2)}%</span></div>
       </div>`;
   }
-  const rateNote = getLang() === 'zh'
+  const rateNote = zh
     ? `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}稀度內機率均等。十連最後1枚A→S保底。`
-    : `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}レアリティ内の確率は均等。10連最後の1枚はAがSに変換。`;
+    : `${puCount > 0 ? 'PickUpのSSは各0.75%。' : ''}レアリティ内の確率は均等。10連の最後の1枚はAがSに変わります。`;
   document.getElementById('rate-info').innerHTML = `
-    <div class="rate-row">
-      <span><span class="irarity irarity-SS">SS</span></span>
-      <span style="font-weight:bold;color:#ffd700">${ssRate}%</span>
-    </div>
-    ${ssDetail}
-    <div class="rate-row" style="margin-top:${puCount>0?'6px':'0'}">
-      <span><span class="irarity irarity-S">S</span></span>
-      <span style="font-weight:bold;color:#e0c060">${settings.s_rate}%</span>
-    </div>
-    <div class="rate-row">
-      <span><span class="irarity irarity-A">A</span></span>
-      <span style="font-weight:bold;color:#4fc3f7">${settings.a_rate}%</span>
-    </div>
-    <p style="font-size:0.75rem;color:var(--text-muted);margin-top:10px;text-align:center">${rateNote}</p>`;
+    <div class="gx-rate-bar">${bar}</div>
+    ${row('SS', puCount > 0 ? 'PickUp含む' : '', ssRate)}
+    ${pu}
+    ${row('S', '', sRate)}
+    ${row('A', '', aRate)}
+    <p class="gx-rate-note">${rateNote}</p>`;
 }
 
 function updatePointsDisplay(pts) {
@@ -1172,9 +1261,8 @@ function selectPool(poolId) {
   // 排出率をピックアップ対応に更新
   const pickupIcons = p ? (p.pickup_icons || []) : [];
   if (gSettings) updateRateInfo(gSettings, pickupIcons);
-  // GP交換リストをピックアップ対応に更新
-  const pickupIds = pickupIcons.length > 0 ? pickupIcons.map(pu => pu.id) : null;
-  loadExchangeList(pickupIds);
+  // GP交換（そのガチャを引いた回数・PU対応）を更新
+  loadExchangeList();
   showGachaMain();
   // 排出対象モーダルキャッシュリセット
   _lastPoolModalPoolId = Symbol();
@@ -1205,24 +1293,46 @@ function showGpToast(html, isError = false) {
   }, 3000);
 }
 
-async function loadExchangeList(pickupIds = null) {
+// GP交換の開閉を覚えておく
+(() => {
+  const el = document.getElementById('gx-exchange');
+  try { if (localStorage.getItem('gxExchangeOpen') === '0') el.open = false; } catch (e) {}
+  el.addEventListener('toggle', () => { try { localStorage.setItem('gxExchangeOpen', el.open ? '1' : '0'); } catch (e) {} });
+})();
+
+// GP交換：そのガチャを100回引くと解放。交換できるのはPUがあればPU、なければそのガチャのSS
+const LOCK_SVG = '<svg class="gx-ex-lock" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+let exchangeState = { pulls: 0, required: 100, cost: 200 };
+
+async function loadExchangeList() {
+  const box = document.getElementById('gx-exchange');
   const container = document.getElementById('exchange-ss-list');
   try {
+    const p = (gPools || []).find(x => x.id === selectedPoolId);
+    const pickupIds = p && p.pickup_icons && p.pickup_icons.length ? new Set(p.pickup_icons.map(pu => pu.id)) : null;
     const iconUrl = selectedPoolId ? `/gacha/pools/${selectedPoolId}/icons` : '/gacha/icons';
-    const [icons, myData] = await Promise.all([apiFetch(iconUrl), apiFetch('/gacha/my')]);
+    const [icons, myData, status] = await Promise.all([
+      apiFetch(iconUrl), apiFetch('/gacha/my'),
+      apiFetch('/gacha/exchange-status' + (selectedPoolId ? `?pool_id=${selectedPoolId}` : '')),
+    ]);
+    exchangeState = status;
+    const open = status.pulls >= status.required;
+    box.classList.toggle('open', open);
+    document.getElementById('gx-ex-pulls').textContent = Math.min(status.pulls, status.required);
+    document.getElementById('gx-ex-req').textContent = status.required;
+    // 解放前だけ「あと◯回」を出す
+    document.getElementById('gx-ex-note').textContent = open ? '' : t('gacha.exchange_locked_note', status.required);
+    document.getElementById('gx-ex-seg').innerHTML = `<i style="--f:${Math.min(100, status.pulls / status.required * 100)}%"></i>`;
+
     const ownedIds = new Set((myData.icons || []).map(i => i.id));
     let ss = icons.filter(i => i.rarity === 'SS' && !ownedIds.has(i.id));
-    if (pickupIds && pickupIds.length > 0) {
-      const pickupSet = new Set(pickupIds);
-      ss = ss.filter(i => pickupSet.has(i.id));
-    }
-    if (ss.length === 0) { container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem">${t('gacha.no_exchange')}</div>`; return; }
+    if (pickupIds) ss = ss.filter(i => pickupIds.has(i.id));
+    if (ss.length === 0) { container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem;grid-column:1/-1">${t('gacha.no_exchange')}</div>`; return; }
     container.innerHTML = ss.map(i => `
-      <div style="text-align:center;cursor:pointer" onclick="askExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}', '${escHtml(thumbUrl(i.image_url)).replace(/'/g, "\\'")}')">
-        <img src="${escHtml(thumbUrl(i.image_url))}" style="width:64px;height:64px;object-fit:contain;border-radius:20%;border:2px solid #ffd700;display:block;margin:0 auto 4px">
-        <div style="font-size:0.7rem;color:#ffd700;word-break:break-all">${escHtml(i.name)}</div>
-      </div>
-    `).join('');
+      <button type="button" class="gx-ex-item" onclick="askExchange(${i.id}, '${escHtml(i.name).replace(/'/g, "\\'")}', '${escHtml(thumbUrl(i.image_url)).replace(/'/g, "\\'")}')">
+        <span class="gx-ex-frame"><img src="${escHtml(thumbUrl(i.image_url))}" alt="">${LOCK_SVG}</span>
+        <span>${escHtml(i.name)}</span>
+      </button>`).join('');
   } catch (e) {
     container.innerHTML = `<div style="color:var(--text-muted);font-size:0.85rem">${t('error')}</div>`;
   }
@@ -1232,8 +1342,12 @@ let _pendingExchange = null;
 
 function askExchange(iconId, iconName, iconImg) {
   if (isPulling) return;
-  if (currentGp < 200) {
-    showGpToast(t('gacha.gp_short', currentGp, 200), true);
+  if (exchangeState.pulls < exchangeState.required) {
+    showGpToast(t('gacha.exchange_locked', exchangeState.required, exchangeState.required - exchangeState.pulls), true);
+    return;
+  }
+  if (currentGp < exchangeState.cost) {
+    showGpToast(t('gacha.gp_short', currentGp, exchangeState.cost), true);
     return;
   }
   _pendingExchange = { iconId, iconName };
@@ -1258,7 +1372,7 @@ async function confirmExchange() {
   isPulling = true;
   updateGpDisplay(currentGp);
   try {
-    const res = await apiFetch('/gacha/exchange', { method: 'POST', body: JSON.stringify({ icon_id: iconId }) });
+    const res = await apiFetch('/gacha/exchange', { method: 'POST', body: JSON.stringify({ icon_id: iconId, pool_id: selectedPoolId }) });
     currentGp = res.new_gp;
     updateGpDisplay(currentGp);
     const r = res.result;
@@ -1379,6 +1493,7 @@ async function doPull(type) {
     if (dupTotal > 0) await showDupReturn(afterCost, res.new_points, dupTotal);
 
     apiFetch('/gacha/my').then(myData => renderMyIcons(myData.icons)).catch(() => {});
+    loadExchangeList();
   } catch (err) {
     next = 'close';
     closeGxOverlay();
