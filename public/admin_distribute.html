@@ -122,6 +122,7 @@
       </p>
       <div class="rate-opts">
         <label>直近 <input type="number" id="rp-n" value="5" min="1" max="20"> 回のうち良い <input type="number" id="rp-k" value="3" min="1" max="20"> 回</label>
+        <label>ベストは直近 <input type="number" id="rp-best-n" value="0" min="0" max="100"> 回から（0＝全期間）</label>
         <label>ベスト <input type="number" id="rp-w-best" value="40" min="0" max="100">%</label>
         <label>直近 <input type="number" id="rp-w-recent" value="40" min="0" max="100">%</label>
         <label>EX <input type="number" id="rp-w-ex" value="20" min="0" max="100">%</label>
@@ -353,7 +354,7 @@ async function previewRates() {
   const el = document.getElementById('rate-preview');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const v = id => document.getElementById(id).value;
-  const qs = new URLSearchParams({ n: v('rp-n'), k: v('rp-k'), w_best: v('rp-w-best'), w_recent: v('rp-w-recent'), w_ex: v('rp-w-ex') });
+  const qs = new URLSearchParams({ n: v('rp-n'), k: v('rp-k'), w_best: v('rp-w-best'), w_recent: v('rp-w-recent'), w_ex: v('rp-w-ex'), best_n: v('rp-best-n') });
   try {
     const p = await apiFetch('/admin/rate-preview?' + qs);
     if (!p.rows.length) { el.innerHTML = '<div class="form-hint">S以上のユーザーがいません</div>'; return; }
@@ -372,7 +373,7 @@ async function previewRates() {
     const up = rows.filter(r => diff(r) >= 1).length, down = rows.filter(r => diff(r) <= -1).length;
     const rankChanged = rows.filter(r => r.v2.rank !== r.current.rank).length;
     el.innerHTML = `
-      <div style="font-size:0.82rem;margin:4px 0 2px">新しい式：直近${p.opts.recentN}回のうち良い${p.opts.recentK}回 ／ ベスト${p.opts.wBest}%・直近${p.opts.wRecent}%・EX${p.opts.wEx}%</div>
+      <div style="font-size:0.82rem;margin:4px 0 2px">新しい式：直近${p.opts.recentN}回のうち良い${p.opts.recentK}回 ／ ベスト（${p.opts.bestN ? `直近${p.opts.bestN}回` : '全期間'}）${p.opts.wBest}%・直近${p.opts.wRecent}%・EX${p.opts.wEx}%</div>
       <div style="font-size:0.82rem;margin:0 0 6px">対象 ${rows.length}人（第${p.max_event_number}回まで）／ 新しい式で 上がる ${up}人・下がる ${down}人・ランクが変わる ${rankChanged}人</div>
       <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
         <table class="table dist-preview-table">

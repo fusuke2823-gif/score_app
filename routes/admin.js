@@ -1138,6 +1138,7 @@ router.get('/rate-preview', async (req, res) => {
     wBest: num(req.query.w_best, d.wBest, 0, 100),
     wRecent: num(req.query.w_recent, d.wRecent, 0, 100),
     wEx: num(req.query.w_ex, d.wEx, 0, 100),
+    bestN: num(req.query.best_n, d.bestN, 0, 100),
   };
   try {
     const maxEv = (await pool.query('SELECT MAX(event_number)::int AS n FROM events WHERE points_distributed_external = TRUE')).rows[0].n;

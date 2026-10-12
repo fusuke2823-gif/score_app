@@ -145,7 +145,26 @@ async function getCombinedXPt(client, userId, maxEventNumber) {
 
 // ===== 新しいレート計算（試算中。出して損をしない形） =====
 // 試算画面から変えられる値。既定は ベスト40% + 直近（5回中良い3回）40% + EX20%
-const RATE_V2_DEFAULTS = { recentN: 5, recentK: 3, wBest: 40, wRecent: 40, wEx: 20 };
+// bestN：ベストを直近何回（スコアタ・遭遇戦・EXを合わせた回数）の中から取るか。0 なら全期間
+const RATE_V2_DEFAULTS = { recentN: 5, recentK: 3, wBest: 40, wRecent: 40, wEx: 20, bestN: 0 };
+
+// スコアタ・遭遇戦・EXを合わせた直近 bestN 回の中でのベストpt（bestN が 0 なら全期間）
+async function getRecentBestPt(client, userId, maxEventNumber, bestN) {
+  if (!bestN) return getBestPtAllTypes(client, userId, maxEventNumber);
+  const { rows } = await client.query(
+    `SELECT e.event_type, MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score
+     FROM (
+       SELECT id, event_number, event_type, score_multiplier FROM events
+       WHERE event_type IN ('score_attack', 'seraph', 'score_attack_ex') AND ($2::int IS NULL OR event_number <= $2)
+       ORDER BY event_number DESC LIMIT $3
+     ) e
+     JOIN scores s ON s.event_id = e.id AND s.user_id = $1
+       AND s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'internal', 'external')
+     GROUP BY e.id, e.event_type`,
+    [userId, maxEventNumber, bestN]
+  );
+  return rows.reduce((max, r) => Math.max(max, ptForEventType(r.event_type, r.score)), 0);
+}
 
 // 直近N回のうち良いK回の合計 ÷ K。出た回がK回に満たない分は0として数える。
 // 低い回は良いK回に入らないだけなので、投稿して下がることはない。休み続けると1回ずつ下がる
@@ -189,7 +208,7 @@ async function getExDecayedBestPt(client, userId, maxEventNumber) {
 async function getCombinedXPtV2(client, userId, maxEventNumber, opts = {}) {
   const o = { ...RATE_V2_DEFAULTS, ...opts };
   const [bestPt, recent, ex] = await Promise.all([
-    getBestPtAllTypes(client, userId, maxEventNumber),
+    getRecentBestPt(client, userId, maxEventNumber, o.bestN),
     getRecentTopKPt(client, userId, ['score_attack', 'seraph'], maxEventNumber, o.recentN, o.recentK),
     getExDecayedBestPt(client, userId, maxEventNumber),
   ]);
