@@ -207,6 +207,23 @@
 }
 .gx-back:hover { color:var(--text-primary); border-color:var(--accent); }
 .gx-hero { max-width:560px; margin:0 auto; }
+/* ガチャの切り替え（横スクロールの帯） */
+.gx-pooltabs { display:flex; gap:8px; overflow-x:auto; scroll-snap-type:x proximity; padding:4px 2px 10px; margin:0 auto 6px; max-width:760px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.gx-pooltabs::-webkit-scrollbar { display:none; }
+.gx-pooltabs[hidden] { display:none; }
+.gx-ptab { flex:0 0 auto; width:128px; scroll-snap-align:start; display:flex; flex-direction:column; gap:5px; background:none; border:none; padding:0; cursor:pointer; color:var(--text-secondary); font:inherit; text-align:left; }
+.gx-ptab-thumb { position:relative; display:block; width:100%; aspect-ratio:1.85 / 1; border-radius:9px; overflow:hidden; background-size:cover; background-position:center;
+  border:2px solid rgba(255,255,255,0.12); filter:brightness(0.6) saturate(0.8); transition:filter 0.15s, border-color 0.15s, transform 0.15s; }
+.gx-ptab-icons { position:absolute; inset:0; background:#0d0b20; }
+.gx-ptab-slice { position:absolute; top:0; bottom:0; background-size:cover; background-position:center 30%; }
+.gx-ptab-icons em { position:absolute; right:4px; bottom:4px; font-style:normal; font-size:0.66rem; font-weight:bold; color:#fff; background:rgba(0,0,0,0.65); border:1px solid rgba(255,211,77,0.7); border-radius:6px; padding:1px 5px; }
+.gx-ptab-mark { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.35); }
+.gx-ptab-name { font-size:0.7rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
+.gx-ptab:hover .gx-ptab-thumb { filter:brightness(0.85); }
+.gx-ptab.on { color:var(--text-primary); }
+.gx-ptab.on .gx-ptab-thumb { filter:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 4px 14px rgba(230,57,80,0.35); transform:translateY(-1px); }
+@media (min-width:720px) { .gx-ptab { width:150px; } .gx-pooltabs { justify-content:center; } }
 .gx-hero .pool-banner { cursor:default; pointer-events:none; aspect-ratio:2.2 / 1; }
 .gx-fold {
   margin-bottom:12px; border-radius:12px; background:var(--bg-card); border:1px solid var(--border);
@@ -928,6 +945,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
       <span data-i18n="gacha.back_pool">ガチャ選択に戻る</span>
     </button>
+    <div class="gx-pooltabs" id="gx-pooltabs" role="tablist" aria-label="ガチャを選ぶ" hidden></div>
     <div class="gx-hero" id="gx-hero"></div>
 
     <div class="gacha-pull-btns">
@@ -1238,6 +1256,19 @@ function poolBannerHTML(p, idx) {
     </button>`;
 }
 
+// 帯のサムネをPUアイコンで埋める。2つ以上は少し斜めの線で分ける
+function ptabSlicesHTML(icons) {
+  const n = icons.length, slant = 7, gap = 1.2; // 横幅に対する%（上端と下端のずれ・すき間）
+  const b = k => k / n * 100;
+  return icons.map((pu, i) => {
+    const tl = i === 0 ? 0 : b(i) + slant + gap, bl = i === 0 ? 0 : b(i) - slant + gap;
+    const tr = i === n - 1 ? 100 : b(i + 1) + slant - gap, br = i === n - 1 ? 100 : b(i + 1) - slant - gap;
+    const L = Math.min(tl, bl), R = Math.max(tr, br), W = R - L;
+    const x = v => ((v - L) / W * 100).toFixed(2) + '%';
+    return `<span class="gx-ptab-slice" style="left:${L}%;width:${W}%;clip-path:polygon(${x(tl)} 0,${x(tr)} 0,${x(br)} 100%,${x(bl)} 100%);background-image:url('${escHtml(thumbUrl(pu.image_url))}')"></span>`;
+  }).join('');
+}
+
 function renderPoolSelector(pools) {
   if (!pools || pools.length === 0) {
     // プールなし → 直接メインUIへ（従来通り全アイコン対象）
@@ -1245,10 +1276,19 @@ function renderPoolSelector(pools) {
     showGachaMain();
     return;
   }
-  // プール選択画面を表示
-  document.getElementById('pool-pick-list').innerHTML = pools.map(poolBannerHTML).join('');
-  document.getElementById('pool-select-screen').style.display = '';
-  document.getElementById('gacha-main').style.display = 'none';
+  // 開いたら一番上のガチャを選んだ状態にして、引く画面の上の帯で切り替える
+  const tabs = document.getElementById('gx-pooltabs');
+  tabs.hidden = pools.length < 2;
+  tabs.innerHTML = pools.map((p, i) => {
+    const bg = p.image_url ? `url('${escHtml(thumbUrl(p.image_url))}')` : POOL_FALLBACK_BG[i % POOL_FALLBACK_BG.length];
+    return `<button type="button" class="gx-ptab" role="tab" data-pool="${p.id}" onclick="selectPool(${p.id})">
+      <span class="gx-ptab-thumb" style="background-image:${bg}">${(p.pickup_icons || []).length
+        ? `<span class="gx-ptab-icons">${ptabSlicesHTML(p.pickup_icons.slice(0, 3))}${p.pickup_icons.length > 3 ? `<em>+${p.pickup_icons.length - 3}</em>` : ''}</span>`
+        : !p.image_url ? `<span class="gx-ptab-mark">${uiIcon('sparkle', 22)}</span>` : ''}</span>
+      <span class="gx-ptab-name">${escHtml(p.name)}</span>
+    </button>`;
+  }).join('');
+  selectPool(pools[0].id);
 }
 
 function selectPool(poolId) {
@@ -1257,7 +1297,13 @@ function selectPool(poolId) {
   // ラベル・戻るボタン設定
   // 選んだガチャを選択画面と同じバナーで上に出す（ここではタップしても何もしない）
   document.getElementById('gx-hero').innerHTML = p ? poolBannerHTML(p, gPools.indexOf(p)) : '';
-  document.getElementById('btn-back-pool').style.display = gPools.length > 1 ? '' : 'none';
+  document.getElementById('btn-back-pool').style.display = 'none';
+  document.querySelectorAll('#gx-pooltabs .gx-ptab').forEach(b => {
+    const on = +b.dataset.pool === poolId;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on);
+    if (on) b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
   // 排出率をピックアップ対応に更新
   const pickupIcons = p ? (p.pickup_icons || []) : [];
   if (gSettings) updateRateInfo(gSettings, pickupIcons);
