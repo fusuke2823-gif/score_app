@@ -227,6 +227,8 @@ main {
 .attr-光 { background: var(--light-bg); color: var(--light); border: 1px solid var(--light); }
 .attr-闇 { background: var(--dark-bg); color: var(--dark); border: 1px solid var(--dark); }
 .attr-無 { background: var(--none-bg); color: var(--none); border: 1px solid var(--none); }
+/* 武器属性（弱点の表示用） */
+.attr-斬, .attr-突, .attr-打 { background: rgba(220,220,235,0.1); color: #d8d8e8; border: 1px solid rgba(220,220,235,0.55); border-radius: 6px; }
 
 /* 属性フィルターボタン */
 .attr-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
