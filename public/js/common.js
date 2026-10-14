@@ -535,7 +535,7 @@ function statusBadge(status) {
 // ===== ナビアイコン =====
 const NAV_ICONS = {
   submit:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V4M5 7l3-3 3 3"/><line x1="3" y1="13" x2="13" y2="13"/></svg>`,
-  gacha:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5 6.5 5z"/></svg>`,
+  gacha:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.5" width="7.5" height="10" rx="1.4" transform="rotate(-12 5.75 8.5)"/><rect x="6.5" y="2.5" width="7.5" height="10" rx="1.4" fill="var(--nm-ico-bg, #1a1734)"/><path d="M10.25 5.6l.6 1.2 1.3.2-.95.9.2 1.3-1.15-.6-1.15.6.2-1.3-.95-.9 1.3-.2z" fill="currentColor" stroke="none"/></svg>`,
   charts:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="10" x2="14" y2="10"/><line x1="7" y1="2" x2="7" y2="14"/></svg>`,
   announcements: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6v4l2 .5V13a1 1 0 0 0 1 1h1v-3.2"/><path d="M2 6l9-3v10l-9-3V6z"/><path d="M11 5.5c1.2.6 2 1.6 2 2.5s-.8 1.9-2 2.5"/></svg>`,
   videos:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="12" height="9" rx="1.5"/><path d="M6.5 7.5l3 1.5-3 1.5V7.5z" fill="currentColor" stroke="none"/></svg>`,
@@ -589,7 +589,7 @@ function renderNav() {
   if (!nav) return;
   const currentPath = location.pathname;
   const lang = getLang();
-  const langBtn = `<button onclick="setLang(getLang()==='ja'?'zh':'ja')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);margin-right:4px" title="言語 / Language">${lang === 'ja' ? '繁中' : 'JP'}</button>`;
+  const langBtn = `<button class="nav-lang" onclick="setLang(getLang()==='ja'?'zh':'ja')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:0.75rem;cursor:pointer;color:var(--text-muted);margin-right:4px" title="言語 / Language">${lang === 'ja' ? '繁中' : 'JP'}</button>`;
 
   nav.innerHTML = `
     <div class="nav-inner">
@@ -618,28 +618,60 @@ function renderNav() {
         <span></span><span></span><span></span>
       </button>
     </div>
-    <div class="nav-mobile" id="nav-mobile">
-      <a href="/submit.html">${ni('submit')}<span>${t('nav.submit')}</span></a>
-      <span id="nav-gacha-mobile" style="display:contents"></span>
-      ${user ? `<a href="/charts.html">${ni('charts')}<span>${t('nav.charts')}</span></a>` : ''}
-      ${user ? `<a href="/videos.html">${ni('videos')}<span>${t('nav.my_videos')}</span></a>` : ''}
-      ${user ? `<a href="/shop.html">${ni('shop')}<span>${t('nav.shop')}</span></a>` : ''}
-      ${user ? `<a href="/shop.html?tab=equip">${ni('equip')}<span>${t('nav.equip')}</span></a>` : ''}
-      ${user ? `<a href="/feedback.html">${ni('feedback')}<span>${t('nav.feedback')}</span></a>` : ''}
-      ${user
-        ? `<a href="/user.html?id=${user.id}">${ni('account')}<span>${t('nav.account')}</span></a>
-           ${user.role === 'admin' ? `<a href="/admin_index.html">${ni('admin')}<span>${t('nav.admin')}</span></a>` : ''}
-           <a href="#" onclick="logout();return false;">${ni('logout')}<span>${t('nav.logout')}</span></a>`
-        : `<a href="/login.html">${ni('login')}<span>${t('nav.login')}</span></a>
-           <a href="/register.html">${ni('register')}<span>${t('nav.register_full')}</span></a>`
-      }
+    <div class="nav-mobile" id="nav-mobile" aria-hidden="true">
+      <div class="nm-panel">
+        ${user
+          ? `<a class="nm-user" href="/user.html?id=${user.id}">
+               <span class="nm-avatar">${escHtml((user.username || '?').charAt(0))}</span>
+               <span class="nm-user-body"><b>${escHtml(user.username)}</b><small>${t('nav.account')}</small></span>
+               ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
+               <svg class="nm-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+             </a>`
+          : `<div class="nm-guest">
+               <a href="/login.html" class="btn btn-secondary">${t('nav.login')}</a>
+               <a href="/register.html" class="btn btn-primary">${t('nav.register_full')}</a>
+             </div>`}
+        <div class="nm-grid">
+          ${nmTile('/submit.html', 'submit', t('nav.submit'), currentPath === '/submit.html')}
+          <span id="nav-gacha-mobile" style="display:contents"></span>
+          ${user ? nmTile('/charts.html', 'charts', t('nav.charts'), currentPath === '/charts.html' || currentPath.startsWith('/chart-')) : ''}
+          ${user ? nmTile('/videos.html', 'videos', t('nav.my_videos'), currentPath === '/videos.html') : ''}
+          ${user ? nmTile('/shop.html', 'shop', t('nav.shop'), currentPath === '/shop.html' && !location.search.includes('tab=equip')) : ''}
+          ${user ? nmTile('/shop.html?tab=equip', 'equip', t('nav.equip'), currentPath === '/shop.html' && location.search.includes('tab=equip')) : ''}
+          ${user ? nmTile('/feedback.html', 'feedback', t('nav.feedback'), currentPath === '/feedback.html') : ''}
+          ${user && user.role === 'admin' ? nmTile('/admin_index.html', 'admin', t('nav.admin'), currentPath.startsWith('/admin')) : ''}
+        </div>
+        <div class="nm-foot">
+          <div class="nm-lang" role="group" aria-label="言語 / Language">
+            <button type="button" class="${lang === 'ja' ? 'on' : ''}" onclick="getLang() !== 'ja' && setLang('ja')" aria-pressed="${lang === 'ja'}">日本語</button><button type="button" class="${lang === 'zh' ? 'on' : ''}" onclick="getLang() !== 'zh' && setLang('zh')" aria-pressed="${lang === 'zh'}">繁中</button>
+          </div>
+          ${user ? `<button type="button" class="nm-logout" onclick="logout()">${ni('logout')}<span>${t('nav.logout')}</span></button>` : ''}
+        </div>
+      </div>
     </div>`;
   applyI18n();
 }
 
-function toggleMobileNav() {
-  document.getElementById('nav-mobile')?.classList.toggle('open');
+// メニューのタイル（アイコン＋名前）。nb はバッジ（未読数）を入れる場所
+function nmTile(href, icon, label, active) {
+  return `<a href="${href}" class="nm-tile${active ? ' active' : ''}"><span class="nm-ico">${NAV_ICONS[icon] || ''}<span class="nb"></span></span><span class="nm-label">${label}</span></a>`;
 }
+
+function toggleMobileNav(force) {
+  const m = document.getElementById('nav-mobile');
+  if (!m) return;
+  const open = typeof force === 'boolean' ? force : !m.classList.contains('open');
+  m.classList.toggle('open', open);
+  m.setAttribute('aria-hidden', !open);
+  document.getElementById('nav-hamburger')?.classList.toggle('open', open);
+  document.getElementById('nav-hamburger')?.setAttribute('aria-expanded', open);
+}
+// メニューの外（暗い部分）を押したら閉じる
+document.addEventListener('click', e => {
+  const m = document.getElementById('nav-mobile');
+  if (m && m.classList.contains('open') && e.target === m) toggleMobileNav(false);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMobileNav(false); });
 
 // renderNav後に自動でログインボーナスチェック＋ガチャナビ更新
 const _origRenderNav = renderNav;
@@ -804,7 +836,8 @@ async function updateFeedbackBadge() {
     if (!data.count) return;
     const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
     document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
-      a.innerHTML = t('nav.feedback') + badge;
+      const nb = a.querySelector('.nb');
+      if (nb) nb.innerHTML = `<i>${data.count}</i>`; else a.innerHTML = t('nav.feedback') + badge;
     });
   } catch {}
 }
@@ -817,7 +850,8 @@ async function updateAdminFeedbackBadge() {
     if (!data.count) return;
     const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
     document.querySelectorAll('a[href="/admin_index.html"]').forEach(a => {
-      a.innerHTML = t('nav.admin') + badge;
+      const nb = a.querySelector('.nb');
+      if (nb) nb.innerHTML = `<i>${data.count}</i>`; else a.innerHTML = t('nav.admin') + badge;
     });
   } catch {}
 }
@@ -843,7 +877,7 @@ async function updateGachaNav() {
     const d = document.getElementById('nav-gacha-desktop');
     const m = document.getElementById('nav-gacha-mobile');
     if (d) d.innerHTML = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${t('nav.gacha')}</a>`;
-    if (m) m.innerHTML = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${ni('gacha')}<span>${t('nav.gacha')}</span></a>`;
+    if (m) m.innerHTML = nmTile('/gacha.html', 'gacha', t('nav.gacha'), isActive);
   } catch {}
 }
 

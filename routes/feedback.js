@@ -83,8 +83,13 @@ router.get('/', authenticateToken, requireAdmin, async (req, res) => {
 // 管理者：未読件数
 router.get('/admin-unread-count', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query('SELECT COUNT(*) FROM feedback WHERE is_read = FALSE');
-    res.json({ count: parseInt(result.rows[0].count) });
+    // 管理の未読：お便りの未読＋承認待ちのスコア
+    const [fb, sc] = await Promise.all([
+      pool.query('SELECT COUNT(*) FROM feedback WHERE is_read = FALSE'),
+      pool.query("SELECT COUNT(*) FROM scores WHERE status = 'pending'"),
+    ]);
+    const feedback = parseInt(fb.rows[0].count), scores = parseInt(sc.rows[0].count);
+    res.json({ count: feedback + scores, feedback, scores });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
