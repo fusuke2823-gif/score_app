@@ -75,7 +75,10 @@ router.post('/login', async (req, res) => {
 router.get('/me', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, username, role, oshi_character, is_internal, created_at, user_code, (google_id IS NOT NULL) AS has_google FROM users WHERE id = $1',
+      `SELECT u.id, u.username, u.role, u.oshi_character, u.is_internal, u.created_at, u.user_code, (u.google_id IS NOT NULL) AS has_google,
+              gi.image_url AS equipped_icon_url, gi.rarity AS equipped_icon_rarity
+       FROM users u LEFT JOIN gacha_icons gi ON gi.id = u.equipped_icon_id
+       WHERE u.id = $1`,
       [req.user.id]
     );
     res.json(result.rows[0]);

@@ -38,7 +38,7 @@ const _i18n = {
     'ranking.period_ended':'このイベントは投稿期間が終了しています',
     'submit.title':'スコア投稿','submit.subtitle':'リザルト画像とともにスコアを投稿してください','submit.back_to_ranking':'← ランキングに戻る',
     'submit.event':'イベント','submit.attr':'属性','submit.image':'リザルト画像',
-    'submit.image_hint':'JPG・PNG・WebP対応 / 最大10MB（必須）','submit.score':'スコア',
+    'submit.image_hint':'JPG・PNG・WebP対応 / 最大10MB（必須）','submit.image_pick':'タップして画像を選ぶ','submit.attr_hint':'スコアを更新する場合は再投稿してください','submit.err_image':'リザルト画像を選んでください','submit.image_change':'画像を変える','submit.yt_add':'動画URLを追加（任意）','submit.score':'スコア',
     'submit.score_ph':'例: 12345678','submit.btn':'投稿する','submit.btn_loading':'送信中...',
     'submit.select':'選択してください','submit.no_events':'現在投稿できるイベントがありません',
     'submit.err_event':'イベントを選択してください','submit.err_attr':'属性を選択してください',
@@ -212,7 +212,7 @@ const _i18n = {
     'ranking.period_ended':'此活動的投稿時間已截止',
     'submit.title':'上傳分數','submit.subtitle':'請附上結果截圖上傳分數','submit.back_to_ranking':'← 返回排行榜',
     'submit.event':'活動','submit.attr':'屬性','submit.image':'結果截圖',
-    'submit.image_hint':'支援 JPG・PNG・WebP / 最大 10MB（必填）','submit.score':'分數',
+    'submit.image_hint':'支援 JPG・PNG・WebP / 最大 10MB（必填）','submit.image_pick':'點擊選擇圖片','submit.attr_hint':'如需更新分數，請重新投稿','submit.err_image':'請選擇結果圖片','submit.image_change':'更換圖片','submit.yt_add':'新增影片網址（選填）','submit.score':'分數',
     'submit.score_ph':'例：12345678','submit.btn':'投稿','submit.btn_loading':'送出中...',
     'submit.select':'請選擇','submit.no_events':'目前沒有可投稿的活動',
     'submit.err_event':'請選擇活動','submit.err_attr':'請選擇屬性',
@@ -390,10 +390,14 @@ if (getToken()) {
     .then(data => {
       if (data) {
         const user = getUser();
-        if (user && (user.is_internal !== data.is_internal || user.user_code !== data.user_code)) {
+        if (user && (user.is_internal !== data.is_internal || user.user_code !== data.user_code
+            || (user.icon_url || null) !== (data.equipped_icon_url || null) || (user.icon_rarity || null) !== (data.equipped_icon_rarity || null))) {
           user.is_internal = data.is_internal;
           if (data.user_code) user.user_code = data.user_code;
+          user.icon_url = data.equipped_icon_url || null;
+          user.icon_rarity = data.equipped_icon_rarity || null;
           localStorage.setItem('user', JSON.stringify(user));
+          updateNavAvatar(user);
         }
       }
     })
@@ -622,7 +626,7 @@ function renderNav() {
       <div class="nm-panel">
         ${user
           ? `<a class="nm-user" href="/user.html?id=${user.id}">
-               <span class="nm-avatar">${escHtml((user.username || '?').charAt(0))}</span>
+               <span class="nm-avatar${user.icon_url ? ' has-img' : ''}" id="nm-avatar">${navAvatarInner(user)}</span>
                <span class="nm-user-body"><b>${escHtml(user.username)}</b><small>${t('nav.account')}</small></span>
                ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
                <svg class="nm-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
@@ -650,6 +654,17 @@ function renderNav() {
       </div>
     </div>`;
   applyI18n();
+}
+
+// メニューの自分のアイコン：装備中のアイコン（なければ名前の頭文字）
+function navAvatarInner(user) {
+  return user.icon_url
+    ? `<img src="${escHtml(thumbUrl(user.icon_url))}" alt="" class="${user.icon_rarity ? `icon-rarity-${escHtml(user.icon_rarity)}` : ''}">`
+    : escHtml((user.username || '?').charAt(0));
+}
+function updateNavAvatar(user) {
+  const el = document.getElementById('nm-avatar');
+  if (el) { el.innerHTML = navAvatarInner(user); el.classList.toggle('has-img', !!user.icon_url); }
 }
 
 // メニューのタイル（アイコン＋名前）。nb はバッジ（未読数）を入れる場所

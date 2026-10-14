@@ -12,7 +12,92 @@
 <style>
 .back-link { color:rgba(232,232,240,0.75); font-size:0.85rem; display:inline-block; margin-bottom:16px; text-decoration:none; }
 .back-link:hover { color:var(--text-primary); }
+.sb-label { display:block; font-size:0.8rem; font-weight:bold; color:var(--text-secondary); margin-bottom:8px; }
+.sb-label small { font-weight:normal; color:var(--text-muted); margin-left:4px; }
+
+/* イベント：受付中の回をトップと同じカードで選ぶ（周回する光はなし） */
+.sb-events { display:grid; gap:10px; }
+.sb-ev { --tc:#ff6b80; position:relative; overflow:hidden; isolation:isolate; display:flex; align-items:center; gap:12px; width:100%; padding:14px 14px 14px 16px; min-height:100px;
+  border-radius:12px; cursor:pointer; text-align:left; color:var(--text-primary); font:inherit;
+  background:
+    radial-gradient(120% 140% at 100% 50%, color-mix(in srgb, var(--tc) 22%, transparent), transparent 55%),
+    linear-gradient(110deg, rgba(26,23,52,0.86), rgba(14,12,32,0.82));
+  border:1px solid rgba(255,255,255,0.1); box-shadow:0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); transition:border-color 0.15s, box-shadow 0.15s; }
+.sb-ev.t-ex { --tc:#b46cff; } .sb-ev.t-seraph { --tc:#4fc3f7; }
+.sb-ev:hover { border-color:color-mix(in srgb, var(--tc) 70%, transparent); }
+.sb-ev:not(.on) { opacity:0.75; }
+.sb-ev.on { border-color:var(--tc); box-shadow:0 0 0 1px var(--tc), 0 8px 22px rgba(0,0,0,0.4); }
+.sb-ev-shine { position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, var(--tc), transparent); opacity:0.7; }
+.sb-ev-num { position:absolute; right:118px; bottom:-10px; z-index:0; pointer-events:none; font-family:"Orbitron",sans-serif; font-weight:900; font-size:3.2rem; line-height:1;
+  color:transparent; -webkit-text-stroke:1px color-mix(in srgb, var(--tc) 45%, transparent); opacity:0.8; letter-spacing:0.02em; }
+.sb-ev-body { position:relative; z-index:1; flex:1; min-width:0; }
+.sb-ev-type { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.56rem; letter-spacing:0.18em; color:var(--tc); margin-bottom:3px; display:block; }
+.sb-ev-name { display:block; font-size:1rem; font-weight:bold; line-height:1.35; margin-bottom:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sb-ev-meta { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; }
+.sb-ev-meta .attr-badge.small { width:21px; height:21px; font-size:0.64rem; line-height:19px; padding:0; box-sizing:border-box; flex-shrink:0; text-align:center; }
+.sb-ev-left { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:99px; margin-right:3px; white-space:nowrap; flex-shrink:0; line-height:1.4;
+  color:#6ee7a0; background:rgba(76,175,80,0.14); border:1px solid rgba(110,231,160,0.4); }
+.sb-ev-left::before { content:''; width:6px; height:6px; border-radius:50%; background:#6ee7a0; }
+.sb-ev-left.soon { color:#ff8a9a; background:rgba(230,57,80,0.14); border-color:rgba(255,138,154,0.45); }
+.sb-ev-left.soon::before { background:#ff8a9a; }
+.sb-ev-img { position:relative; z-index:1; width:96px; aspect-ratio:375 / 262; flex-shrink:0; border-radius:8px; object-fit:cover;
+  border:1px solid color-mix(in srgb, var(--tc) 45%, transparent); box-shadow:0 6px 16px rgba(0,0,0,0.5), 0 0 14px color-mix(in srgb, var(--tc) 25%, transparent); }
+.sb-ev-check { position:absolute; top:6px; right:6px; z-index:2; width:22px; height:22px; border-radius:50%; background:var(--tc); color:#fff; display:none; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.5); }
+.sb-ev.on .sb-ev-check { display:flex; }
+@media (max-width:420px) { .sb-ev-img { width:84px; } .sb-ev-num { right:106px; } }
+.sb-empty { font-size:0.85rem; color:var(--text-muted); padding:14px; text-align:center; border:1px dashed var(--border); border-radius:12px; }
+#event-select { display:none; }
+
+/* 属性：楕円のボタンを1行に */
+.sb-attrs { display:grid; grid-template-columns:repeat(6, 1fr); gap:6px; }
+.sb-attr { position:relative; cursor:pointer; }
+.sb-attr input { position:absolute; opacity:0; pointer-events:none; }
+.sb-attr span { display:flex; align-items:center; justify-content:center; height:34px; border-radius:99px; font-weight:bold; font-size:0.9rem;
+  border:1.5px solid var(--ac); color:var(--ac); background:transparent; opacity:0.55; transition:opacity 0.15s, background 0.15s, box-shadow 0.15s; }
+.sb-attr:hover span { opacity:0.85; }
+.sb-attr input:checked + span { opacity:1; background:color-mix(in srgb, var(--ac) 22%, transparent); box-shadow:0 0 0 1px var(--ac), 0 0 12px color-mix(in srgb, var(--ac) 45%, transparent); }
+.sb-attr input:focus-visible + span { outline:2px solid #fff; outline-offset:2px; }
+
+/* リザルト画像：点線の枠を押して選ぶ */
+.sb-drop { position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:130px; padding:16px; border-radius:12px; cursor:pointer;
+  border:1.5px dashed rgba(255,255,255,0.25); background:rgba(255,255,255,0.03); color:var(--text-secondary); text-align:center; transition:border-color 0.15s, background 0.15s; overflow:hidden; }
+.sb-drop:hover, .sb-drop.drag { border-color:var(--accent); background:rgba(230,57,80,0.06); }
+.sb-drop svg { color:#ff7a8c; }
+.sb-drop b { font-size:0.9rem; color:var(--text-primary); }
+.sb-drop small { font-size:0.72rem; color:var(--text-muted); }
+.sb-drop.has-img { padding:0; border-style:solid; border-color:rgba(255,255,255,0.15); min-height:0; }
+.sb-drop.has-img .sb-drop-empty { display:none; }
+.sb-drop img { display:none; width:100%; max-height:360px; object-fit:contain; background:#0b0a18; }
+.sb-drop.has-img img { display:block; }
+.sb-drop-change { display:none; align-items:center; gap:5px; margin-top:8px; font-size:0.8rem; font-weight:bold; padding:6px 12px; border-radius:99px; cursor:pointer;
+  background:rgba(255,255,255,0.05); color:var(--text-secondary); border:1px solid rgba(255,255,255,0.18); width:max-content; }
+.sb-drop-change:hover { color:var(--text-primary); border-color:var(--accent); }
+.sb-drop.has-img + .sb-drop-change { display:inline-flex; }
+#image-input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+
+/* スコア：大きな数字 */
+#score-input { font-weight:bold; font-size:1.4rem; letter-spacing:0.03em; font-variant-numeric:tabular-nums; padding:12px 14px; }
+#score-input::placeholder { font-weight:normal; font-size:0.95rem; letter-spacing:0; }
+
+/* YouTube：押したときだけ開く */
+.sb-yt-toggle { background:none; border:none; padding:2px 0; color:var(--text-secondary); font:inherit; font-size:0.84rem; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.sb-yt-toggle:hover { color:var(--text-primary); }
+.sb-yt-box[hidden] { display:none; }
+
+#submit-btn { justify-content:center; text-align:center; padding:13px; font-size:1rem; font-weight:bold; border-radius:12px; box-shadow:0 6px 18px rgba(230,57,80,0.35); }
+
+/* 投稿状況：属性ごとのカード */
+.sb-status-title { font-size:0.8rem; font-weight:bold; color:var(--text-secondary); margin:0 0 10px; }
+.sb-status { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:8px; }
+.sb-st { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; background:var(--bg-card); border:1px solid var(--border); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); }
+.sb-st-body { min-width:0; flex:1; }
+.sb-st-score { font-weight:bold; font-size:1.05rem; font-variant-numeric:tabular-nums; letter-spacing:0.02em; }
+.sb-st-pending { font-size:0.72rem; color:#f5b041; margin-top:2px; }
+.sb-st-pending b { font-size:0.82rem; font-variant-numeric:tabular-nums; }
+.sb-st .status-badge { margin-left:auto; flex-shrink:0; }
+@media (max-width:380px) { .sb-attr span { font-size:0.82rem; height:32px; } }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
 </head>
 <body>
 <nav id="nav"></nav>
@@ -26,49 +111,50 @@
     <div class="card">
       <form id="submit-form">
         <div class="form-group">
-          <label class="form-label" data-i18n="submit.event">イベント</label>
-          <select class="form-select" id="event-select" required>
+          <span class="sb-label" data-i18n="submit.event">イベント</span>
+          <div class="sb-events" id="sb-events"><div class="loading"><div class="spinner"></div></div></div>
+          <select class="form-select" id="event-select" aria-hidden="true" tabindex="-1">
             <option value="" data-i18n="submit.select">選択してください</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label class="form-label" data-i18n="submit.attr">属性</label>
-          <div style="display:flex;flex-wrap:wrap;gap:8px" id="attr-select">
-            <!-- 属性ラジオボタン -->
-          </div>
+          <span class="sb-label" data-i18n="submit.attr">属性</span>
+          <div class="sb-attrs" id="attr-select" role="radiogroup"></div>
+          <div class="form-hint" data-i18n="submit.attr_hint">スコアを更新する場合は再投稿してください</div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" data-i18n="submit.image">リザルト画像</label>
-          <input class="form-input" type="file" id="image-input" accept="image/*" style="padding:8px" required>
-          <div class="form-hint" data-i18n="submit.image_hint">JPG・PNG・WebP対応 / 最大10MB</div>
-          <img id="image-preview" class="img-preview" style="display:none">
+          <span class="sb-label" data-i18n="submit.image">リザルト画像</span>
+          <label class="sb-drop" id="sb-drop" for="image-input">
+            <input type="file" id="image-input" accept="image/*">
+            <span class="sb-drop-empty">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M21 16l-5-5-8 9"/></svg><br>
+              <b data-i18n="submit.image_pick">タップして画像を選ぶ</b><br>
+              <small data-i18n="submit.image_hint">JPG・PNG・WebP対応 / 最大10MB</small>
+            </span>
+            <img id="image-preview" alt="">
+          </label>
+          <label class="sb-drop-change" for="image-input">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5"/></svg>
+            <span data-i18n="submit.image_change">画像を変える</span>
+          </label>
         </div>
 
         <div class="form-group">
-          <label class="form-label" data-i18n="submit.score">スコア</label>
-          <input class="form-input" type="number" id="score-input" min="0" data-i18n-ph="submit.score_ph" placeholder="例: 12345678" required>
+          <label class="sb-label" for="score-input" data-i18n="submit.score">スコア</label>
+          <input class="form-input" type="text" inputmode="numeric" autocomplete="off" id="score-input" data-i18n-ph="submit.score_ph" placeholder="例: 12345678" required>
         </div>
 
         <div class="form-group">
-          <label class="form-label" data-i18n="submit.yt_url">YouTube動画URL（任意）</label>
-          <input class="form-input" type="url" id="youtube-input" placeholder="例: https://www.youtube.com/watch?v=...">
-          <div class="form-hint" data-i18n="submit.yt_hint">YouTubeのURLのみ入力できます</div>
-        </div>
-
-        <!-- 内部ユーザーのみ表示：投稿先選択 -->
-        <div class="form-group" id="scope-group" style="display:none">
-          <label class="form-label" data-i18n="scope.label">投稿先</label>
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
-              <input type="radio" name="ranking_scope" value="internal">
-              <span data-i18n="scope.submit_internal">内部ランキングのみ</span>
-            </label>
-            <label style="cursor:pointer;display:flex;align-items:center;gap:6px">
-              <input type="radio" name="ranking_scope" value="public" checked>
-              <span data-i18n="scope.submit_public">内部・外部両方</span>
-            </label>
+          <button type="button" class="sb-yt-toggle" id="sb-yt-toggle" onclick="openYt()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="submit.yt_add">動画URLを追加（任意）</span>
+          </button>
+          <div class="sb-yt-box" id="sb-yt-box" hidden>
+            <label class="sb-label" for="youtube-input" data-i18n="submit.yt_url">YouTube動画URL（任意）</label>
+            <input class="form-input" type="url" id="youtube-input" placeholder="例: https://www.youtube.com/watch?v=...">
+            <div class="form-hint" data-i18n="submit.yt_hint">YouTubeのURLのみ入力できます</div>
           </div>
         </div>
 
@@ -101,40 +187,54 @@ renderNav();
 applyI18n();
 if (!requireLogin()) throw new Error('redirect');
 
-// 内部ユーザーなら投稿先選択を表示
-if (isInternal()) {
-  document.getElementById('scope-group').style.display = '';
-}
 
 // 属性ラジオ生成
 const attrContainer = document.getElementById('attr-select');
+const ATTR_COLOR = { '火': 'var(--fire)', '氷': 'var(--ice)', '雷': 'var(--thunder)', '光': 'var(--light)', '闇': 'var(--dark)', '無': 'var(--none)' };
 ATTRIBUTES.forEach(attr => {
   const label = document.createElement('label');
-  label.style.cssText = 'cursor:pointer';
-  label.innerHTML = `
-    <input type="radio" name="attribute" value="${attr}" style="display:none">
-    <span class="attr-btn attr-${attr}">${t('attr.' + attr)}</span>
-  `;
-  const radio = label.querySelector('input');
-  radio.addEventListener('change', () => {
-    attrContainer.querySelectorAll('.attr-btn').forEach(b => b.classList.remove('active'));
-    if (radio.checked) label.querySelector('.attr-btn').classList.add('active');
-    loadMyScores();
-  });
+  label.className = 'sb-attr';
+  label.style.setProperty('--ac', ATTR_COLOR[attr] || 'var(--text-secondary)');
+  label.innerHTML = `<input type="radio" name="attribute" value="${attr}"><span>${t('attr.' + attr)}</span>`;
+  label.querySelector('input').addEventListener('change', loadMyScores);
   attrContainer.appendChild(label);
 });
 
-// 画像プレビュー
-document.getElementById('image-input').addEventListener('change', e => {
-  const file = e.target.files[0];
-  const preview = document.getElementById('image-preview');
-  if (file) {
-    preview.src = URL.createObjectURL(file);
-    preview.style.display = 'block';
-  } else {
-    preview.style.display = 'none';
-  }
+
+// スコアは桁区切りで表示し、送るときは数字だけにする
+const scoreInput = document.getElementById('score-input');
+function getScoreValue() { return scoreInput.value.replace(/[^0-9]/g, ''); }
+scoreInput.addEventListener('input', () => {
+  const digits = getScoreValue().slice(0, 12);
+  scoreInput.value = digits ? Number(digits).toLocaleString('en-US') : '';
 });
+
+function openYt() {
+  document.getElementById('sb-yt-toggle').hidden = true;
+  document.getElementById('sb-yt-box').hidden = false;
+  document.getElementById('youtube-input').focus();
+}
+
+// 画像プレビュー
+function showPreview(file) {
+  const drop = document.getElementById('sb-drop');
+  const preview = document.getElementById('image-preview');
+  if (file) { preview.src = URL.createObjectURL(file); drop.classList.add('has-img'); }
+  else { preview.removeAttribute('src'); drop.classList.remove('has-img'); }
+}
+document.getElementById('image-input').addEventListener('change', e => showPreview(e.target.files[0]));
+// PCでは画像を枠にドラッグして入れられる
+(() => {
+  const drop = document.getElementById('sb-drop'), input = document.getElementById('image-input');
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+  drop.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if (!f || !f.type.startsWith('image/')) return;
+    const dt = new DataTransfer(); dt.items.add(f); input.files = dt.files;
+    showPreview(f);
+  });
+})();
 
 // イベント一覧読み込み
 async function loadEvents() {
@@ -151,6 +251,7 @@ async function loadEvents() {
     if (active.length === 0) {
       sel.disabled = true;
       sel.options[0].textContent = t('submit.no_events');
+      document.getElementById('sb-events').innerHTML = `<div class="sb-empty">${t('submit.no_events')}</div>`;
     } else {
       sel.options[0].textContent = t('submit.select');
       active.forEach(e => {
@@ -160,8 +261,10 @@ async function loadEvents() {
         opt.dataset.eventType = e.event_type || 'score_attack';
         sel.appendChild(opt);
       });
+      renderEventCards(active);
     }
     const preselect = getParam('event_id');
+    if (!preselect && active.length === 1) sel.value = String(active[0].id);
     if (preselect) {
       sel.value = preselect;
       if (!sel.value) sel.value = '';
@@ -169,11 +272,49 @@ async function loadEvents() {
       backLink.href = `/ranking.html?id=${encodeURIComponent(preselect)}`;
       backLink.style.display = 'inline-block';
     }
-    sel.addEventListener('change', loadMyScores);
+    sel.addEventListener('change', () => { markEventCards(); loadMyScores(); });
+    markEventCards();
     loadMyScores();
   } catch (err) {
     showAlert('#alert', err.message);
   }
+}
+
+// 受付中のイベントをカードで出す（実際の値は隠した select に入れる）
+function renderEventCards(events) {
+  const now = Date.now();
+  const tag = e => e.event_type === 'score_attack_ex' ? ['ex', 'SCORE ATTACK EX'] : e.event_type === 'seraph' ? ['seraph', 'ENCOUNTER'] : ['score', 'SCORE ATTACK'];
+  document.getElementById('sb-events').innerHTML = events.map(e => {
+    const [cls, label] = tag(e);
+    let left = '', soon = false;
+    if (e.submission_end) {
+      const h = (new Date(e.submission_end) - now) / 36e5;
+      left = h < 24 ? t('event.hours_left', Math.ceil(h)) : t('event.days_left', Math.ceil(h / 24));
+      soon = h < 24;
+    }
+    const num = (e.name.match(/#\s*(\d+)/) || [])[1];
+    const weak = (e.first_enemy_weak || '').split(',').map(a => a.trim()).filter(Boolean);
+    return `<button type="button" class="sb-ev t-${cls}" data-ev="${e.id}" onclick="pickEvent(${e.id})" aria-pressed="false">
+      <span class="sb-ev-shine"></span>
+      ${num ? `<span class="sb-ev-num">#${num}</span>` : ''}
+      <span class="sb-ev-body">
+        <span class="sb-ev-type">${label}</span>
+        <span class="sb-ev-name">${escHtml(e.name)}</span>
+        <span class="sb-ev-meta">${left ? `<span class="sb-ev-left${soon ? ' soon' : ''}">${left}</span>` : ''}${weak.map(a => attrBadge(a, true)).join('')}</span>
+      </span>
+      ${e.first_enemy_image ? `<img class="sb-ev-img" src="${escHtml(thumbUrl(e.first_enemy_image))}" alt="">` : ''}
+      <span class="sb-ev-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></span>
+    </button>`;
+  }).join('');
+}
+function pickEvent(id) {
+  const sel = document.getElementById('event-select');
+  sel.value = String(id);
+  sel.dispatchEvent(new Event('change'));
+}
+function markEventCards() {
+  const v = document.getElementById('event-select').value;
+  document.querySelectorAll('.sb-ev').forEach(b => { const on = b.dataset.ev === v; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
 }
 
 let myScores = [];
@@ -183,20 +324,17 @@ const MY_SCORES_POLL_MS = 5000;
 function renderMyScoresTable(scores, container) {
   if (scores.length === 0) { container.innerHTML = ''; return; }
   container.innerHTML = `
-    <h3 style="font-size:0.9rem;color:rgba(232,232,240,0.75);margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">${t('submit.status_title')}</h3>
-    <div class="card">
-      <table class="ranking-table">
-        <thead><tr><th>${t('submit.th_attr')}</th><th>${t('submit.th_approved')}</th><th>${t('submit.th_pending')}</th><th>${t('submit.th_status')}</th></tr></thead>
-        <tbody>
-          ${scores.map(s => `
-            <tr>
-              <td>${attrBadge(s.attribute)}</td>
-              <td>${formatScore(s.approved_score)}</td>
-              <td>${s.status === 'pending' ? formatScore(s.pending_score) : '-'}</td>
-              <td>${statusBadge(s.status)}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
+    <h3 class="sb-status-title">${t('submit.status_title')}</h3>
+    <div class="sb-status">
+      ${scores.map(s => `
+        <div class="sb-st">
+          ${attrBadge(s.attribute)}
+          <div class="sb-st-body">
+            <div class="sb-st-score">${s.approved_score != null ? formatScore(s.approved_score) : '-'}</div>
+            ${s.status === 'pending' ? `<div class="sb-st-pending">${t('submit.th_pending')} <b>${formatScore(s.pending_score)}</b></div>` : ''}
+          </div>
+          ${statusBadge(s.status)}
+        </div>`).join('')}
     </div>`;
 }
 
@@ -243,10 +381,11 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
 
   const eventId = document.getElementById('event-select').value;
   const attrInput = document.querySelector('input[name="attribute"]:checked');
-  const score = document.getElementById('score-input').value;
+  const score = getScoreValue();
 
   if (!eventId) return showAlert('#alert', t('submit.err_event'));
   if (!attrInput) return showAlert('#alert', t('submit.err_attr'));
+  if (!document.getElementById('image-input').files[0]) return showAlert('#alert', t('submit.err_image'));
   if (!score) return showAlert('#alert', t('submit.err_score'));
 
   const scoreNum = parseInt(score);
@@ -276,19 +415,16 @@ async function submitWithAnon(isAnon) {
 async function doSubmit(isAnon) {
   const eventId = document.getElementById('event-select').value;
   const attrInput = document.querySelector('input[name="attribute"]:checked');
-  const score = document.getElementById('score-input').value;
+  const score = getScoreValue();
   const imageFile = document.getElementById('image-input').files[0];
   const btn = document.getElementById('submit-btn');
 
-  const scopeInput = document.querySelector('input[name="ranking_scope"]:checked');
-  const rankingScope = scopeInput ? scopeInput.value : 'public';
 
   const formData = new FormData();
   formData.append('event_id', eventId);
   formData.append('attribute', attrInput.value);
   formData.append('score', score);
   formData.append('is_anonymous', isAnon);
-  formData.append('ranking_scope', rankingScope);
   if (imageFile) formData.append('image', imageFile);
   const ytUrl = document.getElementById('youtube-input')?.value.trim();
   if (ytUrl) formData.append('youtube_url', ytUrl);
@@ -301,7 +437,7 @@ async function doSubmit(isAnon) {
     showAlert('#alert', res.message, 'success');
     document.getElementById('score-input').value = '';
     document.getElementById('image-input').value = '';
-    document.getElementById('image-preview').style.display = 'none';
+    showPreview(null);
     document.getElementById('youtube-input').value = '';
     loadMyScores();
   } catch (err) {

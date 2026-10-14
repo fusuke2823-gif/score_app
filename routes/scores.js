@@ -41,7 +41,7 @@ router.post('/', authenticateToken, (req, res, next) => {
     next();
   });
 }, async (req, res) => {
-  const { event_id, attribute, score, is_anonymous, ranking_scope, youtube_url } = req.body;
+  const { event_id, attribute, score, is_anonymous, youtube_url } = req.body;
 
   if (!event_id || !attribute || score === undefined)
     return res.status(400).json({ error: '必須項目が不足しています' });
@@ -84,7 +84,8 @@ router.post('/', authenticateToken, (req, res, next) => {
     const userResult = await pool.query('SELECT is_internal FROM users WHERE id = $1', [req.user.id]);
     const isInternal = userResult.rows[0]?.is_internal ?? false;
     // 外部ユーザーは常に 'external'（内部ランキングに入らない）
-    const scopeVal = !isInternal ? 'external' : (ranking_scope === 'public' ? 'public' : 'internal');
+    // 内部ユーザーの投稿先は「内部・外部両方」に固定（以前は内部のみも選べた）
+    const scopeVal = !isInternal ? 'external' : 'public';
 
     const inserted = await pool.query(
       `INSERT INTO scores (user_id, event_id, attribute, pending_score, pending_image_url, status, updated_at, is_anonymous, ranking_scope, pending_youtube_url, pending_youtube_score, ai_extracted_score, ai_match, ai_note)
