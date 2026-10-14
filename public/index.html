@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
 <title>ヘブバン ランクボード</title>
 <meta name="description" content="ヘブンバーンズレッドのスコアアタック・遭遇戦等のランキングボード。各回、各属性のスコアを投稿・閲覧できる非公式ファンサービスです。">
 <meta property="og:title" content="ヘブバン ランクボード">
@@ -15,12 +18,14 @@
 <meta name="google-site-verification" content="-t94Qe4K_8RRSefVXljjCgHLRHX39hgsLp925ioTtwU" />
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
+<!-- タイトル用（使う文字だけ読み込む） -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@900&text=%E3%83%98%E3%83%96%E3%83%90%E3%83%B3%20%E3%83%A9%E3%83%B3%E3%82%AF%E3%83%9C%E3%83%BC%E3%83%89&display=swap">
 <style>
 /* ===== トップの見た目 ===== */
 .top-head { position:relative; padding:6px 0 4px; }
 .top-head .top-eyebrow, .top-head .top-title { padding-right:44px; }
 .top-eyebrow { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.62rem; letter-spacing:0.28em; color:var(--accent); text-shadow:0 0 10px rgba(230,57,80,0.6); }
-.top-title { margin:4px 0 0; font-size:1.65rem; font-weight:900; line-height:1.25; letter-spacing:0.02em;
+.top-title { margin:4px 0 0; font-family:"Zen Kaku Gothic New", sans-serif; font-size:1.65rem; font-weight:900; line-height:1.25; letter-spacing:0.02em;
   background:linear-gradient(180deg,#fff 30%,#c9c9e6); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 2px 10px rgba(0,0,0,0.6)); }
 .top-title-line { width:64px; height:3px; border-radius:2px; margin:10px 0 10px; background:linear-gradient(90deg, var(--accent), transparent); }
 .top-meta { display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:0.78rem; color:rgba(232,232,240,0.75); }
@@ -61,7 +66,7 @@
 .ev-type { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.56rem; letter-spacing:0.18em; color:var(--tc); margin-bottom:3px; }
 .ev-name { font-size:1.02rem; font-weight:bold; line-height:1.35; margin-bottom:8px; }
 .ev-meta { display:flex; align-items:center; gap:4px; flex-wrap:nowrap; }
-.ev-meta .attr-badge.small { width:21px; height:21px; font-size:0.64rem; line-height:1; padding:1.5px 0 0; box-sizing:border-box; flex-shrink:0; }
+.ev-meta .attr-badge.small { width:21px; height:21px; font-size:0.64rem; line-height:19px; padding:0; box-sizing:border-box; flex-shrink:0; text-align:center; }
 .ev-status { line-height:1.4; }
 .ev-meta .ev-status { flex-shrink:0; }
 .ev-status { display:inline-flex; align-items:center; gap:4px; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:99px; margin-right:3px; white-space:nowrap;
@@ -950,7 +955,7 @@ function renderEvents() {
     }
     const type = getEventType(e);
     return `
-    <a class="event-card ev t-${type}${ended ? ' ended' : ''}${statusCls ? ' live' : ''}" href="/ranking.html?id=${e.id}" style="--d:${(0.85 + Math.min(i, 10) * 0.08).toFixed(2)}s;animation-delay:var(--d);--ev-delay:${(2.4 + i * 0.8).toFixed(1)}s">
+    <a class="event-card ev t-${type}${ended ? ' ended' : ''}${statusCls ? ' live' : ''}" href="/ranking.html?id=${e.id}" style="--d:${(0.85 + Math.min(i, 10) * 0.08).toFixed(2)}s;animation-delay:var(--d);--ev-delay:2.4s">
       <span class="ev-sweep"></span>
       <span class="ev-shine"></span>
       ${(e.name.match(/#\s*(\d+)/) || [])[1] ? `<span class="ev-num">#${e.name.match(/#\s*(\d+)/)[1]}</span>` : ''}

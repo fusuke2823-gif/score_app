@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
 :root {
   --bg-primary: rgba(12,11,24,0.5);
   --bg-secondary: rgba(20,18,40,0.46);
@@ -78,13 +79,17 @@ nav {
   gap: 8px;
 }
 .nav-logo {
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: var(--accent);
+  display: flex; align-items: center; gap: 8px;
   text-decoration: none;
   flex-shrink: 0;
 }
-.nav-logo:hover { color: var(--accent-hover); text-decoration: none; }
+.nav-logo:hover { text-decoration: none; }
+.nav-logo-mark { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 0 12px rgba(230,57,80,0.5), inset 0 1px 0 rgba(255,255,255,0.3); transition: transform 0.15s, box-shadow 0.15s; }
+.nav-logo:hover .nav-logo-mark { transform: translateY(-1px); box-shadow: 0 0 16px rgba(230,57,80,0.7), inset 0 1px 0 rgba(255,255,255,0.3); }
+.nav-logo-txt { display: flex; flex-direction: column; line-height: 1; }
+.nav-logo-txt b { font-family: "Orbitron", sans-serif; font-weight: 900; font-size: 1rem; letter-spacing: 0.08em; color: #fff; }
+.nav-logo-txt i { font-style: normal; font-family: "Orbitron", sans-serif; font-weight: 700; font-size: 0.5rem; letter-spacing: 0.24em; color: #ff6b80; margin-top: 3px; }
 .nav-links {
   display: flex;
   gap: 4px;

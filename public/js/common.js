@@ -549,6 +549,9 @@ const NAV_ICONS = {
   login:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h3v10h-3"/><path d="M6 11l-3-3 3-3M3 8h6"/></svg>`,
   register: `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="7" cy="5.5" r="2.5"/><path d="M2 13c0-2.8 2.2-5 5-5"/><path d="M12 9v4M10 11h4"/></svg>`,
 };
+// サイトのロゴ（表彰台＋RB）。favicon.svg と同じ絵
+const NAV_LOGO_MARK = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><rect x="8.6" y="3.5" width="6.8" height="17" rx="1.1" fill="#fff"/><rect x="1.4" y="8.5" width="6.6" height="12" rx="1.1" fill="#ffd0d6"/><rect x="16" y="11.5" width="6.6" height="9" rx="1.1" fill="#ffd0d6"/><path d="M11.90 18.20L10.39 18.20L8.43 15.86L10.34 15.86L11.90 17.70L11.90 18.20ZM6.60 18.20L5.14 18.20L5.14 11.44L10.51 11.44Q10.89 11.44 11.21 11.63Q11.52 11.82 11.71 12.14Q11.91 12.46 11.91 12.83L11.91 12.83L11.91 14.58Q11.91 14.96 11.71 15.28Q11.52 15.60 11.21 15.78Q10.89 15.97 10.51 15.97L10.51 15.97L6.60 15.98L6.60 18.20ZM6.60 14.51L6.60 14.51L10.43 14.51Q10.43 14.51 10.43 14.51Q10.43 14.51 10.43 14.51L10.43 14.51L10.43 12.90Q10.43 12.90 10.43 12.90Q10.43 12.90 10.43 12.90L10.43 12.90L6.60 12.90Q6.60 12.90 6.60 12.90Q6.60 12.90 6.60 12.90L6.60 12.90L6.60 14.51Q6.60 14.51 6.60 14.51Q6.60 14.51 6.60 14.51ZM12.52 18.20L12.52 18.20L12.52 11.43L17.64 11.43Q18.01 11.43 18.33 11.62Q18.64 11.81 18.83 12.12Q19.03 12.44 19.03 12.82L19.03 12.82L19.03 14.09Q19.03 14.21 19.01 14.32Q19.00 14.43 18.96 14.52L18.96 14.52Q19.10 14.70 19.20 14.94Q19.29 15.17 19.29 15.41L19.29 15.41L19.29 16.81Q19.29 17.18 19.10 17.50Q18.90 17.82 18.59 18.01Q18.27 18.20 17.89 18.20L17.89 18.20L12.52 18.20ZM13.98 16.73L13.98 16.73L17.81 16.73Q17.81 16.73 17.81 16.73Q17.81 16.73 17.81 16.73L17.81 16.73L17.81 15.49Q17.81 15.49 17.81 15.49Q17.81 15.49 17.81 15.49L17.81 15.49L13.98 15.49Q13.98 15.49 13.98 15.49Q13.98 15.49 13.98 15.49L13.98 15.49L13.98 16.73Q13.98 16.73 13.98 16.73Q13.98 16.73 13.98 16.73ZM13.98 14.03L13.98 14.03L17.55 14.03Q17.55 14.03 17.55 14.03Q17.55 14.03 17.55 14.03L17.55 14.03L17.55 12.90Q17.55 12.90 17.55 12.90Q17.55 12.90 17.55 12.90L17.55 12.90L13.98 12.90Q13.98 12.90 13.98 12.90Q13.98 12.90 13.98 12.90L13.98 12.90L13.98 14.03Q13.98 14.03 13.98 14.03Q13.98 14.03 13.98 14.03Z" fill="#fff" stroke="#c2304f" stroke-width="2.2" stroke-linejoin="round" paint-order="stroke"/></svg>';
+
 function ni(key) {
   return NAV_ICONS[key] ? `<i class="nvi">${NAV_ICONS[key]}</i>` : '';
 }
@@ -590,7 +593,7 @@ function renderNav() {
 
   nav.innerHTML = `
     <div class="nav-inner">
-      <a class="nav-logo" href="/index.html">HBR-RB</a>
+      <a class="nav-logo" href="/index.html" aria-label="ヘブバン ランクボード トップへ"><span class="nav-logo-mark">${NAV_LOGO_MARK}</span><span class="nav-logo-txt"><b>HBR</b><i>RANK BOARD</i></span></a>
       <div class="nav-links">
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         <span id="nav-gacha-desktop" style="display:contents"></span>
