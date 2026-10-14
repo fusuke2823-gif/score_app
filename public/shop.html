@@ -10,19 +10,17 @@
 <title>ショップ - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.points-bar {
-  display: flex;
-  flex-direction: column;
-  background: var(--bg-card2);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid var(--border-light);
-  border-radius: 10px;
-  padding: 14px 20px;
-  margin-bottom: 24px;
+/* 所持ポイント（ガチャと同じ、右上に固定する丸い表示） */
+.shop-wallet {
+  position: fixed; top: 66px; right: max(16px, calc((100vw - 1100px) / 2 + 24px)); z-index: 90;
+  display: flex; align-items: baseline; gap: 5px; padding: 6px 14px; border-radius: 99px;
+  background: rgba(18,16,34,0.78); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--border-light); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  font-size: 0.9rem; font-weight: 800; font-variant-numeric: tabular-nums;
 }
-.points-label { color: var(--text-secondary); font-size: 0.9rem; }
-.points-value { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
+.shop-wallet[hidden] { display: none; }
+.shop-wallet-label { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em; color: var(--text-secondary); }
+#my-points { color: #ff6b80; }
 
 .shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px; }
 @media (max-width: 400px) { .shop-list { grid-template-columns: 1fr; } }
@@ -145,14 +143,7 @@
   <h1 class="page-title" id="page-title" data-i18n="shop.title">ショップ</h1>
   <div id="alert"></div>
 
-  <div id="points-bar" style="display:none" class="points-bar">
-    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:6px" data-i18n="shop.points_hint">※ポイントはランキングに応じて配布されます</div>
-    <div style="display:flex;align-items:center;gap:10px">
-      <span class="points-label" data-i18n="shop.my_points">所持ポイント</span>
-      <span class="points-value" id="my-points">0</span>
-      <span class="points-label">pt</span>
-    </div>
-  </div>
+  <div class="shop-wallet" id="shop-wallet" hidden><span class="shop-wallet-label">PT</span><span id="my-points">---</span></div>
 
   <!-- ショップ（称号・推し称号・フレームのサブタブ） -->
   <div class="tab-content active" id="tab-shop">
@@ -250,9 +241,9 @@ async function load() {
       apiFetch('/shop/frames')
     ]);
     if (user) {
-      document.getElementById('points-bar').style.display = '';
+      document.getElementById('shop-wallet').hidden = false;
       myData = await apiFetch('/shop/my');
-      document.getElementById('my-points').textContent = myData.points;
+      document.getElementById('my-points').textContent = Number(myData.points).toLocaleString('ja-JP');
       renderMyTitles();
       renderMyFrames();
       myIconData = null;
@@ -268,7 +259,7 @@ async function load() {
 
 async function refreshMyData() {
   myData = await apiFetch('/shop/my');
-  document.getElementById('my-points').textContent = myData.points;
+  document.getElementById('my-points').textContent = Number(myData.points).toLocaleString('ja-JP');
 }
 
 // ===== 称号 =====
