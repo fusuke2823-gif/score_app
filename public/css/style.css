@@ -34,6 +34,9 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+/* スマホで一番上（下）からさらに引っぱったときの伸び（バウンス）を止める。
+   伸びるとナビが一緒に下へずれるため（Androidの引っぱって更新も効かなくなる） */
+html, body { overscroll-behavior-y: none; }
 
 body {
   background-color: #060612;
