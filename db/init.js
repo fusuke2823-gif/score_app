@@ -803,6 +803,9 @@ const initDB = async () => {
       );
     `);
 
+    // フレームの種類（utils/frames.js）を frames テーブルにそろえる
+    await require('../utils/frames').seedFrames(client);
+
     console.log('データベース初期化完了');
   } finally {
     client.release();

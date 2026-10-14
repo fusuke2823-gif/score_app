@@ -175,6 +175,7 @@ async function load() {
     const rows = await apiFetch(`/users/rate-ranking?scope=${currentScope}`);
     renderMyCard(rows);
     el.innerHTML = renderTable(rows);
+    fitFrameRows();
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }

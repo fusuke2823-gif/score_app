@@ -109,6 +109,11 @@ const _i18n = {
     'shop.owned':'所持済み','shop.equipped_badge':'装備中',
     'shop.no_titles':'購入できる称号がありません',
     'shop.no_frames':'購入できるフレームがありません',
+    'shop.frame_cond':'条件','shop.frame_cond_all':'条件をすべて満たすと購入できます','shop.frame_locked':'条件未達成','shop.not_enough':'pt不足',
+    'shop.frame_cond_rank1':'1位を{0}回','shop.frame_cond_rank':'{0}位以内に{1}回',
+    'shop.frame_cond_attr1':'{0}属性で1位を{1}回','shop.frame_cond_attr':'{0}属性で{1}位以内に{2}回',
+    'shop.frame_cond_kinds':'{0}種類の属性で{1}位以内','shop.frame_cond_joined':'ランキングに{0}回参加',
+    'shop.frame_cond_all_attrs':'1回のイベントで6属性すべて、各属性1位の{0}%以上（正規変換後のスコアで比較）','shop.frame_cond_rank_attr1':'{0}属性で全体1位を{1}回','shop.frame_cond_rank_attr':'{0}属性で全体{1}位以内に{2}回',
     'shop.no_my_titles':'所持している称号がありません',
     'shop.no_my_frames':'所持しているフレームがありません',
     'shop.no_icons':'所持しているアイコンがありません',
@@ -283,6 +288,11 @@ const _i18n = {
     'shop.owned':'已擁有','shop.equipped_badge':'裝備中',
     'shop.no_titles':'沒有可購買的稱號',
     'shop.no_frames':'沒有可購買的外框',
+    'shop.frame_cond':'條件','shop.frame_cond_all':'滿足所有條件即可購買','shop.frame_locked':'尚未達成條件','shop.not_enough':'點數不足',
+    'shop.frame_cond_rank1':'獲得第1名{0}次','shop.frame_cond_rank':'進入前{0}名{1}次',
+    'shop.frame_cond_attr1':'{0}屬性獲得第1名{1}次','shop.frame_cond_attr':'{0}屬性進入前{1}名{2}次',
+    'shop.frame_cond_kinds':'{0}種屬性進入前{1}名','shop.frame_cond_joined':'參加排名{0}次',
+    'shop.frame_cond_all_attrs':'單次活動中6種屬性皆達各屬性第1名的{0}%以上（以標準換算後的分數比較）','shop.frame_cond_rank_attr1':'以{0}屬性獲得總排名第1名{1}次','shop.frame_cond_rank_attr':'以{0}屬性進入總排名前{1}名{2}次',
     'shop.no_my_titles':'沒有擁有的稱號',
     'shop.no_my_frames':'沒有擁有的外框',
     'shop.no_icons':'沒有擁有的圖示',
@@ -513,6 +523,24 @@ function chartCardHTML(c, { actions = '', showDraft = false } = {}) {
       </div>
     </div>`;
 }
+
+// フレームの見本（ランキングの1行に枠を付けた形）。name・iconUrl は見本に出す名前とアイコン
+function frameSampleHtml(cssClass, name, iconUrl) {
+  const label = name || 'Player';
+  const avatar = iconUrl ? `<img src="${escHtml(iconUrl)}" alt="">` : escHtml(label.slice(0, 1));
+  return `<div class="frame-sample ${escHtml(cssClass)}"><i class="fs-orn"></i><span class="fs-rank">1</span><span class="fs-avatar">${avatar}</span><span class="fs-name">${escHtml(label)}</span><span class="fs-score">3,840,220</span></div>`;
+}
+
+// ランキングのフレームはセルから表の幅まで伸ばすので、表の幅（--rw）と1つ目のセルの幅（--c1）を入れておく
+function fitFrameRows() {
+  document.querySelectorAll('.ranking-table').forEach(t => {
+    const fr = t.querySelector('tr.has-frame');
+    if (!fr) return;
+    t.style.setProperty('--rw', t.offsetWidth + 'px');
+    t.style.setProperty('--c1', (fr.cells[0] ? fr.cells[0].offsetWidth : 0) + 'px');
+  });
+}
+window.addEventListener('resize', () => { clearTimeout(window._fitFrameT); window._fitFrameT = setTimeout(fitFrameRows, 100); });
 
 function mediumUrl(url) {
   if (!url || !url.includes('res.cloudinary.com')) return url;

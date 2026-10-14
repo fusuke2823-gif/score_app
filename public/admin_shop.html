@@ -76,6 +76,16 @@
 #crop-preview { border-radius:20%; border:3px solid var(--accent); display:block; flex-shrink:0; }
 .crop-controls { display:flex; align-items:center; gap:10px; margin-top:8px; }
 .crop-controls label { font-size:0.82rem; color:var(--text-muted); white-space:nowrap; }
+/* フレーム管理 */
+.adm-frame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+@media (max-width: 420px) { .adm-frame-grid { grid-template-columns: 1fr; } }
+.adm-frame { padding: 8px 12px 12px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255,255,255,0.02); }
+.adm-frame.hidden-frame .frame-sample { opacity: 0.5; }
+.adm-frame-head { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.9rem; }
+.adm-frame-cond { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.adm-frame-ctrl { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.adm-frame-ctrl .form-input { width: 96px; padding: 5px 8px; font-variant-numeric: tabular-nums; }
+.adm-frame-unit { font-size: 0.8rem; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -279,42 +289,11 @@
     </div>
   </div>
 
-  <!-- フレームタブ -->
+  <!-- フレームタブ（種類は utils/frames.js で決めていて、ここでは値段と表示だけ変える） -->
   <div class="tab-content" id="tab-frames">
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">フレームを追加</div>
-      <div id="frame-create-alert" style="margin-bottom:12px"></div>
-      <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">フレーム名</label>
-          <input class="form-input" type="text" id="frame-name" placeholder="例: ゴールドフレーム">
-        </div>
-        <div class="form-group">
-          <label class="form-label">価格（pt）</label>
-          <input class="form-input" type="number" id="frame-cost" min="1" placeholder="例: 200">
-        </div>
-      </div>
-      <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">スタイル</label>
-          <select class="form-input" id="frame-class">
-            <option value="frame-gold">ゴールド</option>
-            <option value="frame-silver">シルバー</option>
-            <option value="frame-neon-blue">ネオンブルー</option>
-            <option value="frame-neon-pink">ネオンピンク</option>
-            <option value="frame-fire">ファイア</option>
-            <option value="frame-rainbow">レインボー</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">説明（任意）</label>
-          <input class="form-input" type="text" id="frame-desc">
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="createFrame()">追加する</button>
-    </div>
     <div class="card">
-      <div class="section-title">フレーム一覧</div>
+      <div class="section-title">フレーム</div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin:-4px 0 14px">フレームの種類と購入条件はコードで決めています。ここでは値段とショップへの表示を変えられます。</p>
       <div id="frame-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
@@ -697,60 +676,55 @@ async function deleteTitle(id) {
 }
 
 // ===== フレーム管理 =====
-const FRAME_LABELS = { 'frame-gold':'ゴールド','frame-silver':'シルバー','frame-neon-blue':'ネオンブルー','frame-neon-pink':'ネオンピンク','frame-fire':'ファイア','frame-rainbow':'レインボー' };
+// 買えるようになる条件（utils/frames.js で種類ごとに決めている）
+function frameCondText(c) {
+  if (c.type === 'rank' && c.attr) return c.rank === 1 ? `${c.attr}属性で全体1位を${c.count}回` : `${c.attr}属性で全体${c.rank}位以内に${c.count}回`;
+  if (c.type === 'rank') return c.rank === 1 ? `1位を${c.count}回` : `${c.rank}位以内に${c.count}回`;
+  if (c.type === 'attr_rank') return c.rank === 1 ? `${c.attr}属性で1位を${c.count}回` : `${c.attr}属性で${c.rank}位以内に${c.count}回`;
+  if (c.type === 'attr_kinds') return `${c.kinds}種類の属性で${c.rank}位以内`;
+  if (c.type === 'joined') return `ランキングに${c.count}回参加`;
+  if (c.type === 'all_attrs') return `1回のイベントで6属性すべて、各属性1位の${Math.round(c.ratio * 100)}%以上（正規変換後のスコアで比較）`;
+  return '';
+}
 
 async function loadFrames() {
   const el = document.getElementById('frame-list');
   try {
     const frames = await apiFetch('/admin/frames');
     if (frames.length === 0) { el.innerHTML = '<div class="empty-state"><p>フレームがありません</p></div>'; return; }
-    el.innerHTML = frames.map(f => `
-      <div class="event-list-item">
-        <div>
+    el.innerHTML = `<div class="adm-frame-grid">${frames.map(f => `
+      <div class="adm-frame ${f.is_active ? '' : 'hidden-frame'}">
+        ${frameSampleHtml(f.css_class, f.name)}
+        <div class="adm-frame-head">
           <strong>${escHtml(f.name)}</strong>
-          <span style="font-size:0.8rem;color:var(--accent);margin-left:8px">${f.point_cost}pt</span>
-          <span style="font-size:0.8rem;color:var(--text-muted);margin-left:8px">${FRAME_LABELS[f.css_class] || f.css_class}</span>
-          ${!f.is_active ? '<span class="status-badge status-rejected" style="margin-left:8px">非表示</span>' : ''}
-          ${f.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(f.description)}</div>` : ''}
+          ${f.is_active ? '<span class="status-badge status-approved">表示中</span>' : '<span class="status-badge status-rejected">非表示</span>'}
         </div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? '非表示' : '表示'}</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteFrame(${f.id})">削除</button>
+        <div class="adm-frame-cond">購入条件：${f.conds ? escHtml(f.conds.map(frameCondText).join(' かつ ')) : 'コードにない種類'}</div>
+        <div class="adm-frame-ctrl">
+          <input class="form-input" type="number" min="1" step="1" id="frame-cost-${f.id}" value="${f.point_cost}">
+          <span class="adm-frame-unit">pt</span>
+          <button class="btn btn-secondary btn-sm" onclick="saveFramePrice(${f.id})">値段を保存</button>
+          <button class="btn ${f.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm" style="margin-left:auto" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? '非表示にする' : '表示する'}</button>
         </div>
-      </div>`).join('');
+      </div>`).join('')}</div>`;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
 
-async function createFrame() {
-  const name = document.getElementById('frame-name').value.trim();
-  const cost = document.getElementById('frame-cost').value;
-  const css_class = document.getElementById('frame-class').value;
-  const desc = document.getElementById('frame-desc').value.trim();
-  if (!name || !cost) return showAlert('#frame-create-alert', '名前と価格は必須です');
+async function saveFramePrice(id) {
+  const cost = Number(document.getElementById(`frame-cost-${id}`).value);
   try {
-    await apiFetch('/admin/frames', { method: 'POST', body: JSON.stringify({ name, description: desc, point_cost: parseInt(cost), css_class }) });
-    document.getElementById('frame-name').value = '';
-    document.getElementById('frame-cost').value = '';
-    document.getElementById('frame-desc').value = '';
-    showAlert('#frame-create-alert', '追加しました', 'success');
+    const res = await apiFetch(`/admin/frames/${id}/price`, { method: 'PATCH', body: JSON.stringify({ point_cost: cost }) });
+    showAlert('#alert', res.message, 'success');
     loadFrames();
-  } catch (err) { showAlert('#frame-create-alert', err.message); }
+  } catch (err) { showAlert('#alert', err.message); }
 }
 
 async function toggleFrameVisibility(id, makeActive) {
   try {
     const res = await apiFetch(`/admin/frames/${id}/visibility`, { method: 'PATCH', body: JSON.stringify({ is_active: makeActive }) });
     showAlert('#alert', res.message, 'success');
-    loadFrames();
-  } catch (err) { showAlert('#alert', err.message); }
-}
-
-async function deleteFrame(id) {
-  if (!await showConfirm('このフレームを削除しますか？所持ユーザーからも削除されます。', { danger: true })) return;
-  try {
-    await apiFetch(`/admin/frames/${id}`, { method: 'DELETE' });
     loadFrames();
   } catch (err) { showAlert('#alert', err.message); }
 }

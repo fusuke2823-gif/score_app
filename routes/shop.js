@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { frameByClass, getFrameStats, condProgress } = require('../utils/frames');
 
 // 購入可能な称号一覧（ログイン不要）
 router.get('/titles', async (req, res) => {
@@ -22,13 +23,19 @@ router.get('/titles', async (req, res) => {
   }
 });
 
-// 購入可能なフレーム一覧
-router.get('/frames', async (req, res) => {
+// 購入可能なフレーム一覧（買えるようになる条件と、ログイン中ならその進み具合つき）
+router.get('/frames', optionalAuth, async (req, res) => {
   try {
     const frames = await pool.query(
       'SELECT * FROM frames WHERE is_active = TRUE ORDER BY point_cost ASC'
     );
-    res.json(frames.rows);
+    // 管理者は条件なしで買える
+    const isAdmin = req.user?.role === 'admin';
+    const stats = req.user && !isAdmin ? await getFrameStats(pool, req.user.id) : null;
+    res.json(frames.rows.map(f => {
+      const conds = frameByClass(f.css_class)?.conds || [];
+      return { ...f, conds, progress: stats && conds.length ? condProgress(conds, stats) : null };
+    }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -153,6 +160,10 @@ router.post('/frames/buy/:id', authenticateToken, async (req, res) => {
     );
     if (owned.rows.length > 0)
       return res.status(409).json({ error: 'すでに所持しています' });
+
+    const conds = frameByClass(frame.css_class)?.conds || [];
+    if (conds.length && req.user.role !== 'admin' && !condProgress(conds, await getFrameStats(client, req.user.id)).met)
+      return res.status(403).json({ error: 'このフレームを買う条件をまだ満たしていません' });
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1', [req.user.id]);
     if (userResult.rows[0].points < frame.point_cost)

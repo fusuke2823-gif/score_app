@@ -24,36 +24,59 @@
 .points-label { color: var(--text-secondary); font-size: 0.9rem; }
 .points-value { font-size: 1.4rem; font-weight: bold; color: var(--accent); }
 
-.title-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
-}
-.title-card {
+.shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px; }
+@media (max-width: 400px) { .shop-list { grid-template-columns: 1fr; } }
+/* 商品1つ分の箱：左に名前と説明、右に値段と購入ボタン */
+.shop-item {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0;
+  padding: 10px 12px;
   background: var(--bg-card2);
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid var(--border-light);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  transition: border-color 0.15s, background 0.15s;
 }
-.title-card.owned { border-color: var(--accent); }
-.title-card.equipped { background: var(--accent-dim); border-color: var(--accent); }
-.title-name { font-size: 1rem; font-weight: bold; }
-.title-desc { font-size: 0.82rem; color: var(--text-muted); flex: 1; }
-.title-cost { font-size: 0.9rem; color: var(--accent); font-weight: bold; }
-.title-badge {
-  font-size: 0.72rem;
-  padding: 2px 8px;
-  border-radius: 10px;
-  display: inline-block;
-  background: var(--accent-dim);
-  color: var(--accent);
-  align-self: flex-start;
+.shop-item:hover { border-color: var(--border-light); }
+.shop-item.owned { background: rgba(255,255,255,0.025); }
+.shop-item.equipped { border-color: var(--accent); background: var(--accent-dim); }
+.si-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.si-main { flex: 1; min-width: 0; }
+.si-name { font-size: 0.92rem; font-weight: bold; color: var(--text-primary); line-height: 1.35; overflow-wrap: anywhere; }
+.shop-item.owned .si-name { color: var(--text-secondary); }
+.si-desc { font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; overflow-wrap: anywhere; }
+.si-side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.si-price { display: inline-flex; align-items: center; gap: 4px; font-size: 0.86rem; font-weight: bold; color: #ffd24a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.si-price svg { width: 14px; height: 14px; flex-shrink: 0; }
+.si-price small { font-size: 0.7rem; font-weight: normal; color: var(--text-muted); }
+.si-btn {
+  padding: 5px 14px; font-size: 0.76rem; font-weight: bold; white-space: nowrap;
+  border-radius: 20px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer;
+  transition: filter 0.15s;
 }
+.si-btn:hover { filter: brightness(1.12); }
+.si-btn:disabled { background: transparent; border-color: var(--border-light); color: var(--text-muted); cursor: default; filter: none; }
+.si-state { display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; font-weight: bold; color: var(--text-muted); white-space: nowrap; }
+.si-state svg { width: 13px; height: 13px; }
+.shop-item.equipped .si-state { color: var(--accent); }
+.si-login { font-size: 0.72rem; color: var(--text-muted); white-space: nowrap; }
+/* フレーム：見本の下に名前・条件・値段 */
+.shop-item.frame-item .frame-sample { margin: 8px 4px 4px; }
+.si-name-1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.si-conds { display: flex; flex-direction: column; gap: 4px; padding: 7px 9px; border-radius: 7px; background: rgba(0,0,0,0.18); }
+.si-cond { display: flex; align-items: center; gap: 8px; font-size: 0.74rem; color: var(--text-secondary); min-width: 0; }
+.si-cond-text { display: inline-flex; align-items: baseline; gap: 5px; flex: 1; min-width: 0; line-height: 1.45; }
+.si-cond-text svg, .si-cond-dot { align-self: center; }
+.si-cond-text svg { width: 11px; height: 11px; flex-shrink: 0; color: var(--accent); }
+.si-cond-dot { width: 5px; height: 5px; margin: 0 3px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+.si-cond.met .si-cond-text { color: var(--text-primary); }
+.si-action-row { justify-content: flex-end; }
+.si-cond-label { flex: 1; font-size: 0.7rem; color: var(--text-muted); }
+.si-cond-bar { flex: 1; min-width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); overflow: hidden; }
+.si-cond-bar > i { display: block; height: 100%; background: var(--frame-grad, var(--accent)); }
+.si-cond-num { font-variant-numeric: tabular-nums; color: var(--text-muted); white-space: nowrap; }
+.si-cond.met .si-cond-num { color: var(--text-primary); }
+.si-cond-bar { max-width: 70px; flex: 0 0 70px; }
 
 /* 装備タブの称号リスト（スリム表示） */
 .title-row-list { display: flex; flex-direction: column; gap: 6px; }
@@ -91,19 +114,6 @@
 }
 .title-row-btn:hover { border-color: var(--accent); color: var(--text-primary); }
 .title-row-btn.equipped { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-/* フレームプレビュー */
-.frame-preview {
-  height: 6px;
-  border-radius: 3px;
-  margin-bottom: 4px;
-}
-.frame-gold      { background: #ffd700; }
-.frame-silver    { background: #c0c0c0; }
-.frame-neon-blue { background: #00cfff; }
-.frame-neon-pink { background: #ff4dd2; }
-.frame-fire      { background: linear-gradient(90deg,#ff6a00,#ee0979); }
-.frame-rainbow   { background: linear-gradient(90deg,#ff4d4d,#ff9a00,#ffe600,#4dff6e,#00cfff,#b44dff); }
 
 .tabs { margin-bottom: 20px; }
 .shop-tab-content { display: none; }
@@ -149,7 +159,7 @@
     <div class="tabs" id="shop-tabs" style="margin-bottom:16px">
       <button class="tab-btn active" onclick="switchShopTab('titles')" data-i18n="shop.tab_titles">称号</button>
       <button class="tab-btn" onclick="switchShopTab('oshi')" data-i18n="shop.tab_oshi">推し称号</button>
-      <button class="tab-btn" onclick="switchShopTab('frames')" data-i18n="shop.tab_frames" style="display:none">フレーム</button>
+      <button class="tab-btn" onclick="switchShopTab('frames')" data-i18n="shop.tab_frames">フレーム</button>
     </div>
     <div class="shop-tab-content active" id="shop-tab-titles">
       <div id="shop-titles"><div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div></div>
@@ -166,7 +176,7 @@
   <div class="tab-content" id="tab-equip">
     <div class="tabs" id="equip-tabs" style="margin-bottom:16px">
       <button class="tab-btn active" onclick="switchEquipTab('titles')" data-i18n="shop.tab_titles">称号</button>
-      <button class="tab-btn" onclick="switchEquipTab('frames')" data-i18n="shop.tab_frames" style="display:none">フレーム</button>
+      <button class="tab-btn" onclick="switchEquipTab('frames')" data-i18n="shop.tab_frames">フレーム</button>
       <button class="tab-btn" onclick="switchEquipTab('icons')" data-i18n="shop.tab_icons">アイコン</button>
     </div>
     <div class="shop-tab-content active" id="equip-tab-titles">
@@ -271,66 +281,56 @@ function _titleScopeForInternal(scope) {
   return scope !== 'external';
 }
 
-function renderShopTitles(titles) {
-  const el = document.getElementById('shop-titles');
-  // 外部ユーザーは internal 称号を非表示
-  const visible = user && isInternal() ? titles : (titles || []).filter(ti => (ti.scope || 'common') !== 'internal');
-  if (!visible.length) {
-    el.innerHTML = `<div class="empty-state"><p>${t('shop.no_titles')}</p></div>`;
-    return;
-  }
-  el.innerHTML = `<div class="title-grid">${visible.map(ti => {
-    const owned = myData?.titles.some(mt => mt.id === ti.id);
-    const equippedExt = myData?.equipped_title_id === ti.id;
-    const equippedInt = myData?.equipped_internal_title_id === ti.id;
-    const equipped = equippedExt || equippedInt;
-    const equippedLabel = equippedInt && equippedExt ? '内部・外部装備中' : equippedInt ? '内部装備中' : equippedExt ? '装備中' : '';
-    return `
-      <div class="title-card ${equipped ? 'equipped' : owned ? 'owned' : ''}">
-        <div class="title-name">「${escHtml(ti.name)}」</div>
-        ${ti.description ? `<div class="title-desc">${escHtml(ti.description)}</div>` : '<div class="title-desc"></div>'}
-        <div class="title-cost">${ti.point_cost}pt</div>
-        ${equipped
-          ? `<span class="title-badge">${equippedLabel}</span>`
-          : owned
-            ? `<span class="title-badge">${t('shop.owned')}</span>`
-            : user
-              ? `<button class="btn btn-primary btn-sm" onclick="askBuy('title',${ti.id},'${escHtml(ti.name).replace(/'/g, "\\'")}',${ti.point_cost})">${t('shop.buy')}</button>`
-              : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
-        }
-      </div>`;
-  }).join('')}</div>`;
+// 商品の箱（称号・推し称号・フレームで共通）
+const SI_COIN = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#ffd24a" stroke="#b8860b" stroke-width="1"/><circle cx="8" cy="8" r="4" fill="none" stroke="#b8860b" stroke-width="0.9" opacity="0.7"/></svg>';
+const SI_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// 値段（所持・装備中のものには出さない）
+function shopItemPrice({ cost, owned, equippedLabel }) {
+  return owned || equippedLabel ? '' : `<span class="si-price">${SI_COIN}${cost.toLocaleString()}<small>pt</small></span>`;
 }
 
-function renderShopOshiTitles(titles) {
-  const el = document.getElementById('shop-oshi-titles');
-  const visible = user && isInternal() ? titles : (titles || []).filter(ti => (ti.scope || 'common') !== 'internal');
+// 購入ボタン（または所持済み・装備中）。lockedText があれば押せないボタンにする
+function shopItemAction({ kind, id, name, cost, owned, equippedLabel, lockedText }) {
+  if (equippedLabel) return `<span class="si-state">${SI_CHECK}${escHtml(equippedLabel)}</span>`;
+  if (owned) return `<span class="si-state">${SI_CHECK}${t('shop.owned')}</span>`;
+  if (!user) return `<span class="si-login">${t('shop.login_to_buy')}</span>`;
+  if (lockedText) return `<button class="si-btn" disabled>${escHtml(lockedText)}</button>`;
+  if (myData && myData.points < cost) return `<button class="si-btn" disabled>${t('shop.not_enough')}</button>`;
+  return `<button class="si-btn" onclick="askBuy('${kind}',${id},'${escHtml(name).replace(/'/g, "\\'")}',${cost})">${t('shop.buy')}</button>`;
+}
+
+function titleItemHtml(ti) {
+  const owned = !!myData?.titles.some(mt => mt.id === ti.id);
+  const equippedExt = myData?.equipped_title_id === ti.id;
+  const equippedInt = myData?.equipped_internal_title_id === ti.id;
+  const equippedLabel = equippedInt && equippedExt ? '内部・外部装備中' : equippedInt ? '内部装備中' : equippedExt ? t('shop.equipped_badge') : '';
+  return `
+    <div class="shop-item ${equippedLabel ? 'equipped' : owned ? 'owned' : ''}">
+      <div class="si-row">
+        <div class="si-main">
+          <div class="si-name">「${escHtml(ti.name)}」</div>
+          ${ti.description ? `<div class="si-desc">${escHtml(ti.description)}</div>` : ''}
+        </div>
+        <div class="si-side">${shopItemPrice({ cost: ti.point_cost, owned, equippedLabel })}${shopItemAction({ kind: 'title', id: ti.id, name: ti.name, cost: ti.point_cost, owned, equippedLabel })}</div>
+      </div>
+    </div>`;
+}
+
+function renderTitleList(elId, titles) {
+  const el = document.getElementById(elId);
+  // 外部ユーザーは internal 称号を非表示
+  const visible = (user && isInternal() ? (titles || []) : (titles || []).filter(ti => (ti.scope || 'common') !== 'internal'))
+    .filter(ti => !myData?.titles?.some(mt => mt.id === ti.id)); // 持っているものは出さない
   if (!visible.length) {
     el.innerHTML = `<div class="empty-state"><p>${t('shop.no_titles')}</p></div>`;
     return;
   }
-  el.innerHTML = `<div class="title-grid">${visible.map(ti => {
-    const owned = myData?.titles.some(mt => mt.id === ti.id);
-    const equippedExt = myData?.equipped_title_id === ti.id;
-    const equippedInt = myData?.equipped_internal_title_id === ti.id;
-    const equipped = equippedExt || equippedInt;
-    const equippedLabel = equippedInt && equippedExt ? '内部・外部装備中' : equippedInt ? '内部装備中' : equippedExt ? '装備中' : '';
-    return `
-      <div class="title-card ${equipped ? 'equipped' : owned ? 'owned' : ''}">
-        <div class="title-name">「${escHtml(ti.name)}」</div>
-        ${ti.description ? `<div class="title-desc">${escHtml(ti.description)}</div>` : '<div class="title-desc"></div>'}
-        <div class="title-cost">${ti.point_cost}pt</div>
-        ${equipped
-          ? `<span class="title-badge">${equippedLabel}</span>`
-          : owned
-            ? `<span class="title-badge">${t('shop.owned')}</span>`
-            : user
-              ? `<button class="btn btn-primary btn-sm" onclick="askBuy('title',${ti.id},'${escHtml(ti.name).replace(/'/g, "\\'")}',${ti.point_cost})">${t('shop.buy')}</button>`
-              : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
-        }
-      </div>`;
-  }).join('')}</div>`;
+  el.innerHTML = `<div class="shop-list">${visible.map(titleItemHtml).join('')}</div>`;
 }
+
+function renderShopTitles(titles) { renderTitleList('shop-titles', titles); }
+function renderShopOshiTitles(titles) { renderTitleList('shop-oshi-titles', titles); }
 
 function _renderTitleSlot(titles, equippedId, equipFn, unequipFn, emptyMsg) {
   if (!titles.length) return `<div class="empty-state" style="padding:12px 0"><p style="font-size:0.85rem">${emptyMsg}</p></div>`;
@@ -407,8 +407,9 @@ async function buyTitle(id) {
     const res = await apiFetch(`/shop/buy/${id}`, { method: 'POST' });
     showAlert('#alert', res.message, 'success');
     await refreshMyData();
-    const titles = await apiFetch('/shop/titles');
+    const [titles, oshiTitles] = await Promise.all([apiFetch('/shop/titles'), apiFetch('/shop/titles?tag=oshi')]);
     renderShopTitles(titles);
+    renderShopOshiTitles(oshiTitles);
     renderMyTitles();
   } catch (err) { showAlert('#alert', err.message); }
 }
@@ -436,29 +437,54 @@ async function equipTitleInternal(id) {
 }
 
 // ===== フレーム =====
+// 買えるようになる条件の文（utils/frames.js の cond）
+function frameCondText(c) {
+  if (!c) return '';
+  const attr = a => t('attr.' + a) || a;
+  if (c.type === 'rank' && c.attr) return c.rank === 1 ? t('shop.frame_cond_rank_attr1', attr(c.attr), c.count) : t('shop.frame_cond_rank_attr', attr(c.attr), c.rank, c.count);
+  if (c.type === 'rank') return c.rank === 1 ? t('shop.frame_cond_rank1', c.count) : t('shop.frame_cond_rank', c.rank, c.count);
+  if (c.type === 'attr_rank') return c.rank === 1 ? t('shop.frame_cond_attr1', attr(c.attr), c.count) : t('shop.frame_cond_attr', attr(c.attr), c.rank, c.count);
+  if (c.type === 'attr_kinds') return t('shop.frame_cond_kinds', c.kinds, c.rank);
+  if (c.type === 'joined') return t('shop.frame_cond_joined', c.count);
+  if (c.type === 'all_attrs') return t('shop.frame_cond_all_attrs', Math.round(c.ratio * 100));
+  return '';
+}
+
+const frameSample = cls => frameSampleHtml(cls, user?.username, user?.icon_url ? thumbUrl(user.icon_url) : null);
+
 function renderShopFrames(frames) {
   const el = document.getElementById('shop-frames');
+  frames = (frames || []).filter(f => !myData?.frames?.some(mf => mf.id === f.id)); // 持っているものは出さない
   if (!frames || frames.length === 0) {
     el.innerHTML = `<div class="empty-state"><p>${t('shop.no_frames')}</p></div>`;
     return;
   }
-  el.innerHTML = `<div class="title-grid">${frames.map(f => {
-    const owned = myData?.frames?.some(mf => mf.id === f.id);
+  el.innerHTML = `<div class="shop-list">${frames.map(f => {
+    const owned = !!myData?.frames?.some(mf => mf.id === f.id);
     const equipped = myData?.equipped_frame_id === f.id;
+    const p = f.progress;
+    const item = { kind: 'frame', id: f.id, name: f.name, cost: f.point_cost, owned, equippedLabel: equipped ? t('shop.equipped_badge') : '', lockedText: p && !p.met ? t('shop.frame_locked') : '' };
+    // 名前と値段の行、条件ごとの行（進み具合）、購入ボタンの行
+    const conds = !owned && f.conds?.length ? `<div class="si-conds">${f.conds.map((c, i) => {
+      const pp = p?.parts?.[i];
+      return `
+        <div class="si-cond ${pp?.met ? 'met' : ''}">
+          <span class="si-cond-text">${pp?.met ? SI_CHECK : '<span class="si-cond-dot"></span>'}${escHtml(frameCondText(c))}</span>
+          ${pp ? `<span class="si-cond-bar"><i style="width:${Math.round(pp.now / pp.need * 100)}%"></i></span><span class="si-cond-num">${pp.now}/${pp.need}</span>` : ''}
+        </div>`;
+    }).join('')}</div>` : '';
     return `
-      <div class="title-card ${equipped ? 'equipped' : owned ? 'owned' : ''}">
-        <div class="frame-preview ${escHtml(f.css_class)}"></div>
-        <div class="title-name">${escHtml(f.name)}</div>
-        ${f.description ? `<div class="title-desc">${escHtml(f.description)}</div>` : '<div class="title-desc"></div>'}
-        <div class="title-cost">${f.point_cost}pt</div>
-        ${equipped
-          ? `<span class="title-badge">${t('shop.equipped_badge')}</span>`
-          : owned
-            ? `<span class="title-badge">${t('shop.owned')}</span>`
-            : user
-              ? `<button class="btn btn-primary btn-sm" onclick="askBuy('frame',${f.id},'${escHtml(f.name).replace(/'/g, "\\'")}',${f.point_cost})">${t('shop.buy')}</button>`
-              : `<span style="font-size:0.8rem;color:var(--text-muted)">${t('shop.login_to_buy')}</span>`
-        }
+      <div class="shop-item frame-item ${f.css_class} ${equipped ? 'equipped' : owned ? 'owned' : ''}">
+        ${frameSample(f.css_class)}
+        <div class="si-row">
+          <div class="si-main">
+            <div class="si-name si-name-1">${escHtml(f.name)}</div>
+            ${f.description ? `<div class="si-desc">${escHtml(f.description)}</div>` : ''}
+          </div>
+          ${shopItemPrice(item)}
+        </div>
+        ${conds}
+        <div class="si-row si-action-row">${conds ? `<span class="si-cond-label">${t('shop.frame_cond_all')}</span>` : ''}${shopItemAction(item)}</div>
       </div>`;
   }).join('')}</div>`;
 }
@@ -469,19 +495,17 @@ function renderMyFrames() {
     el.innerHTML = `<div class="empty-state"><p>${t('shop.no_my_frames')}</p></div>`;
     return;
   }
-  el.innerHTML = `<div class="title-grid">${myData.frames.map(f => {
+  el.innerHTML = `<div class="shop-list">${myData.frames.map(f => {
     const equipped = myData.equipped_frame_id === f.id;
     return `
-      <div class="title-card ${equipped ? 'equipped' : ''}">
-        <div class="frame-preview ${escHtml(f.css_class)}"></div>
-        <div class="title-name">${escHtml(f.name)}</div>
-        ${f.description ? `<div class="title-desc">${escHtml(f.description)}</div>` : ''}
-        <div class="title-cost">${f.point_cost}pt</div>
-        ${equipped
-          ? `<span class="title-badge">${t('shop.equipped_badge')}</span>
-             <button class="btn btn-secondary btn-sm" onclick="equipFrame(null)">${t('shop.unequip')}</button>`
-          : `<button class="btn btn-primary btn-sm" onclick="equipFrame(${f.id})">${t('shop.equip_btn')}</button>`
-        }
+      <div class="shop-item frame-item ${equipped ? 'equipped' : ''}">
+        ${frameSample(f.css_class)}
+        <div class="si-row">
+          <div class="si-main"><div class="si-name">${escHtml(f.name)}</div></div>
+          ${equipped
+            ? `<button class="title-row-btn equipped" onclick="equipFrame(null)">${t('shop.unequip')}</button>`
+            : `<button class="title-row-btn" onclick="equipFrame(${f.id})">${t('shop.equip_short')}</button>`}
+        </div>
       </div>`;
   }).join('')}</div>`;
 }

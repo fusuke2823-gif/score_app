@@ -25,7 +25,74 @@
 .coop-foot { display:flex; justify-content:space-between; gap:8px; font-size:0.72rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
 .coop-foot .ok { color:#f0d08a; font-weight:bold; }
 .coop-foot span:last-child { white-space:nowrap; }
+
+/* ===== イベントのヘッダー（トップのカードと同じ見た目） ===== */
+.rk-head { --tc:#ff6b80; position:relative; overflow:hidden; isolation:isolate; display:flex; align-items:center; gap:14px; padding:16px 16px 16px 18px; margin-bottom:12px; border-radius:14px;
+  background:
+    radial-gradient(120% 140% at 100% 50%, color-mix(in srgb, var(--tc) 22%, transparent), transparent 55%),
+    linear-gradient(110deg, rgba(26,23,52,0.86), rgba(14,12,32,0.82));
+  border:1px solid rgba(255,255,255,0.1); box-shadow:0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); }
+.rk-head.t-ex { --tc:#b46cff; } .rk-head.t-seraph { --tc:#4fc3f7; }
+.rk-head::before { content:''; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, var(--tc), transparent); opacity:0.7; }
+.rk-head-num { position:absolute; right:150px; bottom:-14px; z-index:-1; pointer-events:none; font-family:"Orbitron",sans-serif; font-weight:900; font-size:4.4rem; line-height:1;
+  color:transparent; -webkit-text-stroke:1px color-mix(in srgb, var(--tc) 45%, transparent); opacity:0.8; }
+.rk-head-body { flex:1; min-width:0; }
+.rk-head-type { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.6rem; letter-spacing:0.2em; color:var(--tc); margin-bottom:4px; }
+.rk-head-name { font-size:1.5rem; font-weight:900; line-height:1.25; margin:0 0 8px; }
+.rk-head-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.74rem; color:var(--text-muted); }
+.rk-status { display:inline-flex; align-items:center; gap:4px; font-size:0.72rem; font-weight:bold; padding:2px 9px; border-radius:99px; white-space:nowrap;
+  color:var(--text-muted); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
+.rk-status.open { color:#6ee7a0; background:rgba(76,175,80,0.14); border-color:rgba(110,231,160,0.4); }
+.rk-status.open::before { content:''; width:6px; height:6px; border-radius:50%; background:#6ee7a0; }
+.rk-status.soon { color:#ff8a9a; background:rgba(230,57,80,0.14); border-color:rgba(255,138,154,0.45); }
+.rk-status.soon::before { background:#ff8a9a; }
+.rk-head-desc { font-size:0.8rem; color:var(--text-secondary); margin-top:8px; }
+.rk-head-img { width:130px; aspect-ratio:375 / 262; flex-shrink:0; border-radius:9px; object-fit:cover;
+  border:1px solid color-mix(in srgb, var(--tc) 45%, transparent); box-shadow:0 6px 16px rgba(0,0,0,0.5), 0 0 14px color-mix(in srgb, var(--tc) 25%, transparent); }
+@media (max-width:520px) {
+  .rk-head { padding:14px 12px 14px 14px; gap:10px; }
+  .rk-head-name { font-size:1.15rem; }
+  .rk-head-img { width:96px; }
+  .rk-head-num { right:112px; font-size:3.4rem; }
+}
+
+/* ===== 固定される操作の帯（薄く・不透明） ===== */
+#filter-section { background:rgba(12,11,26,0.92) !important; backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); padding-top:8px !important; padding-bottom:8px !important; }
+.rk-row { display:flex; align-items:center; gap:8px; }
+.rk-row + .rk-row { margin-top:8px; }
+.rk-row #col-toggle { margin-bottom:0 !important; }
+#filter-title-row { font-size:0.85rem !important; }
+/* スマホでも全属性ON〜✦を1行に収める（見た目はそのまま、間隔と横の余白だけ詰める） */
+@media (max-width:420px) {
+  .rk-btns { gap:5px !important; }
+  .rk-btns .attr-btn { padding:6px 11px; font-size:0.8rem; white-space:nowrap; }
+}
+
+/* ===== 表 ===== */
+#ranking-content .ranking-table th { z-index:30; background:#17152e; backdrop-filter:none; -webkit-backdrop-filter:none; white-space:nowrap; letter-spacing:0.02em; text-transform:none; }
+#ranking-content .ranking-table th { box-shadow:6px 0 0 #17152e; }
+#ranking-content .ranking-table th:first-child { box-shadow:-6px 0 0 #17152e, 6px 0 0 #17152e; }
+#ranking-content .ranking-table td a { color:var(--text-primary); }
+#ranking-content .ranking-table td a:hover { color:var(--accent-hover); text-decoration:none; }
+#ranking-content .score-val { font-weight:bold; font-variant-numeric:tabular-nums; }
+/* 順位の数字は列の中央に（左の縁にくっつかないように） */
+#ranking-content .ranking-table th:first-child, #ranking-content .ranking-table td:first-child { text-align:center; padding-left:8px; }
+#ranking-content .ranking-table tr.has-frame td:first-child { padding-left:24px; }
+#ranking-content .ranking-table tr.has-frame td.col-rank { padding-right:24px; }
+@media (max-width:640px) {
+  #ranking-content .ranking-table th:first-child, #ranking-content .ranking-table td:first-child { width:30px; padding-left:6px; padding-right:2px; }
+  /* フレーム付きの行は、四隅の渦に数字・画像が重ならないよう左右を少し空ける */
+  #ranking-content .ranking-table tr.has-frame td:first-child { padding-left:13px; }
+  #ranking-content .ranking-table tr.has-frame td.col-img, #ranking-content .ranking-table tr.has-frame td.col-title, #ranking-content .ranking-table tr.has-frame td.col-rank { padding-right:13px; }
+}
+/* 1〜3位：行にうっすら色（数字は元の金・銀・銅の色） */
+#ranking-content tr.rank-1 td { background:rgba(255,215,0,0.06); }
+#ranking-content tr.rank-2 td { background:rgba(210,210,225,0.045); }
+#ranking-content tr.rank-3 td { background:rgba(205,127,50,0.055); }
+/* 自分の行 */
+#ranking-content tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(230,57,80,0.14); }
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
 </head>
 <body>
 <nav id="nav"></nav>
@@ -40,7 +107,7 @@
   <!-- 属性フィルター -->
   <div id="filter-section" style="display:none;position:sticky;top:56px;z-index:50;background:var(--bg-primary);padding:8px 0;margin:0 -24px;padding-left:24px;padding-right:24px;border-bottom:1px solid var(--border)">
     <div id="filter-title-row" style="display:none;font-size:0.9rem;font-weight:bold;color:var(--text);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
-    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+    <div class="rk-row">
       <div id="col-toggle">
         <button class="btn btn-sm active" onclick="setColMode('score')" data-i18n="ranking.col_score">スコア</button>
         <button class="btn btn-sm" onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
@@ -48,7 +115,7 @@
       </div>
       <button id="submit-btn" class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
     </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+    <div class="rk-btns" style="display:flex;gap:8px;margin:8px 0;align-items:center">
       <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
       <button class="attr-btn" onclick="deselectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_off">全属性OFF</button>
       <button id="info-toggle-btn" class="attr-btn" onclick="toggleInfoMode()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1">情報OFF</button>
@@ -126,31 +193,45 @@
 .rank-Ex { color:#a855f7; }
 @media (max-width: 640px) {
   #col-toggle {
-    display: flex;
-    gap: 0;
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 3px;
     margin-bottom: 10px;
-    box-shadow: 0 0 0 1px var(--border);
-    border-radius: 8px;
-    overflow: hidden;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
     width: fit-content;
+    isolation: isolate;
+  }
+  /* 選んでいるところに動く光の板 */
+  #col-toggle::before {
+    content: ''; position: absolute; z-index: -1; top: 3px; bottom: 3px; left: 3px;
+    width: calc((100% - 6px) / 3); border-radius: 99px;
+    background: linear-gradient(135deg, #ff4d65, #a03070);
+    box-shadow: 0 2px 10px rgba(230,57,80,0.45);
+    transform: translateX(calc(var(--seg, 0) * 100%));
+    transition: transform 0.25s cubic-bezier(.2,.8,.2,1);
   }
   #col-toggle button {
-    border-radius: 0;
-    background: var(--bg-card2);
-    backdrop-filter: blur(16px) saturate(150%);
-    -webkit-backdrop-filter: blur(16px) saturate(150%);
-    color: var(--text-secondary);
-    height: 30px;
+    border: none;
+    border-radius: 99px;
+    background: none !important;
+    color: var(--text-muted);
+    height: 26px;
+    padding: 0 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
     box-sizing: border-box;
+    transition: color 0.2s;
   }
   #submit-btn {
     height: 30px;
     box-sizing: border-box;
   }
   #col-toggle button.active {
-    background: rgba(230,57,80,0.4);
     color: #fff;
-    font-weight: bold;
   }
   .col-title { display: none; }
   .col-rank  { display: none; }
@@ -259,9 +340,7 @@ async function loadEvent() {
 
     document.getElementById('event-header').innerHTML = `
       <a class="back-link" href="/index.html">${t('event.back')}</a>
-      <h1 class="page-title">${escHtml(event.name)}</h1>
-      ${event.description ? `<p class="page-subtitle">${escHtml(event.description)}</p>` : ''}
-      ${renderSubmissionPeriod(event)}
+      ${renderEventHead(event)}
     `;
 
     renderCoop(event);
@@ -327,6 +406,36 @@ async function loadEvent() {
   } catch (err) {
     showAlert('#alert', err.message);
   }
+}
+
+// イベントのヘッダー：トップのカードと同じ見た目（種類の色・英字の札・状態・敵画像）
+function renderEventHead(event) {
+  const type = event.event_type === 'score_attack_ex' ? ['ex', 'SCORE ATTACK EX'] : event.event_type === 'seraph' ? ['seraph', 'ENCOUNTER'] : ['score', 'SCORE ATTACK'];
+  const now = new Date();
+  const start = event.submission_start ? new Date(event.submission_start) : null;
+  const end = event.submission_end ? new Date(event.submission_end) : null;
+  let status = '', cls = '';
+  if (start && now < start) status = t('event.before');
+  else if (end && now > end) status = t('event.ended');
+  else if (end) {
+    const h = (end - now) / 36e5;
+    status = h < 24 ? t('event.hours_left', Math.ceil(h)) : t('event.days_left', Math.ceil(h / 24));
+    cls = h < 24 ? 'open soon' : 'open';
+  }
+  const fmt = d => d.toLocaleString(getLangLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const period = start && end ? `${fmt(start)} 〜 ${fmt(end)}` : end ? `〜 ${fmt(end)}` : '';
+  const num = (event.name.match(/#\s*(\d+)/) || [])[1];
+  const img = event.enemies && event.enemies[0] && event.enemies[0].image_url;
+  return `<div class="rk-head t-${type[0]}">
+    ${num ? `<span class="rk-head-num">#${num}</span>` : ''}
+    <div class="rk-head-body">
+      <div class="rk-head-type">${type[1]}</div>
+      <h1 class="rk-head-name">${escHtml(event.name)}</h1>
+      <div class="rk-head-meta">${status ? `<span class="rk-status ${cls}">${status}</span>` : ''}${period ? `<span>${escHtml(period)}</span>` : ''}</div>
+      ${event.description ? `<div class="rk-head-desc">${escHtml(event.description)}</div>` : ''}
+    </div>
+    ${img ? `<img class="rk-head-img" src="${escHtml(thumbUrl(img))}" alt="">` : ''}
+  </div>`;
 }
 
 // 共闘目標：みんなの合計スコアと目標（100%の値）。バーの右端は次の段階（100%未達成なら100%、達成すれば150%…）、
@@ -450,6 +559,7 @@ async function loadRanking() {
         </tbody>
       </table>`;
     updateTheadTop();
+    fitFrameRows();
     // 情報OFFリセット・✦ボタン表示更新
     _infoOff = false;
     const infoBtn = document.getElementById('info-toggle-btn');
@@ -498,6 +608,7 @@ function setColMode(mode) {
   document.querySelectorAll('#col-toggle button').forEach((b, i) => {
     b.classList.toggle('active', ['score', 'title', 'rank'][i] === mode);
   });
+  document.getElementById('col-toggle').style.setProperty('--seg', ['score', 'title', 'rank'].indexOf(mode));
 }
 
 function renderCompRank(rank, sRate, xRate, exRank, legendRank) {
