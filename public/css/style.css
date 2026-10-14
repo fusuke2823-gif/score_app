@@ -100,9 +100,10 @@ nav {
   margin-left: 16px;
 }
 .nav-links a {
-  padding: 6px 14px;
+  padding: 6px 12px;
   border-radius: 6px;
   font-size: 0.9rem;
+  white-space: nowrap;
   color: var(--text-secondary);
   text-decoration: none;
   transition: all 0.2s;
@@ -744,6 +745,11 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 @media (max-width: 360px) { .nm-grid { grid-template-columns: repeat(3, 1fr); } }
 
 /* レスポンシブ */
+/* PCでも幅が狭いときはリンクを詰めて1行に収める（管理者はリンクが多い） */
+@media (max-width: 1200px) {
+  .nav-links { gap: 0; margin-left: 10px; }
+  .nav-links a { padding: 6px 8px; font-size: 0.84rem; }
+}
 @media (max-width: 1024px) {
   .nav-lang { display: none; }
   .nav-links { display: none; }
