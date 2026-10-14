@@ -660,8 +660,12 @@ function nmTile(href, icon, label, active) {
 function toggleMobileNav(force) {
   const m = document.getElementById('nav-mobile');
   if (!m) return;
-  const open = typeof force === 'boolean' ? force : !m.classList.contains('open');
+  const wasOpen = m.classList.contains('open');
+  const open = typeof force === 'boolean' ? force : !wasOpen;
+  if (open === wasOpen) return;
   m.classList.toggle('open', open);
+  // 開いている間は後ろのページをスクロールさせない
+  if (open) lockBodyScroll(); else unlockBodyScroll();
   m.setAttribute('aria-hidden', !open);
   document.getElementById('nav-hamburger')?.classList.toggle('open', open);
   document.getElementById('nav-hamburger')?.setAttribute('aria-expanded', open);
@@ -672,6 +676,11 @@ document.addEventListener('click', e => {
   if (m && m.classList.contains('open') && e.target === m) toggleMobileNav(false);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleMobileNav(false); });
+// スマホ（iOS）は overflow:hidden だけでは後ろが動くので、メニューの外の指の移動を止める
+document.addEventListener('touchmove', e => {
+  const m = document.getElementById('nav-mobile');
+  if (m && m.classList.contains('open') && !e.target.closest('.nm-panel')) e.preventDefault();
+}, { passive: false });
 
 // renderNav後に自動でログインボーナスチェック＋ガチャナビ更新
 const _origRenderNav = renderNav;
