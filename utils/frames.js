@@ -36,6 +36,7 @@ const FRAMES = [
   { cls: 'frame-shuffle-citrus', label: 'シャッフル・シトラス', price: 2000, colors: ['#fff27a', '#9dff8a', '#4fe3e0'], conds: [{ type: 'attr_kinds', rank: 10, kinds: 3 }] },
   { cls: 'frame-shuffle-berry',  label: 'シャッフル・ベリー', price: 4000,   colors: ['#ff8fb8', '#ff4f7a', '#9b5cff', '#5ec8ff'], conds: [{ type: 'attr_kinds', rank: 10, kinds: 6 }] },
   // シーズン1位の報酬（シーズン中は見せるだけ。締めたら1位の人だけ買える）
+  { cls: 'frame-season-2026-09', label: '2026秋シーズン', price: 3000, colors: ['#ffd36b', '#ff8a2e', '#d0302f'], season: '2026-09' },
   { cls: 'frame-season-2026-12', label: '2026冬シーズン', price: 3000, colors: ['#ffffff', '#d9f2ff', '#8ccfff', '#7a9cff'], season: '2026-12' },
 ];
 
