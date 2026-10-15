@@ -130,6 +130,16 @@ app.get('/s/:id', async (req, res) => {
 // DB初期化してからサーバー起動
 require('./db/init')()
   .then(() => {
+    // レートのシーズン：起動時と1時間ごとに、シーズンの切り替わりと今のシーズンの計算をそろえる
+    const { syncSeasons } = require('./utils/seasons');
+    const runSeasons = async () => {
+      const client = await pool.connect();
+      try { await client.query('BEGIN'); await syncSeasons(client); await client.query('COMMIT'); }
+      catch (err) { await client.query('ROLLBACK').catch(() => {}); console.error('シーズンの計算に失敗:', err); }
+      finally { client.release(); }
+    };
+    runSeasons();
+    setInterval(runSeasons, 60 * 60 * 1000);
     app.listen(PORT, () => {
       console.log(`サーバー起動: http://localhost:${PORT}`);
     });

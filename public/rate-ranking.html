@@ -10,54 +10,115 @@
 <title>レートランキング - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.scope-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
-  overflow: hidden;
-  margin-bottom: 16px;
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
-}
-.scope-toggle button {
-  padding: 6px 20px;
-  font-size: 0.85rem;
-  background: var(--bg-card2);
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-weight: bold;
-  transition: background 0.15s, color 0.15s;
-}
-.scope-toggle button.active { background: rgba(230,57,80,0.4); color: #fff; }
+/* ===== シーズンの見出し ===== */
+.rr-head { --tc:#ff6b80; position:relative; overflow:hidden; isolation:isolate; padding:16px 18px; margin-bottom:12px; border-radius:14px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--tc) 24%, transparent), transparent 55%),
+    linear-gradient(110deg, rgba(26,23,52,0.86), rgba(14,12,32,0.82));
+  border:1px solid rgba(255,255,255,0.1); box-shadow:0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); }
+.rr-head.test { --tc:#ffd24a; } .rr-head.done { --tc:#8f8fa3; }
+.rr-head::before { content:''; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, var(--tc), transparent); opacity:0.7; }
+.rr-head-bg { position:absolute; right:10px; top:8px; z-index:-1; pointer-events:none; font-family:"Orbitron",sans-serif; font-weight:900; font-size:2.6rem; line-height:1;
+  color:transparent; -webkit-text-stroke:1px color-mix(in srgb, var(--tc) 35%, transparent); opacity:0.55; }
+@media (max-width:480px) { .rr-head-bg { font-size:1.9rem; } }
+.rr-eyebrow { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.6rem; letter-spacing:0.22em; color:var(--tc); margin-bottom:4px; }
+.rr-name { font-size:1.45rem; font-weight:900; line-height:1.25; margin:0 0 8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.rr-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.74rem; color:var(--text-muted); }
+.rr-pill { display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:bold; padding:2px 9px; border-radius:99px; white-space:nowrap;
+  color:var(--text-secondary); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
+.rr-pill.live { color:#6ee7a0; background:rgba(76,175,80,0.14); border-color:rgba(110,231,160,0.4); }
+.rr-pill.live::before { content:''; width:6px; height:6px; border-radius:50%; background:#6ee7a0; }
+.rr-winner { display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 10px; border-radius:9px; background:rgba(255,210,74,0.08); border:1px solid rgba(255,210,74,0.25); font-size:0.82rem; }
+.rr-winner svg { width:18px; height:18px; color:#ffd24a; flex-shrink:0; }
+.rr-winner a { color:#fff; font-weight:bold; text-decoration:none; }
 
-.my-rate-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 6px 18px;
-  margin-bottom: 16px;
-}
-.my-rate-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px; }
-.my-rate-name { font-weight: bold; font-size: 0.95rem; }
-.rate-rank-badge { font-weight: bold; font-size: 1.1rem; min-width: 36px; text-align: center; }
-.rate-rank-badge.rank-X  { color: #f0c040; }
-.rate-rank-badge.rank-Ex { color: #a855f7; }
-.rate-val { font-size: 1.4rem; font-weight: bold; }
+/* ===== 切り替え（シーズン・ランク・内部外部）：スクロールしてもナビの下に残す ===== */
+.rr-bar { position:sticky; z-index:50; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 -24px 12px; padding:8px 24px;
+  background:#0f0e22; border-bottom:1px solid var(--border); }
+@media (max-width:640px) { .rr-bar { margin:0 -16px 12px; padding:8px 16px; } }
+.rr-pick { position:relative; }
+.rr-pick-btn { display:inline-flex; align-items:center; gap:7px; height:32px; padding:0 12px 0 13px; border-radius:99px; cursor:pointer; max-width:220px;
+  border:1px solid var(--border-light); background:rgba(255,255,255,0.06); color:#fff; font-size:0.8rem; font-weight:bold; }
+.rr-pick-btn span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rr-pick-btn .dot { width:6px; height:6px; border-radius:50%; background:#6ee7a0; flex-shrink:0; }
+.rr-pick-btn svg { width:14px; height:14px; flex-shrink:0; color:var(--text-muted); transition:transform .2s; }
+.rr-pick.open .rr-pick-btn svg { transform:rotate(180deg); }
+.rr-pick-menu { position:absolute; left:0; top:calc(100% + 6px); z-index:60; width:240px; max-height:min(60vh, 360px); overflow-y:auto; padding:6px;
+  border-radius:12px; background:rgba(20,18,40,0.98); border:1px solid var(--border-light); box-shadow:0 12px 30px rgba(0,0,0,0.55); display:none; }
+.rr-pick.open .rr-pick-menu { display:block; }
+.rr-pick-year { font-size:0.66rem; font-weight:bold; letter-spacing:0.08em; color:var(--text-muted); padding:8px 8px 4px; }
+.rr-pick-item { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; border-radius:8px; background:none; color:var(--text-secondary);
+  font-size:0.82rem; text-align:left; cursor:pointer; }
+.rr-pick-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
+.rr-pick-item.active { background:rgba(230,57,80,0.2); color:#fff; font-weight:bold; }
+.rr-pick-item small { margin-left:auto; font-size:0.66rem; color:var(--text-muted); }
+.rr-pick-item .dot { width:6px; height:6px; border-radius:50%; background:#6ee7a0; flex-shrink:0; }
+/* 光の板が動く切り替え（ランキング画面と同じ） */
+.seg { --n:4; position:relative; display:grid; grid-template-columns:repeat(var(--n), auto); padding:3px; border-radius:99px; isolation:isolate;
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); }
+.seg::before { content:''; position:absolute; z-index:-1; top:3px; bottom:3px; left:var(--x, 3px); width:var(--w, 0); border-radius:99px;
+  background:linear-gradient(135deg, #ff4d65, #a03070); box-shadow:0 2px 10px rgba(230,57,80,0.45); transition:left .25s cubic-bezier(.2,.8,.2,1), width .25s cubic-bezier(.2,.8,.2,1); }
+.seg button { border:none; background:none; color:var(--text-muted); height:26px; padding:0 13px; border-radius:99px; font-size:0.78rem; font-weight:bold; cursor:pointer; white-space:nowrap; transition:color .2s; }
+.seg button.active { color:#fff; }
 
-.rank-X  { color: #f0c040; }
-.rank-Ex { color: #a855f7; }
-.rate-score { font-size: 0.95rem; font-weight: bold; text-align: right; }
+/* ===== 自分のカード：左に名前、真ん中にランクのバッジ、右にレートと順位 ===== */
+.rr-me { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px; padding:12px 16px; margin-bottom:12px; border-radius:12px;
+  background:linear-gradient(110deg, rgba(230,57,80,0.16), rgba(18,16,34,0.7) 55%); border:1px solid rgba(230,57,80,0.35); }
+.rr-me-badge { display:flex; align-items:center; justify-content:center; }
+.rr-me-badge img { height:76px; width:auto; max-width:120px; object-fit:contain; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+.rr-me-badge img.sq { width:72px; height:72px; }
+.rr-me-body { min-width:0; }
+.rr-me-label { font-size:0.66rem; color:var(--text-muted); letter-spacing:0.05em; }
+.rr-me-name { font-weight:bold; font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.rr-me-goal { font-size:0.74rem; color:var(--text-secondary); margin-top:3px; }
+.rr-me-goal b { color:#fff; font-variant-numeric:tabular-nums; }
+.rr-me-side { text-align:right; min-width:0; }
+.rr-me-rate { font-size:1.9rem; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
+.rr-me-pos { font-size:0.74rem; color:var(--text-muted); margin-top:4px; font-variant-numeric:tabular-nums; }
+/* スマホ：名前の幅を広げる（バッジとレートを右に寄せて詰める） */
+@media (max-width:480px) {
+  .rr-me { grid-template-columns:minmax(0,1fr) auto auto; padding:10px 12px; gap:8px; }
+  .rr-me-badge img { height:44px; max-width:70px; } .rr-me-badge img.sq { width:46px; height:46px; }
+  .rr-me-name { font-size:0.92rem; }
+  .rr-me-rate { font-size:1.5rem; } .rr-me-pos { font-size:0.68rem; }
+}
+
+/* ===== 表 ===== */
+.rate-score { font-size:0.95rem; font-weight:bold; text-align:right; font-variant-numeric:tabular-nums; }
+/* 見出しは止めて、フレームの飾りが上からのぞかないよう不透明に（ランキング画面と同じ） */
+#rate-ranking-content .ranking-table th { white-space:nowrap; z-index:30; background:#17152e; backdrop-filter:none; -webkit-backdrop-filter:none; box-shadow:6px 0 0 #17152e; }
+#rate-ranking-content .ranking-table th:first-child { box-shadow:-6px 0 0 #17152e, 6px 0 0 #17152e; }
+/* 見出しと1行目のあいだを空けて、1位のフレームの上の飾りが見出しに隠れないように */
+#rate-ranking-content tr.rr-gap td { height:12px; padding:0; border:none; background:none !important; }
+#rate-ranking-content tr.rr-gap.fgap td { height:6px; }
+#rate-ranking-content .ranking-table td:first-child { text-align:center; }
+/* フレームのない行も、フレームのある行と同じだけ左右を空ける（数字が端に張り付かないように） */
+#rate-ranking-content .ranking-table th:first-child, #rate-ranking-content .ranking-table td:first-child { padding-left:22px; }
+#rate-ranking-content .ranking-table th:last-child, #rate-ranking-content .ranking-table td:last-child { padding-right:22px; }
+#rate-ranking-content tr.rank-1 td { background:rgba(255,215,0,0.06); }
+#rate-ranking-content tr.rank-2 td { background:rgba(210,210,225,0.045); }
+#rate-ranking-content tr.rank-3 td { background:rgba(205,127,50,0.055); }
+#rate-ranking-content tr.is-me:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(230,57,80,0.14); }
+.rr-rank-label { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+.rr-rank-label img { height:28px; width:auto; object-fit:contain; }
+.rr-exn { font-weight:700; font-size:0.86rem; color:#a855f7; }
+@media (max-width:480px) {
+  .rr-name { font-size:1.2rem; }
+}
 </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
 </head>
 <body>
 <nav id="nav"></nav>
 <main>
   <a href="/index.html" class="back-link" data-i18n="rate.back">← トップ</a>
-  <h2 class="page-title" style="margin-bottom:4px" data-i18n="rate.title">レートランキング</h2>
-  <p style="font-size:0.8rem;color:rgba(232,232,240,0.75);margin-bottom:16px" data-i18n="rate.subtitle">X・Exランクユーザーのレート順</p>
+  <h2 class="page-title" style="margin-bottom:12px" data-i18n="rate.title">レートランキング</h2>
 
-  <div id="scope-area"></div>
+  <div id="season-head"></div>
+  <div class="rr-bar" id="rr-bar">
+    <div class="rr-pick" id="season-pick" hidden></div>
+    <div class="seg" id="rank-seg"></div>
+  </div>
   <div id="my-rate-area"></div>
 
   <div class="card">
@@ -73,84 +134,153 @@ renderNav();
 applyI18n();
 
 const me = getUser();
-let currentScope = 'external';
 let showImages = true;
+let seasons = [];       // 新しい順
+let seasonKey = null;   // 見ているシーズン
+let rankFilter = 'all'; // all / Legend / Ex / X / S
+let rows = [];
 
-function renderScopeToggle(showInternal) {
-  const area = document.getElementById('scope-area');
-  if (!showInternal) { area.innerHTML = ''; return; }
-  area.innerHTML = `
-    <div class="scope-toggle">
-      <button id="scope-int" onclick="setScope('internal')" class="${currentScope === 'internal' ? 'active' : ''}">${t('rate.scope_int')}</button>
-      <button id="scope-ext" onclick="setScope('external')" class="${currentScope === 'external' ? 'active' : ''}">${t('rate.scope_ext')}</button>
+const CROWN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
+const md = d => { const x = new Date(d); return `${x.getMonth() + 1}/${x.getDate()}`; };
+const viewing = () => seasons.find(s => s.key === seasonKey) || null;
+const rateOf = r => r.comp_rank === 'S' ? r.s_rate : r.x_rate;
+
+// 光の板を選んでいるボタンの位置に合わせる
+function placeSeg(el) {
+  const b = el.querySelector('button.active');
+  if (!b) return;
+  el.style.setProperty('--x', b.offsetLeft + 'px');
+  el.style.setProperty('--w', b.offsetWidth + 'px');
+}
+function renderSeg(id, items, current, onPick) {
+  const el = document.getElementById(id);
+  el.style.setProperty('--n', items.length);
+  el.innerHTML = items.map(([v, label]) => `<button type="button" data-v="${v}" class="${v === current ? 'active' : ''}">${label}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => onPick(b.dataset.v));
+  requestAnimationFrame(() => placeSeg(el));
+}
+
+// シーズンの見出し
+function renderHead() {
+  const se = viewing();
+  const el = document.getElementById('season-head');
+  if (!se) { el.innerHTML = ''; return; }
+  const left = Math.max(0, Math.ceil((new Date(se.last_day).getTime() + 86400000 - Date.now()) / 86400000));
+  const status = se.current
+    ? `<span class="rr-pill live">${t('event.days_left', left)}</span>`
+    : `<span class="rr-pill">${t('rate.ended')}</span>`;
+  el.innerHTML = `
+    <div class="rr-head ${se.test ? 'test' : ''} ${se.current ? '' : 'done'}">
+      <span class="rr-head-bg">SEASON</span>
+      <div class="rr-eyebrow">RATE SEASON</div>
+      <div class="rr-name">${escHtml(se.name)}</div>
+      <div class="rr-meta">${status}<span>${md(se.start)}〜${md(se.last_day)}</span>${se.events != null ? `<span>${t('rate.season_events', se.events)}</span>` : ''}</div>
+      ${se.winner ? `<div class="rr-winner">${CROWN}<span>${t('rate.winner')}</span><a href="/user.html?id=${se.winner.id}">${escHtml(se.winner.username)}</a></div>` : ''}
     </div>`;
 }
 
-function setScope(s) {
-  currentScope = s;
-  document.querySelectorAll('.scope-toggle button').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById(s === 'internal' ? 'scope-int' : 'scope-ext');
-  if (btn) btn.classList.add('active');
+// シーズンの選択：ボタンを押すと年ごとの一覧が開く
+const CHEV = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+function renderSeasonTabs() {
+  const el = document.getElementById('season-pick');
+  el.hidden = seasons.length < 2;
+  if (el.hidden) return;
+  const cur = viewing();
+  const byYear = new Map();
+  for (const s of seasons) { const y = new Date(s.start).getFullYear(); if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(s); }
+  el.innerHTML = `
+    <button type="button" class="rr-pick-btn" onclick="togglePick(event)">${cur?.current ? '<i class="dot"></i>' : ''}<span>${escHtml(cur?.name || '')}</span>${CHEV}</button>
+    <div class="rr-pick-menu">${[...byYear].map(([y, list]) => `
+      <div class="rr-pick-year">${y}</div>
+      ${list.map(s => `<button type="button" class="rr-pick-item ${s.key === seasonKey ? 'active' : ''}" onclick="pickSeason('${s.key}')">${s.current ? '<i class="dot"></i>' : ''}${escHtml(s.name)}<small>${s.current ? t('rate.live') : `${md(s.start)}〜`}</small></button>`).join('')}`).join('')}
+    </div>`;
+}
+function togglePick(e) {
+  e.stopPropagation();
+  document.getElementById('season-pick').classList.toggle('open');
+}
+document.addEventListener('click', e => { const p = document.getElementById('season-pick'); if (p && !p.contains(e.target)) p.classList.remove('open'); });
+
+function pickSeason(key) {
+  document.getElementById('season-pick').classList.remove('open');
+  seasonKey = key;
+  renderSeasonTabs();
+  renderHead();
   load();
 }
 
-function renderMyCard(rows) {
+function renderRankSeg() {
+  const has = r => rows.some(x => x.comp_rank === r);
+  const items = [['all', t('rate.f_all')], ['Legend', 'LEGEND'], ['Ex', 'Ex'], ['X', 'X']];
+  if (has('S')) items.push(['S', 'S']);
+  if (!items.some(([v]) => v === rankFilter)) rankFilter = 'all';
+  renderSeg('rank-seg', items, rankFilter, v => { rankFilter = v; renderRankSeg(); renderList(); });
+}
+
+// 自分のカード：ランク・レート・順位と、次の目標まであといくつか（今のシーズンだけ）
+function renderMyCard() {
   const area = document.getElementById('my-rate-area');
-  if (!me) { area.innerHTML = ''; return; }
-  const my = rows.find(r => String(r.id) === String(me.id));
-  if (!my) { area.innerHTML = ''; return; }
-  const rateDisp = my.comp_rank === 'S'
-    ? (my.s_rate != null ? Math.floor(my.s_rate) : '-')
-    : (my.x_rate != null ? Math.floor(my.x_rate) : '-');
-  const isLegend = my.comp_rank === 'Legend';
-  const badgeImg = isLegend
-    ? `<img src="/img/legend${my.legend_rank}.png" style="height:72px;width:auto;object-fit:contain" alt="LEGEND ${my.legend_rank}">`
-    : `<img src="/img/rank_${my.comp_rank.toLowerCase()}.png" style="width:72px;height:72px;object-fit:contain" alt="${my.comp_rank}">`;
-  const exStr = (my.comp_rank === 'Ex' && my.ex_rank != null) ? `<span style="font-size:1.2rem;font-weight:700;color:#a855f7">${my.ex_rank}位</span>` : '';
+  const idx = me ? rows.findIndex(r => String(r.id) === String(me.id)) : -1;
+  if (idx < 0) { area.innerHTML = ''; return; }
+  const my = rows[idx];
+  const rate = rateOf(my) != null ? Math.floor(rateOf(my)) : '-';
+  const badge = my.comp_rank === 'Legend'
+    ? `<img src="/img/legend${my.legend_rank}.png" alt="LEGEND ${my.legend_rank}">`
+    : `<img class="sq" src="/img/rank_${my.comp_rank.toLowerCase()}.png" alt="${my.comp_rank}">`;
+  let goal = '';
+  if (viewing()?.current) {
+    const x = my.x_rate || 0;
+    if (my.comp_rank === 'S') goal = t('rate.goal_to', 'X', Math.ceil(1000 - (my.s_rate || 0)));
+    else if (my.comp_rank === 'X') goal = t('rate.goal_to', 'Ex', Math.ceil(1500 - x));
+    else if (my.comp_rank === 'Ex') {
+      const tenth = rows.filter(r => r.comp_rank === 'Legend').map(r => r.x_rate).sort((a, b) => a - b)[0];
+      const need = Math.max(2000, rows.filter(r => r.comp_rank === 'Legend').length >= 10 ? tenth : 2000);
+      goal = t('rate.goal_to', 'LEGEND', Math.max(1, Math.ceil(need - x)));
+    } else if (my.comp_rank === 'Legend') goal = t('rate.goal_legend', my.legend_rank);
+  }
   area.innerHTML = `
-    <div class="my-rate-card">
-      <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px">${t('rate.my_label')}</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-        <span style="font-weight:bold;font-size:1.1rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(my.username)}</span>
-        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
-          ${badgeImg}
-          ${exStr}
-          <span style="font-size:2rem;font-weight:bold">${rateDisp}</span>
-        </div>
+    <div class="rr-me">
+      <div class="rr-me-body">
+        <div class="rr-me-label">${t('rate.my_label')}</div>
+        <div class="rr-me-name">${escHtml(my.username)}</div>
+        ${goal ? `<div class="rr-me-goal">${goal}</div>` : ''}
+      </div>
+      <div class="rr-me-badge">${badge}</div>
+      <div class="rr-me-side">
+        <div class="rr-me-rate">${rate}</div>
+        <div class="rr-me-pos">${t('rate.position', idx + 1, rows.length)}</div>
       </div>
     </div>`;
 }
 
-function renderTable(rows) {
-  if (rows.length === 0) {
+function renderTable(list) {
+  if (list.length === 0) {
     return `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.empty')}</p></div>`;
   }
   const meId = me ? me.id : null;
-  const rowsHtml = rows.map((r, i) => {
-    const pos = i + 1;
+  const rowsHtml = list.map((r, i) => {
+    const pos = rows.indexOf(r) + 1;
+    // フレームのある人が続くときは、あいだを少し空ける（飾りが重ならないように）
+    const gap = r.equipped_frame && list[i - 1]?.equipped_frame ? '<tr class="rr-gap fgap"><td colspan="5"></td></tr>' : '';
     const isSelf = meId && r.id === meId;
-    const rateDisp = r.comp_rank === 'S'
-      ? (r.s_rate != null ? Math.floor(r.s_rate) : '-')
-      : (r.x_rate != null ? Math.floor(r.x_rate) : '-');
+    const rate = rateOf(r) != null ? Math.floor(rateOf(r)) : '-';
     const fc = r.equipped_frame || '';
-    const fr = fc ? `has-frame ${fc}` : '';
-    const rowIsLegend = r.comp_rank === 'Legend';
-    const rankLabel = `<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">
-      ${rowIsLegend
-        ? `<img src="/img/legend${r.legend_rank}.png" style="height:28px;width:auto;object-fit:contain" alt="LEGEND ${r.legend_rank}">`
-        : `<img src="/img/rank_${r.comp_rank.toLowerCase()}.png" style="width:28px;height:28px;object-fit:contain" alt="${r.comp_rank}">`}
-      ${(r.comp_rank === 'Ex' && r.ex_rank != null) ? `<span style="font-weight:700;font-size:0.9rem;color:#a855f7;white-space:nowrap">${r.ex_rank}位</span>` : ''}
+    const rankLabel = `<span class="rr-rank-label">
+      ${r.comp_rank === 'Legend'
+        ? `<img src="/img/legend${r.legend_rank}.png" alt="LEGEND ${r.legend_rank}">`
+        : `<img src="/img/rank_${r.comp_rank.toLowerCase()}.png" alt="${r.comp_rank}" style="width:28px">`}
+      ${(r.comp_rank === 'Ex' && r.ex_rank != null) ? `<span class="rr-exn">${r.ex_rank}位</span>` : ''}
     </span>`;
     const avatarInner = r.equipped_icon_url && showImages
       ? `<img src="${escHtml(thumbUrl(r.equipped_icon_url))}" alt="${escHtml(r.username)}" style="width:100%;height:100%;object-fit:cover;border-radius:20%" class="${r.equipped_icon_rarity ? `icon-rarity-${escHtml(r.equipped_icon_rarity)}` : ''}" loading="lazy">`
       : escHtml(r.username.charAt(0));
-    return `
-      <tr class="${fr}${isSelf ? ' is-me' : ''}">
+    return `${gap}
+      <tr class="${fc ? `has-frame ${fc}` : ''}${pos <= 3 ? ` rank-${pos}` : ''}${isSelf ? ' is-me' : ''}">
         <td><span class="rank-num">${pos}</span></td>
         <td class="col-avatar"><a class="rank-avatar" href="/user.html?id=${r.id}">${avatarInner}</a></td>
-        <td class="${fc ? 'frame-name' : ''}" style="text-align:center"><a href="/user.html?id=${r.id}" style="color:var(--text-primary);text-decoration:none;font-weight:bold">${escHtml(r.username)}</a></td>
+        <td style="text-align:center"><a href="/user.html?id=${r.id}" style="color:#fff;text-decoration:none;font-weight:bold">${escHtml(r.username)}</a></td>
         <td style="text-align:center">${rankLabel}</td>
-        <td class="rate-score"><span class="score-val">${rateDisp}</span></td>
+        <td class="rate-score"><span class="score-val">${rate}</span></td>
       </tr>`;
   }).join('');
   return `
@@ -164,35 +294,60 @@ function renderTable(rows) {
           <th style="text-align:right">${t('rate.th_rate')}</th>
         </tr>
       </thead>
-      <tbody>${rowsHtml}</tbody>
+      <tbody><tr class="rr-gap"><td colspan="5"></td></tr>${rowsHtml}</tbody>
     </table>`;
+}
+
+// 切り替えのバーをナビの下、表の見出しをバーの下に止める
+function updateStickyTop() {
+  requestAnimationFrame(() => {
+    const navH = document.querySelector('nav')?.getBoundingClientRect().height || 56;
+    const bar = document.getElementById('rr-bar');
+    bar.style.top = navH + 'px';
+    const top = navH + bar.getBoundingClientRect().height;
+    document.querySelectorAll('#rate-ranking-content .ranking-table thead th').forEach(th => { th.style.top = top + 'px'; });
+  });
+}
+window.addEventListener('resize', updateStickyTop);
+
+function renderList() {
+  const list = rankFilter === 'all' ? rows : rows.filter(r => r.comp_rank === rankFilter);
+  document.getElementById('rate-ranking-content').innerHTML = renderTable(list);
+  fitFrameRows();
+  updateStickyTop();
 }
 
 async function load() {
   const el = document.getElementById('rate-ranking-content');
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>${t('loading')}</span></div>`;
   try {
-    const rows = await apiFetch(`/users/rate-ranking?scope=${currentScope}`);
-    renderMyCard(rows);
-    el.innerHTML = renderTable(rows);
-    fitFrameRows();
+    const se = viewing();
+    rows = await apiFetch(`/users/rate-ranking${se && !se.current ? `?season=${encodeURIComponent(se.key)}` : ''}`);
+    renderMyCard();
+    renderRankSeg();
+    renderList();
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
 }
 
 async function init() {
-  let isInternal = false;
-  try { const m = await apiFetch('/image-mode'); showImages = m.showImages !== false; } catch {}
-  if (me) {
-    try {
-      const meData = await apiFetch('/auth/me');
-      isInternal = !!(meData && meData.is_internal);
-    } catch {}
-  }
-  renderScopeToggle(isInternal);
+  const [im, list, cur] = await Promise.all([
+    apiFetch('/image-mode').catch(() => null),
+    apiFetch('/users/seasons').catch(() => []),
+    apiFetch('/users/season').catch(() => null),
+  ]);
+  if (im) showImages = im.showImages !== false;
+  seasons = list || [];
+  // 今のシーズンには終わった回の数を足す
+  const now = seasons.find(s => s.current);
+  if (now && cur && cur.key === now.key) now.events = cur.events;
+  seasonKey = (now || seasons[0])?.key || null;
+  renderHead();
+  renderSeasonTabs();
   load();
 }
+window.addEventListener('resize', () => document.querySelectorAll('.seg').forEach(placeSeg));
 
 init();
 </script>

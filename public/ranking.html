@@ -89,6 +89,9 @@
 #ranking-content tr.rank-1 td { background:rgba(255,215,0,0.06); }
 #ranking-content tr.rank-2 td { background:rgba(210,210,225,0.045); }
 #ranking-content tr.rank-3 td { background:rgba(205,127,50,0.055); }
+/* 見出しと1行目のあいだを空けて、1位のフレームの上の飾りが見出しに隠れないように */
+#ranking-content tr.rk-gap td { height:12px; padding:0 !important; border:none; background:none !important; }
+#ranking-content tr.rk-gap.fgap td { height:6px; }
 /* 自分の行 */
 #ranking-content tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(230,57,80,0.14); }
 </style>
@@ -532,12 +535,15 @@ async function loadRanking() {
           </tr>
         </thead>
         <tbody>
-          ${(() => { const _me = getUser(); const _isAdmin = _me && _me.role === 'admin'; return ranking.map(r => {
+          <tr class="rk-gap"><td colspan="8"></td></tr>
+          ${(() => { const _me = getUser(); const _isAdmin = _me && _me.role === 'admin'; return ranking.map((r, i) => {
             const fc = r.equipped_frame || '';
+            // フレームのある人が続くときは、あいだを少し空ける（飾りが重ならないように）
+            const gap = fc && ranking[i - 1]?.equipped_frame ? '<tr class="rk-gap fgap"><td colspan="8"></td></tr>' : '';
             const fr = fc ? `has-frame ${fc}` : '';
             const isSelf = _me && r.user_id === _me.id;
             const showAnon = r.is_anonymous && !isSelf && !_isAdmin;
-            return `
+            return `${gap}
             <tr class="rank-${r.rank} ${fr}" data-uid="${r.user_id}"${isSelf ? ' data-is-self="1"' : ''}>
               <td><span class="rank-num">${r.rank}</span></td>
               <td class="${fc ? 'frame-start' : ''}">${attrBadge(r.attribute)}</td>

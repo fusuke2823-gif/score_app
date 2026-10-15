@@ -10,6 +10,7 @@
 //   { type: 'joined', count }                参加した回が count 回以上
 //   { type: 'all_attrs', pct: { 種類: 割合 } } 1回のイベントで6属性すべてを投稿し、どの属性もその属性の1位のスコアの「割合」以上
 //                                            割合はイベントの種類（score_attack / score_attack_ex / seraph）ごと。進み具合は1回で届いた属性の数の最大
+// season があるものはシーズン1位の報酬：シーズン中は見せるだけで買えず、シーズンを締めたら1位の人だけが pt で買える
 //   { type: 'any', of: [条件, ...] }          どれか1つを満たせばよい（進み具合はいちばん進んでいるもの。of に1つずつの進み具合）
 const FRAMES = [
   { cls: 'frame-gold',      label: 'ゴールド', price: 3000,     colors: ['#fff3b0', '#ffd24a', '#e8a317'], conds: [{ type: 'rank', rank: 1, count: 3 }] },
@@ -34,6 +35,8 @@ const FRAMES = [
   { cls: 'frame-shuffle-aurora', label: 'シャッフル・オーロラ', price: 2500, colors: ['#7affd6', '#6fa8ff', '#e07aff'], conds: [{ type: 'rank', rank: 5, count: 5 }] },
   { cls: 'frame-shuffle-citrus', label: 'シャッフル・シトラス', price: 2000, colors: ['#fff27a', '#9dff8a', '#4fe3e0'], conds: [{ type: 'attr_kinds', rank: 10, kinds: 3 }] },
   { cls: 'frame-shuffle-berry',  label: 'シャッフル・ベリー', price: 4000,   colors: ['#ff8fb8', '#ff4f7a', '#9b5cff', '#5ec8ff'], conds: [{ type: 'attr_kinds', rank: 10, kinds: 6 }] },
+  // シーズン1位の報酬（シーズン中は見せるだけ。締めたら1位の人だけ買える）
+  { cls: 'frame-season-2026-12', label: '2026冬シーズン', price: 3000, colors: ['#ffffff', '#d9f2ff', '#8ccfff', '#7a9cff'], season: '2026-12' },
 ];
 
 const frameByClass = cls => FRAMES.find(f => f.cls === cls) || null;
@@ -43,8 +46,8 @@ async function seedFrames(db) {
   for (const f of FRAMES) {
     await db.query(
       `INSERT INTO frames (name, point_cost, css_class, is_active)
-       SELECT $1::varchar, $2::int, $3::varchar, FALSE WHERE NOT EXISTS (SELECT 1 FROM frames WHERE css_class = $3::varchar)`,
-      [f.label + 'フレーム', f.price, f.cls]
+       SELECT $1::varchar, $2::int, $3::varchar, $4::boolean WHERE NOT EXISTS (SELECT 1 FROM frames WHERE css_class = $3::varchar)`,
+      [f.label + 'フレーム', f.price, f.cls, !!f.season]
     );
   }
 }

@@ -220,19 +220,20 @@ function compRankBadge(rank, sRate, xRate, exRank, legendRank) {
 }
 
 function rankProgressBar(rank, rankPoints, sRate) {
+  // シーズン制：C〜S はどれもランクの中で 0〜1000 のレート（s_rate）
   const RANKS = {
-    C: { min: 0, max: 400,  next: 'B' },
-    B: { min: 0, max: 1300, next: 'A' },
-    A: { min: 0, max: 3000, next: 'S' },
+    C: { min: 0, max: 1000, next: 'B' },
+    B: { min: 0, max: 1000, next: 'A' },
+    A: { min: 0, max: 1000, next: 'S' },
     S: { min: 0, max: 1000, next: 'X' },
   };
   const cfg = RANKS[rank];
   if (!cfg) return '';
-  const val  = rank === 'S' ? (sRate || 0) : (rankPoints || 0);
+  const val  = sRate || 0;
   const pct  = Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100));
   const colors = { C:'#aaa', B:'#5cb85c', A:'#5b9bd5', S:'#e6a028' };
   const col = colors[rank];
-  const cur  = rank === 'S' ? Math.floor(sRate || 0) : (rankPoints || 0);
+  const cur  = Math.floor(sRate || 0);
   return `
     <div style="margin-top:10px;max-width:280px">
       <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
@@ -19,16 +20,76 @@ function historyTrend(pts) {
 }
 
 // レートランキング（X/Ex/Legend ユーザー、管理者はSランクも閲覧可）
-router.get('/rate-ranking', optionalAuth, async (req, res) => {
-  const { scope } = req.query;
-  const isInternal = scope === 'internal';
-  if (isInternal && (!req.user || !req.user.is_internal)) {
-    return res.status(403).json({ error: '内部ユーザーのみ閲覧できます' });
+// 締めた過去のシーズンのレートランキング（今のランキングと同じ形で返す）
+async function pastSeasonRanking(key, scopeFilter, isAdmin) {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.username, st.level, st.final_rank,
+            gi.image_url AS equipped_icon_url, gi.rarity AS equipped_icon_rarity, f.css_class AS equipped_frame
+     FROM season_states st JOIN users u ON u.id = st.user_id
+     LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
+     LEFT JOIN frames f ON u.equipped_frame_id = f.id
+     WHERE st.season_key = $1 AND st.events > 0 ${scopeFilter}
+     ORDER BY st.level DESC, u.id`,
+    [key]
+  );
+  const shown = isAdmin ? ['S', 'X', 'Ex', 'Legend'] : ['X', 'Ex', 'Legend'];
+  let legendN = 0, exN = 0;
+  return rows.map(r => {
+    const d = seasonDisplay(r.level, r.final_rank === 'Legend');
+    const legend_rank = d.rank === 'Legend' ? ++legendN : null;
+    if (['Ex', 'Legend'].includes(d.rank)) exN++;
+    return { id: r.id, username: r.username, comp_rank: d.rank, s_rate: d.sRate, x_rate: d.xRate, legend_rank,
+      ex_rank: d.rank === 'Ex' ? exN : null, equipped_icon_url: optimizeUrl(r.equipped_icon_url), equipped_icon_rarity: r.equipped_icon_rarity, equipped_frame: r.equipped_frame };
+  }).filter(r => shown.includes(r.comp_rank));
+}
+
+// シーズンの一覧（新しい順）。締めたシーズンは1位も
+router.get('/seasons', async (req, res) => {
+  try {
+    const now = new Date();
+    const done = new Map((await pool.query(
+      'SELECT d.season_key, d.winner_user_id, u.username FROM seasons_done d LEFT JOIN users u ON u.id = d.winner_user_id'
+    )).rows.map(r => [r.season_key, r]));
+    res.json(seasonsUntil(now).reverse().map(s => ({
+      key: s.key, name: s.name, test: s.test, start: s.start, last_day: new Date(s.end.getTime() - 24 * 60 * 60 * 1000),
+      done: done.has(s.key), current: s.end > now,
+      winner: done.get(s.key)?.winner_user_id ? { id: done.get(s.key).winner_user_id, username: done.get(s.key).username } : null,
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
+});
+
+// 今のレートのシーズン（名前・期間・数えた回の数）
+router.get('/season', async (req, res) => {
+  try {
+    const season = currentSeason();
+    if (!season) return res.json(null);
+    const { rows } = await pool.query(
+      `SELECT COUNT(*)::int AS n FROM events WHERE is_active = TRUE AND points_distributed_external = TRUE
+         AND event_type IN ('score_attack', 'seraph', 'score_attack_ex') AND submission_end >= $1 AND submission_end < $2`,
+      [season.start, season.end]
+    );
+    const last = new Date(season.end.getTime() - 24 * 60 * 60 * 1000);
+    res.json({ key: season.key, name: season.name, test: season.test, start: season.start, last_day: last, events: rows[0].n });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// レートランキング（内部・外部の区別なしで全体）
+router.get('/rate-ranking', optionalAuth, async (req, res) => {
   const isAdmin = !!(req.user && req.user.role === 'admin');
   try {
-    const scopeFilter = isInternal ? 'AND u.is_internal = TRUE' : '';
+    const scopeFilter = '';
     const ranksFilter = isAdmin ? "('S','X','Ex','Legend')" : "('X','Ex','Legend')";
+    // 締めた過去のシーズン：シーズン最後の水準からランクとレートを出す
+    if (req.query.season) {
+      const done = await pool.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [req.query.season]);
+      if (done.rows.length) return res.json(await pastSeasonRanking(req.query.season, scopeFilter, isAdmin));
+    }
     const result = await pool.query(
       `SELECT u.id, u.username, u.comp_rank, u.x_rate, u.s_rate,
               CASE WHEN u.comp_rank = 'Ex' THEN

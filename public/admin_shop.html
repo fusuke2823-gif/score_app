@@ -735,13 +735,22 @@ async function loadFrames() {
           <strong>${escHtml(f.name)}</strong>
           ${f.is_active ? '<span class="status-badge status-approved">表示中</span>' : '<span class="status-badge status-rejected">非表示</span>'}
         </div>
+        ${f.season ? `
+        <div class="adm-frame-cond">${escHtml(f.season_name || f.season)}の1位の報酬（シーズン中は見本だけ。終わったら1位の人だけが買えます）</div>
+        <div class="adm-frame-cond">持っている人：<span style="color:var(--text-primary)">${f.owners ? escHtml(f.owners) : 'まだいません'}</span></div>
+        <div class="adm-frame-ctrl">
+          <input class="form-input" type="number" min="1" step="1" id="frame-cost-${f.id}" value="${f.point_cost}">
+          <span class="adm-frame-unit">pt</span>
+          <button class="btn btn-secondary btn-sm" onclick="saveFramePrice(${f.id})">保存</button>
+          <button class="btn ${f.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm" style="margin-left:auto" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? 'シーズン中の見本を隠す' : 'シーズン中の見本を出す'}</button>
+        </div>` : `
         <div class="adm-frame-cond">購入条件：${f.conds ? escHtml(f.conds.map(frameCondText).join(' かつ ')) : 'コードにない種類'}</div>
         <div class="adm-frame-ctrl">
           <input class="form-input" type="number" min="1" step="1" id="frame-cost-${f.id}" value="${f.point_cost}">
           <span class="adm-frame-unit">pt</span>
           <button class="btn btn-secondary btn-sm" onclick="saveFramePrice(${f.id})">保存</button>
           <button class="btn ${f.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm" style="margin-left:auto" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? '非表示にする' : '表示する'}</button>
-        </div>
+        </div>`}
       </div>`).join('')}</div>`;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;

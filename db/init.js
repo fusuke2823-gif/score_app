@@ -803,6 +803,30 @@ const initDB = async () => {
       );
     `);
 
+    // レートのシーズン制（utils/seasons.js）：シーズン最初のランク、シーズンごとの水準、締めたシーズン
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS season_start_ranks (
+        season_key VARCHAR(20) NOT NULL,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        start_rank VARCHAR(10) NOT NULL,
+        PRIMARY KEY (season_key, user_id)
+      );
+      CREATE TABLE IF NOT EXISTS season_states (
+        season_key VARCHAR(20) NOT NULL,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        level DOUBLE PRECISION NOT NULL,
+        events INTEGER NOT NULL DEFAULT 0,
+        final_rank VARCHAR(10) NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        PRIMARY KEY (season_key, user_id)
+      );
+      CREATE TABLE IF NOT EXISTS seasons_done (
+        season_key VARCHAR(20) PRIMARY KEY,
+        winner_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        finalized_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // フレームの種類（utils/frames.js）を frames テーブルにそろえる
     await require('../utils/frames').seedFrames(client);
 

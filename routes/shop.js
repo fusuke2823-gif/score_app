@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { frameByClass, getFrameStats, condProgress } = require('../utils/frames');
+const { seasonByKey } = require('../utils/seasons');
 
 // 購入可能な称号一覧（ログイン不要）
 router.get('/titles', async (req, res) => {
@@ -43,9 +44,19 @@ router.get('/frames', optionalAuth, async (req, res) => {
     // 管理者は条件なしで買える（進み具合は出す）
     const free = req.user?.role === 'admin';
     const stats = req.user ? await getFrameStats(pool, req.user.id) : null;
-    res.json(frames.rows.map(f => {
-      const conds = frameByClass(f.css_class)?.conds || [];
-      return { ...f, conds, free, progress: stats && conds.length ? condProgress(conds, stats) : null };
+    // シーズン1位のフレーム：シーズン中は「1位の報酬」として見せる（買えない）。締めたら1位の人にだけ見せ、pt で買える
+    const winners = new Map((await pool.query('SELECT season_key, winner_user_id FROM seasons_done')).rows.map(r => [r.season_key, r.winner_user_id]));
+    res.json(frames.rows.flatMap(f => {
+      const def = frameByClass(f.css_class);
+      if (def?.season) {
+        const se = seasonByKey(def.season);
+        const reward = { key: def.season, name: se?.name || def.season, done: winners.has(def.season) };
+        if (!reward.done) return [{ ...f, conds: [], season_reward: reward }];
+        if (!req.user || winners.get(def.season) !== req.user.id) return [];
+        return [{ ...f, conds: [], season_reward: reward, free: true }];
+      }
+      const conds = def?.conds || [];
+      return [{ ...f, conds, free, progress: stats && conds.length ? condProgress(conds, stats) : null }];
     }));
   } catch (err) {
     console.error(err);
@@ -172,6 +183,13 @@ router.post('/frames/buy/:id', authenticateToken, async (req, res) => {
     if (owned.rows.length > 0)
       return res.status(409).json({ error: 'すでに所持しています' });
 
+    // シーズン1位のフレームは、シーズンを締めたあと1位の人だけ買える
+    const seasonKey = frameByClass(frame.css_class)?.season;
+    if (seasonKey) {
+      const w = await client.query('SELECT winner_user_id FROM seasons_done WHERE season_key = $1', [seasonKey]);
+      if (!w.rows.length) return res.status(403).json({ error: 'シーズンが終わるまで購入できません' });
+      if (w.rows[0].winner_user_id !== req.user.id) return res.status(403).json({ error: 'このフレームはシーズン1位の人だけが購入できます' });
+    }
     const conds = frameByClass(frame.css_class)?.conds || [];
     if (conds.length && req.user.role !== 'admin' && !condProgress(conds, await getFrameStats(client, req.user.id)).met)
       return res.status(403).json({ error: 'このフレームを買う条件をまだ満たしていません' });

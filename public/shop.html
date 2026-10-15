@@ -80,6 +80,9 @@
 .si-attrs-label { font-size: 0.66rem; color: var(--text-muted); margin-right: auto; }
 .si-attrs .attr-badge { width: 22px; height: 22px; font-size: 0.68rem; }
 .si-attrs .attr-badge.off { opacity: 0.25; filter: grayscale(1); }
+.si-reward { display:inline-flex; align-items:center; gap:4px; flex-shrink:0; font-size:0.74rem; font-weight:bold; color:#ffd24a; padding:2px 9px; border-radius:99px;
+  background:rgba(255,210,74,0.1); border:1px solid rgba(255,210,74,0.35); white-space:nowrap; }
+.si-reward svg { width:13px; height:13px; }
 .si-guide { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 1px; margin-left: 16px; padding: 5px 8px; border-radius: 6px; background: rgba(255,255,255,0.04); font-size: 0.68rem; color: var(--text-secondary); line-height: 1.5; }
 .si-guide-type { color: var(--text-muted); }
 .si-or { display: flex; flex-direction: column; gap: 2px; padding: 4px 0 4px 8px; border-left: 2px solid rgba(255,255,255,0.12); }
@@ -290,6 +293,7 @@ function _titleScopeForInternal(scope) {
 
 // 商品の箱（称号・推し称号・フレームで共通）
 const SI_COIN = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#ffd24a" stroke="#b8860b" stroke-width="1"/><circle cx="8" cy="8" r="4" fill="none" stroke="#b8860b" stroke-width="0.9" opacity="0.7"/></svg>';
+const SI_CROWN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
 const SI_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // 値段（所持・装備中のものには出さない）
@@ -470,6 +474,19 @@ function renderShopFrames(frames) {
     const owned = !!myData?.frames?.some(mf => mf.id === f.id);
     const equipped = myData?.equipped_frame_id === f.id;
     const p = f.progress;
+    // シーズン1位の報酬：シーズン中は買えない（値段の代わりに「シーズン1位の報酬」）。締めたあと1位の人には通常どおり値段と購入ボタン
+    if (f.season_reward && !f.season_reward.done) {
+      return `
+      <div class="shop-item frame-item ${f.css_class}">
+        ${frameSample(f.css_class)}
+        <div class="si-row">
+          <div class="si-main"><div class="si-name si-name-1">${escHtml(f.name)}</div></div>
+          ${shopItemPrice({ cost: f.point_cost })}
+        </div>
+        <div class="si-conds"><div class="si-cond"><span class="si-cond-text"><span class="si-cond-dot"></span>${escHtml(t('shop.season_reward_cond', f.season_reward.name))}</span></div></div>
+        <div class="si-row si-action-row"><span class="si-cond-label">${t('shop.season_reward_note')}</span><button class="si-btn" disabled>${t('shop.frame_locked')}</button></div>
+      </div>`;
+    }
     const item = { kind: 'frame', id: f.id, name: f.name, cost: f.point_cost, owned, equippedLabel: equipped ? t('shop.equipped_badge') : '', lockedText: p && !p.met && !f.free ? t('shop.frame_locked') : '' };
     // 名前と値段の行、条件ごとの行（進み具合）、購入ボタンの行
     // 条件1つ分の行（チェックか点・条件の文・進み具合）
@@ -503,6 +520,7 @@ function renderShopFrames(frames) {
           ${shopItemPrice(item)}
         </div>
         ${conds}
+        ${f.season_reward ? `<div class="si-conds"><div class="si-cond met"><span class="si-cond-text">${SI_CHECK}${escHtml(t('shop.season_reward_won', f.season_reward.name))}</span></div></div>` : ''}
         <div class="si-row si-action-row">${conds ? `<span class="si-cond-label">${t('shop.frame_cond_all')}</span>` : ''}${shopItemAction(item)}</div>
       </div>`;
   }).join('')}</div>`;

@@ -4,12 +4,13 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
-const { updateUserRanks, approveScoreRow, getCombinedXPt, getCombinedXPtV2, RATE_V2_DEFAULTS, rankFromCombined, legendRanksFor } = require('./rankUtils');
+const { approveScoreRow, getCombinedXPt, getCombinedXPtV2, RATE_V2_DEFAULTS, rankFromCombined, legendRanksFor } = require('./rankUtils');
 const { fetchUsage } = require('../utils/cloudinary');
 const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
 const { PULL_COST: SPECIAL_GACHA_PULL_COST } = require('./specialGacha');
 const { COOP_TIERS_KEY, getCoopTiers, getCoopStatus } = require('../utils/coop');
+const { syncSeasons, seasonByKey } = require('../utils/seasons');
 const { getAttrCheckMode, rejudgeStored, invalidateRefs } = require('../utils/attrJudge');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -833,9 +834,9 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
         }
       }
 
-    await updateUserRanks(client, rankUpdateUserIdsExt, { maxEventNumber: event.event_number });
-
     await client.query('UPDATE events SET points_distributed_external=TRUE, points_distributed_external_at=NOW() WHERE id=$1', [req.params.id]);
+    // ランクとレート：この回を入れてシーズンを計算し直す（終わったシーズンもここで締める）
+    await syncSeasons(client);
     await client.query('COMMIT');
     const titleMsg = awardedTitles.length ? `　称号付与: ${[...new Set(awardedTitles)].join(', ')}` : '';
     res.json({ message: `${distributed}名にポイントを配布しました${titleMsg}` });
@@ -1018,11 +1019,16 @@ const { FRAMES } = require('../utils/frames');
 
 router.get('/frames', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM frames');
+    const result = await pool.query(
+      `SELECT f.*, (SELECT string_agg(u.username, '、') FROM user_frames uf JOIN users u ON u.id = uf.user_id WHERE uf.frame_id = f.id) AS owners FROM frames f`
+    );
     const order = cls => { const i = FRAMES.findIndex(f => f.cls === cls); return i < 0 ? FRAMES.length : i; };
     res.json(result.rows
       .sort((a, b) => order(a.css_class) - order(b.css_class) || a.id - b.id)
-      .map(f => ({ ...f, conds: FRAMES.find(x => x.cls === f.css_class)?.conds || null })));
+      .map(f => {
+        const def = FRAMES.find(x => x.cls === f.css_class);
+        return { ...f, conds: def?.conds || null, season: def?.season || null, season_name: def?.season ? seasonByKey(def.season)?.name : null, owners: def?.season ? f.owners : undefined };
+      }));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
