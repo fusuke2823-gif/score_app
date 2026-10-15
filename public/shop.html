@@ -124,6 +124,7 @@
 .title-row-btn.equipped { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 .tabs { margin-bottom: 20px; }
+.tab-btn[hidden] { display: none; }
 .shop-tab-content { display: none; }
 .shop-tab-content.active { display: block; }
 .section-label { font-size: 0.82rem; font-weight: bold; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -160,7 +161,7 @@
     <div class="tabs" id="shop-tabs" style="margin-bottom:16px">
       <button class="tab-btn active" onclick="switchShopTab('titles')" data-i18n="shop.tab_titles">称号</button>
       <button class="tab-btn" onclick="switchShopTab('oshi')" data-i18n="shop.tab_oshi">推し称号</button>
-      <button class="tab-btn" onclick="switchShopTab('frames')" data-i18n="shop.tab_frames">フレーム</button>
+      <button class="tab-btn" id="shop-frames-tab" onclick="switchShopTab('frames')" data-i18n="shop.tab_frames" hidden>フレーム</button>
     </div>
     <div class="shop-tab-content active" id="shop-tab-titles">
       <div id="shop-titles"><div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div></div>
@@ -177,7 +178,7 @@
   <div class="tab-content" id="tab-equip">
     <div class="tabs" id="equip-tabs" style="margin-bottom:16px">
       <button class="tab-btn active" onclick="switchEquipTab('titles')" data-i18n="shop.tab_titles">称号</button>
-      <button class="tab-btn" onclick="switchEquipTab('frames')" data-i18n="shop.tab_frames">フレーム</button>
+      <button class="tab-btn" id="equip-frames-tab" onclick="switchEquipTab('frames')" data-i18n="shop.tab_frames" hidden>フレーム</button>
       <button class="tab-btn" onclick="switchEquipTab('icons')" data-i18n="shop.tab_icons">アイコン</button>
     </div>
     <div class="shop-tab-content active" id="equip-tab-titles">
@@ -245,10 +246,11 @@ function switchShopTab(name) {
 
 async function load() {
   try {
-    const [titles, oshiTitles, frames] = await Promise.all([
+    const [titles, oshiTitles, frames, framesTab] = await Promise.all([
       apiFetch('/shop/titles'),
       apiFetch('/shop/titles?tag=oshi'),
-      apiFetch('/shop/frames')
+      apiFetch('/shop/frames'),
+      apiFetch('/shop/frames-tab').catch(() => ({ show: false }))
     ]);
     if (user) {
       document.getElementById('shop-wallet').hidden = false;
@@ -262,6 +264,10 @@ async function load() {
     renderShopTitles(titles);
     renderShopOshiTitles(oshiTitles);
     renderShopFrames(frames);
+    // フレームのタブ：管理画面でオンのときだけ出す（管理者は常に出す。装備はフレームを持っていれば出す）
+    const isAdmin = user?.role === 'admin';
+    document.getElementById('shop-frames-tab').hidden = !(framesTab.show || isAdmin);
+    document.getElementById('equip-frames-tab').hidden = !(framesTab.show || isAdmin || myData?.frames?.length);
   } catch (err) {
     showAlert('#alert', err.message);
   }

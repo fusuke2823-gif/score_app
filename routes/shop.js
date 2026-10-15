@@ -23,6 +23,17 @@ router.get('/titles', async (req, res) => {
   }
 });
 
+// ショップにフレームのタブを出すか（管理画面で切り替える。未設定は出さない）
+router.get('/frames-tab', async (req, res) => {
+  try {
+    const r = await pool.query("SELECT value FROM settings WHERE key = 'shop_frames_tab'");
+    res.json({ show: r.rows[0]?.value === 'true' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 購入可能なフレーム一覧（買えるようになる条件と、ログイン中ならその進み具合つき）
 router.get('/frames', optionalAuth, async (req, res) => {
   try {

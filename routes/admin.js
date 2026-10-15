@@ -1029,6 +1029,28 @@ router.get('/frames', async (req, res) => {
   }
 });
 
+// ショップにフレームのタブを出すか
+router.get('/frames/tab', async (req, res) => {
+  try {
+    const r = await pool.query("SELECT value FROM settings WHERE key = 'shop_frames_tab'");
+    res.json({ show: r.rows[0]?.value === 'true' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+router.put('/frames/tab', async (req, res) => {
+  const show = req.body.show === true;
+  try {
+    await pool.query("INSERT INTO settings (key, value) VALUES ('shop_frames_tab', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [String(show)]);
+    res.json({ show, message: show ? 'ショップにフレームのタブを出しました' : 'ショップのフレームのタブを隠しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.patch('/frames/:id/visibility', async (req, res) => {
   const { is_active } = req.body;
   try {
