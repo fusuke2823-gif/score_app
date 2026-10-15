@@ -121,13 +121,15 @@ nav {
   flex-shrink: 0;
 }
 .nav-username { color: var(--text-primary); font-weight: 500; }
+/* 管理者マーク：赤い縁のピルに、白いチェックの入った盾と ADMIN（adminBadgeHtml） */
 .nav-admin-badge {
-  background: var(--accent);
-  color: white;
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; line-height: 1;
+  padding: 3px 7px 3px 5px; border-radius: 99px;
+  border: 1px solid rgba(230,57,80,0.75); background: rgba(230,57,80,0.12);
+  color: #ff7088; font-family: 'Orbitron', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.12em;
+  box-shadow: 0 0 6px rgba(230,57,80,0.35);
 }
+.nav-admin-badge svg { color: #e63950; flex-shrink: 0; }
 
 /* メインコンテンツ */
 main {

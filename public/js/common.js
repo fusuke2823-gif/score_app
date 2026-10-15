@@ -531,6 +531,12 @@ function frameSampleHtml(cssClass, name, iconUrl) {
   return `<div class="frame-sample ${escHtml(cssClass)}"><i class="fs-orn"></i><span class="fs-rank">1</span><span class="fs-avatar">${avatar}</span><span class="fs-name">${escHtml(label)}</span><span class="fs-score">3,840,220</span></div>`;
 }
 
+// 管理者マーク（赤い縁のピルに、白いチェックの入った盾と ADMIN）
+function adminBadgeHtml() {
+  const label = escHtml(t('nav.admin_badge'));
+  return `<span class="nav-admin-badge" role="img" aria-label="${label}" title="${label}"><svg width="12" height="13" viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l10 4v7c0 6.5-4.3 11.6-10 13-5.7-1.4-10-6.5-10-13V5z" fill="currentColor"/><path d="M7.5 13.2l3.1 3 6-6.4" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span aria-hidden="true">ADMIN</span></span>`;
+}
+
 // ランキングのフレームはセルから表の幅まで伸ばすので、表の幅（--rw）と1つ目のセルの幅（--c1）を入れておく
 function fitFrameRows() {
   document.querySelectorAll('.ranking-table').forEach(t => {
@@ -640,7 +646,7 @@ function renderNav() {
         ${langBtn}
         ${user
           ? `<a href="/user.html?id=${user.id}" class="nav-username">${escHtml(user.username)}</a>
-             ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
+             ${user.role === 'admin' ? adminBadgeHtml() : ''}
              <button class="btn btn-secondary btn-sm nav-desktop-only" onclick="logout()">${t('nav.logout')}</button>`
           : `<a href="/login.html" class="btn btn-secondary btn-sm">${t('nav.login')}</a>
              <a href="/register.html" class="btn btn-primary btn-sm">${t('nav.register')}</a>`
@@ -656,7 +662,7 @@ function renderNav() {
           ? `<a class="nm-user" href="/user.html?id=${user.id}">
                <span class="nm-avatar${user.icon_url ? ' has-img' : ''}" id="nm-avatar">${navAvatarInner(user)}</span>
                <span class="nm-user-body"><b>${escHtml(user.username)}</b><small>${t('nav.account')}</small></span>
-               ${user.role === 'admin' ? `<span class="nav-admin-badge">${t('nav.admin_badge')}</span>` : ''}
+               ${user.role === 'admin' ? adminBadgeHtml() : ''}
                <svg class="nm-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
              </a>`
           : `<div class="nm-guest">

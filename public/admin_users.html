@@ -142,7 +142,7 @@ function renderUsersList() {
           ${users.map(u => `
             <tr>
               <td class="user-name-cell"><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
-              <td>${u.role === 'admin' ? '<span class="nav-admin-badge">管理者</span>' : '一般'}</td>
+              <td>${u.role === 'admin' ? adminBadgeHtml() : '一般'}</td>
               <td style="text-align:right">${u.points}pt</td>
               <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.gp || 0}GP</td>
               <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.total_login_days || 0}日</td>
