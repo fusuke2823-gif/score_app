@@ -1,8 +1,8 @@
 // レートのシーズン制。シーズンごとにランクとレートを決め直し、その回の成績と今のレートの差を足していく。
 //   水準 L：レートの中身（線形変換 pt と同じ目盛り。画面には出さず、ランクとレートに直して出す）
 //   1回ごとに L += k ×（その回の pt − L）。ただし +up / −down まで。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
-//   シーズンの最初は前のシーズンの最後のランクから決め、シーズン中はそのランクより下がらない
-//   数えるのは最終配布（外部）が済んだ回。シーズンの区切りは各回の受付終了日（日本時間）
+//   シーズンの最初は前のシーズンの最後のランクから決め、シーズン中はそのランクの0より下がらない
+//   数えるのは最終配布（外部）が済んだ回。各回は受付開始日でシーズンに振り分ける（区切りは2週間ごとの回の始まりの日）
 const { ptForEventType, rateForXPt } = require('../routes/rankUtils');
 
 // ランクの区切り（L）。C 0〜、B 100〜（SA 200万相当）、A 300〜（250万）、S 500〜（300万）、X 1500〜、Ex 3300〜（Xレート1500）
@@ -16,7 +16,12 @@ const REGULAR_PARAMS = { k: 0.6, up: 1000, down: 400, slowUp: 200 };
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
 const jst = d => new Date(`${d}T00:00:00+09:00`);
-// 本シーズン：冬 12〜2月、春 3〜5月、夏 6〜8月、秋 9〜11月。2026年12月の冬から
+// イベントは2週間ごと（金曜11時に始まる）。この周期の始まりをシーズンの区切りにする
+const CYCLE_ANCHOR = new Date('2026-10-02T11:00:00+09:00');
+const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
+const cycleStartAt = d => new Date(CYCLE_ANCHOR.getTime() + Math.floor((d - CYCLE_ANCHOR) / CYCLE_MS) * CYCLE_MS);
+// シーズン：冬 12〜2月、春 3〜5月、夏 6〜8月、秋 9〜11月。2026年9月の秋から
+//   各シーズンはその最初の月の1日を含む回から始まる（2026冬なら 11/27 に始まる回から）
 const SEASON_NAMES = { 12: '冬', 3: '春', 6: '夏', 9: '秋' };
 function regularSeason(year, month) {
   const endMonth = month + 3 > 12 ? month + 3 - 12 : month + 3;
@@ -24,24 +29,20 @@ function regularSeason(year, month) {
   const pad = n => String(n).padStart(2, '0');
   return {
     key: `${year}-${pad(month)}`, name: `${year}${SEASON_NAMES[month]}シーズン`,
-    start: jst(`${year}-${pad(month)}-01`), end: jst(`${endYear}-${pad(endMonth)}-01`),
+    start: cycleStartAt(jst(`${year}-${pad(month)}-01`)), end: cycleStartAt(jst(`${endYear}-${pad(endMonth)}-01`)),
     test: false, params: REGULAR_PARAMS, startMap: REGULAR_START,
   };
 }
 
-// テストシーズン：#103（2026/10/16 締切）から 11 月末まで。Ex 以上は Ex から始め、1位にフレームは渡さない
-const TEST_SEASON = {
-  key: '2026-test', name: 'テストシーズン', start: jst('2026-10-03'), end: jst('2026-12-01'),
-  test: true, params: { k: 0.4, up: 600, down: 400, slowUp: 200 },
-  startMap: { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'Ex', Legend: 'Ex' },
-};
+// 最初の 2026秋 は、セラフ遭遇戦演習#7（9/4 開始）から。それまでの成績は数えず、今のランクから始める
+const FIRST_START = new Date('2026-09-04T11:00:00+09:00');
 
 // now までに始まったシーズンを古い順に
 function seasonsUntil(now = new Date()) {
-  const list = [TEST_SEASON];
-  let y = 2026, m = 12;
+  const list = [];
+  let y = 2026, m = 9;
   for (;;) {
-    const s = regularSeason(y, m);
+    const s = list.length ? regularSeason(y, m) : { ...regularSeason(y, m), start: FIRST_START };
     if (s.start > now) break;
     list.push(s);
     m += 3; if (m > 12) { m -= 12; y += 1; }
@@ -49,6 +50,9 @@ function seasonsUntil(now = new Date()) {
   return list.filter(s => s.start <= now);
 }
 const currentSeason = (now = new Date()) => seasonsUntil(now).filter(s => s.end > now).pop() || null;
+
+// 回がシーズンに入るか（$1 = start, $2 = end）。受付開始日がない古い回は受付終了日で
+const IN_SEASON = 'COALESCE(submission_start, submission_end) >= $1 AND COALESCE(submission_start, submission_end) < $2';
 
 const tierOf = L => LEVELS.filter(([, v]) => L >= v).pop()[0];
 
@@ -97,14 +101,14 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
     `SELECT id, event_type, COALESCE(score_multiplier, 1.0)::float AS mult FROM events
      WHERE is_active = TRUE AND points_distributed_external = TRUE
        AND event_type IN ('score_attack', 'seraph', 'score_attack_ex')
-       AND submission_end >= $1 AND submission_end < $2
+       AND ${IN_SEASON}
      ORDER BY submission_end, (event_type = 'score_attack_ex'), event_number`,
     [season.start, season.end]
   )).rows;
 
   const st = new Map(); // user_id → { L, floor, n }
   const get = id => {
-    if (!st.has(id)) { const L = LEVEL_OF[starts.get(id) || 'C']; st.set(id, { L, floor: L, n: 0 }); }
+    if (!st.has(id)) { const L = LEVEL_OF[starts.get(id) || 'C'] ?? LEVEL_OF.B; st.set(id, { L, floor: LEVEL_OF[tierOf(L)], n: 0 }); }
     return st.get(id);
   };
   for (const id of starts.keys()) get(id);
@@ -143,14 +147,14 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
   return { events: events.length, users: st.size };
 }
 
-// 終わったシーズンを締める（そのシーズンの回の最終配布が全部済んでいれば）。1位を記録し、本シーズンならフレームを渡す
+// 終わったシーズンを締める（そのシーズンの回の最終配布が全部済んでいれば）。1位を記録する
 async function finalizeSeason(client, season) {
   const done = await client.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [season.key]);
   if (done.rows.length) return false;
   const pending = await client.query(
     `SELECT 1 FROM events WHERE is_active = TRUE AND points_distributed_external = FALSE
        AND event_type IN ('score_attack', 'seraph', 'score_attack_ex')
-       AND submission_end >= $1 AND submission_end < $2 LIMIT 1`,
+       AND ${IN_SEASON} LIMIT 1`,
     [season.start, season.end]
   );
   if (pending.rows.length) return false;
@@ -181,6 +185,6 @@ async function syncSeasons(client, now = new Date()) {
   }
 }
 
-const seasonByKey = key => [TEST_SEASON, ...seasonsUntil(new Date('2100-01-01'))].find(s => s.key === key) || null;
+const seasonByKey = key => seasonsUntil(new Date('2100-01-01')).find(s => s.key === key) || null;
 
-module.exports = { seasonByKey, LEVELS, LEGEND_MIN_RATE, TEST_SEASON, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
+module.exports = { IN_SEASON, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };

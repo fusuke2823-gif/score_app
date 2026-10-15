@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
+const { IN_SEASON, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
@@ -68,7 +68,7 @@ router.get('/season', async (req, res) => {
     if (!season) return res.json(null);
     const { rows } = await pool.query(
       `SELECT COUNT(*)::int AS n FROM events WHERE is_active = TRUE AND points_distributed_external = TRUE
-         AND event_type IN ('score_attack', 'seraph', 'score_attack_ex') AND submission_end >= $1 AND submission_end < $2`,
+         AND event_type IN ('score_attack', 'seraph', 'score_attack_ex') AND ${IN_SEASON}`,
       [season.start, season.end]
     );
     const last = new Date(season.end.getTime() - 24 * 60 * 60 * 1000);
