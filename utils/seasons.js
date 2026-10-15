@@ -1,6 +1,6 @@
 // レートのシーズン制。シーズンごとにランクとレートを決め直し、その回の成績と今のレートの差を足していく。
 //   水準 L：レートの中身（線形変換 pt と同じ目盛り。画面には出さず、ランクとレートに直して出す）
-//   1回ごとに L += k ×（その回の pt − L）。ただし +up / −down まで。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
+//   1回ごとに L += k ×（その回の pt − L）。ただし +up / −down まで（そのシーズン初参加の回は +firstUp まで）。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
 //   シーズンの最初は前のシーズンの最後のランクから決め、シーズン中はそのランクの0より下がらない
 //   数えるのは最終配布（外部）が済んだ回。各回は受付開始日でシーズンに振り分ける（区切りは2週間ごとの回の始まりの日）
 const { ptForEventType, rateForXPt } = require('../routes/rankUtils');
@@ -11,7 +11,8 @@ const LEVEL_OF = Object.fromEntries(LEVELS);
 const LEGEND_MIN_RATE = 2000;
 const LEGEND_TOP_N = 10;
 
-const REGULAR_PARAMS = { k: 0.6, up: 1000, down: 400, slowUp: 200 };
+// firstUp：そのシーズンで初めて参加した回だけの上限（みんなが同じ上限で並ばないように）
+const REGULAR_PARAMS = { k: 0.6, up: 1000, firstUp: 1500, down: 400, slowUp: 200 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
@@ -66,8 +67,8 @@ function display(L, legend) {
 }
 
 // 1回分の変化
-function step(L, P, p) {
-  const cap = L < LEVEL_OF.X && P < LEVEL_OF.X ? p.slowUp : p.up;
+function step(L, P, p, first = false) {
+  const cap = L < LEVEL_OF.X && P < LEVEL_OF.X ? p.slowUp : first ? (p.firstUp ?? p.up) : p.up;
   return Math.max(-p.down, Math.min(cap, p.k * (P - L)));
 }
 
@@ -123,8 +124,8 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
     );
     for (const r of rows) {
       const x = get(r.user_id);
+      x.L = Math.max(x.floor, x.L + step(x.L, ptForEventType(e.event_type, r.score * e.mult), season.params, x.n === 0));
       x.n++;
-      x.L = Math.max(x.floor, x.L + step(x.L, ptForEventType(e.event_type, r.score * e.mult), season.params));
     }
   }
 
@@ -185,6 +186,15 @@ async function syncSeasons(client, now = new Date()) {
   }
 }
 
+// 今ランクとレートに出しているシーズン（前のシーズンが締まるまでは前のシーズン）
+async function liveSeasonKey(client, now = new Date()) {
+  const list = seasonsUntil(now);
+  for (let i = list.length - 1; i > 0; i--) {
+    if ((await client.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [list[i - 1].key])).rows.length) return list[i].key;
+  }
+  return list[0]?.key ?? null;
+}
+
 const seasonByKey = key => seasonsUntil(new Date('2100-01-01')).find(s => s.key === key) || null;
 
-module.exports = { IN_SEASON, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
+module.exports = { IN_SEASON, liveSeasonKey, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };

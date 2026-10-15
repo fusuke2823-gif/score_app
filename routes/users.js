@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { IN_SEASON, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
+const { IN_SEASON, liveSeasonKey, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
@@ -90,6 +90,8 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
       const done = await pool.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [req.query.season]);
       if (done.rows.length) return res.json(await pastSeasonRanking(req.query.season, scopeFilter, isAdmin));
     }
+    // 今のシーズンにまだ参加していない人は出さない
+    const live = await liveSeasonKey(pool);
     const result = await pool.query(
       `SELECT u.id, u.username, u.comp_rank, u.x_rate, u.s_rate,
               CASE WHEN u.comp_rank = 'Ex' THEN
@@ -105,7 +107,9 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
        LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
        LEFT JOIN frames f ON u.equipped_frame_id = f.id
        WHERE u.comp_rank IN ${ranksFilter} ${scopeFilter}
-       ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST`
+         AND EXISTS (SELECT 1 FROM season_states st WHERE st.user_id = u.id AND st.season_key = $1 AND st.events > 0)
+       ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST`,
+      [live]
     );
     res.json(result.rows.map(r => ({ ...r, equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));
   } catch (err) {
