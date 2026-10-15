@@ -9,7 +9,7 @@ const _i18n = {
     'myvid.cancel_ok':'投稿を取り消す',
     'nav.events':'イベント一覧','nav.submit':'スコア投稿','nav.shop':'ショップ',
     'nav.equip':'装備','nav.gacha':'ガチャ','nav.feedback':'お便り箱','nav.my_videos':'動画','nav.charts':'チャート','nav.announcements':'お知らせ','nav.chat':'掲示板',
-    'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.empty':'お知らせはまだありません',
+    'ann.badge':'お知らせ','ann.detail':'詳しく見る','ann.close':'閉じる','ann.next':'次へ','ann.empty':'お知らせはまだありません',
     'chart.my_charts':'マイチャート','chart.new':'+ 新規作成','chart.manage':'管理',
     'chart.board':'チャート掲示板','chart.all_events':'全イベント',
     'chart.search_code':'チャートID検索','chart.search_user':'ユーザー名検索','chart.search_any':'ID・タイトル・ユーザー名で検索','chart.turns':'{n}行','chart.draft':'下書き','chart.sort_new':'新しい順','chart.sort_popular':'人気順','chart.tab_mine':'作ったチャート','chart.tab_fav':'お気に入り','chart.no_favs':'お気に入りはまだありません。チャートの♡を押すとここに入ります',
@@ -188,7 +188,7 @@ const _i18n = {
     'myvid.cancel_ok':'取消投稿',
     'nav.events':'活動列表','nav.submit':'上傳分數','nav.shop':'商店',
     'nav.equip':'裝備','nav.gacha':'轉蛋','nav.feedback':'意見箱','nav.my_videos':'影片','nav.charts':'攻略圖表','nav.announcements':'公告','nav.chat':'留言板',
-    'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.empty':'目前沒有公告',
+    'ann.badge':'公告','ann.detail':'查看詳情','ann.close':'關閉','ann.next':'下一則','ann.empty':'目前沒有公告',
     'chart.my_charts':'我的攻略圖表','chart.new':'+ 新建','chart.manage':'管理',
     'chart.board':'攻略圖表看板','chart.all_events':'全部活動',
     'chart.search_code':'搜尋圖表ID','chart.search_user':'搜尋用戶名','chart.search_any':'以ID・標題・用戶名搜尋','chart.turns':'{n}行','chart.draft':'草稿','chart.sort_new':'最新','chart.sort_popular':'人氣','chart.tab_mine':'我的圖表','chart.tab_fav':'收藏','chart.no_favs':'尚無收藏。按下圖表的♡即可加入',
@@ -752,16 +752,20 @@ async function initAnnouncementCheck() {
     const token = getToken();
     const list = await fetch(API + '/announcements', { headers: token ? { Authorization: 'Bearer ' + token } : {} }).then(r => r.json());
     if (!Array.isArray(list) || list.length === 0) return;
+    // お知らせのリンクで別のページへ移ったときは、残りの未読はTOPに戻るまで出さない
+    const onTop = ['/', '/index.html'].includes(location.pathname);
+    try { if (sessionStorage.getItem('hbr_ann_paused')) { if (!onTop) return; sessionStorage.removeItem('hbr_ann_paused'); } } catch {}
     const seenId = parseInt(localStorage.getItem('hbr_seen_announcement_id') || '0', 10);
     const now = new Date();
-    // 未読のうち、通知対象（登録日時で絞ったお知らせは対象のユーザーだけ）で、モーダル表示期間内（未設定なら常時）の最新のものを表示
-    const target = list.find(a =>
+    // 未読のうち、通知対象（登録日時で絞ったお知らせは対象のユーザーだけ）で、モーダル表示期間内（未設定なら常時）のものを、古い順に全部表示
+    window._annQueue = list.filter(a =>
       a.id > seenId && a.notify &&
       (!a.modal_start || new Date(a.modal_start) <= now) &&
       (!a.modal_end || new Date(a.modal_end) >= now)
-    );
-    if (!target) return;
-    showAnnouncementModal(target);
+    ).sort((a, b) => a.id - b.id);
+    window._annIdx = 0;
+    if (!window._annQueue.length) return;
+    showAnnouncementModal(window._annQueue[0]);
   } catch {}
 }
 
@@ -843,36 +847,60 @@ function showMessage(message) {
 
 function showAnnouncementModal(a) {
   if (document.getElementById('announcement-modal')) return;
-  const style = document.createElement('style');
-  style.textContent = `
-    #announcement-modal { display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2500; align-items:center; justify-content:center; padding:16px; }
-    #announcement-box {
-      background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%);
-      border:1px solid var(--border-light); border-radius:14px; padding:24px;
-      max-width:420px; width:100%; text-align:left; max-height:85vh; overflow-y:auto;
-    }
-  `;
-  document.head.appendChild(style);
+  if (!document.getElementById('announcement-style')) {
+    const style = document.createElement('style');
+    style.id = 'announcement-style';
+    style.textContent = `
+      #announcement-modal { display:flex; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2500; align-items:center; justify-content:center; padding:16px; }
+      #announcement-box {
+        background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%);
+        border:1px solid var(--border-light); border-radius:14px; padding:24px;
+        max-width:420px; width:100%; text-align:left; max-height:85vh; overflow-y:auto;
+      }
+    `;
+    document.head.appendChild(style);
+  }
   const modal = document.createElement('div');
   modal.id = 'announcement-modal';
   modal.addEventListener('click', e => { if (e.target === modal) closeAnnouncementModal(a.id); });
+  // 未読が複数あるときは「1 / 3」と「次へ」
+  const q = window._annQueue || [], i = q.indexOf(a), more = i >= 0 && i < q.length - 1;
   modal.innerHTML = `
     <div id="announcement-box">
-      <div style="font-size:0.72rem;color:var(--accent);font-weight:bold;letter-spacing:0.05em;margin-bottom:6px">${escHtml(t('ann.badge'))}</div>
+      <div style="font-size:0.72rem;color:var(--accent);font-weight:bold;letter-spacing:0.05em;margin-bottom:6px;display:flex;justify-content:space-between">${escHtml(t('ann.badge'))}${q.length > 1 && i >= 0 ? `<span style="color:var(--text-muted)">${i + 1} / ${q.length}</span>` : ''}</div>
       <div style="font-size:1.1rem;font-weight:bold;margin-bottom:10px">${escHtml(a.title)}</div>
       ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="width:100%;border-radius:8px;margin-bottom:10px;display:block">` : ''}
       <div style="font-size:0.9rem;white-space:pre-wrap;word-break:break-all;color:var(--text-primary);margin-bottom:16px">${escHtml(a.body)}</div>
-      ${a.link_url ? `<a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer" onclick="closeAnnouncementModal(${a.id})" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;text-decoration:none;box-sizing:border-box">${escHtml(a.link_label || t('ann.detail'))}</a>` : ''}
-      <button class="btn btn-secondary" style="width:100%;justify-content:center;box-sizing:border-box" onclick="closeAnnouncementModal(${a.id})">${escHtml(t('ann.close'))}</button>
+      ${a.link_url ? `<a href="${escHtml(a.link_url)}" ${isSiteLink(a.link_url) ? '' : 'target="_blank" rel="noopener noreferrer"'} onclick="followAnnouncementLink(${a.id})" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:10px;text-decoration:none;box-sizing:border-box">${escHtml(a.link_label || t('ann.detail'))}</a>` : ''}
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;box-sizing:border-box" onclick="closeAnnouncementModal(${a.id})">${escHtml(t(more ? 'ann.next' : 'ann.close'))}</button>
     </div>`;
   document.body.appendChild(modal);
   lockBodyScroll();
 }
 
-function closeAnnouncementModal(id) {
-  localStorage.setItem('hbr_seen_announcement_id', String(id));
+// サイト内のリンクかどうか（サイト内なら同じタブで開く）
+function isSiteLink(url) {
+  try { return new URL(url, location.href).origin === location.origin; } catch { return false; }
+}
+
+// お知らせのリンクを押したとき：そのお知らせは既読にして、残りはTOPに戻ったときに続きから出す
+function followAnnouncementLink(id) {
+  const seen = parseInt(localStorage.getItem('hbr_seen_announcement_id') || '0', 10);
+  localStorage.setItem('hbr_seen_announcement_id', String(Math.max(seen, id)));
+  const q = window._annQueue || [];
+  if (q.some(a => a.id > id)) { try { sessionStorage.setItem('hbr_ann_paused', '1'); } catch {} }
   document.getElementById('announcement-modal')?.remove();
   unlockBodyScroll();
+}
+
+function closeAnnouncementModal(id) {
+  const seen = parseInt(localStorage.getItem('hbr_seen_announcement_id') || '0', 10);
+  localStorage.setItem('hbr_seen_announcement_id', String(Math.max(seen, id)));
+  document.getElementById('announcement-modal')?.remove();
+  unlockBodyScroll();
+  // 未読が残っていれば次のお知らせへ
+  const q = window._annQueue || [], i = q.findIndex(a => a.id === id);
+  if (i >= 0 && q[i + 1]) showAnnouncementModal(q[i + 1]);
 }
 
 function _trackPageView() {
