@@ -29,12 +29,12 @@ router.get('/frames', optionalAuth, async (req, res) => {
     const frames = await pool.query(
       'SELECT * FROM frames WHERE is_active = TRUE ORDER BY point_cost ASC'
     );
-    // 管理者は条件なしで買える
-    const isAdmin = req.user?.role === 'admin';
-    const stats = req.user && !isAdmin ? await getFrameStats(pool, req.user.id) : null;
+    // 管理者は条件なしで買える（進み具合は出す）
+    const free = req.user?.role === 'admin';
+    const stats = req.user ? await getFrameStats(pool, req.user.id) : null;
     res.json(frames.rows.map(f => {
       const conds = frameByClass(f.css_class)?.conds || [];
-      return { ...f, conds, progress: stats && conds.length ? condProgress(conds, stats) : null };
+      return { ...f, conds, free, progress: stats && conds.length ? condProgress(conds, stats) : null };
     }));
   } catch (err) {
     console.error(err);

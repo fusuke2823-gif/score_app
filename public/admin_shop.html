@@ -678,11 +678,12 @@ async function deleteTitle(id) {
 // ===== フレーム管理 =====
 // 買えるようになる条件（utils/frames.js で種類ごとに決めている）
 function frameCondText(c) {
-  if (c.type === 'rank' && c.attr) return c.rank === 1 ? `${c.attr}属性で全体1位を${c.count}回` : `${c.attr}属性で全体${c.rank}位以内に${c.count}回`;
+  if (c.type === 'rank' && c.attr) return c.rank === 1 ? `${c.attr}属性のスコアで全体1位相当を${c.count}回` : `${c.attr}属性のスコアで全体${c.rank}位相当以内に${c.count}回`;
   if (c.type === 'rank') return c.rank === 1 ? `1位を${c.count}回` : `${c.rank}位以内に${c.count}回`;
   if (c.type === 'attr_rank') return c.rank === 1 ? `${c.attr}属性で1位を${c.count}回` : `${c.attr}属性で${c.rank}位以内に${c.count}回`;
   if (c.type === 'attr_kinds') return `${c.kinds}種類の属性で${c.rank}位以内`;
   if (c.type === 'joined') return `ランキングに${c.count}回参加`;
+  if (c.type === 'any') return '（' + c.of.map(frameCondText).join(' または ') + '）';
   if (c.type === 'all_attrs') return `1回のイベントで6属性すべて、各属性1位の${Math.round(c.ratio * 100)}%以上（正規変換後のスコアで比較）`;
   return '';
 }

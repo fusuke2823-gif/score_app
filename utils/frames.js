@@ -3,12 +3,14 @@
 // price は最初に登録するときの値段（以後は管理画面で変える）。名前・値段・表示は frames テーブル、色と条件はここ
 // conds はショップで買えるようになる条件（すべて満たしたうえで pt で購入）。数えるのは受付が終わった回の公開ランキング
 //   { type: 'rank', rank, count }            全属性の順位が rank 位以内だった回が count 回以上
-//   { type: 'rank', attr, rank, count }      上と同じで、そのときのベストのスコアが attr 属性だった回だけ数える
+//   { type: 'rank', attr, rank, count }      attr 属性のスコアが全体ランキングで rank 位相当以内だった回が count 回以上
+//                                            （ほかの人のベストのスコアと比べる。自分のほかの属性のスコアは比べない）
 //   { type: 'attr_rank', attr, rank, count } その属性の順位が rank 位以内だった回が count 回以上
 //   { type: 'attr_kinds', rank, kinds }      rank 位以内に入ったことのある属性が kinds 種類以上
 //   { type: 'joined', count }                参加した回が count 回以上
 //   { type: 'all_attrs', ratio }             1回のイベントで6属性すべてを投稿し、どの属性でもその属性の1位の ratio 倍以上のpt（スコアをptに換算して比べる）
 //                                            進み具合は、1回のイベントで届いた属性の数の最大
+//   { type: 'any', of: [条件, ...] }          どれか1つを満たせばよい（進み具合はいちばん進んでいるもの。of に1つずつの進み具合）
 const { ptForEventType } = require('../routes/rankUtils');
 
 const FRAMES = [
@@ -16,12 +18,18 @@ const FRAMES = [
   { cls: 'frame-neon-pink', label: 'ネオンピンク', price: 2500, colors: ['#ffd1ec', '#ff4dd2', '#c86bff'], conds: [{ type: 'rank', rank: 10, count: 10 }] },
   { cls: 'frame-rainbow',   label: 'レインボー', price: 5000,   colors: ['#ff6b6b', '#ffd93d', '#6bffb0', '#5ec8ff', '#c27bff'], conds: [{ type: 'rank', rank: 1, count: 10 }] },
   // 属性
-  { cls: 'frame-attr-fire',    label: '火属性', price: 3000, colors: ['#ffd27a', '#ff6a2a', '#d81e2c'], conds: [{ type: 'attr_rank', attr: '火', rank: 1, count: 5 }, { type: 'attr_rank', attr: '火', rank: 3, count: 10 }, { type: 'rank', attr: '火', rank: 5, count: 3 }] },
-  { cls: 'frame-attr-ice',     label: '氷属性', price: 3000, colors: ['#f0fdff', '#8fe0ff', '#3a86ff'], conds: [{ type: 'attr_rank', attr: '氷', rank: 1, count: 5 }, { type: 'attr_rank', attr: '氷', rank: 3, count: 10 }, { type: 'rank', attr: '氷', rank: 5, count: 3 }] },
-  { cls: 'frame-attr-thunder', label: '雷属性', price: 3000, colors: ['#fffde0', '#fff04a', '#ffb800'], conds: [{ type: 'attr_rank', attr: '雷', rank: 1, count: 5 }, { type: 'attr_rank', attr: '雷', rank: 3, count: 10 }, { type: 'rank', attr: '雷', rank: 5, count: 3 }] },
-  { cls: 'frame-attr-light',   label: '光属性', price: 3000, colors: ['#ffffff', '#fff6d0', '#ffe08a', '#fff6d0'], conds: [{ type: 'attr_rank', attr: '光', rank: 1, count: 5 }, { type: 'attr_rank', attr: '光', rank: 3, count: 10 }, { type: 'rank', attr: '光', rank: 5, count: 3 }] },
-  { cls: 'frame-attr-dark',    label: '闇属性', price: 3000, colors: ['#f0c8ff', '#a855ff', '#4a1590'], conds: [{ type: 'attr_rank', attr: '闇', rank: 1, count: 5 }, { type: 'attr_rank', attr: '闇', rank: 3, count: 10 }, { type: 'rank', attr: '闇', rank: 5, count: 3 }] },
-  { cls: 'frame-attr-none',    label: '無属性', price: 3000, colors: ['#ffffff', '#b8bccb', '#6b7086'], conds: [{ type: 'attr_rank', attr: '無', rank: 1, count: 5 }, { type: 'attr_rank', attr: '無', rank: 3, count: 10 }] },
+  { cls: 'frame-attr-fire',    label: '火属性', price: 3000, colors: ['#ffd27a', '#ff6a2a', '#d81e2c'], conds: [{ type: 'attr_rank', attr: '火', rank: 3, count: 10 }, { type: 'attr_rank', attr: '火', rank: 1, count: 1 },
+      { type: 'any', of: [{ type: 'attr_rank', attr: '火', rank: 1, count: 5 }, { type: 'rank', attr: '火', rank: 3, count: 5 }] }] },
+  { cls: 'frame-attr-ice',     label: '氷属性', price: 3000, colors: ['#f0fdff', '#8fe0ff', '#3a86ff'], conds: [{ type: 'attr_rank', attr: '氷', rank: 3, count: 10 }, { type: 'attr_rank', attr: '氷', rank: 1, count: 1 },
+      { type: 'any', of: [{ type: 'attr_rank', attr: '氷', rank: 1, count: 5 }, { type: 'rank', attr: '氷', rank: 3, count: 5 }] }] },
+  { cls: 'frame-attr-thunder', label: '雷属性', price: 3000, colors: ['#fffde0', '#fff04a', '#ffb800'], conds: [{ type: 'attr_rank', attr: '雷', rank: 3, count: 10 }, { type: 'attr_rank', attr: '雷', rank: 1, count: 1 },
+      { type: 'any', of: [{ type: 'attr_rank', attr: '雷', rank: 1, count: 5 }, { type: 'rank', attr: '雷', rank: 3, count: 5 }] }] },
+  { cls: 'frame-attr-light',   label: '光属性', price: 3000, colors: ['#ffffff', '#fff6d0', '#ffe08a', '#fff6d0'], conds: [{ type: 'attr_rank', attr: '光', rank: 3, count: 10 }, { type: 'attr_rank', attr: '光', rank: 1, count: 1 },
+      { type: 'any', of: [{ type: 'attr_rank', attr: '光', rank: 1, count: 5 }, { type: 'rank', attr: '光', rank: 3, count: 5 }] }] },
+  { cls: 'frame-attr-dark',    label: '闇属性', price: 3000, colors: ['#f0c8ff', '#a855ff', '#4a1590'], conds: [{ type: 'attr_rank', attr: '闇', rank: 3, count: 10 }, { type: 'attr_rank', attr: '闇', rank: 1, count: 1 },
+      { type: 'any', of: [{ type: 'attr_rank', attr: '闇', rank: 1, count: 5 }, { type: 'rank', attr: '闇', rank: 3, count: 5 }] }] },
+  { cls: 'frame-attr-none',    label: '無属性', price: 3000, colors: ['#ffffff', '#b8bccb', '#6b7086'], conds: [{ type: 'attr_rank', attr: '無', rank: 3, count: 10 }, { type: 'attr_rank', attr: '無', rank: 1, count: 1 },
+      { type: 'any', of: [{ type: 'attr_rank', attr: '無', rank: 1, count: 5 }, { type: 'rank', attr: '無', rank: 3, count: 5 }] }] },
   // シャッフル（複数の色をまたぐもの）
   { cls: 'frame-shuffle-soda',   label: 'シャッフル・ソーダ', price: 1500,   colors: ['#5ee7f0', '#a6c8ff', '#ff9ad5'], conds: [{ type: 'all_attrs', ratio: 0.8 }] },
   { cls: 'frame-shuffle-sunset', label: 'シャッフル・サンセット', price: 3000, colors: ['#ffd36e', '#ff7aa2', '#8a6bff'], conds: [{ type: 'joined', count: 40 }] },
@@ -44,7 +52,7 @@ async function seedFrames(db) {
 }
 
 // 条件の判定に使う、ユーザーの成績（受付が終わった回・公開ランキング）
-//   overall：回ごとの全属性の順位と、そのときのベストのスコアの属性　attrRanks：回・属性ごとの順位
+//   overall：回ごとの全属性の順位　overallEquiv：属性ごとのスコアの全体ランキングでの相当順位　attrRanks：回・属性ごとの順位
 async function getFrameStats(db, userId) {
   const { rows } = await db.query(
     `WITH done AS (
@@ -61,6 +69,12 @@ async function getFrameStats(db, userId) {
      overall AS (
        SELECT event_id, user_id, attribute, RANK() OVER (PARTITION BY event_id ORDER BY approved_score DESC) AS rank FROM best
      ),
+     -- 属性ごとのスコアが全体ランキングで何位相当か（自分以外のベストのスコアより下の人数＋1）
+     equiv AS (
+       SELECT a.event_id, a.attribute,
+         1 + (SELECT COUNT(*) FROM best b WHERE b.event_id = a.event_id AND b.user_id <> a.user_id AND b.approved_score > a.approved_score) AS rank
+       FROM sc a WHERE a.user_id = $1
+     ),
      by_attr AS (
        SELECT event_id, user_id, attribute, approved_score,
          RANK() OVER (PARTITION BY event_id, attribute ORDER BY approved_score DESC) AS rank,
@@ -69,6 +83,8 @@ async function getFrameStats(db, userId) {
      )
      SELECT 'overall' AS kind, event_id, attribute, rank::int, NULL::float AS score, NULL::float AS top, NULL AS event_type, NULL::float AS mult
      FROM overall WHERE user_id = $1
+     UNION ALL
+     SELECT 'equiv', event_id, attribute, rank::int, NULL, NULL, NULL, NULL FROM equiv
      UNION ALL
      SELECT 'attr', a.event_id, a.attribute, a.rank::int, a.approved_score::float, a.top::float, e.event_type, COALESCE(e.score_multiplier, 1.0)::float
      FROM by_attr a JOIN events e ON e.id = a.event_id WHERE a.user_id = $1`,
@@ -81,16 +97,22 @@ async function getFrameStats(db, userId) {
     const topPt = pt(r, r.top);
     return { event: r.event_id, attr: r.attribute, rank: r.rank, ratio: topPt > 0 ? pt(r, r.score) / topPt : 0 };
   });
-  return { overall: pick('overall'), attrRanks };
+  return { overall: pick('overall'), overallEquiv: pick('equiv'), attrRanks };
 }
 
 // 条件1つの進み具合 { now, need, met }
 function oneProgress(c, stats) {
   let now = 0, need = 0;
-  if (c.type === 'rank') { now = stats.overall.filter(r => r.rank <= c.rank && (!c.attr || r.attr === c.attr)).length; need = c.count; }
+  if (c.type === 'rank' && c.attr) { now = stats.overallEquiv.filter(r => r.attr === c.attr && r.rank <= c.rank).length; need = c.count; }
+  else if (c.type === 'rank') { now = stats.overall.filter(r => r.rank <= c.rank).length; need = c.count; }
   else if (c.type === 'attr_rank') { now = stats.attrRanks.filter(r => r.attr === c.attr && r.rank <= c.rank).length; need = c.count; }
   else if (c.type === 'attr_kinds') { now = new Set(stats.attrRanks.filter(r => r.rank <= c.rank).map(r => r.attr)).size; need = c.kinds; }
   else if (c.type === 'joined') { now = stats.overall.length; need = c.count; }
+  else if (c.type === 'any') {
+    const of = c.of.map(x => oneProgress(x, stats));
+    const best = of.find(p => p.met) || of.reduce((a, b) => (b.now / b.need > a.now / a.need ? b : a));
+    return { ...best, of };
+  }
   else if (c.type === 'all_attrs') {
     const byEvent = new Map();
     for (const r of stats.attrRanks) if (r.ratio >= c.ratio) byEvent.set(r.event, (byEvent.get(r.event) || 0) + 1);
