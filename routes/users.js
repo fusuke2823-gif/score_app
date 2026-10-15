@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { IN_SEASON, liveSeasonKey, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
+const { IN_SEASON, rateAbove, liveSeasonKey, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
 const pool = require('../db/index');
 const { optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
@@ -29,7 +29,7 @@ async function pastSeasonRanking(key, scopeFilter, isAdmin) {
      LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
      LEFT JOIN frames f ON u.equipped_frame_id = f.id
      WHERE st.season_key = $1 AND st.events > 0 ${scopeFilter}
-     ORDER BY st.level DESC, u.id`,
+     ORDER BY st.level DESC, st.total_pt DESC, u.id`,
     [key]
   );
   const shown = isAdmin ? ['S', 'X', 'Ex', 'Legend'] : ['X', 'Ex', 'Legend'];
@@ -95,10 +95,10 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
     const result = await pool.query(
       `SELECT u.id, u.username, u.comp_rank, u.x_rate, u.s_rate,
               CASE WHEN u.comp_rank = 'Ex' THEN
-                (SELECT COUNT(*)+1 FROM users u2 WHERE u2.comp_rank IN ('Ex','Legend') AND u2.x_rate > u.x_rate)
+                (SELECT COUNT(*)+1 FROM users u2 WHERE u2.comp_rank IN ('Ex','Legend') AND ${rateAbove('u2', 'u')})
               ELSE NULL END AS ex_rank,
               CASE WHEN u.x_rate >= 2000 THEN
-                (SELECT COUNT(*)+1 FROM users u2 WHERE u2.x_rate >= 2000 AND u2.x_rate > u.x_rate)
+                (SELECT COUNT(*)+1 FROM users u2 WHERE u2.x_rate >= 2000 AND ${rateAbove('u2', 'u')})
               ELSE NULL END AS legend_rank,
               gi.image_url AS equipped_icon_url,
               gi.rarity AS equipped_icon_rarity,
@@ -108,7 +108,7 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
        LEFT JOIN frames f ON u.equipped_frame_id = f.id
        WHERE u.comp_rank IN ${ranksFilter} ${scopeFilter}
          AND EXISTS (SELECT 1 FROM season_states st WHERE st.user_id = u.id AND st.season_key = $1 AND st.events > 0)
-       ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST`,
+       ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST, u.season_total DESC NULLS LAST, u.id`,
       [live]
     );
     res.json(result.rows.map(r => ({ ...r, equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));
@@ -205,10 +205,10 @@ router.get('/:id', optionalAuth, async (req, res) => {
               u.is_internal,
               u.comp_rank, u.rank_points, u.s_rate, u.x_rate, u.twitter_username, u.youtube_channel,
               CASE WHEN u.comp_rank = 'Ex' THEN
-                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.comp_rank IN ('Ex','Legend') AND u2.x_rate > u.x_rate)
+                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.comp_rank IN ('Ex','Legend') AND ${rateAbove('u2', 'u')})
               ELSE NULL END AS ex_rank,
               CASE WHEN u.x_rate >= 2000 THEN
-                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.x_rate >= 2000 AND u2.x_rate > u.x_rate)
+                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.x_rate >= 2000 AND ${rateAbove('u2', 'u')})
               ELSE NULL END AS legend_rank,
               gi.image_url AS equipped_icon_url,
               gi.rarity AS equipped_icon_rarity

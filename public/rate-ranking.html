@@ -11,12 +11,12 @@
 <link rel="stylesheet" href="/css/style.css">
 <style>
 /* ===== シーズンの見出し ===== */
-.rr-head { --tc:#ff6b80; position:relative; overflow:hidden; isolation:isolate; padding:16px 18px; margin-bottom:12px; border-radius:14px;
+.rr-head { --tc:#ffd24a; position:relative; overflow:hidden; isolation:isolate; padding:16px 18px; margin-bottom:12px; border-radius:14px;
   background:
     radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--tc) 24%, transparent), transparent 55%),
     linear-gradient(110deg, rgba(26,23,52,0.86), rgba(14,12,32,0.82));
   border:1px solid rgba(255,255,255,0.1); box-shadow:0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); }
-.rr-head.test { --tc:#ffd24a; } .rr-head.done { --tc:#8f8fa3; }
+.rr-head.done { --tc:#8f8fa3; }
 .rr-head::before { content:''; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, var(--tc), transparent); opacity:0.7; }
 .rr-head-bg { position:absolute; right:10px; top:8px; z-index:-1; pointer-events:none; font-family:"Orbitron",sans-serif; font-weight:900; font-size:2.6rem; line-height:1;
   color:transparent; -webkit-text-stroke:1px color-mix(in srgb, var(--tc) 35%, transparent); opacity:0.55; }
@@ -170,7 +170,7 @@ function renderHead() {
     ? `<span class="rr-pill live">${t('event.days_left', left)}</span>`
     : `<span class="rr-pill">${t('rate.ended')}</span>`;
   el.innerHTML = `
-    <div class="rr-head ${se.test ? 'test' : ''} ${se.current ? '' : 'done'}">
+    <div class="rr-head ${se.current ? '' : 'done'}">
       <span class="rr-head-bg">SEASON</span>
       <div class="rr-eyebrow">RATE SEASON</div>
       <div class="rr-name">${escHtml(se.name)}</div>

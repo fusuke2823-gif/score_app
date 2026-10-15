@@ -55,6 +55,13 @@ const currentSeason = (now = new Date()) => seasonsUntil(now).filter(s => s.end 
 // 回がシーズンに入るか（$1 = start, $2 = end）。受付開始日がない古い回は受付終了日で
 const IN_SEASON = 'COALESCE(submission_start, submission_end) >= $1 AND COALESCE(submission_start, submission_end) < $2';
 
+// 順位の並び：レートが高い順、同じならシーズン内の合計が多い順
+const byRate = (a, b) => b.L - a.L || b.total - a.total;
+// SQL 用：o が m より上の順位か（x_rate → season_total → id の順に比べる。o・m は users の別名）
+const rateAbove = (o, m, oId = `${o}.id`, mId = `${m}.id`) =>
+  `(${o}.x_rate > ${m}.x_rate OR (${o}.x_rate = ${m}.x_rate AND (COALESCE(${o}.season_total, 0) > COALESCE(${m}.season_total, 0)` +
+  ` OR (COALESCE(${o}.season_total, 0) = COALESCE(${m}.season_total, 0) AND ${oId} < ${mId}))))`;
+
 const tierOf = L => LEVELS.filter(([, v]) => L >= v).pop()[0];
 
 // L からランクと表示用のレートへ。C〜S は各ランクの中で 0〜1000（S は今までどおり L−500）、X 以上は Xレート
@@ -109,7 +116,7 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
 
   const st = new Map(); // user_id → { L, floor, n }
   const get = id => {
-    if (!st.has(id)) { const L = LEVEL_OF[starts.get(id) || 'C'] ?? LEVEL_OF.B; st.set(id, { L, floor: LEVEL_OF[tierOf(L)], n: 0 }); }
+    if (!st.has(id)) { const L = LEVEL_OF[starts.get(id) || 'C'] ?? LEVEL_OF.B; st.set(id, { L, floor: LEVEL_OF[tierOf(L)], n: 0, total: 0 }); }
     return st.get(id);
   };
   for (const id of starts.keys()) get(id);
@@ -124,25 +131,27 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
     );
     for (const r of rows) {
       const x = get(r.user_id);
-      x.L = Math.max(x.floor, x.L + step(x.L, ptForEventType(e.event_type, r.score * e.mult), season.params, x.n === 0));
+      const P = ptForEventType(e.event_type, r.score * e.mult);
+      x.L = Math.max(x.floor, x.L + step(x.L, P, season.params, x.n === 0));
       x.n++;
+      x.total += P;
     }
   }
 
   // Legend：Xレート 2000 以上の上位10人
   const legend = new Set([...st.entries()]
     .filter(([, x]) => x.L >= LEVEL_OF.Ex && rateForXPt(x.L) >= LEGEND_MIN_RATE)
-    .sort((a, b) => b[1].L - a[1].L).slice(0, LEGEND_TOP_N).map(([id]) => id));
+    .sort((a, b) => byRate(a[1], b[1]) || a[0] - b[0]).slice(0, LEGEND_TOP_N).map(([id]) => id));
 
   for (const [id, x] of st) {
     const d = display(x.L, legend.has(id));
     await client.query(
-      `INSERT INTO season_states (season_key, user_id, level, events, final_rank, updated_at) VALUES ($1, $2, $3, $4, $5, NOW())
-       ON CONFLICT (season_key, user_id) DO UPDATE SET level = $3, events = $4, final_rank = $5, updated_at = NOW()`,
-      [season.key, id, x.L, x.n, d.rank]
+      `INSERT INTO season_states (season_key, user_id, level, events, final_rank, total_pt, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       ON CONFLICT (season_key, user_id) DO UPDATE SET level = $3, events = $4, final_rank = $5, total_pt = $6, updated_at = NOW()`,
+      [season.key, id, x.L, x.n, d.rank, x.total]
     );
     if (writeUsers) {
-      await client.query('UPDATE users SET comp_rank = $2, s_rate = $3, x_rate = $4 WHERE id = $1', [id, d.rank, d.sRate, d.xRate]);
+      await client.query('UPDATE users SET comp_rank = $2, s_rate = $3, x_rate = $4, season_total = $5 WHERE id = $1', [id, d.rank, d.sRate, d.xRate, x.total]);
     }
   }
   return { events: events.length, users: st.size };
@@ -160,7 +169,7 @@ async function finalizeSeason(client, season) {
   );
   if (pending.rows.length) return false;
   const top = (await client.query(
-    'SELECT user_id FROM season_states WHERE season_key = $1 AND events > 0 ORDER BY level DESC, user_id LIMIT 1', [season.key]
+    'SELECT user_id FROM season_states WHERE season_key = $1 AND events > 0 ORDER BY level DESC, total_pt DESC, user_id LIMIT 1', [season.key]
   )).rows[0];
   await client.query('INSERT INTO seasons_done (season_key, winner_user_id) VALUES ($1, $2)', [season.key, top?.user_id ?? null]);
   // シーズンのフレームは渡さず、1位の人だけがショップで買えるようになる（routes/shop.js）
@@ -197,4 +206,4 @@ async function liveSeasonKey(client, now = new Date()) {
 
 const seasonByKey = key => seasonsUntil(new Date('2100-01-01')).find(s => s.key === key) || null;
 
-module.exports = { IN_SEASON, liveSeasonKey, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
+module.exports = { IN_SEASON, rateAbove, liveSeasonKey, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
