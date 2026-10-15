@@ -71,10 +71,17 @@
 .si-action-row { justify-content: flex-end; }
 .si-cond-label { flex: 1; font-size: 0.7rem; color: var(--text-muted); }
 .si-cond-bar { flex: 1; min-width: 40px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06); overflow: hidden; }
-.si-cond-bar > i { display: block; height: 100%; background: var(--frame-grad, var(--accent)); }
+/* グラデーションはゲージの端から端まで。進んだぶんだけ見せる */
+.si-cond-bar > i { display: block; width: 100%; height: 100%; background: var(--frame-line, var(--accent)); }
 .si-cond-num { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-muted); white-space: nowrap; }
 .si-cond.met .si-cond-num { color: var(--text-primary); }
 .si-cond-bar { max-width: 70px; flex: 0 0 70px; }
+.si-attrs { display: flex; align-items: center; gap: 4px; padding-left: 16px; }
+.si-attrs-label { font-size: 0.66rem; color: var(--text-muted); margin-right: auto; }
+.si-attrs .attr-badge { width: 22px; height: 22px; font-size: 0.68rem; }
+.si-attrs .attr-badge.off { opacity: 0.25; filter: grayscale(1); }
+.si-guide { display: grid; grid-template-columns: auto 1fr; column-gap: 10px; row-gap: 1px; margin-left: 16px; padding: 5px 8px; border-radius: 6px; background: rgba(255,255,255,0.04); font-size: 0.68rem; color: var(--text-secondary); line-height: 1.5; }
+.si-guide-type { color: var(--text-muted); }
 .si-or { display: flex; flex-direction: column; gap: 2px; padding: 4px 0 4px 8px; border-left: 2px solid rgba(255,255,255,0.12); }
 .si-or.met { border-left-color: var(--accent); }
 .si-or-sep { font-size: 0.62rem; font-weight: bold; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; }
@@ -440,7 +447,7 @@ function frameCondText(c) {
   if (c.type === 'attr_rank') return c.rank === 1 ? t('shop.frame_cond_attr1', attr(c.attr), c.count) : t('shop.frame_cond_attr', attr(c.attr), c.rank, c.count);
   if (c.type === 'attr_kinds') return t('shop.frame_cond_kinds', c.kinds, c.rank);
   if (c.type === 'joined') return t('shop.frame_cond_joined', c.count);
-  if (c.type === 'all_attrs') return t('shop.frame_cond_all_attrs', Math.round(c.ratio * 100));
+  if (c.type === 'all_attrs') return t('shop.frame_cond_all_attrs');
   return '';
 }
 
@@ -463,11 +470,19 @@ function renderShopFrames(frames) {
     const condLine = (c, pp) => `
         <div class="si-cond ${pp?.met ? 'met' : ''}">
           <span class="si-cond-text">${pp?.met ? SI_CHECK : '<span class="si-cond-dot"></span>'}${escHtml(frameCondText(c))}</span>
-          ${pp ? `<span class="si-cond-bar"><i style="width:${Math.round(pp.now / pp.need * 100)}%"></i></span><span class="si-cond-num">${pp.now}/${pp.need}</span>` : ''}
+          ${pp ? `<span class="si-cond-bar"><i style="clip-path:inset(0 ${100 - Math.round(pp.now / pp.need * 100)}% 0 0)"></i></span><span class="si-cond-num">${pp.now}/${pp.need}</span>` : ''}
         </div>`;
+    // 6属性の条件：条件の文、いちばん届いた回の属性（届いたものだけ色付き）、スコアの例
+    const allAttrsBlock = (c, pp) => `
+        <div class="si-cond ${pp?.met ? 'met' : ''}">
+          <span class="si-cond-text">${pp?.met ? SI_CHECK : '<span class="si-cond-dot"></span>'}${escHtml(frameCondText(c))}</span>
+        </div>
+        <div class="si-guide">${Object.entries(c.pct).map(([type, r]) => `<span class="si-guide-type">${escHtml(t('etype.' + type))}</span><span>${escHtml(t('shop.frame_cond_all_attrs_row', +(r * 100).toFixed(1)))}</span>`).join('')}</div>
+        ${pp ? `<div class="si-attrs"><span class="si-attrs-label">${t('shop.frame_cond_all_attrs_best')}</span>${ATTRIBUTES.map(a => `<span class="attr-badge small attr-${a} ${pp.attrs?.includes(a) ? '' : 'off'}">${escHtml(t('attr.' + a) || a)}</span>`).join('')}<span class="si-cond-num">${pp.now}/${pp.need}</span></div>` : ''}`;
     // 「または」の条件は1つずつの行にして、間に or を挟む
     const conds = !owned && f.conds?.length ? `<div class="si-conds">${f.conds.map((c, i) => {
       const pp = p?.parts?.[i];
+      if (c.type === 'all_attrs') return allAttrsBlock(c, pp);
       if (c.type !== 'any') return condLine(c, pp);
       return `<div class="si-or ${pp?.met ? 'met' : ''}">${c.of.map((x, j) => condLine(x, pp?.of?.[j])).join(`<div class="si-or-sep"><span>${t('shop.frame_cond_or')}</span></div>`)}</div>`;
     }).join('')}</div>` : '';

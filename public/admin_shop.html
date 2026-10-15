@@ -77,14 +77,14 @@
 .crop-controls { display:flex; align-items:center; gap:10px; margin-top:8px; }
 .crop-controls label { font-size:0.82rem; color:var(--text-muted); white-space:nowrap; }
 /* フレーム管理 */
-.adm-frame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
-@media (max-width: 420px) { .adm-frame-grid { grid-template-columns: 1fr; } }
+.adm-frame-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 10px; }
+.adm-frame { min-width: 0; }
 .adm-frame { padding: 8px 12px 12px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255,255,255,0.02); }
 .adm-frame.hidden-frame .frame-sample { opacity: 0.5; }
 .adm-frame-head { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.9rem; }
 .adm-frame-cond { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
-.adm-frame-ctrl { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
-.adm-frame-ctrl .form-input { width: 96px; padding: 5px 8px; font-variant-numeric: tabular-nums; }
+.adm-frame-ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.adm-frame-ctrl .form-input { width: 72px; padding: 5px 8px; font-variant-numeric: tabular-nums; }
 .adm-frame-unit { font-size: 0.8rem; color: var(--text-muted); }
 </style>
 </head>
@@ -684,7 +684,10 @@ function frameCondText(c) {
   if (c.type === 'attr_kinds') return `${c.kinds}種類の属性で${c.rank}位以内`;
   if (c.type === 'joined') return `ランキングに${c.count}回参加`;
   if (c.type === 'any') return '（' + c.of.map(frameCondText).join(' または ') + '）';
-  if (c.type === 'all_attrs') return `1回のイベントで6属性すべて、各属性1位の${Math.round(c.ratio * 100)}%以上（正規変換後のスコアで比較）`;
+  if (c.type === 'all_attrs') {
+    const names = { score_attack: 'スコアアタック', score_attack_ex: 'スコアアタックEX', seraph: '遭遇戦' };
+    return `1回のイベントで6属性すべてを投稿し、どの属性も属性1位のスコアの${Object.entries(c.pct).map(([k, r]) => `${names[k] || k} ${+(r * 100).toFixed(1)}%`).join('・')}以上の成績を達成する`;
+  }
   return '';
 }
 
@@ -704,7 +707,7 @@ async function loadFrames() {
         <div class="adm-frame-ctrl">
           <input class="form-input" type="number" min="1" step="1" id="frame-cost-${f.id}" value="${f.point_cost}">
           <span class="adm-frame-unit">pt</span>
-          <button class="btn btn-secondary btn-sm" onclick="saveFramePrice(${f.id})">値段を保存</button>
+          <button class="btn btn-secondary btn-sm" onclick="saveFramePrice(${f.id})">保存</button>
           <button class="btn ${f.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm" style="margin-left:auto" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? '非表示にする' : '表示する'}</button>
         </div>
       </div>`).join('')}</div>`;

@@ -8,11 +8,9 @@
 //   { type: 'attr_rank', attr, rank, count } その属性の順位が rank 位以内だった回が count 回以上
 //   { type: 'attr_kinds', rank, kinds }      rank 位以内に入ったことのある属性が kinds 種類以上
 //   { type: 'joined', count }                参加した回が count 回以上
-//   { type: 'all_attrs', ratio }             1回のイベントで6属性すべてを投稿し、どの属性でもその属性の1位の ratio 倍以上のpt（スコアをptに換算して比べる）
-//                                            進み具合は、1回のイベントで届いた属性の数の最大
+//   { type: 'all_attrs', pct: { 種類: 割合 } } 1回のイベントで6属性すべてを投稿し、どの属性もその属性の1位のスコアの「割合」以上
+//                                            割合はイベントの種類（score_attack / score_attack_ex / seraph）ごと。進み具合は1回で届いた属性の数の最大
 //   { type: 'any', of: [条件, ...] }          どれか1つを満たせばよい（進み具合はいちばん進んでいるもの。of に1つずつの進み具合）
-const { ptForEventType } = require('../routes/rankUtils');
-
 const FRAMES = [
   { cls: 'frame-gold',      label: 'ゴールド', price: 3000,     colors: ['#fff3b0', '#ffd24a', '#e8a317'], conds: [{ type: 'rank', rank: 1, count: 3 }] },
   { cls: 'frame-neon-pink', label: 'ネオンピンク', price: 2500, colors: ['#ffd1ec', '#ff4dd2', '#c86bff'], conds: [{ type: 'rank', rank: 10, count: 10 }] },
@@ -31,7 +29,7 @@ const FRAMES = [
   { cls: 'frame-attr-none',    label: '無属性', price: 3000, colors: ['#ffffff', '#b8bccb', '#6b7086'], conds: [{ type: 'attr_rank', attr: '無', rank: 3, count: 10 }, { type: 'attr_rank', attr: '無', rank: 1, count: 1 },
       { type: 'any', of: [{ type: 'attr_rank', attr: '無', rank: 1, count: 5 }, { type: 'rank', attr: '無', rank: 3, count: 5 }] }] },
   // シャッフル（複数の色をまたぐもの）
-  { cls: 'frame-shuffle-soda',   label: 'シャッフル・ソーダ', price: 1500,   colors: ['#5ee7f0', '#a6c8ff', '#ff9ad5'], conds: [{ type: 'all_attrs', ratio: 0.8 }] },
+  { cls: 'frame-shuffle-soda',   label: 'シャッフル・ソーダ', price: 1500,   colors: ['#5ee7f0', '#a6c8ff', '#ff9ad5'], conds: [{ type: 'all_attrs', pct: { score_attack: 0.95, score_attack_ex: 0.9, seraph: 0.99 } }] },
   { cls: 'frame-shuffle-sunset', label: 'シャッフル・サンセット', price: 3000, colors: ['#ffd36e', '#ff7aa2', '#8a6bff'], conds: [{ type: 'joined', count: 40 }] },
   { cls: 'frame-shuffle-aurora', label: 'シャッフル・オーロラ', price: 2500, colors: ['#7affd6', '#6fa8ff', '#e07aff'], conds: [{ type: 'rank', rank: 5, count: 5 }] },
   { cls: 'frame-shuffle-citrus', label: 'シャッフル・シトラス', price: 2000, colors: ['#fff27a', '#9dff8a', '#4fe3e0'], conds: [{ type: 'attr_kinds', rank: 10, kinds: 3 }] },
@@ -81,22 +79,20 @@ async function getFrameStats(db, userId) {
          MAX(approved_score) OVER (PARTITION BY event_id, attribute) AS top
        FROM sc
      )
-     SELECT 'overall' AS kind, event_id, attribute, rank::int, NULL::float AS score, NULL::float AS top, NULL AS event_type, NULL::float AS mult
+     SELECT 'overall' AS kind, event_id, attribute, rank::int, NULL::float AS score, NULL::float AS top, NULL AS event_type
      FROM overall WHERE user_id = $1
      UNION ALL
-     SELECT 'equiv', event_id, attribute, rank::int, NULL, NULL, NULL, NULL FROM equiv
+     SELECT 'equiv', event_id, attribute, rank::int, NULL, NULL, NULL FROM equiv
      UNION ALL
-     SELECT 'attr', a.event_id, a.attribute, a.rank::int, a.approved_score::float, a.top::float, e.event_type, COALESCE(e.score_multiplier, 1.0)::float
+     SELECT 'attr', a.event_id, a.attribute, a.rank::int, a.approved_score::float, a.top::float, e.event_type
      FROM by_attr a JOIN events e ON e.id = a.event_id WHERE a.user_id = $1`,
     [userId]
   );
   const pick = kind => rows.filter(r => r.kind === kind).map(r => ({ event: r.event_id, attr: r.attribute, rank: r.rank }));
-  // 属性ごとの、その属性の1位に対する pt の割合
-  const pt = (r, score) => ptForEventType(r.event_type, score * r.mult);
-  const attrRanks = rows.filter(r => r.kind === 'attr').map(r => {
-    const topPt = pt(r, r.top);
-    return { event: r.event_id, attr: r.attribute, rank: r.rank, ratio: topPt > 0 ? pt(r, r.score) / topPt : 0 };
-  });
+  // 属性ごとの、その属性の1位に対するスコアの割合
+  const attrRanks = rows.filter(r => r.kind === 'attr').map(r => ({
+    event: r.event_id, type: r.event_type, attr: r.attribute, rank: r.rank, ratio: r.top > 0 ? r.score / r.top : 0,
+  }));
   return { overall: pick('overall'), overallEquiv: pick('equiv'), attrRanks };
 }
 
@@ -114,9 +110,11 @@ function oneProgress(c, stats) {
     return { ...best, of };
   }
   else if (c.type === 'all_attrs') {
+    // イベントごとに届いた属性を集め、いちばん多く届いた回の属性を返す
     const byEvent = new Map();
-    for (const r of stats.attrRanks) if (r.ratio >= c.ratio) byEvent.set(r.event, (byEvent.get(r.event) || 0) + 1);
-    now = Math.max(0, ...byEvent.values()); need = 6;
+    for (const r of stats.attrRanks) if (c.pct[r.type] != null && r.ratio >= c.pct[r.type]) byEvent.set(r.event, [...(byEvent.get(r.event) || []), r.attr]);
+    const attrs = [...byEvent.values()].reduce((a, b) => (b.length > a.length ? b : a), []);
+    return { now: attrs.length, need: 6, met: attrs.length >= 6, attrs };
   }
   return { now: Math.min(now, need), need, met: now >= need };
 }
