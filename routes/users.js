@@ -211,9 +211,11 @@ router.get('/:id', optionalAuth, async (req, res) => {
                 (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.x_rate >= 2000 AND ${rateAbove('u2', 'u')})
               ELSE NULL END AS legend_rank,
               gi.image_url AS equipped_icon_url,
-              gi.rarity AS equipped_icon_rarity
+              gi.rarity AS equipped_icon_rarity,
+              f.css_class AS equipped_frame
        FROM users u
        LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
+       LEFT JOIN frames f ON u.equipped_frame_id = f.id
        WHERE u.id = $1`,
       [req.params.id]
     );

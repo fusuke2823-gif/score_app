@@ -157,6 +157,68 @@
 .rank-S  { color:#e6a028; }
 .rank-X  { color:#f0c040; }
 .rank-Ex { color:#a855f7; }
+/* ===== プロフィールカード：カードを横にした比率（1.586:1）。中身は幅に合わせて cqw で拡大縮小 ===== */
+.pf-wrap { width:min(100%, 520px); margin:4px 0 14px; padding:12px 6px; }
+.pf-card { --pc:#ff6b80; position:relative; aspect-ratio:1.586; container-type:inline-size; border-radius:16px; isolation:isolate; }
+.pf-face { position:absolute; inset:0; border-radius:inherit; overflow:hidden; z-index:-1;
+  background:
+    radial-gradient(70% 90% at 100% 0%, color-mix(in srgb, var(--pc) 34%, transparent), transparent 62%),
+    radial-gradient(60% 80% at 0% 100%, color-mix(in srgb, var(--pc) 16%, transparent), transparent 60%),
+    linear-gradient(135deg, #221d46, #12102a 55%, #0c0a1f);
+  box-shadow:0 14px 34px rgba(0,0,0,0.45); }
+/* 細かい格子と、斜めに走る光沢 */
+.pf-face::before { content:''; position:absolute; inset:0;
+  background-image:linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size:4.5cqw 4.5cqw; mask-image:linear-gradient(115deg, transparent 20%, #000 60%); -webkit-mask-image:linear-gradient(115deg, transparent 20%, #000 60%); }
+.pf-face::after { content:''; position:absolute; inset:-40% -10%;
+  background:linear-gradient(115deg, transparent 38%, rgba(255,255,255,0.09) 46%, color-mix(in srgb, var(--pc) 18%, transparent) 50%, rgba(255,255,255,0.05) 54%, transparent 62%); }
+/* ランクのバッジを大きく薄く */
+.pf-mark { position:absolute; right:-6cqw; top:50%; transform:translateY(-50%); height:78%; opacity:0.07; filter:grayscale(0.3); pointer-events:none; }
+/* 枠：フレームを付けていればフレームのグラデーション、なければランクの色 */
+.pf-card::before { content:''; position:absolute; inset:0; border-radius:inherit; padding:2px; pointer-events:none;
+  background:var(--frame-grad, linear-gradient(135deg, color-mix(in srgb, var(--pc) 85%, #fff), color-mix(in srgb, var(--pc) 35%, transparent) 40%, color-mix(in srgb, var(--pc) 35%, transparent) 60%, var(--pc)));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude;
+  filter:drop-shadow(0 0 4px color-mix(in srgb, var(--pc) 40%, transparent)); }
+.pf-card::after { content:''; position:absolute; inset:7px; border-radius:10px; border:1px solid rgba(255,255,255,0.12); pointer-events:none; }
+.pf-card .fs-orn { position:absolute; left:-6px; right:-6px; top:-12px; bottom:-12px; pointer-events:none; z-index:3;
+  background:var(--frame-ornaments); background-repeat:no-repeat;
+  background-size:40px 40px, 40px 40px, 40px 40px, 40px 40px, 128px 32px, 118px 14px, 26px 44px, 26px 44px;
+  background-position:left 0 top 7px, right 0 top 7px, left 0 bottom 7px, right 0 bottom 7px, center top, center bottom 14px, left -5px center, right -5px center;
+  filter:drop-shadow(0 0 2px rgba(0,0,0,0.6)); }
+.pf-in { position:absolute; inset:0; padding:6cqw 7cqw 5.4cqw; display:grid; grid-template-rows:auto 1fr auto; gap:2cqw; }
+.pf-top { display:flex; justify-content:space-between; align-items:center; font-family:"Orbitron",sans-serif; font-weight:700; letter-spacing:0.22em; font-size:2.1cqw; }
+.pf-top .brand { color:var(--pc); }
+.pf-top .no { color:rgba(255,255,255,0.45); letter-spacing:0.14em; }
+.pf-mid { display:flex; align-items:center; gap:4.6cqw; min-width:0; }
+.pf-card .user-avatar { width:21cqw; height:21cqw; font-size:8cqw; border-radius:20%; border:0.5cqw solid var(--pc); color:var(--pc); background:color-mix(in srgb, var(--pc) 14%, transparent);
+  box-shadow:0 0 0 1.2cqw color-mix(in srgb, var(--pc) 12%, transparent), 0 6px 18px rgba(0,0,0,0.4); }
+.pf-card .user-info { min-width:0; }
+.pf-card .user-info h2 { font-size:6.4cqw; font-weight:900; line-height:1.15; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-shadow:0 2px 10px rgba(0,0,0,0.5); }
+.pf-title { margin-top:1.2cqw; font-size:3cqw; font-weight:bold; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pf-title .title-tooltip-wrap { white-space:nowrap; }
+.pf-card .user-oshi { margin-top:1cqw; font-size:2.7cqw; color:rgba(232,232,240,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.pf-card .user-oshi i { font-style:normal; opacity:0.7; margin-right:0.8cqw; }
+.pf-bot { display:flex; align-items:flex-end; justify-content:space-between; gap:3cqw; }
+.pf-meta { display:flex; flex-direction:column; gap:1.4cqw; min-width:0; }
+.pf-k { font-family:"Orbitron",sans-serif; font-weight:700; font-size:1.7cqw; letter-spacing:0.2em; color:rgba(255,255,255,0.45); }
+.pf-since { font-size:2.6cqw; color:rgba(232,232,240,0.8); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.pf-sns { display:flex; gap:1.6cqw; }
+.pf-sns a { width:6.4cqw; height:6.4cqw; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); }
+.pf-sns a svg { width:3cqw; height:3cqw; }
+.pf-sns a.x { color:#fff; } .pf-sns a.yt { color:#ff4e4e; }
+.pf-rank { display:flex; align-items:center; gap:2.4cqw; padding:1.8cqw 2.8cqw; border-radius:2.4cqw; background:rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--pc) 28%, transparent); }
+.pf-rank-badge img { display:block; height:10cqw; width:auto; object-fit:contain; filter:drop-shadow(0 2px 6px color-mix(in srgb, var(--pc) 50%, transparent)); }
+.pf-rank-name { font-weight:900; font-size:3.2cqw; color:var(--pc); white-space:nowrap; line-height:1.2; }
+.pf-rank-name small { font-size:2.4cqw; margin-left:0.8cqw; }
+.pf-rate { text-align:right; padding-left:2.4cqw; border-left:1px solid rgba(255,255,255,0.1); }
+.pf-rate-num { font-family:"Orbitron",sans-serif; font-weight:900; font-size:6.4cqw; line-height:1; color:#fff; text-shadow:0 0 14px color-mix(in srgb, var(--pc) 55%, transparent); }
+.pf-bar { width:22cqw; }
+.pf-bar-head { display:flex; justify-content:space-between; font-size:2cqw; color:rgba(255,255,255,0.5); margin-bottom:1cqw; }
+.pf-bar-head b { color:var(--pc); }
+.pf-bar-track { height:1.2cqw; border-radius:1cqw; background:rgba(255,255,255,0.1); overflow:hidden; }
+.pf-bar-fill { height:100%; border-radius:1cqw; background:linear-gradient(90deg, color-mix(in srgb, var(--pc) 50%, transparent), var(--pc)); }
+.pf-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:24px; }
+@media (max-width:640px) { .pf-wrap { width:100%; } .pf-actions .btn { flex:1 1 auto; justify-content:center; } }
 #img-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:1000; align-items:center; justify-content:center; flex-direction:column; padding:48px 16px 24px; }
 #img-modal.open { display:flex; }
 #img-modal img { max-width:90vw; max-height:75vh; border-radius:8px; }
@@ -203,44 +265,73 @@ applyI18n();
 const userId = getParam('id');
 if (!userId) location.href = '/index.html';
 
-function compRankBadge(rank, sRate, xRate, exRank, legendRank) {
-  const isLegend = rank === 'Legend';
-  const r = (rank || 'C').toLowerCase();
-  const img = isLegend
-    ? `<img src="/img/legend${legendRank}.png" style="height:32px;width:auto;object-fit:contain;vertical-align:middle" alt="LEGEND ${legendRank}">`
-    : `<img src="/img/rank_${r}.png" style="width:32px;height:32px;object-fit:contain;vertical-align:middle" alt="${rank || 'C'}">`;
-  const rate = rank === 'S' ? sRate : xRate;
-  const rateStr = rate != null ? `<span style="font-size:0.9rem;font-weight:bold;margin-left:4px">${Math.floor(rate)}</span>` : '';
-  if (!rank || rank === 'C' || rank === 'B' || rank === 'A') return `<span class="comp-rank-badge rank-${rank || 'C'}">${img}</span>`;
-  if (rank === 'Ex') {
-    const exStr = exRank != null ? `<span style="font-size:0.9rem;font-weight:bold;margin-left:2px">${exRank}位</span>` : '';
-    return `<span class="comp-rank-badge rank-Ex">${img}${exStr}${rateStr}</span>`;
+// ===== プロフィールカード =====
+const RANK_COLOR = { C: '#a0a0b0', B: '#5cb85c', A: '#5b9bd5', S: '#e6a028', X: '#ff5a6e', Ex: '#b06bff', Legend: '#ffd24a' };
+const X_ICON = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+const YT_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`;
+const chipLabel = key => t(key).replace(/[:：]\s*$/, '');
+
+// ランクの欄：バッジ・ランク名と、X 以上はレート、C〜S は次のランクまでのバー
+function rankPanel(d) {
+  const rank = d.comp_rank || 'C';
+  const img = rank === 'Legend'
+    ? `<img src="/img/legend${d.legend_rank}.png" alt="LEGEND ${d.legend_rank}">`
+    : `<img src="/img/rank_${rank.toLowerCase()}.png" alt="${rank}">`;
+  const name = rank === 'Legend' ? `LEGEND<small>${d.legend_rank}位</small>`
+    : rank === 'Ex' && d.ex_rank != null ? `Ex<small>${d.ex_rank}位</small>` : rank;
+  const NEXT = { C: 'B', B: 'A', A: 'S', S: 'X' };
+  let right = '';
+  if (NEXT[rank]) {
+    const cur = Math.floor(d.s_rate || 0), pct = Math.min(100, Math.max(0, cur / 10));
+    right = `<div class="pf-bar"><div class="pf-bar-head"><span>${rank}</span><b>${cur}</b><span>${NEXT[rank]}</span></div>
+      <div class="pf-bar-track"><div class="pf-bar-fill" style="width:${pct}%"></div></div></div>`;
+  } else if (d.x_rate != null) {
+    right = `<div class="pf-rate"><div class="pf-k">RATE</div><div class="pf-rate-num">${Math.floor(d.x_rate)}</div></div>`;
   }
-  return `<span class="comp-rank-badge rank-${rank}">${img}${rateStr}</span>`;
+  return `<div class="pf-rank"><div class="pf-rank-badge">${img}</div><div><div class="pf-k">RANK</div><div class="pf-rank-name">${name}</div></div>${right}</div>`;
 }
 
-function rankProgressBar(rank, rankPoints, sRate) {
-  // シーズン制：C〜S はどれもランクの中で 0〜1000 のレート（s_rate）
-  const RANKS = {
-    C: { min: 0, max: 1000, next: 'B' },
-    B: { min: 0, max: 1000, next: 'A' },
-    A: { min: 0, max: 1000, next: 'S' },
-    S: { min: 0, max: 1000, next: 'X' },
-  };
-  const cfg = RANKS[rank];
-  if (!cfg) return '';
-  const val  = sRate || 0;
-  const pct  = Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100));
-  const colors = { C:'#aaa', B:'#5cb85c', A:'#5b9bd5', S:'#e6a028' };
-  const col = colors[rank];
-  const cur  = Math.floor(sRate || 0);
+// カードの下に出すボタン（編集・動画掲示板）
+function profileActions(data, isMe) {
+  return `<div class="pf-actions">
+    ${isMe ? `<button class="btn btn-secondary btn-sm" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
+    <a class="btn btn-secondary btn-sm" href="/videos.html?name=${encodeURIComponent(data.username)}" style="text-decoration:none">▶ ${escHtml(data.username)}${t('user.video_board') || 'の動画掲示板'}</a>
+  </div>`;
+}
+
+function profileCard(data) {
+  const rank = data.comp_rank || 'C';
+  const avatar = data.equipped_icon_url
+    ? `<img src="${escHtml(thumbUrl(data.equipped_icon_url))}" alt="${escHtml(data.username)}" class="${data.equipped_icon_rarity ? `icon-rarity-${escHtml(data.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">`
+    : escHtml(data.username.charAt(0));
+  const mark = rank === 'Legend' ? `/img/legend${data.legend_rank}.png` : `/img/rank_${rank.toLowerCase()}.png`;
+  const fc = data.equipped_frame ? escHtml(data.equipped_frame) : '';
   return `
-    <div style="margin-top:10px;max-width:280px">
-      <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">
-        <span>${rank}</span><span style="color:${col}">${cur} / ${cfg.max}</span><span>${cfg.next}</span>
-      </div>
-      <div style="height:6px;border-radius:3px;background:var(--bg-card2);overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width 0.8s ease"></div>
+    <div class="pf-wrap">
+      <div class="pf-card ${fc}" style="--pc:${RANK_COLOR[rank] || RANK_COLOR.C}">
+        <div class="pf-face"><img class="pf-mark" src="${mark}" alt=""></div>
+        ${fc ? '<i class="fs-orn"></i>' : ''}
+        <div class="pf-in">
+          <div class="pf-top"><span class="brand">HBR RANK BOARD</span><span class="no">No.${String(data.id).padStart(6, '0')}</span></div>
+          <div class="pf-mid">
+            <div class="user-avatar" style="${data.equipped_icon_url ? 'border:none' : ''}">${avatar}</div>
+            <div class="user-info">
+              <h2>${escHtml(data.username)}</h2>
+              ${data.equipped_title ? `<div class="pf-title"><span class="title-tooltip-wrap">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>` : ''}
+              ${data.oshi_character ? `<div class="user-oshi"><i>${chipLabel('user.oshi')}</i><b>${escHtml(data.oshi_character)}</b></div>` : ''}
+            </div>
+          </div>
+          <div class="pf-bot">
+            <div class="pf-meta">
+              <div class="pf-sns">
+                ${data.twitter_username ? `<a class="x" href="https://x.com/${escHtml(data.twitter_username)}" target="_blank" rel="noopener noreferrer" title="@${escHtml(data.twitter_username)}">${X_ICON}</a>` : ''}
+                ${data.youtube_channel ? `<a class="yt" href="https://youtube.com/@${escHtml(data.youtube_channel)}" target="_blank" rel="noopener noreferrer" title="@${escHtml(data.youtube_channel)}">${YT_ICON}</a>` : ''}
+              </div>
+              <div><div class="pf-k">SINCE</div><div class="pf-since">${formatDate(data.created_at)}</div></div>
+            </div>
+            ${rankPanel(data)}
+          </div>
+        </div>
       </div>
     </div>`;
 }
@@ -280,29 +371,8 @@ async function load() {
     }
 
     document.getElementById('content').innerHTML = `
-      <div class="user-header">
-        <div class="user-avatar" style="${data.equipped_icon_url ? 'border:none' : ''}">${data.equipped_icon_url ? `<img src="${escHtml(thumbUrl(data.equipped_icon_url))}" alt="${escHtml(data.username)}" class="${data.equipped_icon_rarity ? `icon-rarity-${escHtml(data.equipped_icon_rarity)}` : ''}" style="width:100%;height:100%;object-fit:cover;border-radius:20%">` : escHtml(data.username.charAt(0))}</div>
-        <div class="user-info">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <h2 style="margin:0">${escHtml(data.username)}</h2>
-            ${compRankBadge(data.comp_rank, data.s_rate, data.x_rate, data.ex_rank, data.legend_rank)}
-          </div>
-          ${data.twitter_username ? `<div style="font-size:0.85rem;margin-top:2px"><a href="https://x.com/${escHtml(data.twitter_username)}" target="_blank" rel="noopener noreferrer" style="color:#1d9bf0;text-decoration:underline;display:inline-flex;align-items:center;gap:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@${escHtml(data.twitter_username)}</a></div>` : ''}
-          ${data.youtube_channel ? `<div style="font-size:0.85rem;margin-top:2px"><a href="https://youtube.com/@${escHtml(data.youtube_channel)}" target="_blank" rel="noopener noreferrer" style="color:#ff4444;text-decoration:underline;display:inline-flex;align-items:center;gap:4px"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>@${escHtml(data.youtube_channel)}</a></div>` : ''}
-          ${rankProgressBar(data.comp_rank, data.rank_points, data.s_rate)}
-          ${data.oshi_character
-            ? `<div class="user-oshi">${t('user.oshi')}${escHtml(data.oshi_character)}</div>`
-            : ''}
-          ${data.equipped_title
-            ? `<div style="font-size:0.85rem;margin-top:4px"><span style="color:rgba(232,232,240,0.75)">${t('user.title_label')}</span><span class="title-tooltip-wrap" style="color:var(--accent)">「${escHtml(data.equipped_title)}」${data.equipped_title_desc ? `<span class="title-tooltip">${escHtml(data.equipped_title_desc)}</span>` : ''}</span></div>`
-            : ''}
-          <div style="font-size:0.8rem;color:rgba(232,232,240,0.75);margin-top:2px">${t('user.joined')}${formatDate(data.created_at)}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-            ${isMe ? `<button class="btn btn-secondary btn-sm" onclick="toggleEditForm()">${t('user.edit')}</button>` : ''}
-            <a class="btn btn-secondary btn-sm" href="/videos.html?name=${encodeURIComponent(data.username)}" style="text-decoration:none">▶ ${escHtml(data.username)}${t('user.video_board') || 'の動画掲示板'}</a>
-          </div>
-        </div>
-      </div>
+      ${profileCard(data)}
+      ${profileActions(data, isMe)}
 
       ${isMe ? `
       <div id="edit-form-wrap" class="card" style="display:none;margin-bottom:24px">
@@ -488,12 +558,14 @@ async function saveProfile() {
     setAuth(res.token, res.user);
     renderNav();
     alertEl.innerHTML = `<div class="alert alert-success">${t('user.saved')}</div>`;
-    const avatar = document.querySelector('.user-avatar');
-    if (avatar) avatar.textContent = res.user.username.charAt(0);
-    document.querySelector('.user-info h2').textContent = res.user.username;
+    // アイコン画像がないときだけ、頭文字を新しい名前に
+    const avatar = document.querySelector('.pf-card .user-avatar');
+    if (avatar && !avatar.querySelector('img')) avatar.textContent = res.user.username.charAt(0);
+    document.querySelector('.pf-card .user-info h2').textContent = res.user.username;
     const oshiEl = document.querySelector('.user-oshi');
     if (res.user.oshi_character) {
-      if (oshiEl) oshiEl.textContent = t('user.oshi') + res.user.oshi_character;
+      if (oshiEl) oshiEl.querySelector('b').textContent = res.user.oshi_character;
+      else document.querySelector('.pf-card .user-info')?.insertAdjacentHTML('beforeend', `<div class="user-oshi"><i>${chipLabel('user.oshi')}</i><b>${escHtml(res.user.oshi_character)}</b></div>`);
     } else if (oshiEl) {
       oshiEl.remove();
     }
