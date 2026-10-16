@@ -42,6 +42,7 @@ async function initRateNotice() {
   if (mode !== 'new' && data.steps.length === 0) { save(); return done(); }
 
   // シーズンが変わったとき・初めてのときは、先にシーズン開幕の演出
+  if (mode === 'new' && data.prev) await playSeasonEnding(data.prev);
   if (mode !== 'update') await playSeasonOpening(data, mode);
   openRateModal(data, mode, from, () => { save(); done(); });
 }
@@ -92,20 +93,72 @@ function playSeasonOpening(data, mode) {
       </div>` : ''}
       <div class="so-tap">${escHtml(t('so.tap'))}</div>
     </div>`;
+  return soShow(el, 2600, null);
+}
+
+// 演出の画面を出して、タップで閉じるまで待つ（1回目のタップは演出を最後まで飛ばす。autoMs が null なら自動では進まない）
+function soShow(el, readyMs, autoMs) {
   document.body.appendChild(el);
   lockBodyScroll();
   return new Promise(resolve => {
-    let ready = false;
+    let ready = false, auto = null;
     const go = () => {
-      if (!ready) { el.classList.add('skip'); ready = true; return; } // 1回目のタップは演出を最後まで
+      if (!ready) { el.classList.add('skip'); ready = true; el.dispatchEvent(new Event('so-skip')); return; }
       clearTimeout(auto);
       el.classList.add('out');
       setTimeout(() => { el.remove(); unlockBodyScroll(); resolve(); }, 450);
     };
     el.addEventListener('click', go);
-    setTimeout(() => { ready = true; }, 2600);
-    const auto = setTimeout(() => { ready = true; go(); }, 9000);
+    setTimeout(() => { ready = true; }, readyMs);
+    if (autoMs) auto = setTimeout(() => { ready = true; go(); }, autoMs);
   });
+}
+
+// ===== シーズン終了の演出（シーズンが変わって初めてTOPを開いたとき、開幕の前に） =====
+function playSeasonEnding(prev) {
+  rnStyle();
+  const tint = SEASON_TINT[(prev.key.split('-')[1] || '')] || '#ffd24a';
+  const pc = RN_COLOR[prev.rank];
+  const me = getUser();
+  const CROWN = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18h18l-1.6-9.5-4.4 3.8L12 5l-3 7.3-4.4-3.8z" fill="currentColor"/><rect x="3" y="19.4" width="18" height="2" rx="1" fill="currentColor"/></svg>';
+  const el = document.createElement('div');
+  el.id = 'season-open';
+  el.className = 'end';
+  el.style.setProperty('--sc', tint);
+  el.innerHTML = `
+    ${soBackground(prev.key)}
+    <div class="so-body">
+      <div class="so-line"></div>
+      <div class="so-eyebrow">SEASON RESULT</div>
+      <div class="so-name">${escHtml(prev.name)}</div>
+      <div class="so-sub">${escHtml(t('so.end'))}</div>
+      <div class="se-result" style="--pc:${pc}">
+        ${prev.winner ? `<div class="se-win">${CROWN}<span>${escHtml(t('so.winner'))}</span></div>` : ''}
+        <div class="se-badge"><div class="rn-burst"></div><img src="${rnBadge(prev, prev.position)}" alt=""></div>
+        <div class="se-rank">${prev.rank === 'Legend' ? `LEGEND <small>${prev.position}位</small>` : prev.rank}</div>
+        <div class="se-row">
+          <div><div class="rn-k">RATE</div><div class="se-num" data-to="${prev.rate}">0</div></div>
+          <div><div class="rn-k">${escHtml(t('so.final_pos'))}</div><div class="se-pos"><b>${prev.position}</b>${escHtml(t('so.pos_of', prev.participants))}</div></div>
+        </div>
+      </div>
+      ${prev.winner && prev.reward ? `<div class="so-reward se-reward">
+        <div class="so-reward-k">${escHtml(t('so.reward_unlocked'))}</div>
+        ${frameSampleHtml(prev.reward.css_class, me?.username || 'Player')}
+        <div class="so-reward-name">${escHtml(prev.reward.name)}</div>
+      </div>` : ''}
+      <div class="so-tap">${escHtml(t('so.tap'))}</div>
+    </div>`;
+  // レートの数え上げ（バッジが出てから）。飛ばしたら最後の値に
+  const num = el.querySelector('.se-num');
+  let raf = 0;
+  const count = () => {
+    const to = +num.dataset.to, t0 = performance.now();
+    (function tick(now) { const k = Math.min(1, (now - t0) / 1100), e = 1 - Math.pow(1 - k, 3); num.textContent = Math.round(to * e); if (k < 1) raf = requestAnimationFrame(tick); })(t0);
+  };
+  const timer = setTimeout(count, 2300);
+  el.addEventListener('so-skip', () => { clearTimeout(timer); cancelAnimationFrame(raf); num.textContent = num.dataset.to; });
+  if (prev.winner) setTimeout(() => el.querySelector('.rn-burst')?.classList.add('go'), 1900);
+  return soShow(el, 3200, null);
 }
 
 function rnStyle() {
@@ -126,12 +179,6 @@ function rnStyle() {
   .rn-season { font-size:0.7rem; font-weight:bold; padding:3px 10px; border-radius:99px; color:#ffd24a; background:rgba(255,210,74,0.1); border:1px solid rgba(255,210,74,0.35); white-space:nowrap; }
   .rn-banner { text-align:center; font-weight:900; font-size:1.05rem; margin:2px 0 10px; letter-spacing:0.02em; }
   .rn-banner small { display:block; font-size:0.72rem; font-weight:bold; color:var(--text-muted); margin-top:2px; }
-  .rn-prev { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); margin-bottom:8px; }
-  .rn-prev img { height:34px; width:auto; }
-  .rn-prev .t { font-size:0.68rem; color:var(--text-muted); }
-  .rn-prev .v { font-weight:900; font-size:0.95rem; }
-  .rn-prev .p { margin-left:auto; text-align:right; font-size:0.72rem; color:var(--text-muted); }
-  .rn-prev .p b { display:block; font-size:0.95rem; color:#fff; }
   .rn-arrow { text-align:center; color:var(--text-muted); font-size:0.75rem; margin:2px 0 6px; }
   .rn-hero { position:relative; display:flex; flex-direction:column; align-items:center; padding:6px 0 4px; }
   .rn-badge-wrap { position:relative; margin-top:18px; height:96px; display:flex; align-items:center; justify-content:center; }
@@ -177,7 +224,7 @@ function rnStyle() {
   #season-open { --sc:#ffd24a; position:fixed; inset:0; z-index:2160; display:flex; align-items:center; justify-content:center; padding:20px; cursor:pointer; overflow:hidden;
     background:radial-gradient(80% 60% at 50% 45%, color-mix(in srgb, var(--sc) 22%, #0b0920), #05040f 75%); animation:rnFade 0.4s ease both; }
   #season-open.out { animation:soOut 0.45s ease both; }
-  .so-bg { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .so-bg { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
   .so-bg b { position:absolute; inset:0; background:radial-gradient(ellipse at 50% 45%, transparent 35%, rgba(0,0,0,0.65) 100%); }
   /* 季節のモチーフが舞う */
   .so-motif::before { content:''; position:absolute; left:50%; top:45%; width:90vmin; height:90vmin; margin:-45vmin 0 0 -45vmin; border-radius:50%;
@@ -187,19 +234,37 @@ function rnStyle() {
   @keyframes soFlip { from { transform:rotateY(-25deg) rotateX(15deg) rotate(-10deg); } to { transform:rotateY(45deg) rotateX(-20deg) rotate(15deg); } }
   @keyframes soFall { to { top:105%; transform:rotate(320deg); } }
   @keyframes soSway { from { margin-left:-18px; } to { margin-left:18px; } }
-  .so-body { position:relative; z-index:1; width:100%; max-width:380px; text-align:center; }
+  .so-body { position:relative; z-index:2; width:100%; max-width:380px; text-align:center; }
   .so-line { height:1px; margin:0 auto 14px; width:0; background:linear-gradient(90deg, transparent, var(--sc), transparent); animation:soLine 0.7s cubic-bezier(.2,.8,.2,1) 0.15s forwards; }
   .so-eyebrow { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.72rem; color:var(--sc); letter-spacing:0.9em; opacity:0; animation:soSpread 0.8s cubic-bezier(.2,.8,.2,1) 0.45s forwards; }
   .so-name { margin-top:10px; font-family:"Zen Kaku Gothic New",sans-serif; font-weight:900; font-size:2.1rem; line-height:1.2; color:#fff;
     text-shadow:0 0 24px color-mix(in srgb, var(--sc) 70%, transparent); clip-path:inset(-40% 100% -40% -10%); animation:soReveal 0.9s cubic-bezier(.6,0,.2,1) 0.85s forwards; }
   .so-sub { margin-top:4px; font-weight:900; font-size:1.05rem; letter-spacing:0.3em; color:var(--sc); opacity:0; animation:topFadeSo 0.5s ease 1.55s forwards; }
   .so-period { margin-top:8px; font-family:"Orbitron",sans-serif; font-weight:700; font-size:0.85rem; color:rgba(255,255,255,0.75); letter-spacing:0.1em; opacity:0; animation:topFadeSo 0.5s ease 1.75s forwards; }
-  .so-reward { margin-top:26px; padding:12px 10px 10px; border-radius:14px; background:rgba(0,0,0,0.3); border:1px solid color-mix(in srgb, var(--sc) 35%, transparent);
+  .so-reward { margin-top:26px; padding:12px 10px 10px; border-radius:14px; background:rgba(12,10,26,0.82); border:1px solid color-mix(in srgb, var(--sc) 35%, transparent);
     opacity:0; transform:translateY(16px); animation:soUp 0.7s cubic-bezier(.2,1.2,.4,1) 2.2s forwards; }
   .so-reward-k { font-size:0.72rem; font-weight:bold; color:#ffd24a; letter-spacing:0.08em; margin-bottom:2px; }
   .so-reward .frame-sample { margin:14px 6px 8px; cursor:default; }
   .so-reward-name { font-size:0.8rem; font-weight:bold; color:rgba(255,255,255,0.85); }
   .so-tap { margin-top:22px; font-size:0.72rem; color:rgba(255,255,255,0.55); letter-spacing:0.2em; opacity:0; animation:soBlink 1.6s ease 2.9s infinite; }
+  /* シーズン終了：結果 */
+  .se-result { position:relative; margin-top:18px; padding:16px 14px 14px; border-radius:16px; background:rgba(12,10,26,0.82);
+    border:1px solid color-mix(in srgb, var(--pc) 45%, transparent); box-shadow:0 0 30px color-mix(in srgb, var(--pc) 18%, transparent);
+    opacity:0; transform:scale(0.92); animation:soUp 0.6s cubic-bezier(.2,1.3,.4,1) 1.7s forwards; }
+  .se-win { display:inline-flex; align-items:center; gap:6px; margin-bottom:4px; padding:3px 12px; border-radius:99px; color:#ffd24a; font-weight:900; font-size:0.85rem;
+    background:rgba(255,210,74,0.12); border:1px solid rgba(255,210,74,0.5); box-shadow:0 0 16px rgba(255,210,74,0.35); }
+  .se-badge { position:relative; height:92px; display:flex; align-items:center; justify-content:center; }
+  .se-badge img { height:86px; width:auto; max-width:210px; object-fit:contain; filter:drop-shadow(0 0 14px color-mix(in srgb, var(--pc) 60%, transparent));
+    opacity:0; animation:rnPop 0.75s cubic-bezier(.2,1.5,.4,1) 1.9s forwards; }
+  .se-rank { font-weight:900; font-size:1.05rem; color:var(--pc); margin-top:2px; }
+  .se-rank small { font-size:0.8rem; }
+  .se-row { display:flex; justify-content:center; gap:28px; margin-top:8px; }
+  .se-num { font-family:"Orbitron",sans-serif; font-weight:900; font-size:2rem; line-height:1.05; color:#fff; font-variant-numeric:tabular-nums; text-shadow:0 0 14px color-mix(in srgb, var(--pc) 55%, transparent); }
+  .se-pos { font-size:0.85rem; color:rgba(255,255,255,0.7); line-height:1.05; }
+  .se-pos b { font-family:"Orbitron",sans-serif; font-size:2rem; color:#fff; margin-right:2px; }
+  .se-reward { animation-delay:2.9s; margin-top:16px; }
+  #season-open.end .so-tap { animation-delay:3.4s; }
+  #season-open.skip .se-result, #season-open.skip .se-badge img, #season-open.skip .se-reward { animation-delay:0s !important; animation-duration:0.01s !important; }
   #season-open.skip .so-line, #season-open.skip .so-eyebrow, #season-open.skip .so-name, #season-open.skip .so-sub, #season-open.skip .so-period, #season-open.skip .so-reward {
     animation-delay:0s !important; animation-duration:0.01s !important; }
   #season-open.skip .so-tap { animation-delay:0s; }
@@ -216,7 +281,7 @@ function rnStyle() {
   }
   @keyframes rnFade { from { opacity:0; } to { opacity:1; } }
   @keyframes rnIn { from { opacity:0; transform:translateY(18px) scale(0.94); } to { opacity:1; transform:none; } }
-  @keyframes rnPop { 0% { transform:scale(0.3) rotate(-12deg); opacity:0; } 60% { transform:scale(1.18) rotate(3deg); opacity:1; } 100% { transform:none; } }
+  @keyframes rnPop { 0% { transform:scale(0.3) rotate(-12deg); opacity:0; } 60% { transform:scale(1.18) rotate(3deg); opacity:1; } 100% { transform:none; opacity:1; } }
   @keyframes rnBurst { 0% { opacity:0; transform:scale(0.2); } 30% { opacity:1; } 100% { opacity:0; transform:scale(1.6); } }
   @keyframes rnFlash { 0% { opacity:0; transform:translate(-50%, 10px) scale(0.6); } 18% { opacity:1; transform:translate(-50%, 0) scale(1.12); } 30% { transform:translate(-50%, 0) scale(1); } 80% { opacity:1; } 100% { opacity:0; transform:translate(-50%, -8px); } }
   @media (prefers-reduced-motion: reduce) { #rate-modal, .rn-box, .rn-badge.pop, .rn-burst.go, .rn-flash.go { animation:none; } }
@@ -271,12 +336,7 @@ function openRateModal(data, mode, from, onClose) {
 
   const banner = mode === 'new'
     ? `<div class="rn-banner">${escHtml(t('rn.new_season', data.season.name))}</div>
-       ${data.prev ? `<div class="rn-prev" style="--pc:${RN_COLOR[data.prev.rank]}">
-          <img src="${rnBadge(data.prev, data.prev.position)}" alt="">
-          <div><div class="t">${escHtml(t('rn.prev_result', data.prev.name))}</div><div class="v" style="color:${RN_COLOR[data.prev.rank]}">${data.prev.rank === 'Legend' ? 'LEGEND' : data.prev.rank} ${data.prev.rate}</div></div>
-          <div class="p">${escHtml(t('rn.season_pos'))}<b>${escHtml(t('rate.position', data.prev.position, data.prev.participants))}</b></div>
-        </div>
-        <div class="rn-arrow">▼ ${escHtml(t('rn.start'))} ${data.start.rank} ${data.start.rate}</div>` : ''}`
+       <div class="rn-arrow">${escHtml(t('rn.start'))} ${data.start.rank} ${data.start.rate}</div>`
     : mode === 'first' ? `<div class="rn-banner">${escHtml(t('rn.so_far', data.season.name))}</div>` : '';
 
   const modal = document.createElement('div');

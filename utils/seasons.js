@@ -271,7 +271,15 @@ async function userProgress(client, userId, now = new Date()) {
   let prevResult = null;
   if (prev && (await client.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [prev.key])).rows.length) {
     const ps = (await client.query('SELECT level, total_pt, final_rank, events FROM season_states WHERE season_key = $1 AND user_id = $2', [prev.key, userId])).rows[0];
-    if (ps && ps.events > 0) prevResult = { key: prev.key, name: prev.name, ...view(ps.level, ps.final_rank === 'Legend'), ...(await placeOf(client, prev.key, ps, userId)) };
+    if (ps && ps.events > 0) {
+      prevResult = { key: prev.key, name: prev.name, ...view(ps.level, ps.final_rank === 'Legend'), ...(await placeOf(client, prev.key, ps, userId)) };
+      // 1位（記録された1位）なら、そのシーズンのフレームが買えるようになったことも知らせる
+      const won = (await client.query('SELECT 1 FROM seasons_done WHERE season_key = $1 AND winner_user_id = $2', [prev.key, userId])).rows.length > 0;
+      const pdef = FRAMES.find(f => f.season === prev.key);
+      const pfr = won && pdef && (await client.query('SELECT name FROM frames WHERE css_class = $1', [pdef.cls])).rows[0];
+      prevResult.winner = won;
+      prevResult.reward = pfr ? { css_class: pdef.cls, name: pfr.name } : null;
+    }
   }
   // シーズン1位の報酬のフレーム（管理画面で隠していなければ）
   const def = FRAMES.find(f => f.season === key);
