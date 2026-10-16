@@ -1015,7 +1015,7 @@ router.get('/scores', async (req, res) => {
 
 // ===== フレーム管理 =====
 // 種類は utils/frames.js で決めていて、起動時に frames テーブルへ登録される。管理画面では値段と表示だけ変える
-const { FRAMES } = require('../utils/frames');
+const { FRAMES, getFrameStats, condProgress } = require('../utils/frames');
 
 router.get('/frames', async (req, res) => {
   try {
@@ -1029,6 +1029,43 @@ router.get('/frames', async (req, res) => {
         const def = FRAMES.find(x => x.cls === f.css_class);
         return { ...f, conds: def?.conds || null, season: def?.season || null, season_name: def?.season ? seasonByKey(def.season)?.name : null, owners: def?.season ? f.owners : undefined };
       }));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// フレームごとの条件を満たしている人と、その人が持っているか（持っていなければ所持ポイント）
+//   条件のあるフレーム：スコアのある人を1人ずつ判定（少し重いので、一覧とは別に読む）
+//   シーズンのフレーム：そのシーズンの1位。条件を満たしていないのに持っている人も出す
+router.get('/frames/achievers', async (req, res) => {
+  try {
+    const frames = (await pool.query('SELECT id, css_class FROM frames')).rows;
+    const owned = (await pool.query('SELECT uf.frame_id, u.id, u.username, u.points FROM user_frames uf JOIN users u ON u.id = uf.user_id')).rows;
+    const ownedSet = new Set(owned.map(r => `${r.frame_id}:${r.id}`));
+    const out = Object.fromEntries(frames.map(f => [f.id, []]));
+    const condFrames = frames.map(f => ({ ...f, def: FRAMES.find(x => x.cls === f.css_class) })).filter(f => f.def?.conds?.length);
+    const users = (await pool.query(
+      `SELECT DISTINCT u.id, u.username, u.points FROM users u JOIN scores s ON s.user_id = u.id
+       WHERE s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'external')`
+    )).rows;
+    for (const u of users) {
+      const stats = await getFrameStats(pool, u.id);
+      for (const f of condFrames) if (condProgress(f.def.conds, stats).met) out[f.id].push({ id: u.id, username: u.username, points: u.points, met: true });
+    }
+    for (const f of frames) {
+      const def = FRAMES.find(x => x.cls === f.css_class);
+      if (def?.season) {
+        const w = (await pool.query(
+          'SELECT u.id, u.username, u.points FROM seasons_done d JOIN users u ON u.id = d.winner_user_id WHERE d.season_key = $1', [def.season]
+        )).rows[0];
+        if (w) out[f.id].push({ ...w, met: true });
+      }
+      // 条件を満たしていないのに持っている人（管理者が条件なしで買った場合など）
+      for (const o of owned.filter(o => o.frame_id === f.id && !out[f.id].some(x => x.id === o.id))) out[f.id].push({ id: o.id, username: o.username, points: o.points, met: false });
+      out[f.id] = out[f.id].map(x => ({ ...x, owned: ownedSet.has(`${f.id}:${x.id}`) }));
+    }
+    res.json(out);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

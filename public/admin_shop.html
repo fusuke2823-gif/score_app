@@ -95,6 +95,21 @@
 .adm-frame-ctrl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .adm-frame-ctrl .form-input { width: 72px; padding: 5px 8px; font-variant-numeric: tabular-nums; }
 .adm-frame-unit { font-size: 0.8rem; color: var(--text-muted); }
+.adm-ach-btn { margin-top: 8px; }
+.adm-ach[hidden] { display: none; }
+.adm-ach { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(0,0,0,0.18); border: 1px solid var(--border); }
+.adm-ach-k { display: flex; justify-content: space-between; font-size: 0.74rem; font-weight: bold; color: var(--text-secondary); }
+.adm-ach-k span { color: var(--accent); }
+.adm-ach-wait { font-size: 0.76rem; color: var(--text-muted); margin-top: 4px; }
+.adm-ach-list { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; max-height: 180px; overflow-y: auto; }
+.adm-ach-row { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
+.adm-ach-row a { flex: 1; min-width: 0; color: var(--text-primary); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-ach-row a:hover { text-decoration: underline; }
+.adm-ach-tag { font-size: 0.68rem; font-weight: bold; padding: 1px 7px; border-radius: 99px; white-space: nowrap; }
+.adm-ach-tag.own { color: #6dffa8; background: rgba(60,220,140,0.12); }
+.adm-ach-tag.can { color: #ffd24a; background: rgba(255,210,74,0.12); }
+.adm-ach-tag.short { color: var(--text-muted); background: rgba(255,255,255,0.06); }
+.adm-ach-pt { font-size: 0.74rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -737,7 +752,8 @@ async function loadFrames() {
         </div>
         ${f.season ? `
         <div class="adm-frame-cond">${escHtml(f.season_name || f.season)}の1位の報酬（シーズン中は見本だけ。終わったら1位の人だけが買えます）</div>
-        <div class="adm-frame-cond">持っている人：<span style="color:var(--text-primary)">${f.owners ? escHtml(f.owners) : 'まだいません'}</span></div>
+        <button type="button" class="btn btn-secondary btn-sm adm-ach-btn" onclick="toggleAchievers(${f.id})">シーズン1位を見る</button>
+        <div class="adm-ach" id="frame-ach-${f.id}" data-k="シーズン1位" hidden></div>
         <div class="adm-frame-ctrl">
           <input class="form-input" type="number" min="1" step="1" id="frame-cost-${f.id}" value="${f.point_cost}">
           <span class="adm-frame-unit">pt</span>
@@ -745,6 +761,8 @@ async function loadFrames() {
           <button class="btn ${f.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm" style="margin-left:auto" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? 'シーズン中の見本を隠す' : 'シーズン中の見本を出す'}</button>
         </div>` : `
         <div class="adm-frame-cond">購入条件：${f.conds ? escHtml(f.conds.map(frameCondText).join(' かつ ')) : 'コードにない種類'}</div>
+        <button type="button" class="btn btn-secondary btn-sm adm-ach-btn" onclick="toggleAchievers(${f.id})">条件を満たしている人を見る</button>
+        <div class="adm-ach" id="frame-ach-${f.id}" data-k="条件を満たしている人" hidden></div>
         <div class="adm-frame-ctrl">
           <input class="form-input" type="number" min="1" step="1" id="frame-cost-${f.id}" value="${f.point_cost}">
           <span class="adm-frame-unit">pt</span>
@@ -752,9 +770,37 @@ async function loadFrames() {
           <button class="btn ${f.is_active ? 'btn-secondary' : 'btn-primary'} btn-sm" style="margin-left:auto" onclick="toggleFrameVisibility(${f.id},${!f.is_active})">${f.is_active ? '非表示にする' : '表示する'}</button>
         </div>`}
       </div>`).join('')}</div>`;
+    _frameList = frames;
+    _achievers = null;
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+
+// 条件を満たしている人と、持っているか（持っていなければ所持ポイントと、値段に足りるか）。ボタンを押したときだけ読む
+// 判定は全員分をまとめて1回計算する（少し重い）ので、一度読んだら一覧を読み直すまで使い回す
+let _frameList = [], _achievers = null, _achLoading = null;
+async function toggleAchievers(id) {
+  const box = document.getElementById(`frame-ach-${id}`), btn = box.previousElementSibling;
+  btn.dataset.label ||= btn.textContent;
+  if (!box.hidden) { box.hidden = true; btn.textContent = btn.dataset.label; return; }
+  box.hidden = false;
+  btn.textContent = '閉じる';
+  if (!_achievers) {
+    box.innerHTML = `<div class="adm-ach-k">${escHtml(box.dataset.k)}</div><div class="adm-ach-wait">計算中…</div>`;
+    try { _achievers = await (_achLoading ||= apiFetch('/admin/frames/achievers')); }
+    catch (err) { box.innerHTML = `<div class="adm-ach-wait">読み込めませんでした（${escHtml(err.message)}）</div>`; return; }
+    finally { _achLoading = null; }
+  }
+  const f = _frameList.find(x => x.id === id);
+  const list = (_achievers[id] || []).sort((a, b) => (a.owned - b.owned) || (b.met - a.met) || (b.points - a.points));
+  box.innerHTML = `<div class="adm-ach-k">${escHtml(box.dataset.k)}<span>${list.filter(x => x.met).length}人</span></div>` + (list.length ? `<div class="adm-ach-list">${list.map(x => `
+    <div class="adm-ach-row">
+      <a href="/user.html?id=${x.id}" target="_blank" rel="noopener">${escHtml(x.username)}</a>
+      ${x.owned
+        ? `<span class="adm-ach-tag own">所持${x.met ? '' : '（条件外）'}</span>`
+        : `<span class="adm-ach-tag ${x.points >= f.point_cost ? 'can' : 'short'}">未所持</span><span class="adm-ach-pt">${Number(x.points || 0).toLocaleString('ja-JP')}pt${x.points >= f.point_cost ? '' : `（あと${(f.point_cost - x.points).toLocaleString('ja-JP')}）`}</span>`}
+    </div>`).join('')}</div>` : '<div class="adm-ach-wait">まだいません</div>');
 }
 
 async function saveFramePrice(id) {
