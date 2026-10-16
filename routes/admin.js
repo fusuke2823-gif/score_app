@@ -1540,9 +1540,13 @@ router.put('/gacha/pools/:id', async (req, res) => {
   const { name, description, is_active, order_index, start_at, end_at, side } = req.body;
   if (!name) return res.status(400).json({ error: 'ガチャ名を入力してください' });
   try {
+    // 期間は送られてきたときだけ変える（基本情報だけの保存で期間が消えないように。期間の変更は /period で）
+    const hasPeriod = 'start_at' in req.body || 'end_at' in req.body;
     const result = await pool.query(
-      'UPDATE gacha_pools SET name=$1, description=$2, is_active=$3, order_index=$4, start_at=$5, end_at=$6, side=$7 WHERE id=$8 RETURNING *',
-      [name, description || null, is_active !== false, parseInt(order_index) || 0, start_at || null, end_at || null, side === '裏' ? '裏' : '表', req.params.id]
+      `UPDATE gacha_pools SET name=$1, description=$2, is_active=$3, order_index=$4,
+         start_at = CASE WHEN $9 THEN $5::timestamptz ELSE start_at END, end_at = CASE WHEN $9 THEN $6::timestamptz ELSE end_at END, side=$7
+       WHERE id=$8 RETURNING *`,
+      [name, description || null, is_active !== false, parseInt(order_index) || 0, start_at || null, end_at || null, side === '裏' ? '裏' : '表', req.params.id, hasPeriod]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: '見つかりません' });
     res.json(result.rows[0]);

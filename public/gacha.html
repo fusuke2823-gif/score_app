@@ -212,7 +212,7 @@
 .gx-back:hover { color:var(--text-primary); border-color:var(--accent); }
 .gx-hero { max-width:560px; margin:0 auto; }
 /* ガチャの切り替え（横スクロールの帯） */
-.gx-pooltabs { display:flex; gap:8px; overflow-x:auto; scroll-snap-type:x proximity; padding:4px 2px 10px; margin:0 auto 6px; max-width:760px;
+.gx-pooltabs { display:flex; gap:8px; overflow-x:auto; scroll-snap-type:x proximity; padding:4px 2px 10px; margin:0 auto 6px; max-width:100%;
   scrollbar-width:none; -webkit-overflow-scrolling:touch; }
 .gx-pooltabs::-webkit-scrollbar { display:none; }
 .gx-pooltabs[hidden] { display:none; }
@@ -227,7 +227,8 @@
 .gx-ptab:hover .gx-ptab-thumb { filter:brightness(0.85); }
 .gx-ptab.on { color:var(--text-primary); }
 .gx-ptab.on .gx-ptab-thumb { filter:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 4px 14px rgba(230,57,80,0.35); transform:translateY(-1px); }
-@media (min-width:720px) { .gx-ptab { width:150px; } .gx-pooltabs { justify-content:center; } }
+/* PC：本文の幅いっぱいまで使い、収まるときは中央に（はみ出すときは左から並べてスクロールできるように、中央寄せは余白で） */
+@media (min-width:720px) { .gx-ptab { width:150px; } .gx-pooltabs > .gx-ptab:first-child { margin-left:auto; } .gx-pooltabs > .gx-ptab:last-child { margin-right:auto; } }
 .gx-hero .pool-banner { cursor:default; pointer-events:none; aspect-ratio:2.2 / 1; }
 .gx-fold {
   margin-bottom:12px; border-radius:12px; background:var(--bg-card); border:1px solid var(--border);
@@ -1293,6 +1294,12 @@ function renderPoolSelector(pools) {
     </button>`;
   }).join('');
   selectPool(pools[0].id);
+  // PC：はみ出したときはマウスのホイールでも横に動かせるように
+  tabs.onwheel = e => {
+    if (tabs.scrollWidth <= tabs.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    tabs.scrollLeft += e.deltaY;
+  };
 }
 
 function selectPool(poolId) {
