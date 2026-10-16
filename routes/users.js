@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { IN_SEASON, rateAbove, liveSeasonKey, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
+const { IN_SEASON, rateAbove, liveSeasonKey, userProgress, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
 const pool = require('../db/index');
-const { optionalAuth } = require('../middleware/auth');
+const { optionalAuth, authenticateToken } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
 const { ptForEventType } = require('./rankUtils');
 
@@ -73,6 +73,16 @@ router.get('/season', async (req, res) => {
     );
     const last = new Date(season.end.getTime() - 24 * 60 * 60 * 1000);
     res.json({ key: season.key, name: season.name, test: season.test, start: season.start, last_day: last, events: rows[0].n });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 自分のレートのシーズン内の推移（TOPのレート更新の通知用）
+router.get('/me/rate-progress', authenticateToken, async (req, res) => {
+  try {
+    res.json(await userProgress(pool, req.user.id));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

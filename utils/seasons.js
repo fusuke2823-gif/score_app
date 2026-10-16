@@ -4,6 +4,7 @@
 //   シーズンの最初は前のシーズンの最後のランクから決め、シーズン中はそのランクの0より下がらない
 //   数えるのは最終配布（外部）が済んだ回。各回は受付開始日でシーズンに振り分ける（区切りは2週間ごとの回の始まりの日）
 const { ptForEventType, rateForXPt } = require('../routes/rankUtils');
+const { FRAMES } = require('./frames');
 
 // ランクの区切り（L）。C 0〜、B 100〜（SA 200万相当）、A 300〜（250万）、S 500〜（300万）、X 1500〜、Ex 3300〜（Xレート1500）
 const LEVELS = [['C', 0], ['B', 100], ['A', 300], ['S', 500], ['X', 1500], ['Ex', 3300]];
@@ -204,6 +205,83 @@ async function liveSeasonKey(client, now = new Date()) {
   return list[0]?.key ?? null;
 }
 
+// ===== 1人分のシーズン内の推移（レート更新の通知用） =====
+// 画面に出す値（ランク・レート）と、グラフ用の高さ y（ランクの段＋段の中の割合。pt の目盛りは出さない）だけを返す
+const TIER_Y = { C: 0, B: 1, A: 2, S: 3, X: 4, Ex: 5, Legend: 5 };
+function view(L, legend = false) {
+  const d = display(L, legend);
+  const rate = ['X', 'Ex', 'Legend'].includes(d.rank) ? d.xRate : d.sRate;
+  const frac = d.rank === 'X' ? rate / 1500 : ['Ex', 'Legend'].includes(d.rank) ? (rate - 1500) / 700 : rate / 1000;
+  return { rank: d.rank, rate: Math.floor(rate), y: +(TIER_Y[d.rank] + Math.max(0, frac)).toFixed(3) };
+}
+
+// その人より上の人数（並びはランキングと同じ：水準 → シーズン内の合計 → 番号）
+async function placeOf(client, key, st, userId) {
+  const { rows } = await client.query(
+    `SELECT COUNT(*) FILTER (WHERE level > $2 OR (level = $2 AND (total_pt > $3 OR (total_pt = $3 AND user_id < $4))))::int AS above,
+            COUNT(*)::int AS n
+     FROM season_states WHERE season_key = $1 AND events > 0`,
+    [key, st.level, st.total_pt, userId]
+  );
+  return { position: rows[0].above + 1, participants: rows[0].n };
+}
+
+async function userProgress(client, userId, now = new Date()) {
+  const key = await liveSeasonKey(client, now);
+  const season = key && seasonByKey(key);
+  if (!season) return null;
+  const list = seasonsUntil(now);
+  const prev = list[list.findIndex(s => s.key === key) - 1] || null;
+
+  const sr = (await client.query('SELECT start_rank FROM season_start_ranks WHERE season_key = $1 AND user_id = $2', [key, userId])).rows[0];
+  let L = LEVEL_OF[sr?.start_rank || 'C'] ?? LEVEL_OF.B;
+  const floor = LEVEL_OF[tierOf(L)];
+  const start = view(L);
+  const events = (await client.query(
+    `SELECT id, name, event_type, COALESCE(score_multiplier, 1.0)::float AS mult FROM events
+     WHERE is_active = TRUE AND points_distributed_external = TRUE
+       AND event_type IN ('score_attack', 'seraph', 'score_attack_ex')
+       AND ${IN_SEASON}
+     ORDER BY submission_end, (event_type = 'score_attack_ex'), event_number`,
+    [season.start, season.end]
+  )).rows;
+  const best = new Map((await client.query(
+    `SELECT event_id, MAX(approved_score)::float AS score FROM scores
+     WHERE user_id = $1 AND event_id = ANY($2) AND approved_score IS NOT NULL
+       AND ranking_scope IN ('public', 'internal', 'external')
+     GROUP BY event_id`,
+    [userId, events.map(e => e.id)]
+  )).rows.map(r => [r.event_id, r.score]));
+
+  const steps = [];
+  for (const e of events) {
+    if (!best.has(e.id)) continue;
+    const before = view(L);
+    L = Math.max(floor, L + step(L, ptForEventType(e.event_type, best.get(e.id) * e.mult), season.params, steps.length === 0));
+    steps.push({ event_id: e.id, name: e.name, event_type: e.event_type, before, after: view(L) });
+  }
+
+  // 今のランク（Legend は上位10人の判定があるので記録から）と順位
+  const st = (await client.query('SELECT level, total_pt, final_rank, events FROM season_states WHERE season_key = $1 AND user_id = $2', [key, userId])).rows[0];
+  const cur = view(L, st?.final_rank === 'Legend');
+  const place = st && st.events > 0 ? await placeOf(client, key, st, userId) : null;
+  if (steps.length) steps[steps.length - 1].after = cur;
+
+  // 前のシーズンの結果（締めてあり、参加していれば）
+  let prevResult = null;
+  if (prev && (await client.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [prev.key])).rows.length) {
+    const ps = (await client.query('SELECT level, total_pt, final_rank, events FROM season_states WHERE season_key = $1 AND user_id = $2', [prev.key, userId])).rows[0];
+    if (ps && ps.events > 0) prevResult = { key: prev.key, name: prev.name, ...view(ps.level, ps.final_rank === 'Legend'), ...(await placeOf(client, prev.key, ps, userId)) };
+  }
+  // シーズン1位の報酬のフレーム（管理画面で隠していなければ）
+  const def = FRAMES.find(f => f.season === key);
+  const fr = def && (await client.query('SELECT name FROM frames WHERE css_class = $1 AND is_active = TRUE', [def.cls])).rows[0];
+  const seasonInfo = { key, name: season.name, start: season.start, last_day: new Date(season.end.getTime() - 24 * 60 * 60 * 1000),
+    reward: fr ? { css_class: def.cls, name: fr.name } : null };
+  return { season: seasonInfo, start, steps, now: cur, ...(place || { position: null, participants: null }),
+    legend_rank: cur.rank === 'Legend' && place ? place.position : null, prev: prevResult };
+}
+
 const seasonByKey = key => seasonsUntil(new Date('2100-01-01')).find(s => s.key === key) || null;
 
-module.exports = { IN_SEASON, rateAbove, liveSeasonKey, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
+module.exports = { IN_SEASON, rateAbove, liveSeasonKey, userProgress, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };

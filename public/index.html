@@ -129,18 +129,6 @@
   text-transform: uppercase;
   letter-spacing: .05em;
 }
-@keyframes rankCardIn {
-  from { opacity:0; transform:scale(0.8) translateY(20px); }
-  to   { opacity:1; transform:scale(1) translateY(0); }
-}
-@keyframes rankGlow {
-  0%,100% { filter: drop-shadow(0 0 3px var(--rank-glow,#f0c040)); }
-  50%      { filter: drop-shadow(0 0 18px var(--rank-glow,#f0c040)) drop-shadow(0 0 6px var(--rank-glow,#f0c040)); }
-}
-@keyframes exGlow {
-  0%,100% { filter: drop-shadow(0 0 4px #a855f7) drop-shadow(0 0 2px #f0c040); transform: scale(1); }
-  50%      { filter: drop-shadow(0 0 22px #a855f7) drop-shadow(0 0 10px #f0c040); transform: scale(1.05); }
-}
 .new-badge {
   position:absolute; top:-6px; right:-8px; padding:1px 6px; border-radius:99px;
   background:linear-gradient(90deg, #ff5470, #ff8a3d); color:#fff; font-size:0.62rem; font-weight:900; letter-spacing:0.04em;
@@ -149,7 +137,6 @@
 }
 @keyframes newBadgePop { 0%, 100% { transform:scale(1); } 50% { transform:scale(1.1); } }
 @media (prefers-reduced-motion: reduce) { .new-badge { animation:none; } }
-#rank-update-card { animation: rankCardIn 0.35s cubic-bezier(.34,1.56,.64,1) both; }
 /* ===== 入場アニメーション ===== */
 @keyframes topSlideIn { from { opacity:0; transform:translateX(-18px); filter:blur(4px); } to { opacity:1; transform:none; filter:none; } }
 @keyframes topLineGrow { from { width:0; opacity:0; } to { width:64px; opacity:1; } }
@@ -182,22 +169,6 @@
   .event-card, .event-card.ev .ev-enemy, .event-card.ev .ev-body > *, .top-eyebrow, .top-title, .top-title-line, .top-meta, .top-act, #filter-bar { animation:none; }
   .event-card.ev .ev-sweep { display:none; }
 }
-.rank-badge-lg {
-  display:inline-block; width:90px; height:90px; object-fit:contain;
-}
-.rank-badge-lg.legend-badge-lg { width:auto; }
-@keyframes legendGlow {
-  0%,100% { filter: drop-shadow(0 0 4px #ffd700) drop-shadow(0 0 2px #a855f7); }
-  50%      { filter: drop-shadow(0 0 20px #ffd700) drop-shadow(0 0 10px #a855f7); }
-}
-.rank-badge-lg.rank-Legend.glow { animation: legendGlow 1.6s ease-in-out infinite; }
-.rank-badge-lg.glow    { animation: rankGlow 1.8s ease-in-out infinite; }
-.rank-badge-lg.rank-C  { --rank-glow:#aaa; }
-.rank-badge-lg.rank-B  { --rank-glow:#5cb85c; }
-.rank-badge-lg.rank-A  { --rank-glow:#5b9bd5; }
-.rank-badge-lg.rank-S  { --rank-glow:#e6a028; }
-.rank-badge-lg.rank-X  { --rank-glow:#f0c040; }
-.rank-badge-lg.rank-Ex.glow { animation: exGlow 1.5s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -264,15 +235,6 @@
         <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.9rem;cursor:pointer" data-i18n="filter.reset">リセット</button>
         <button onclick="closeFilterModal()" style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;cursor:pointer;font-weight:bold" data-i18n="filter.apply_close">適用して閉じる</button>
       </div>
-    </div>
-  </div>
-
-  <!-- ランク更新モーダル -->
-  <div id="rank-update-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeRankModal()">
-    <div id="rank-update-card" style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:16px;width:100%;max-width:360px;padding:28px 24px;text-align:center;position:relative">
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.08em">RANK UPDATE</div>
-      <div id="rank-update-body"></div>
-      <button onclick="closeRankModal()" style="margin-top:20px;padding:8px 32px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;font-weight:bold;cursor:pointer">OK</button>
     </div>
   </div>
 
@@ -466,8 +428,8 @@
   </div>
 </main>
 <script src="/js/common.js"></script>
+<script src="/js/rate-notice.js"></script>
 <script>
-window._rankUpdatePromise = new Promise(resolve => { window._resolveRankUpdate = resolve; });
 renderNav();
 applyI18n();
 
@@ -519,230 +481,6 @@ apiFetch('/version').then(d => {
   const el = document.getElementById('app-version');
   if (el && d.version) el.textContent = 'ver ' + d.version;
 }).catch(() => {});
-
-function closeRankModal() {
-  document.getElementById('rank-update-modal').style.display = 'none';
-  unlockBodyScroll();
-  if (window._pendingDistNotice) {
-    window._pendingDistNotice = false;
-    if (typeof initInterimDistributionNotice === 'function') initInterimDistributionNotice();
-  }
-}
-
-function rankBadgeLg(rank, glow = false, legendRank = null) {
-  if (rank === 'Legend' && legendRank != null) {
-    return `<img src="/img/legend${legendRank}.png" class="rank-badge-lg legend-badge-lg rank-Legend${glow ? ' glow' : ''}" alt="LEGEND ${legendRank}">`;
-  }
-  const r = (rank || 'C').toLowerCase();
-  return `<img src="/img/rank_${r}.png" class="rank-badge-lg rank-${rank || 'C'}${glow ? ' glow' : ''}" alt="${rank || 'C'}">`;
-}
-
-function rateLabel(rank, sRate, xRate) {
-  if (rank === 'S' && sRate != null) return `レート ${Math.floor(sRate)}`;
-  if ((rank === 'X' || rank === 'Ex' || rank === 'Legend') && xRate != null) return `レート ${Math.floor(xRate)}`;
-  return null;
-}
-
-const RANK_ORDER = ['C','B','A','S','X','Ex','Legend'];
-// シーズン制：C〜S はどれもランクの中で 0〜1000 のレート（s_rate）
-const RANK_BAR_CFG = {
-  C: { min:0, max:1000, col:'#aaa',    next:'B' },
-  B: { min:0, max:1000, col:'#5cb85c', next:'A' },
-  A: { min:0, max:1000, col:'#5b9bd5', next:'S' },
-  S: { min:0, max:1000, col:'#e6a028', next:'X' },
-};
-
-function rankBarHtml(rank, val, animate, fromPct) {
-  const cfg = RANK_BAR_CFG[rank];
-  if (!cfg) return '';
-  const pct = Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100));
-  const startPct = fromPct != null ? fromPct : pct;
-  return `
-    <div style="margin-top:12px;text-align:left">
-      <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">
-        <span>${rank}</span><span style="color:${cfg.col}">${Math.floor(val)} / ${cfg.max}</span><span>${cfg.next}</span>
-      </div>
-      <div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.1);overflow:hidden">
-        <div id="rank-bar-fill" style="height:100%;width:${startPct}%;background:${cfg.col};border-radius:4px;transition:width 0.9s ease"></div>
-      </div>
-    </div>`;
-}
-
-function animateCounter(from, to, duration) {
-  const el = document.getElementById('rate-counter');
-  if (!el) return;
-  const start = performance.now();
-  const diff = to - from;
-  function step(now) {
-    const t = Math.min((now - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - t, 3);
-    el.textContent = Math.floor(from + diff * eased);
-    if (t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-async function runAnimSteps(steps) {
-  for (let i = 0; i < steps.length; i++) {
-    const step = steps[i];
-    const isLast = i === steps.length - 1;
-    const wrap = document.getElementById('rank-bar-wrap');
-    if (!wrap) return;
-    if (step.type === 'bar') {
-      wrap.innerHTML = rankBarHtml(step.rank, step.val, true, step.startPct ?? 0);
-      await new Promise(r => setTimeout(r, 80));
-      const fill = document.getElementById('rank-bar-fill');
-      if (fill) fill.style.width = step.targetPct + '%';
-      if (!isLast) await new Promise(r => setTimeout(r, 1300));
-    } else if (step.type === 'rate') {
-      const delta = step.to - step.from;
-      const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
-      const deltaColor = delta >= 0 ? 'var(--accent)' : '#e05555';
-      wrap.innerHTML = `
-        <div style="font-size:1.1rem;font-weight:bold;margin-top:12px">
-          レート <span id="rate-counter">${step.from}</span><span style="font-size:0.9rem;color:${deltaColor};margin-left:6px">(${deltaStr})</span>
-        </div>`;
-      await new Promise(r => setTimeout(r, 100));
-      if (step.from !== step.to) animateCounter(step.from, step.to, 1000);
-      if (!isLast) await new Promise(r => setTimeout(r, 1200));
-    }
-  }
-}
-
-// ランク・レートの変動の通知（シーズン制への切り替えで大きく動くため、いったん止めている。今の値の記録は続ける）
-const RANK_NOTICE_ENABLED = false;
-async function checkRankUpdate() {
-  const user = getUser();
-  if (!user) return;
-  try {
-    const data = await apiFetch(`/users/${user.id}`);
-    const cur = { rank: data.comp_rank || 'C', rankPoints: data.rank_points || 0, sRate: data.s_rate, xRate: data.x_rate, legendRank: data.legend_rank };
-    const key = `hbr_rank_${user.id}`;
-    const stored = JSON.parse(localStorage.getItem(key) || 'null');
-
-    if (stored && RANK_NOTICE_ENABLED) {
-      const rankChanged = stored.rank !== cur.rank;
-      const sChanged = cur.rank === 'S' && Math.abs((cur.sRate || 0) - (stored.sRate || 0)) >= 1;
-      const xChanged = (cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend') && Math.abs((cur.xRate || 0) - (stored.xRate || 0)) >= 1;
-      const barRank = RANK_BAR_CFG[cur.rank] ? cur.rank : null;
-      const ptChanged = barRank && !rankChanged && Math.abs((cur.sRate || 0) - (stored.sRate || 0)) >= 1;
-
-      if (rankChanged || sChanged || xChanged || ptChanged) {
-        const isUp = RANK_ORDER.indexOf(cur.rank) >= RANK_ORDER.indexOf(stored.rank);
-        let animSteps = null;
-        let doRateCounter = false, rateFrom = 0, rateTo = 0;
-
-        let html = '';
-        if (rankChanged) {
-          html = `
-            <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin:12px 0">
-              ${rankBadgeLg(stored.rank, false, stored.legendRank)}
-              <span style="font-size:1.4rem;color:var(--text-muted)">→</span>
-              ${rankBadgeLg(cur.rank, isUp, cur.legendRank)}
-            </div>
-            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px">${isUp ? (cur.rank === 'Legend' ? 'LEGEND昇格！' : 'ランクアップ！') : 'ランク降格'}</div>`;
-          const steps = [];
-          if (isUp) {
-            const fromIdx = RANK_ORDER.indexOf(stored.rank);
-            const lastBarIdx = Math.min(RANK_ORDER.indexOf(cur.rank), RANK_ORDER.indexOf('S'));
-            for (let i = fromIdx; i <= lastBarIdx; i++) {
-              const rank = RANK_ORDER[i];
-              if (!RANK_BAR_CFG[rank]) continue;
-              const isFinalBar = (i === lastBarIdx) && !(cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend');
-              const val = isFinalBar
-                ? (cur.sRate || 0)
-                : RANK_BAR_CFG[rank].max;
-              const cfg = RANK_BAR_CFG[rank];
-              // 最初のバーのみ stored の値から開始、中間・終端は 0 から
-              let startPct = 0;
-              if (i === fromIdx) {
-                const storedVal = (stored.sRate || 0);
-                startPct = Math.min(100, Math.max(0, ((storedVal - cfg.min) / (cfg.max - cfg.min)) * 100));
-              }
-              steps.push({ type: 'bar', rank, val, startPct,
-                targetPct: Math.min(100, Math.max(0, ((val - cfg.min) / (cfg.max - cfg.min)) * 100)) });
-            }
-            if (cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend') {
-              const fromRate = (stored.rank === 'X' || stored.rank === 'Ex' || stored.rank === 'Legend') ? Math.floor(stored.xRate || 0) : 0;
-              steps.push({ type: 'rate', from: fromRate, to: Math.floor(cur.xRate || 0) });
-            }
-          } else {
-            if ((stored.rank === 'X' || stored.rank === 'Ex' || stored.rank === 'Legend') && (cur.rank === 'X' || cur.rank === 'Ex')) {
-              steps.push({ type: 'rate', from: Math.floor(stored.xRate || 0), to: Math.floor(cur.xRate || 0) });
-            } else if ((stored.rank === 'X' || stored.rank === 'Ex' || stored.rank === 'Legend') && cur.rank === 'S') {
-              const sRate = Math.floor(cur.sRate || 0);
-              const sPct = Math.min(100, Math.max(0, ((sRate - RANK_BAR_CFG.S.min) / (RANK_BAR_CFG.S.max - RANK_BAR_CFG.S.min)) * 100));
-              steps.push({ type: 'rate', from: Math.floor(stored.xRate || 0), to: 0 });
-              steps.push({ type: 'bar', rank: 'S', val: sRate, startPct: 100, targetPct: sPct });
-            } else if (RANK_BAR_CFG[cur.rank]) {
-              const barVal = (cur.sRate || 0);
-              const cfg = RANK_BAR_CFG[cur.rank];
-              steps.push({ type: 'bar', rank: cur.rank, val: barVal, startPct: 0,
-                targetPct: Math.min(100, Math.max(0, ((barVal - cfg.min) / (cfg.max - cfg.min)) * 100)) });
-            }
-          }
-          if (steps.length) {
-            html += '<div id="rank-bar-wrap"></div>';
-            animSteps = steps;
-          }
-        } else if (barRank) {
-          const barVal = (cur.sRate || 0);
-          const prevVal = (stored.sRate || 0);
-          const cfg = RANK_BAR_CFG[cur.rank];
-          const fromPct = Math.min(100, Math.max(0, ((prevVal - cfg.min) / (cfg.max - cfg.min)) * 100));
-          html = `
-            <div style="margin:12px 0">${rankBadgeLg(cur.rank, false, cur.legendRank)}</div>` +
-            rankBarHtml(cur.rank, barVal, true, fromPct);
-        } else if ((cur.rank === 'X' || cur.rank === 'Ex' || cur.rank === 'Legend') && cur.xRate != null && stored.xRate != null) {
-          rateFrom = Math.floor(stored.xRate);
-          rateTo = Math.floor(cur.xRate);
-          const delta = rateTo - rateFrom;
-          const deltaStr = delta >= 0 ? `+${delta}` : `${delta}`;
-          const deltaColor = delta >= 0 ? 'var(--accent)' : '#e05555';
-          doRateCounter = true;
-          html = `
-            <div style="margin:12px 0">${rankBadgeLg(cur.rank, false, cur.legendRank)}</div>
-            <div style="font-size:1.1rem;font-weight:bold;margin-top:8px">
-              レート <span id="rate-counter">${rateFrom}</span><span style="font-size:0.9rem;color:${deltaColor};margin-left:6px">(${deltaStr})</span>
-            </div>`;
-        } else {
-          const prev = rateLabel(stored.rank, stored.sRate, stored.xRate) || '-';
-          const next = rateLabel(cur.rank, cur.sRate, cur.xRate) || '-';
-          html = `
-            <div style="margin:12px 0">${rankBadgeLg(cur.rank, false, cur.legendRank)}</div>
-            <div style="font-size:1rem;margin-top:8px">
-              <span style="color:var(--text-muted)">${prev}</span>
-              <span style="margin:0 8px;color:var(--text-muted)">→</span>
-              <span style="font-weight:bold;color:var(--accent)">${next}</span>
-            </div>`;
-        }
-
-        document.getElementById('rank-update-body').innerHTML = html;
-        document.getElementById('rank-update-modal').style.display = 'flex';
-        lockBodyScroll();
-        if (animSteps) {
-          runAnimSteps(animSteps);
-        } else if (doRateCounter) {
-          setTimeout(() => animateCounter(rateFrom, rateTo, 1000), 100);
-        } else if (RANK_BAR_CFG[cur.rank]) {
-          setTimeout(() => {
-            const fill = document.getElementById('rank-bar-fill');
-            if (fill) {
-              const barVal = (cur.sRate || 0);
-              const cfg = RANK_BAR_CFG[cur.rank];
-              const pct = Math.min(100, Math.max(0, ((barVal - cfg.min) / (cfg.max - cfg.min)) * 100));
-              fill.style.width = pct + '%';
-            }
-          }, 80);
-        }
-      }
-    }
-
-    localStorage.setItem(key, JSON.stringify(cur));
-  } catch {}
-}
-
-checkRankUpdate().finally(() => { if (window._resolveRankUpdate) window._resolveRankUpdate(); });
 
 function openVersionModal() {
   const m = document.getElementById('version-modal');

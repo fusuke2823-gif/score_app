@@ -160,6 +160,7 @@ const _i18n = {
     'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
     'doc.terms':'利用規約','doc.privacy':'プライバシーポリシー',
     'doc.copy_link':'リンクをコピー','doc.copy_done':'コピーしました！','doc.copy_uid':'ユーザーIDをコピー',
+    'rn.new_season':'{0} 開幕','rn.so_far':'{0} ここまでの推移','rn.prev_result':'{0}の結果','rn.start':'スタート','rn.updates':'今回の更新','rn.season_pos':'シーズン順位','rn.to_ranking':'レートランキング','rn.skip':'タップでスキップ','rn.trend':'シーズン内の推移','rn.season_events':'このシーズンの回','so.open':'開幕','so.live':'開催中','so.reward':'シーズン1位の報酬','so.tap':'タップして進む','rn.seraph_short':'演習',
     'rate.title':'レートランキング','rate.subtitle':'X・Exランクユーザーのレート順','rate.season_events':'{0}回終了','rate.live':'開催中','rate.ended':'終了','rate.winner':'シーズン1位','rate.f_all':'すべて','rate.goal_to':'{0}まで あと<b>{1}</b>','rate.goal_legend':'LEGEND <b>{0}</b>位','rate.position':'{0}位 / {1}人',
     'rate.scope_ext':'外部','rate.scope_int':'内部',
     'rate.my_label':'あなたのレート',
@@ -339,6 +340,7 @@ const _i18n = {
     'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
     'doc.terms':'使用條款','doc.privacy':'隱私政策',
     'doc.copy_link':'複製連結','doc.copy_done':'已複製！','doc.copy_uid':'複製用戶ID',
+    'rn.new_season':'{0} 開幕','rn.so_far':'{0} 目前為止的走勢','rn.prev_result':'{0}的結果','rn.start':'起始','rn.updates':'本次更新','rn.season_pos':'賽季名次','rn.to_ranking':'評分排行榜','rn.skip':'點擊跳過','rn.trend':'賽季走勢','rn.season_events':'本賽季的場次','so.open':'開幕','so.live':'進行中','so.reward':'賽季第1名獎勵','so.tap':'點擊繼續','rn.seraph_short':'演習',
     'rate.title':'評分排行榜','rate.subtitle':'X・Ex等級玩家評分排名','rate.season_events':'已結束{0}場','rate.live':'進行中','rate.ended':'已結束','rate.winner':'賽季第1名','rate.f_all':'全部','rate.goal_to':'距離{0}還差<b>{1}</b>','rate.goal_legend':'LEGEND 第<b>{0}</b>名','rate.position':'第{0}名 / {1}人',
     'rate.scope_ext':'外部','rate.scope_int':'內部',
     'rate.my_label':'你的評分',
@@ -1005,18 +1007,14 @@ function togglePw(id) {
 }
 
 // ===== 配布通知（中間・最終） =====
+// 結果通知が全部終わったら（出すものがなければすぐ）解決する。TOPのレート更新の通知はこれを待ってから出す
+let _resolveDistFlow;
+window._distNoticeFlow = new Promise(r => { _resolveDistFlow = r; });
 async function initInterimDistributionNotice() {
-  if (!getToken()) return;
+  if (!getToken()) { _resolveDistFlow(); return; }
   if (window._distNoticeStarted) return;
-  if (window._rankUpdatePromise) {
-    await Promise.race([window._rankUpdatePromise, new Promise(r => setTimeout(r, 3000))]);
-  }
-  const rankModal = document.getElementById('rank-update-modal');
-  if (rankModal && rankModal.style.display === 'flex') {
-    window._pendingDistNotice = true;
-    return;
-  }
   window._distNoticeStarted = true;
+  let opened = false;
   try {
     // 配布は外部最終配布のみ（内部・中間配布は廃止）
     const final = await apiFetch('/events/final-distributions/recent').catch(() => []);
@@ -1068,7 +1066,10 @@ async function initInterimDistributionNotice() {
     renderDistNoticeModal(0);
     modal.classList.add('open');
     lockBodyScroll();
-  } catch {}
+    opened = true;
+  } catch {} finally {
+    if (!opened) _resolveDistFlow();
+  }
 }
 
 function renderDistNoticeModal(idx) {
@@ -1180,6 +1181,7 @@ function closeInterimDistModal() {
   localStorage.setItem('interim_dist_seen_at', new Date().toISOString());
   document.getElementById('interim-dist-modal')?.classList.remove('open');
   unlockBodyScroll();
+  _resolveDistFlow();
   const lbModal = document.getElementById('login-bonus-modal');
   if (lbModal && lbModal.classList.contains('open')) {
     lbModal.style.zIndex = '2100';
@@ -1702,15 +1704,13 @@ async function initAccountSettingsPrompt() {
   const seenAt = localStorage.getItem('account_prompt_seen');
   if (seenAt && Date.now() - new Date(seenAt).getTime() < 7 * 24 * 60 * 60 * 1000) return;
 
-  if (window._rankUpdatePromise) {
-    await Promise.race([window._rankUpdatePromise, new Promise(r => setTimeout(r, 3000))]);
-  }
+  // 結果通知とレート更新の通知（TOPのみ）が終わってから
+  await Promise.all([window._distNoticeFlow, window._rankUpdatePromise].filter(Boolean));
   await new Promise(r => setTimeout(r, 600));
 
-  const rankModal = document.getElementById('rank-update-modal');
+  const rateModal = document.getElementById('rate-modal');
   const distModal = document.getElementById('interim-dist-modal');
-  if ((rankModal && rankModal.style.display === 'flex') ||
-      (distModal && distModal.classList.contains('open'))) return;
+  if (rateModal || (distModal && distModal.classList.contains('open'))) return;
 
   try {
     const user = getUser();
