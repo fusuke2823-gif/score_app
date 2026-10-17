@@ -15,7 +15,8 @@ const LEGEND_TOP_N = 10;
 // firstUp：そのシーズンで初めて参加した回だけの上限（みんなが同じ上限で並ばないように）
 // EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX・遭遇戦の換算は通常との順位の割合に合わせたもの（rankUtils）。
 // k は 0.5：1シーズン（10回）でレート2000以上が16〜20人ほど（倍率を入れた本番の公開ランキングで試算）
-const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, slowUp: 200 };
+// seraphDown：遭遇戦の回の下がり幅の上限（上位の点数が詰まっていて下がりやすいので、ほかの回の半分）
+const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, slowUp: 200 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
@@ -76,7 +77,7 @@ function display(L, legend) {
   return { rank, sRate: rank === 'S' ? L - lo : (L - lo) / (hi - lo) * 1000, xRate: null };
 }
 
-// 1回分の変化（EX の回は下がらない）
+// 1回分の変化（EX の回は下がらない。遭遇戦の回は下がり幅が半分）
 //   上がる量は上限でピタッと止めず、上限の8割を超えた分を対数で伸びにくくする（上位どうしが同じ数字に並ばないように）。
 //   X 未満のゆっくりの上限（slowUp）はこれまでどおりピタッと止める
 function softCap(raw, cap) {
@@ -88,7 +89,8 @@ function step(L, P, p, first = false, eventType = null) {
   const cap = slow ? p.slowUp : first ? (p.firstUp ?? p.up) : p.up;
   const raw = p.k * (P - L);
   if (raw >= 0) return slow ? Math.min(cap, raw) : softCap(raw, cap);
-  return eventType === 'score_attack_ex' ? 0 : Math.max(-p.down, raw);
+  if (eventType === 'score_attack_ex') return 0;
+  return Math.max(-(eventType === 'seraph' ? (p.seraphDown ?? p.down) : p.down), raw);
 }
 
 // シーズンの最初のランク（初めて計算するときに全員分を記録する。前のシーズンの最後のランク、最初のシーズンは今のランクから）
