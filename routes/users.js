@@ -32,7 +32,8 @@ async function pastSeasonRanking(key, scopeFilter, isAdmin) {
      ORDER BY st.level DESC, st.total_pt DESC, u.id`,
     [key]
   );
-  const shown = isAdmin ? ['S', 'X', 'Ex', 'Legend'] : ['X', 'Ex', 'Legend'];
+  // 管理者は C まで全員、ほかの人は X 以上
+  const shown = isAdmin ? ['C', 'B', 'A', 'S', 'X', 'Ex', 'Legend'] : ['X', 'Ex', 'Legend'];
   let legendN = 0, exN = 0;
   return rows.map(r => {
     const d = seasonDisplay(r.level, r.final_rank === 'Legend');
@@ -94,7 +95,8 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
   const isAdmin = !!(req.user && req.user.role === 'admin');
   try {
     const scopeFilter = '';
-    const ranksFilter = isAdmin ? "('S','X','Ex','Legend')" : "('X','Ex','Legend')";
+    // 管理者は C まで全員、ほかの人は X 以上
+    const ranksFilter = isAdmin ? "('C','B','A','S','X','Ex','Legend')" : "('X','Ex','Legend')";
     // 締めた過去のシーズン：シーズン最後の水準からランクとレートを出す
     if (req.query.season) {
       const done = await pool.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [req.query.season]);
@@ -114,11 +116,12 @@ router.get('/rate-ranking', optionalAuth, async (req, res) => {
               gi.rarity AS equipped_icon_rarity,
               f.css_class AS equipped_frame
        FROM users u
+       -- 今のシーズンに参加した人だけ。並びはシーズンの水準（ランクをまたいでも1本のものさし）→ 合計 → 番号
+       JOIN season_states st ON st.user_id = u.id AND st.season_key = $1 AND st.events > 0
        LEFT JOIN gacha_icons gi ON u.equipped_icon_id = gi.id
        LEFT JOIN frames f ON u.equipped_frame_id = f.id
        WHERE u.comp_rank IN ${ranksFilter} ${scopeFilter}
-         AND EXISTS (SELECT 1 FROM season_states st WHERE st.user_id = u.id AND st.season_key = $1 AND st.events > 0)
-       ORDER BY (CASE WHEN u.comp_rank = 'S' THEN u.s_rate ELSE u.x_rate + 1000 END) DESC NULLS LAST, u.season_total DESC NULLS LAST, u.id`,
+       ORDER BY st.level DESC, st.total_pt DESC, u.id`,
       [live]
     );
     res.json(result.rows.map(r => ({ ...r, equipped_icon_url: optimizeUrl(r.equipped_icon_url) })));

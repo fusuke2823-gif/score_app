@@ -137,13 +137,14 @@ const me = getUser();
 let showImages = true;
 let seasons = [];       // 新しい順
 let seasonKey = null;   // 見ているシーズン
-let rankFilter = 'all'; // all / Legend / Ex / X / S
+let rankFilter = 'all'; // all / Legend / Ex / X（管理者は S / A / B / C も）
 let rows = [];
 
 const CROWN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
 const md = d => { const x = new Date(d); return `${x.getMonth() + 1}/${x.getDate()}`; };
 const viewing = () => seasons.find(s => s.key === seasonKey) || null;
-const rateOf = r => r.comp_rank === 'S' ? r.s_rate : r.x_rate;
+// X 以上は通しのレート、C〜S はランクの中の 0〜1000
+const rateOf = r => ['X', 'Ex', 'Legend'].includes(r.comp_rank) ? r.x_rate : r.s_rate;
 
 // 光の板を選んでいるボタンの位置に合わせる
 function placeSeg(el) {
@@ -212,7 +213,7 @@ function pickSeason(key) {
 function renderRankSeg() {
   const has = r => rows.some(x => x.comp_rank === r);
   const items = [['all', t('rate.f_all')], ['Legend', 'LEGEND'], ['Ex', 'Ex'], ['X', 'X']];
-  if (has('S')) items.push(['S', 'S']);
+  for (const r of ['S', 'A', 'B', 'C']) if (has(r)) items.push([r, r]); // 管理者だけに出る
   if (!items.some(([v]) => v === rankFilter)) rankFilter = 'all';
   renderSeg('rank-seg', items, rankFilter, v => { rankFilter = v; renderRankSeg(); renderList(); });
 }
@@ -230,7 +231,8 @@ function renderMyCard() {
   let goal = '';
   if (viewing()?.current) {
     const x = my.x_rate || 0;
-    if (my.comp_rank === 'S') goal = t('rate.goal_to', 'X', Math.ceil(1000 - (my.s_rate || 0)));
+    const NEXT = { C: 'B', B: 'A', A: 'S', S: 'X' };
+    if (NEXT[my.comp_rank]) goal = t('rate.goal_to', NEXT[my.comp_rank], Math.ceil(1000 - (my.s_rate || 0)));
     else if (my.comp_rank === 'X') goal = t('rate.goal_to', 'Ex', Math.ceil(1500 - x));
     else if (my.comp_rank === 'Ex') {
       const tenth = rows.filter(r => r.comp_rank === 'Legend').map(r => r.x_rate).sort((a, b) => a - b)[0];
