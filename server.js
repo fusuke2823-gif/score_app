@@ -23,7 +23,13 @@ function authLimiter(req, res, next) {
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// 画像は中身がほとんど変わらないので、ブラウザに30日覚えさせる（デプロイのたびに全員が読み直して転送量が増えないように）。
+// 画像を差し替えるときはファイル名を変える。HTML・CSS・JS はこれまでどおり毎回確かめる
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, filePath) => {
+    if (/[\\/]img[\\/]/.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=2592000');
+  },
+}));
 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);

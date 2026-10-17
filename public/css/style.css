@@ -55,7 +55,7 @@ body::before {
   z-index: -1;
   background:
     linear-gradient(180deg, rgba(6,6,16,0.62) 0%, rgba(6,6,16,0.42) 35%, rgba(6,6,16,0.72) 100%),
-    url('/img/back.png');
+    url('/img/back.webp');
   background-size: cover;
   background-position: center 30%;
   background-repeat: no-repeat;
