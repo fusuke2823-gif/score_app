@@ -21,14 +21,19 @@ function convertEncounterScoreToPoints(score) {
   return Math.floor(5700 + (score - 156250) * 2);
 }
 
-// スコアタEX用スコア→pt変換（130万=1500pt, 180万=3300pt, 230万=5700pt を結ぶ区分線形）
+// スコアタEX用スコア→pt変換（区分線形）。通常のスコアアタックと、同じ人の順位の割合が同じなら同じ値になるよう区切りを置いた
+//   （#100〜#103 で両方投稿した213人、各回の1位を通常420万・EX230万にそろえて合わせた）。EX が通常の何万相当か：
+//   130万＝350万、148万＝369万、168万＝386万、197万＝400万、218万＝410万、230万＝420万（その上は最後の傾きのまま）
+const EX_KNOTS = [[0, 0], [1300000, 1500], [1480000, 2640], [1680000, 3660], [1970000, 4500], [2180000, 5100], [2300000, 5700]];
 function convertExScoreToPoints(score) {
   score = Math.floor(score);
   if (score <= 0) return 0;
-  if (score <= 1300000) return Math.floor(score * 1500 / 1300000);
-  if (score <= 1800000) return Math.floor(1500 + (score - 1300000) * 1800 / 500000);
-  if (score <= 2300000) return Math.floor(3300 + (score - 1800000) * 2400 / 500000);
-  return Math.floor(5700 + (score - 2300000) * 2400 / 500000);
+  const K = EX_KNOTS;
+  for (let i = 1; i < K.length; i++) {
+    if (score <= K[i][0]) return Math.floor(K[i - 1][1] + (score - K[i - 1][0]) * (K[i][1] - K[i - 1][1]) / (K[i][0] - K[i - 1][0]));
+  }
+  const [x0, y0] = K[K.length - 2], [x1, y1] = K[K.length - 1];
+  return Math.floor(y1 + (score - x1) * (y1 - y0) / (x1 - x0));
 }
 
 function ptForEventType(eventType, score) {

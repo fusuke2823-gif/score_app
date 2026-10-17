@@ -1,6 +1,6 @@
 // レートのシーズン制。シーズンごとにランクとレートを決め直し、その回の成績と今のレートの差を足していく。
 //   水準 L：レートの中身（線形変換 pt と同じ目盛り。画面には出さず、ランクとレートに直して出す）
-//   1回ごとに L += k ×（その回の pt − L）。ただし +up / −down まで（そのシーズン初参加の回は +firstUp まで）。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
+//   1回ごとに L += k ×（その回の pt − L）。ただし +up / −down まで（そのシーズン初参加の回は +firstUp まで。EX の回は下がらない）。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
 //   シーズンの最初は前のシーズンの最後のランクから決め、シーズン中はそのランクの0より下がらない
 //   数えるのは最終配布（外部）が済んだ回。各回は受付開始日でシーズンに振り分ける（区切りは2週間ごとの回の始まりの日）
 const { ptForEventType, rateForXPt } = require('../routes/rankUtils');
@@ -13,7 +13,8 @@ const LEGEND_MIN_RATE = 2000;
 const LEGEND_TOP_N = 10;
 
 // firstUp：そのシーズンで初めて参加した回だけの上限（みんなが同じ上限で並ばないように）
-const REGULAR_PARAMS = { k: 0.6, up: 1000, firstUp: 1500, down: 400, slowUp: 200 };
+// EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX の換算は通常との順位の割合に合わせたもの（rankUtils の convertExScoreToPoints）。k は 0.6 → 0.5 で、10回でレート2000以上が15人前後
+const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, slowUp: 200 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
@@ -74,10 +75,11 @@ function display(L, legend) {
   return { rank, sRate: rank === 'S' ? L - lo : (L - lo) / (hi - lo) * 1000, xRate: null };
 }
 
-// 1回分の変化
-function step(L, P, p, first = false) {
+// 1回分の変化（EX の回は下がらない）
+function step(L, P, p, first = false, eventType = null) {
   const cap = L < LEVEL_OF.X && P < LEVEL_OF.X ? p.slowUp : first ? (p.firstUp ?? p.up) : p.up;
-  return Math.max(-p.down, Math.min(cap, p.k * (P - L)));
+  const floor = eventType === 'score_attack_ex' ? 0 : -p.down;
+  return Math.max(floor, Math.min(cap, p.k * (P - L)));
 }
 
 // シーズンの最初のランク（初めて計算するときに全員分を記録する。前のシーズンの最後のランク、最初のシーズンは今のランクから）
@@ -133,7 +135,7 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
     for (const r of rows) {
       const x = get(r.user_id);
       const P = ptForEventType(e.event_type, r.score * e.mult);
-      x.L = Math.max(x.floor, x.L + step(x.L, P, season.params, x.n === 0));
+      x.L = Math.max(x.floor, x.L + step(x.L, P, season.params, x.n === 0, e.event_type));
       x.n++;
       x.total += P;
     }
@@ -257,7 +259,7 @@ async function userProgress(client, userId, now = new Date()) {
   for (const e of events) {
     if (!best.has(e.id)) continue;
     const before = view(L);
-    L = Math.max(floor, L + step(L, ptForEventType(e.event_type, best.get(e.id) * e.mult), season.params, steps.length === 0));
+    L = Math.max(floor, L + step(L, ptForEventType(e.event_type, best.get(e.id) * e.mult), season.params, steps.length === 0, e.event_type));
     steps.push({ event_id: e.id, name: e.name, event_type: e.event_type, before, after: view(L) });
   }
 
