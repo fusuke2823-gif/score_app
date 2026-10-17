@@ -1,6 +1,6 @@
 // レートのシーズン制。シーズンごとにランクとレートを決め直し、その回の成績と今のレートの差を足していく。
 //   水準 L：レートの中身（線形変換 pt と同じ目盛り。画面には出さず、ランクとレートに直して出す）
-//   1回ごとに L += k ×（その回の pt − L）。ただし +up / −down まで（そのシーズン初参加の回は +firstUp まで。EX の回は下がらない）。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
+//   1回ごとに L += k ×（その回の pt − L）。ただし上がるのは +up 付近から対数で頭打ち・下がるのは −down まで（そのシーズン初参加の回は +firstUp 付近から。EX の回は下がらない）。X 未満のあいだは +slowUp まで（その回が X 水準なら +up まで）
 //   シーズンの最初は前のシーズンの最後のランクから決め、シーズン中はそのランクの0より下がらない
 //   数えるのは最終配布（外部）が済んだ回。各回は受付開始日でシーズンに振り分ける（区切りは2週間ごとの回の始まりの日）
 const { ptForEventType, rateForXPt } = require('../routes/rankUtils');
@@ -76,10 +76,18 @@ function display(L, legend) {
 }
 
 // 1回分の変化（EX の回は下がらない）
+//   上がる量は上限でピタッと止めず、上限の8割を超えた分を対数で伸びにくくする（上位どうしが同じ数字に並ばないように）。
+//   X 未満のゆっくりの上限（slowUp）はこれまでどおりピタッと止める
+function softCap(raw, cap) {
+  const t = cap * 0.8, c = cap * 0.25;
+  return raw <= t ? raw : t + c * Math.log(1 + (raw - t) / c);
+}
 function step(L, P, p, first = false, eventType = null) {
-  const cap = L < LEVEL_OF.X && P < LEVEL_OF.X ? p.slowUp : first ? (p.firstUp ?? p.up) : p.up;
-  const floor = eventType === 'score_attack_ex' ? 0 : -p.down;
-  return Math.max(floor, Math.min(cap, p.k * (P - L)));
+  const slow = L < LEVEL_OF.X && P < LEVEL_OF.X;
+  const cap = slow ? p.slowUp : first ? (p.firstUp ?? p.up) : p.up;
+  const raw = p.k * (P - L);
+  if (raw >= 0) return slow ? Math.min(cap, raw) : softCap(raw, cap);
+  return eventType === 'score_attack_ex' ? 0 : Math.max(-p.down, raw);
 }
 
 // シーズンの最初のランク（初めて計算するときに全員分を記録する。前のシーズンの最後のランク、最初のシーズンは今のランクから）
