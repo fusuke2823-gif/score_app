@@ -8,17 +8,20 @@ function convertScoreToPoints(score) {
   return Math.floor(4500 + (score - 4000000) * 3 / 500);
 }
 
+// 遭遇戦スコア→pt変換（区分線形）。通常のスコアアタックと、同じ人の順位の割合が同じなら同じ値になるよう区切りを置いた
+//   （演習#5〜#7 と前後の通常回の両方に出た97人で合わせた）。遭遇戦が通常の何万相当か：
+//   1位の基準値（倍率で1〜3位の平均をそろえる値）156,250 を、通常の 420万 と同じ 5700 に置く。
+//   136,000＝340万、143,500＝369万、149,300＝376万、155,600＝389万、155,970＝400万、156,101＝410万、156,250＝420万（その上は最後の傾きのまま）
+const ENCOUNTER_KNOTS = [[0, 0], [136000, 1290], [143500, 2630], [149300, 3040], [155600, 3850], [155970, 4490], [156023, 4830], [156101, 5140], [156145, 5380], [156184, 5530], [156250, 5700]];
 function convertEncounterScoreToPoints(score) {
   score = Math.floor(score);
   if (score <= 0) return 0;
-  if (score <= 100000) return Math.floor(score / 1000);
-  if (score <= 140000) return Math.floor(100 + (score - 100000) / 100);
-  if (score <= 147000) return Math.floor(500 + (score - 140000) / 7);
-  if (score <= 150000) return Math.floor(1500 + (score - 147000) * 3 / 5);
-  if (score <= 155000) return Math.floor(3300 + (score - 150000) * 6 / 25);
-  if (score <= 156000) return Math.floor(4500 + (score - 155000) * 3 / 5);
-  if (score <= 156250) return Math.floor(5100 + (score - 156000) * 2.4);
-  return Math.floor(5700 + (score - 156250) * 2);
+  const K = ENCOUNTER_KNOTS;
+  for (let i = 1; i < K.length; i++) {
+    if (score <= K[i][0]) return Math.floor(K[i - 1][1] + (score - K[i - 1][0]) * (K[i][1] - K[i - 1][1]) / (K[i][0] - K[i - 1][0]));
+  }
+  const [x0, y0] = K[K.length - 2], [x1, y1] = K[K.length - 1];
+  return Math.floor(y1 + (score - x1) * (y1 - y0) / (x1 - x0));
 }
 
 // スコアタEX用スコア→pt変換（区分線形）。通常のスコアアタックと、同じ人の順位の割合が同じなら同じ値になるよう区切りを置いた

@@ -13,7 +13,8 @@ const LEGEND_MIN_RATE = 2000;
 const LEGEND_TOP_N = 10;
 
 // firstUp：そのシーズンで初めて参加した回だけの上限（みんなが同じ上限で並ばないように）
-// EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX の換算は通常との順位の割合に合わせたもの（rankUtils の convertExScoreToPoints）。k は 0.6 → 0.5 で、10回でレート2000以上が15人前後
+// EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX・遭遇戦の換算は通常との順位の割合に合わせたもの（rankUtils）。
+// k は 0.5：1シーズン（10回）でレート2000以上が16〜20人ほど（倍率を入れた本番の公開ランキングで試算）
 const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, slowUp: 200 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
