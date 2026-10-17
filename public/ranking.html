@@ -77,13 +77,13 @@
 #ranking-content .score-val { font-weight:bold; font-variant-numeric:tabular-nums; }
 /* 順位の数字は列の中央に（左の縁にくっつかないように） */
 #ranking-content .ranking-table th:first-child, #ranking-content .ranking-table td:first-child { text-align:center; padding-left:8px; }
-#ranking-content .ranking-table tr.has-frame td:first-child { padding-left:24px; }
-#ranking-content .ranking-table tr.has-frame td.col-rank { padding-right:24px; }
+#ranking-content .ranking-table:has(tr.has-frame) :is(td, th):first-child { padding-left:24px; }
+#ranking-content .ranking-table:has(tr.has-frame) :is(td, th).col-rank { padding-right:24px; }
 @media (max-width:640px) {
   #ranking-content .ranking-table th:first-child, #ranking-content .ranking-table td:first-child { width:30px; padding-left:6px; padding-right:2px; }
-  /* フレーム付きの行は、四隅の渦に数字・画像が重ならないよう左右を少し空ける */
-  #ranking-content .ranking-table tr.has-frame td:first-child { padding-left:13px; }
-  #ranking-content .ranking-table tr.has-frame td.col-img, #ranking-content .ranking-table tr.has-frame td.col-title, #ranking-content .ranking-table tr.has-frame td.col-rank { padding-right:13px; }
+  /* フレームのある表は、四隅の飾りに数字・画像が重ならないよう左右を少し空ける（列がずれないよう全部の行で） */
+  #ranking-content .ranking-table:has(tr.has-frame) :is(td, th):first-child { padding-left:13px; }
+  #ranking-content .ranking-table:has(tr.has-frame) :is(td, th):is(.col-img, .col-title, .col-rank) { padding-right:13px; }
 }
 /* 1〜3位：行にうっすら色（数字は元の金・銀・銅の色） */
 #ranking-content tr.rank-1 td { background:rgba(255,215,0,0.06); }

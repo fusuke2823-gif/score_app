@@ -540,12 +540,27 @@ function adminBadgeHtml() {
 }
 
 // ランキングのフレームはセルから表の幅まで伸ばすので、表の幅（--rw）と1つ目のセルの幅（--c1）を入れておく
-function fitFrameRows() {
+// 画像や文字の読み込みで列の幅があとから変わるので、表と1つ目のセルの大きさが変わるたびに測り直す
+const _frameRO = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+  cancelAnimationFrame(window._fitFrameRaf);
+  window._fitFrameRaf = requestAnimationFrame(measureFrameRows);
+}) : null;
+const _frameWatched = new WeakSet();
+function measureFrameRows() {
   document.querySelectorAll('.ranking-table').forEach(t => {
     const fr = t.querySelector('tr.has-frame');
     if (!fr) return;
     t.style.setProperty('--rw', t.offsetWidth + 'px');
     t.style.setProperty('--c1', (fr.cells[0] ? fr.cells[0].offsetWidth : 0) + 'px');
+  });
+}
+function fitFrameRows() {
+  measureFrameRows();
+  if (!_frameRO) return;
+  document.querySelectorAll('.ranking-table').forEach(t => {
+    const fr = t.querySelector('tr.has-frame');
+    if (!fr) return;
+    for (const el of [t, fr.cells[0]]) if (el && !_frameWatched.has(el)) { _frameWatched.add(el); _frameRO.observe(el); }
   });
 }
 window.addEventListener('resize', () => { clearTimeout(window._fitFrameT); window._fitFrameT = setTimeout(fitFrameRows, 100); });

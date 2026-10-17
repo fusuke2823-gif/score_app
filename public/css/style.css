@@ -347,17 +347,19 @@ main {
    行（tr）に疑似要素を付けると列が増えたように扱われるため、セルに付けて表の幅（--rw）まで伸ばす。
    1つ目のセル：枠と内側の線。2つ目のセル：飾り（1つ目のセルの幅 --c1 だけ左へずらす）。--rw・--c1 は fitFrameRows() で入れる */
 .ranking-table tr.has-frame td { border-bottom-color: transparent; }
-.ranking-table tr.has-frame td:first-child { position: relative; padding-left: 22px; }
+.ranking-table tr.has-frame td:first-child { position: relative; }
 .ranking-table tr.has-frame td:nth-child(2) { position: relative; }
-.ranking-table tr.has-frame td:last-child { padding-right: 22px; }
-.ranking-table tr.has-frame td.col-img { padding-right: 20px; }
+/* 四隅の飾りに数字・画像が重ならないよう左右を空ける。フレームの行だけ空けると列がずれるので、フレームのある表は全部の行（見出しも）を同じだけ空ける */
+.ranking-table:has(tr.has-frame) :is(td, th):first-child { padding-left: 22px; }
+.ranking-table:has(tr.has-frame) :is(td, th):last-child { padding-right: 22px; }
+.ranking-table:has(tr.has-frame) :is(td, th).col-img { padding-right: 20px; }
 .ranking-table tr.has-frame td:first-child::before {
-  content: ''; position: absolute; left: 3px; top: 2px; bottom: 2px; width: calc(var(--rw, 100%) - 7px); border-radius: 10px; padding: 2px; pointer-events: none;
+  content: ''; position: absolute; left: 3px; top: 2px; bottom: 2px; width: calc(var(--rw, 100%) - 7px); box-sizing: border-box; border-radius: 10px; padding: 2px; pointer-events: none;
   background: var(--frame-grad); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
   filter: drop-shadow(0 0 3px rgba(255,255,255,0.3));
 }
 .ranking-table tr.has-frame td:first-child::after {
-  content: ''; position: absolute; left: 8px; top: 7px; bottom: 7px; width: calc(var(--rw, 100%) - 17px); border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); pointer-events: none;
+  content: ''; position: absolute; left: 8px; top: 7px; bottom: 7px; width: calc(var(--rw, 100%) - 17px); box-sizing: border-box; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); pointer-events: none;
   background: linear-gradient(90deg, rgba(255,255,255,0.06), transparent 30%, transparent 70%, rgba(255,255,255,0.06));
 }
 .ranking-table tr.has-frame td:nth-child(2)::before {
