@@ -319,6 +319,9 @@ main {
 }
 .ranking-table tr:last-child td { border-bottom: none; }
 .ranking-table tr:hover td { background: var(--bg-card2); }
+/* フレームの行は1・2列目が position: relative で背景の塗り順がほかの列と違い、セルごとに色を付けると左の2列だけ暗くなるので、行にまとめて付ける */
+.ranking-table tr.has-frame:hover { background: var(--bg-card2); }
+.ranking-table tr.has-frame:hover td { background: transparent; }
 .ranking-table th:first-child, .ranking-table td:first-child { width: 50px; }
 .ranking-table th:nth-child(2), .ranking-table td:nth-child(2) { width: 50px; }
 .ranking-table .col-img { width: 50px; }
