@@ -380,6 +380,9 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 @keyframes gxQuake { 0% { transform:translateY(0); } 25% { transform:translateY(5px); } 55% { transform:translateY(-2px); } 100% { transform:none; } }
 /* 配られたカード：位置は Web Animations で弧を描いて動かすので、CSSの移り変わりは止める */
 .gx-stage .g-card.dealt { opacity:1; transform:none; transition:none; }
+/* 飛んでいる間は山札の札と同じ見た目（色は着地してから付く） */
+.gx-stage .g-card .g-card-front { transition:border-color 0.25s, box-shadow 0.25s; }
+.gx-stage .g-card.in-flight .g-card-front { border:2px solid rgba(255,255,255,0.28); background:#201c3a; box-shadow:0 4px 10px rgba(0,0,0,0.55); animation:none; transition:none; }
 .gx-deck-aura { position:absolute; inset:0; border-radius:12px; transition:box-shadow 0.4s;
   box-shadow:0 0 26px 7px rgba(var(--dc),0.95), 0 0 70px 18px rgba(var(--dc),0.55); }
 .gx-deck[data-t="SS"] .gx-deck-aura { animation:gxAuraSpin 1.2s linear infinite; }
@@ -405,13 +408,13 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-screen-flash.go { animation:gxScreenFlash 0.7s ease-out; }
 @keyframes gxScreenFlash { 0% { opacity:1; } 100% { opacity:0; } }
 .gx-deck-card img { width:62%; opacity:0.7; }
-/* シャッフル：札が1枚ずつ違う距離・角度で左右に広がり、交互に重なって戻る */
-.gx-deck.riffle .gx-deck-card { animation:gxRiffle 0.62s cubic-bezier(.4,0,.3,1) both; animation-delay:var(--dl); }
-@keyframes gxRiffle {
-  0% { transform:translate(calc(var(--k) * -0.8px), calc(var(--k) * -1.1px)); }
-  45% { transform:translate(var(--sx), var(--sy)) rotate(var(--sr)); }
-  100% { transform:translate(calc(var(--k) * -0.8px), calc(var(--k) * -1.1px)); }
-}
+/* リフルシャッフル：左右の山に割る → 下の札から交互に（--md ずつ遅らせて）真ん中へ落とす */
+.gx-deck.split .gx-deck-card { transform:translate(var(--hx), calc(var(--k) * -1.1px - 4%)) rotate(var(--hr)); transition:box-shadow 0.3s, transform 0.3s cubic-bezier(.3,0,.3,1); }
+.gx-deck.merge .gx-deck-card { transition:box-shadow 0.3s, transform 0.16s cubic-bezier(.5,0,.7,1) var(--md); }
+/* 格上げ：扇のカードが少し浮き、真ん中から外へ光が伝わる（カードの色は変えず、光だけ） */
+.gx-deck.fan.lift .gx-deck-card { transform:rotate(var(--fa)) translateY(-11%); transition:box-shadow 0.3s, transform 0.4s ease-out; }
+.gx-deck.wave .gx-deck-card { animation:gxCardWave 0.7s ease-out var(--wd) both; }
+@keyframes gxCardWave { 0% { filter:none; } 30% { border-color:#fff; filter:brightness(1.6); box-shadow:0 0 16px 4px rgba(255,255,255,0.9), 0 0 34px 12px rgba(var(--dc),0.9); } 100% { filter:none; } }
 /* 格上げの前に束が震えて、すき間から光が漏れる */
 .gx-deck.shake { animation:gxDeckShake 0.45s linear; }
 .gx-deck.shake .gx-deck-card { box-shadow:0 0 14px rgba(255,255,255,0.7), 0 4px 10px rgba(0,0,0,0.5); }
@@ -433,10 +436,11 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-deck.lowered { transform:translateY(var(--deck-y, 0px)) scale(0.92); }
 .gx-deck.lowered.dealing { transform:translateY(var(--deck-y, 0px)) scale(0.88); }
 .gx-deck.lowered.out { opacity:0; transform:translateY(var(--deck-y, 0px)) scale(0.7); }
-/* 配るとき：山札を一番手前に置き、カードは山札の下から出ていく。配るたびに山札が減る */
+/* 配るとき：山札は並ぶカードより奥に置き、一番上の札を持ち上げて手前へ飛ばす。持ち上げた札はすぐ消す */
 .gx-deck { z-index:3; }
+.gx-deck.dealing { z-index:0; }
 .gx-stage .gacha-cards { position:relative; z-index:1; }
-.gx-deck-card.used { opacity:0; transition:opacity 0.15s; }
+.gx-deck-card.used { opacity:0; transition:none; }
 .gx-top { position:relative; z-index:4; width:100%; max-width:640px; display:flex; align-items:center; min-height:44px; padding:12px 16px 0; box-sizing:border-box; }
 .gx-title { font-size:0.8rem; font-weight:bold; letter-spacing:0.08em; color:rgba(255,255,255,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:45%; }
 .gx-stage { position:relative; z-index:1; flex:1; width:100%; display:flex; align-items:center; justify-content:center; padding:0 8px; box-sizing:border-box; }
@@ -513,7 +517,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-big { --bw:min(58vw, 240px); position:relative; width:var(--bw); aspect-ratio:1 / 1.39; perspective:1000px; z-index:1;
   opacity:0; transform:scale(0.55) translateY(30px); transition:opacity 0.35s, transform 0.5s cubic-bezier(.2,1.3,.4,1); }
 .gx-closeup.card-in .gx-big { opacity:1; transform:none; }
-/* 暗くなったあと、カードより先に名前を真ん中に出す */
+/* SS：カードが出たあと暗くして、名前を真ん中（カードの上）に出す */
 .gx-cu-intro {
   position:absolute; left:0; right:0; top:50%; transform:translateY(-50%); z-index:2; padding:0 24px; text-align:center; pointer-events:none;
   font-size:clamp(1.3rem, 6vw, 2rem); font-weight:900; letter-spacing:0.06em; line-height:1.35; color:#fff;
@@ -521,6 +525,9 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   opacity:0; filter:blur(10px); transition:opacity 0.5s, filter 0.5s, transform 0.5s;
 }
 .gx-cu-intro.in { opacity:1; filter:none; }
+/* 名前を出す間は、カードと周りの光を暗く沈める */
+.gx-big { transition:opacity 0.35s, transform 0.5s cubic-bezier(.2,1.3,.4,1), filter 0.35s; }
+.gx-closeup.dim .gx-big { filter:brightness(0.18) saturate(0.6); }
 .gx-cu-intro.out { opacity:0; filter:blur(6px); transform:translateY(-50%) scale(1.15); transition-duration:0.35s; }
 .gx-big-inner { position:absolute; inset:0; transform-style:preserve-3d; transition:transform 0.7s cubic-bezier(.3,1.4,.5,1); }
 .gx-big.flipped .gx-big-inner { transform:rotateY(180deg); }
@@ -580,25 +587,22 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 }
 .gx-closeup.revealed .gx-big-new { opacity:1; transform:none; }
 /* めくれる瞬間の光の輪と白いフラッシュ */
-.gx-burst { position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; pointer-events:none; opacity:0;
-  border:6px solid rgba(255,255,255,0.9); box-shadow:0 0 30px rgba(255,180,255,0.9), inset 0 0 30px rgba(255,220,120,0.8); }
-.gx-closeup[data-r="A"] .gx-burst { border-width:4px; box-shadow:0 0 24px rgba(79,195,247,0.9), inset 0 0 20px rgba(79,195,247,0.7); }
-.gx-closeup[data-r="S"] .gx-burst { box-shadow:0 0 30px rgba(255,215,0,0.95), inset 0 0 30px rgba(255,215,0,0.8); }
-.gx-closeup[data-r="A"] .gx-glow { display:none; }
-.gx-closeup[data-r="S"] .gx-glow { background:conic-gradient(from 0deg, transparent, rgba(255,215,0,0.28), transparent 25%, rgba(255,215,0,0.28), transparent 50%, rgba(255,215,0,0.28), transparent 75%, rgba(255,215,0,0.28), transparent); }
 .gx-closeup[data-r="A"] .gx-flash { display:none; }
-.gx-closeup.burst .gx-burst { animation:gxBurst 0.8s ease-out forwards; }
-@keyframes gxBurst { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(28); } }
+/* めくれる瞬間：カードの中央を横一本の光が走って消える（色はそのレアリティ） */
+.gx-streak { position:absolute; left:0; right:0; top:50%; height:6px; margin-top:-3px; pointer-events:none; opacity:0; transform:scaleX(0.05); border-radius:50%;
+  background:linear-gradient(90deg, transparent, rgba(var(--gx-tint),0.8) 25%, #fff 50%, rgba(var(--gx-tint),0.8) 75%, transparent);
+  box-shadow:0 0 20px 6px rgba(var(--gx-tint),0.6); }
+.gx-closeup.burst .gx-streak { animation:gxStreak 0.9s ease-out forwards; }
+@keyframes gxStreak { 0% { opacity:1; transform:scaleX(0.05); } 35% { opacity:1; transform:scaleX(1.1) scaleY(1.4); } 100% { opacity:0; transform:scaleX(1.3) scaleY(0.3); } }
+/* めくれたあと：S・SSはカードの縁に沿ってその色の光を残す */
+.gx-big::before { content:''; position:absolute; inset:0; border-radius:16px; pointer-events:none; opacity:0; z-index:-1; transition:opacity 0.6s;
+  box-shadow:0 0 40px 10px rgba(var(--gx-tint),0.45), 0 0 90px 30px rgba(var(--gx-tint),0.2); }
+.gx-closeup.revealed:not([data-r="A"]) .gx-big::before { opacity:1; }
+.gx-closeup[data-r="SS"] .gx-big::before { box-shadow:0 0 36px 8px rgba(255,215,0,0.4), 0 0 70px 24px rgba(255,102,204,0.3), 0 0 120px 40px rgba(0,238,255,0.18); }
 .gx-flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:2; }
 .gx-closeup.burst .gx-flash { animation:gxFlash 0.45s ease-out forwards; }
 @keyframes gxFlash { 0% { opacity:0.85; } 100% { opacity:0; } }
 /* 後ろでゆっくり回る光 */
-.gx-glow { position:absolute; left:50%; top:50%; width:min(120vw, 560px); aspect-ratio:1; transform:translate(-50%,-50%); pointer-events:none; opacity:0; transition:opacity 0.6s;
-  background:conic-gradient(from 0deg, transparent, rgba(255,215,0,0.25), transparent 25%, rgba(255,102,204,0.25), transparent 50%, rgba(0,238,255,0.25), transparent 75%, rgba(255,215,0,0.25), transparent);
-  -webkit-mask:radial-gradient(circle, #000 20%, transparent 65%); mask:radial-gradient(circle, #000 20%, transparent 65%);
-  animation:gxSpinGlow 10s linear infinite; }
-.gx-closeup.revealed .gx-glow { opacity:1; }
-@keyframes gxSpinGlow { to { transform:translate(-50%,-50%) rotate(360deg); } }
 .gx-cu-hint { position:relative; z-index:1; margin-top:22px; font-size:0.72rem; color:rgba(255,255,255,0.55); opacity:0; transition:opacity 0.4s; }
 .gx-closeup.revealed .gx-cu-hint { opacity:1; }
 
@@ -630,10 +634,10 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 @keyframes gxAgainPulse { 0%,100% { filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); } 50% { filter:drop-shadow(0 0 14px rgba(255,200,80,0.55)) drop-shadow(0 6px 16px rgba(0,0,0,0.5)); } }
 .gx-loading { color:rgba(255,255,255,0.7); }
 @media (prefers-reduced-motion: reduce) {
-  .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-stars::after, .gx-glow, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
+  .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-stars::after, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
   .gx-big.up-charge .gx-big-front, .gx-big.up-pop { animation:none !important; }
   .gx-deck.fan .gx-deck-card, .gx-stage.gx-quake { animation:none !important; }
-  .gx-again img, .gx-big.charging .gx-big-front, .gx-deck.riffle .gx-deck-card, .gx-deck.shake, .gx-deck-aura, .gx-deck-sparks i { animation:none !important; }
+  .gx-again img, .gx-big.charging .gx-big-front, .gx-deck.wave .gx-deck-card, .gx-deck.shake, .gx-deck-aura, .gx-deck-sparks i { animation:none !important; }
 }
 
 /* ===== 討伐ガチャ ===== */

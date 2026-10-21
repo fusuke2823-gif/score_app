@@ -55,7 +55,7 @@ function closeGxOverlay() {
 }
 
 // 1枚ずつ中央に大きく出してめくる演出。
-//  SS：暗転 → 名前 → 虹のカード → 溜め → めくる（長め）
+//  SS：虹のカード（昇格するときは低い色のカード → 昇格）→ 暗くして名前 → 明るく戻す → 溜め → めくる（長め）
 //  S・A：カード → 短い溜め → めくる（名前の前置きなし）
 // 演出の途中でタップすると、その1枚はめくれた状態まで飛ばす。めくれたあとはタップか一定時間で次へ
 let _gxActiveReveal = null;
@@ -73,11 +73,10 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
   cu.className = 'gx-closeup';
   cu.dataset.r = shownRarity;
   cu.innerHTML = `
-    <div class="gx-glow"></div>
     <div class="gx-up-ring"></div>
     <div class="gx-up-flash"></div>
-    <div class="gx-burst"></div>
-    ${r === 'SS' && !fakeout ? `<div class="gx-cu-intro">${escHtml(icon.name)}</div>` : ''}
+    <div class="gx-streak"></div>
+    ${r === 'SS' ? `<div class="gx-cu-intro">${escHtml(icon.name)}</div>` : ''}
     <div class="gx-big" data-r="${shownRarity}">
       <div class="gx-big-inner">
         <div class="gx-big-face gx-big-front"><img src="/img/logo.png" alt=""></div>
@@ -121,14 +120,9 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
   finishedP.then(() => { _gxActiveReveal = null; });
   requestAnimationFrame(() => cu.classList.add('show'));
 
-  if (!jumped) await wait(r === 'SS' ? 250 : 120);
-  if (intro && !jumped) {
-    intro.classList.add('in');
-    await wait(1400);
-  }
-  if (intro) intro.classList.add('out');
+  if (!jumped) await wait(120);
   cu.classList.add('card-in');
-  if (!jumped) await wait(r === 'SS' && !fakeout ? 450 : fakeout ? 600 : 300);
+  if (!jumped) await wait(r === 'SS' && !fakeout ? 650 : fakeout ? 600 : 300);
   // 昇格：大きいカードが震えて白く光り、弾けて本来のレアリティの色に変わる
   if (fakeout) {
     if (!jumped) {
@@ -149,6 +143,20 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
     big.classList.remove('up-pop');
   }
   big.dataset.r = r;
+  // SS：虹のカードが出たあと、画面ごと暗くして名前を出し、明るく戻してからめくる
+  if (intro) {
+    if (!jumped) {
+      cu.classList.add('dim');
+      await wait(350);
+    }
+    if (!jumped) {
+      intro.classList.add('in');
+      await wait(1400);
+    }
+    intro.classList.add('out');
+    cu.classList.remove('dim');
+    if (!jumped) await wait(400);
+  }
   if (!jumped) {
     big.classList.add('charging');
     await wait(cfg.charge);
@@ -201,45 +209,51 @@ function _gxScreenFlash() {
 // クラスを付け直してCSSのアニメーションを最初から流す
 function _gxRestart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 
-// カードを pos（画面上の点）から自分の場所へ、弧を描いて飛ばして並べる
-async function _gxDealFrom(cardEls, pos, { fast, onEach } = {}) {
+// カードを from(k)（画面上の四角。山札の一番上の札など）の位置・大きさから自分の場所へ、弧を描いて飛ばして並べる
+async function _gxDealFrom(cardEls, from, { fast, onEach } = {}) {
   for (let k = 0; k < cardEls.length; k++) {
     if (fast && fast()) break;
     const card = cardEls[k];
+    // 先に dealt（変形なし）にしてから、並ぶ場所の本来の大きさを測る
+    card.classList.add('dealt', 'in-flight');
     const r = card.getBoundingClientRect();
-    const dx = pos.x - (r.left + r.width / 2), dy = pos.y - (r.top + r.height / 2);
-    const rot = (Math.random() * 30 - 15).toFixed(1);
+    const f = from(k);
+    const dx = (f.left + f.width / 2) - (r.left + r.width / 2), dy = (f.top + f.height / 2) - (r.top + r.height / 2);
+    const sc = (f.width / r.width).toFixed(3);
+    const rot = (Math.random() * 24 - 12).toFixed(1);
     _sePlay('/sounds/putcard.mp3');
-    card.classList.add('dealt');
+    // 飛んでいる間は山札の札と同じ見た目にし、着地したところで色（見せかけのレアリティ）を付ける
+    setTimeout(() => card.classList.remove('in-flight'), 470);
+    // 札と同じ位置・大きさから持ち上げて、弧を描いて飛ぶ
     card.animate([
-      { transform: `translate(${dx}px, ${dy}px) scale(0.85) rotate(${rot}deg)`, opacity: 0 },
-      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 70}px) scale(1.12) rotate(${-rot / 2}deg)`, opacity: 1, offset: 0.5 },
-      { transform: 'none', opacity: 1 },
-    ], { duration: 460, easing: 'cubic-bezier(.25,.8,.35,1)' });
+      { transform: `translate(${dx}px, ${dy}px) scale(${sc})` },
+      { transform: `translate(${dx}px, ${dy - 14}px) scale(${sc * 1.04})`, offset: 0.12 },
+      { transform: `translate(${dx * 0.5}px, ${dy * 0.5 - 60}px) scale(1.1) rotate(${rot}deg)`, offset: 0.55 },
+      { transform: 'none' },
+    ], { duration: 480, easing: 'cubic-bezier(.3,.7,.35,1)' });
     if (onEach) onEach(k);
     await _gxWait(95);
   }
   cardEls.forEach(c => c.classList.add('card-visible'));
+  if (fast && fast()) cardEls.forEach(c => c.classList.remove('in-flight'));
   // 飛び終わったら、めくるときの拡大などの移り変わりを戻す
   setTimeout(() => cardEls.forEach(c => c.classList.remove('dealt')), 500);
 }
 
-// 山札：上から落ちてくる → 扇に広げる（ここで光の色が上がることがある） → 閉じて切る → 光を溜めて沈む → 弧を描いて配る
+// 山札：上から落ちてくる → 左右に割ってリフルシャッフル → 扇に広げる（ここで光の色が上がることがある） → 閉じる → 光を溜めて沈む → 弧を描いて配る
 GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast }) => {
   const deck = document.createElement('div');
   deck.className = 'gx-deck';
-  // 札は12枚。扇の角度と、切るときに1枚ずつ違う距離・角度で広がるように値をずらす
+  // 札は12枚。偶数番は左・奇数番は右の山に割り、下から交互に落として噛み合わせる。扇は真ん中から外へ光が伝わる
   const DECK_N = 12;
   const sparkColors = ['#ffd700', '#ff66cc', '#00eeff', '#7cff8a', '#b07cff'];
   deck.innerHTML = '<div class="gx-deck-bloom"></div><div class="gx-deck-aura"></div>' +
     `<div class="gx-deck-sparks">${Array.from({ length: 14 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k * 113) % 1600}ms;--c:${sparkColors[k % sparkColors.length]}"></i>`).join('')}</div>` +
     Array.from({ length: DECK_N }, (_, k) => {
       const side = k % 2 ? 1 : -1;
-      const spread = 38 + (k * 37) % 46;      // 38〜84%
-      const rot = side * (6 + (k * 13) % 16);  // 6〜21度
-      const sy = ((k * 29) % 22) - 8;         // -8〜13%
-      const fa = (k - (DECK_N - 1) / 2) * 9;  // 扇：-49.5〜49.5度
-      return `<div class="gx-deck-card" style="--k:${k};--sx:${side * spread}%;--sy:${sy}%;--sr:${rot}deg;--dl:${k * 14}ms;--fa:${fa}deg;--fd:${k * 18}ms"><img src="/img/logo.png" alt=""></div>`;
+      const c = k - (DECK_N - 1) / 2;
+      const fa = c * 9;                       // 扇：-49.5〜49.5度
+      return `<div class="gx-deck-card" style="--k:${k};--hx:${side * 62}%;--hr:${side * 9}deg;--md:${k * 34}ms;--fa:${fa}deg;--fd:${k * 18}ms;--wd:${Math.round(Math.abs(c) * 45)}ms"><img src="/img/logo.png" alt=""></div>`;
     }).join('');
   stage.appendChild(deck);
   const bloom = () => _gxRestart(deck, 'bloom');
@@ -256,40 +270,50 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
     const a = _sePlay('/sounds/ss_sound.mp3'); setTimeout(() => _seStop(a), 700);
     await waitOrSkip(450);
   }
-  await waitOrSkip(250);
+  await waitOrSkip(200);
 
-  // 2. 扇に広げる。格上げがある場合は、広げたまま震えて、すき間から光が漏れて色が上がる
+  // 2. リフルシャッフル：左右の山に割り、下から交互に落として1つに噛み合わせる
+  if (!fast()) {
+    deck.classList.add('split');
+    await waitOrSkip(320);
+    _sePlay('/sounds/turn.mp3');
+    deck.classList.add('merge');
+    deck.classList.remove('split');
+    await waitOrSkip(DECK_N * 34 + 200);
+    deck.classList.remove('merge');
+    _sePlay('/sounds/putcard.mp3');
+    await waitOrSkip(160);
+  }
+
+  // 3. 扇に広げる。格上げがある場合は、広げたままカードが浮いて震え、真ん中から外へ光が伝わって色が上がる
   if (!fast()) {
     deck.classList.add('fan');
     _sePlay('/sounds/turn.mp3');
     await waitOrSkip(520);
     for (const up of steps.slice(1)) {
       if (fast()) break;
-      deck.classList.add('shake');
+      deck.classList.add('lift', 'shake');
       await waitOrSkip(480);
       deck.classList.remove('shake');
       const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
       setTimeout(() => _seStop(upAudio), 700);
       setTint(up);
       if (up === 'SS') _gxScreenFlash();
+      _gxRestart(deck, 'wave');
       bloom();
-      await waitOrSkip(520);
+      await waitOrSkip(300);
+      deck.classList.remove('lift');
+      await waitOrSkip(400);
     }
     await waitOrSkip(180);
   }
   setTint(tint);
 
-  // 3. 閉じて、1回だけ切る
-  deck.classList.remove('fan');
-  if (!fast()) {
-    await waitOrSkip(260);
-    _gxRestart(deck, 'riffle');
-    await waitOrSkip(240);
-    _sePlay('/sounds/turn.mp3');
-    await waitOrSkip(330);
-  }
+  // 4. 閉じる
+  deck.classList.remove('fan', 'wave');
+  if (!fast()) await waitOrSkip(300);
 
-  // 4. 光を溜めながら、並ぶ場所の下へ沈む
+  // 5. 光を溜めながら、並ぶ場所の下へ沈む
   const wrapRect = wrap.getBoundingClientRect();
   const d0 = deck.getBoundingClientRect();
   const stageRect = stage.getBoundingClientRect();
@@ -304,16 +328,12 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
   if (!fast()) await waitOrSkip(380);
   deck.classList.remove('charge');
 
-  // 5. 弧を描いて配る（配るたびに山札が減る）
+  // 6. 山札の一番上の札を持ち上げて、弧を描いて配る（持ち上げた札は山札から消える）
   deck.classList.add('dealing');
-  const dr = deck.getBoundingClientRect();
-  const deckCards = [...deck.querySelectorAll('.gx-deck-card')].reverse(); // 上の札から減らす
-  await _gxDealFrom(cardEls, { x: dr.left + dr.width / 2, y: dr.top + dr.height / 2 }, {
+  const deckCards = [...deck.querySelectorAll('.gx-deck-card')].reverse(); // 上の札から順に
+  await _gxDealFrom(cardEls, k => deckCards[Math.min(k, deckCards.length - 1)].getBoundingClientRect(), {
     fast,
-    onEach: k => {
-      const remain = Math.ceil(deckCards.length * (1 - (k + 1) / cardEls.length));
-      deckCards.forEach((dc, n) => dc.classList.toggle('used', n < deckCards.length - remain));
-    },
+    onEach: k => { if (deckCards[k]) deckCards[k].classList.add('used'); },
   });
   deck.classList.add('out');
   setTimeout(() => deck.remove(), 400);
