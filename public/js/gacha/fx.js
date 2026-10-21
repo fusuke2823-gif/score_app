@@ -194,19 +194,59 @@ function _gxTintSteps(finalTint) {
 }
 
 // ===== 最初の演出 =====
-// どれも同じ形の関数：{ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast, waitTap } を受け取り、
-// 主役（山札など）を出して waitTap() でタップを待ち、そのあと光の色を steps の順に上げながら盛り上げて、
+// どれも同じ形の関数：{ ov, stage, wrap, cardEls, tint, steps, confirm, waitOrSkip, fast, waitTap } を受け取り、
+// 色なし（毎回同じ見た目）で主役（山札など）を出して waitTap() でタップを待ち、タップで steps[0] の色を付け、
+// そのあと光の色を steps の順に上げながら盛り上げて、
 // 最後に cardEls を並べ終える（card-visible を付ける）。画面のタップで飛ばせるのは waitTap() のあとから
 const GX_INTROS = {};
 
-// 確定演出（SSが出るときだけ呼ぶ。あとで追加する）。どちらも ctx = { ov, stage, anchor, results } を受け取る
-//  wait：タップ待ちの画面に出す（タップされるまで出しっぱなしにする要素を ctx.stage に足す。戻り値は無視）
-//  tap ：タップした直後に流す（終わるまで待つ async 関数）
-const GX_CONFIRM_FX = { wait: null, tap: null };
+// 確定演出：虹のカードが並ぶ回に1回だけ抽選して、どれか1つ（または扇の色昇格）にする。
+// 数字はその回のうちの割合（合計が1未満なら、残りは扇の色昇格）。0 なら出さない
+//  pre-plain ：タップ前・演出なし（タップでいきなり虹）
+//  pre-meteor：タップ前・流れ星（タップ待ちの背景に流れ星 → タップで虹）
+//  post-scatter：タップ後・飛び散る（タップで札がいきなり飛び散り、集まると虹になっている）
+const GX_CONFIRM_RATES = { 'pre-plain': 0.25, 'pre-meteor': 0.25, 'post-scatter': 0.25 };
+function _gxPickConfirm(tint) {
+  if (tint !== 'SS') return null;
+  let r = Math.random();
+  for (const [k, p] of Object.entries(GX_CONFIRM_RATES)) { if (r < p) return k; r -= p; }
+  return null;
+}
 
-// 光の色（オーバーレイ全体と、演出の主役の要素）を変える
+// タップしたときに付く色と、そのあとの格上げの段階を決める。
+//  タップで付く色：単発は見た目のとおり（青か金。虹は金で出して、扇で虹に上げる）、10連はいつも金
+//  タップ前の確定演出はタップで虹。タップ後の確定演出は、その演出の中で虹にする（扇では上げない）
+//  最初の色より低い段階は飛ばす（光が下がって見えないように）
+const GX_RANK = { A: 0, S: 1, SS: 2 };
+function _gxIntroSteps(tint, isMulti, confirm) {
+  const steps = _gxTintSteps(tint);
+  let first = isMulti ? 'S' : (steps[0] === 'SS' ? 'S' : steps[0]);
+  if (confirm && confirm.startsWith('pre-')) first = 'SS';
+  const rest = steps.filter(t => GX_RANK[t] > GX_RANK[first]);
+  return [first, ...(confirm && confirm.startsWith('post-') ? rest.filter(t => t !== 'SS') : rest)];
+}
+
+// 流れ星（タップ前の確定演出）：背景に流れ星をときどき流す。止める関数を返す
+function _gxMeteors(ov, stage) {
+  const box = document.createElement('div');
+  box.className = 'gx-meteors';
+  ov.insertBefore(box, stage);
+  const shoot = () => {
+    const m = document.createElement('i');
+    m.style.left = `${20 + Math.random() * 80}%`;
+    m.style.top = `${Math.random() * 35}%`;
+    m.style.setProperty('--len', `${90 + Math.random() * 90}px`);
+    box.appendChild(m);
+    setTimeout(() => m.remove(), 1300);
+  };
+  shoot();
+  const iv = setInterval(shoot, 650);
+  return () => { clearInterval(iv); box.classList.add('out'); setTimeout(() => box.remove(), 500); };
+}
+
+// 光の色（オーバーレイ全体と、演出の主役の要素）を変える。'none' は色なし（タップ待ち。毎回同じ見た目）
 function _gxSetTint(ov, el, t) {
-  ov.classList.remove('tint-A', 'tint-S', 'tint-SS');
+  ov.classList.remove('tint-none', 'tint-A', 'tint-S', 'tint-SS');
   ov.classList.add(`tint-${t}`);
   if (el) el.dataset.t = t;
 }
@@ -249,8 +289,8 @@ async function _gxDealFrom(cardEls, from, { fast, onEach } = {}) {
   setTimeout(() => cardEls.forEach(c => c.classList.remove('dealt')), 500);
 }
 
-// 山札：上から落ちてくる → タップ待ち → 左右に割ってリフルシャッフル → 扇に広げる（ここで光の色が上がることがある） → 閉じる → 光を溜めて沈む → 弧を描いて配る
-GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast, waitTap }) => {
+// 山札：上から落ちてくる（色なし）→ タップ待ち → 色が付く → 左右に割ってリフルシャッフル → 扇に広げる（ここで光の色が上がることがある） → 閉じる → 光を溜めて沈む → 弧を描いて配る
+GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOrSkip, fast, waitTap }) => {
   const deck = document.createElement('div');
   deck.className = 'gx-deck';
   // 札は12枚。偶数番は左・奇数番は右の山に割り、下から交互に落として噛み合わせる。扇は真ん中から外へ光が伝わる
@@ -268,21 +308,51 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
   const bloom = () => _gxRestart(deck, 'bloom');
   const setTint = t => _gxSetTint(ov, deck, t);
 
-  // 1. 上から回りながら落ちてきて、着地で小さな揺れ
-  setTint(steps[0]);
+  // 1. 上から回りながら落ちてきて、着地で小さな揺れ。この時点では色なし（毎回同じ見た目）
+  setTint('none');
   requestAnimationFrame(() => deck.classList.add('in'));
   await waitOrSkip(480);
   if (!fast()) { _sePlay('/sounds/putcard.mp3'); _gxRestart(stage, 'gx-quake'); }
-  if (steps[0] === 'SS' && !fast()) {
-    await waitOrSkip(200);
-    _gxScreenFlash();
-    const a = _sePlay('/sounds/ss_sound.mp3'); setTimeout(() => _seStop(a), 700);
-    await waitOrSkip(450);
+
+  // 2. タップを待つ（山札の下に「タップ」が点滅）。流れ星の確定演出はこの間に出す
+  const stopMeteors = confirm === 'pre-meteor' && !fast() ? _gxMeteors(ov, stage) : null;
+  await waitTap(deck);
+  if (stopMeteors) stopMeteors();
+  // タップで色が付く。タップ前の確定演出ならここで虹（フラッシュ）
+  setTint(steps[0]);
+  if (!fast()) {
+    bloom();
+    if (steps[0] === 'SS') {
+      _gxScreenFlash();
+      await waitOrSkip(650);
+    } else {
+      await waitOrSkip(confirm === 'post-scatter' ? 120 : 450);
+    }
   }
 
-  // 2. タップを待つ（山札の下に「タップ」が点滅）
-  await waitTap(deck);
-  await waitOrSkip(150);
+  // タップ後の確定演出：札がいきなり四方へ飛び散り、真ん中へ集まると虹になっている
+  if (confirm === 'post-scatter' && !fast()) {
+    // 方向は12等分して少しずらし（毎回どの方向にも散るように）、並びは混ぜる。
+    // 距離は3枚に1枚を真ん中の近く、残りを外側にして、真ん中が空かないように
+    const angs = Array.from({ length: DECK_N }, (_, k) => (k + Math.random() * 0.8) / DECK_N * Math.PI * 2).sort(() => Math.random() - 0.5);
+    deck.querySelectorAll('.gx-deck-card').forEach((c, k) => {
+      const ang = angs[k], dist = k % 3 === 0 ? 15 + Math.random() * 55 : 90 + Math.random() * 170;
+      c.style.setProperty('--ex', `${Math.cos(ang) * dist}%`);
+      c.style.setProperty('--ey', `${Math.sin(ang) * dist * 0.8}%`);
+      c.style.setProperty('--er', `${Math.round(Math.random() * 540 - 270)}deg`);
+    });
+    _sePlay('/sounds/turn.mp3');
+    deck.classList.add('scatter');
+    await waitOrSkip(650);
+    deck.classList.add('gather');
+    deck.classList.remove('scatter');
+    await waitOrSkip(DECK_N * 25 + 300);
+    deck.classList.remove('gather');
+    _sePlay('/sounds/putcard.mp3');
+    setTint('SS');
+    _gxScreenFlash(); bloom();
+    await waitOrSkip(700);
+  }
 
   // 3. リフルシャッフル：左右の山に割り、下から交互に落として1つに噛み合わせる
   if (!fast()) {
@@ -367,11 +437,11 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   const dispRarities = results.map(icon => {
     if (icon.rarity === 'SS') {
       const r = Math.random();
-      if (r < 0.70) return 'SS';
+      if (r < 0.80) return 'SS';
       if (r < 0.90) return 'S';
       return 'A';
     }
-    if (icon.rarity === 'S') return Math.random() < 0.75 ? 'S' : 'A';
+    if (icon.rarity === 'S') return Math.random() < 0.80 ? 'S' : 'A';
     return 'A';
   });
   // 10連の10枚目はS以上確定なので、見た目も必ず金以上にする
@@ -408,25 +478,21 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   // 受け付けるのはタップ待ち（waitTap）のあとから
   let introSkip = false;
   const onIntroTap = () => { introSkip = true; };
-  const hasSS = results.some(r => r.rarity === 'SS');
   // タップ待ち：anchor（山札など）の下に「タップ」を点滅させ、画面のどこかがタップされるかSKIPされるまで待つ
   const waitTap = async anchor => {
     if (skip) return;
-    const ctx = { ov, stage, anchor, results };
     const hint = document.createElement('div');
     hint.className = 'gx-tap-hint';
     hint.textContent = 'タップ';
     const ar = anchor.getBoundingClientRect(), sr = stage.getBoundingClientRect();
     hint.style.top = `${ar.bottom - sr.top + 26}px`;
     stage.appendChild(hint);
-    if (hasSS && GX_CONFIRM_FX.wait) { try { GX_CONFIRM_FX.wait(ctx); } catch (_) {} }
     await new Promise(res => {
       const done = () => { clearInterval(iv); ov.removeEventListener('click', done); res(); };
       const iv = setInterval(() => { if (skip) done(); }, 40);
       ov.addEventListener('click', done);
     });
     hint.remove();
-    if (hasSS && GX_CONFIRM_FX.tap && !skip) { try { await GX_CONFIRM_FX.tap(ctx); } catch (_) {} }
     ov.addEventListener('click', onIntroTap);
   };
 
@@ -435,7 +501,8 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   const waitOrSkip = async ms => { const end = Date.now() + ms; while (!skip && !introSkip && Date.now() < end) await _gxWait(40); };
   const fast = () => skip || introSkip;
   const intro = GX_INTROS.deck; // SS用の別の演出はここで選ぶ（tint・steps を見て）
-  await intro({ ov, stage, wrap, cardEls, tint, steps: _gxTintSteps(tint), waitOrSkip, fast, waitTap });
+  const confirm = _gxPickConfirm(tint);
+  await intro({ ov, stage, wrap, cardEls, tint, steps: _gxIntroSteps(tint, results.length === 10, confirm), confirm, waitOrSkip, fast, waitTap });
   ov.removeEventListener('click', onIntroTap);
   await _gxWait(fast() ? 450 : 600);
 

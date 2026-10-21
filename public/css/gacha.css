@@ -327,6 +327,7 @@ summary.gx-panel-head::-webkit-details-marker { display:none; }
 }
 .gx-overlay.open { opacity:1; }
 .gx-overlay[hidden] { display:none; }
+.gx-overlay.tint-none { --gx-tint:150,150,185; }
 .gx-overlay.tint-S { --gx-tint:255,200,80; }
 .gx-overlay.tint-SS { --gx-tint:220,120,255; }
 /* 引き終わって結果が出たら、所持pt・GPを演出の上（右上）に出す */
@@ -360,6 +361,9 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-deck { position:absolute; left:50%; top:50%; width:var(--dw); height:calc(var(--dw) * 1.39); margin:calc(var(--dw) * -0.695) 0 0 calc(var(--dw) * -0.5);
   --dw:min(24vw, 128px); --dc:79,195,247; z-index:2; opacity:0; transform:translateY(-55vh) rotate(-200deg) scale(0.7);
   transition:opacity 0.2s, transform 0.48s cubic-bezier(.3,1.25,.5,1); pointer-events:none; }
+/* 色なし（タップ待ち）：白っぽい控えめな光 */
+.gx-deck[data-t="none"] { --dc:200,200,225; }
+.gx-deck[data-t="none"] .gx-deck-aura { box-shadow:0 0 18px 4px rgba(var(--dc),0.45), 0 0 50px 12px rgba(var(--dc),0.18); }
 .gx-deck[data-t="S"] { --dc:255,205,60; }
 .gx-deck[data-t="SS"] { --dc:240,140,255; }
 .gx-deck.in { opacity:1; transform:none; }
@@ -413,7 +417,20 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-deck.merge .gx-deck-card { transition:box-shadow 0.3s, transform 0.16s cubic-bezier(.5,0,.7,1) var(--md); }
 /* 割っている間は束の後ろの光を消す（光はカードの形の周りに付くので、真ん中に模様のない札があるように見えるため） */
 .gx-deck-aura { transition:box-shadow 0.4s, opacity 0.2s; }
-.gx-deck.split .gx-deck-aura { opacity:0; }
+.gx-deck.split .gx-deck-aura, .gx-deck.scatter .gx-deck-aura, .gx-deck.gather .gx-deck-aura { opacity:0; }
+/* 確定演出（タップ後）：札がいきなり四方へ飛び散り（--ex・--ey・--er は JS でばらばらに入れる）、1枚ずつ真ん中へ戻る */
+/* 回転の軸は札の真ん中に（扇用の軸＝札の下のままだと、大きく回したときに下へ寄って見えるため） */
+.gx-deck.scatter .gx-deck-card, .gx-deck.gather .gx-deck-card { transform-origin:50% 50%; }
+.gx-deck.scatter .gx-deck-card { transform:translate(var(--ex), var(--ey)) rotate(var(--er)) scale(0.85); transition:box-shadow 0.3s, transform 0.32s cubic-bezier(.1,.8,.3,1); }
+.gx-deck.gather .gx-deck-card { transition:box-shadow 0.3s, transform 0.3s cubic-bezier(.5,0,.7,1) calc(var(--k) * 25ms); }
+/* 確定演出（タップ前）：タップ待ちの背景に流れ星 */
+.gx-meteors { position:absolute; inset:0; pointer-events:none; z-index:0; transition:opacity 0.5s; }
+.gx-meteors.out { opacity:0; }
+/* 頭（白）が左下へ進み、尾が右上へ伸びる */
+.gx-meteors i { position:absolute; width:var(--len); height:2px; border-radius:2px; transform:rotate(-35deg); transform-origin:0 50%; opacity:0;
+  background:linear-gradient(90deg, #fff, rgba(255,255,255,0.15) 60%, transparent); filter:drop-shadow(0 0 4px rgba(200,220,255,0.9));
+  animation:gxMeteor 1.2s ease-in forwards; }
+@keyframes gxMeteor { 0% { opacity:0; translate:0 0; } 15% { opacity:1; } 100% { opacity:0; translate:-260px 182px; } }
 /* 格上げ：扇のカードが少し浮き、真ん中から外へ光が伝わる（カードの色は変えず、光だけ） */
 .gx-deck.fan.lift .gx-deck-card { transform:rotate(var(--fa)) translateY(-11%); transition:box-shadow 0.3s, transform 0.4s ease-out; }
 .gx-deck.wave .gx-deck-card { animation:gxCardWave 0.7s ease-out var(--wd) both; }
@@ -649,6 +666,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   .gx-aurora::before, .gx-aurora::after, .gx-stars, .gx-stars::after, .gx-overlay.tint-SS .gx-aurora { animation:none !important; }
   .gx-big.up-charge .gx-big-front, .gx-big.up-pop { animation:none !important; }
   .gx-deck.fan .gx-deck-card, .gx-stage.gx-quake, .gx-tap-hint { animation:none !important; }
+  .gx-meteors { display:none; }
   .gx-again img, .gx-big.charging .gx-big-front, .gx-deck.wave .gx-deck-card, .gx-deck.shake, .gx-deck-aura, .gx-deck-sparks i { animation:none !important; }
 }
 
