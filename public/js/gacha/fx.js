@@ -330,24 +330,43 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     }
   }
 
-  // タップ後の確定演出：札がいきなり四方へ飛び散り、真ん中へ集まると虹になっている
+  // タップ後の確定演出：札がいきなり弾け飛び（一瞬上へ跳ねてから、回りながら弧を描いて落ちるように散る）、
+  // 真ん中へ集まると虹になっている
   if (confirm === 'post-scatter' && !fast()) {
     // 方向は12等分して少しずらし（毎回どの方向にも散るように）、並びは混ぜる。
     // 距離は3枚に1枚を真ん中の近く、残りを外側にして、真ん中が空かないように
     const angs = Array.from({ length: DECK_N }, (_, k) => (k + Math.random() * 0.8) / DECK_N * Math.PI * 2).sort(() => Math.random() - 0.5);
-    deck.querySelectorAll('.gx-deck-card').forEach((c, k) => {
+    const cards = [...deck.querySelectorAll('.gx-deck-card')];
+    const base = k => `translate(${k * -0.8}px, ${k * -1.1}px)`;
+    const spots = cards.map((c, k) => {
       const ang = angs[k], dist = k % 3 === 0 ? 15 + Math.random() * 55 : 90 + Math.random() * 170;
-      c.style.setProperty('--ex', `${Math.cos(ang) * dist}%`);
-      c.style.setProperty('--ey', `${Math.sin(ang) * dist * 0.8}%`);
-      c.style.setProperty('--er', `${Math.round(Math.random() * 540 - 270)}deg`);
+      return { x: Math.cos(ang) * dist, y: Math.sin(ang) * dist * 0.8, r: Math.round(Math.random() * 540 - 270), up: 30 + Math.random() * 40 };
     });
-    _sePlay('/sounds/turn.mp3');
+    // 回転の軸は札の真ん中に（扇用の軸＝札の下のままだと、大きく回したときに下へ寄って見えるため）
+    cards.forEach(c => { c.style.transformOrigin = '50% 50%'; });
     deck.classList.add('scatter');
-    await waitOrSkip(650);
-    deck.classList.add('gather');
+    _sePlay('/sounds/turn.mp3');
+    const out = cards.map((c, k) => {
+      const p = spots[k];
+      return c.animate([
+        { transform: base(k) },
+        { transform: `translate(${p.x * 0.4}%, ${p.y * 0.4 - p.up}%) rotate(${p.r * 0.4}deg) scale(1.1)`, offset: 0.3 },
+        { transform: `translate(${p.x}%, ${p.y}%) rotate(${p.r}deg) scale(0.85)` },
+      ], { duration: 520 + Math.random() * 160, easing: 'cubic-bezier(.15,.7,.35,1)', fill: 'forwards' });
+    });
+    await waitOrSkip(780);
+    // 1枚ずつ真ん中へ戻る
+    const back = cards.map((c, k) => {
+      const p = spots[k];
+      return c.animate([
+        { transform: `translate(${p.x}%, ${p.y}%) rotate(${p.r}deg) scale(0.85)` },
+        { transform: base(k) },
+      ], { duration: 300, delay: k * 25, easing: 'cubic-bezier(.5,0,.7,1)', fill: 'forwards' });
+    });
+    await Promise.race([Promise.all(back.map(an => an.finished)), _gxWait(DECK_N * 25 + 600)]);
+    out.concat(back).forEach(an => an.cancel());
+    cards.forEach(c => { c.style.transformOrigin = ''; });
     deck.classList.remove('scatter');
-    await waitOrSkip(DECK_N * 25 + 300);
-    deck.classList.remove('gather');
     _sePlay('/sounds/putcard.mp3');
     setTint('SS');
     _gxScreenFlash(); bloom();

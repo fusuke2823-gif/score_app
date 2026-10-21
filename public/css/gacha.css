@@ -417,12 +417,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-deck.merge .gx-deck-card { transition:box-shadow 0.3s, transform 0.16s cubic-bezier(.5,0,.7,1) var(--md); }
 /* 割っている間は束の後ろの光を消す（光はカードの形の周りに付くので、真ん中に模様のない札があるように見えるため） */
 .gx-deck-aura { transition:box-shadow 0.4s, opacity 0.2s; }
-.gx-deck.split .gx-deck-aura, .gx-deck.scatter .gx-deck-aura, .gx-deck.gather .gx-deck-aura { opacity:0; }
-/* 確定演出（タップ後）：札がいきなり四方へ飛び散り（--ex・--ey・--er は JS でばらばらに入れる）、1枚ずつ真ん中へ戻る */
-/* 回転の軸は札の真ん中に（扇用の軸＝札の下のままだと、大きく回したときに下へ寄って見えるため） */
-.gx-deck.scatter .gx-deck-card, .gx-deck.gather .gx-deck-card { transform-origin:50% 50%; }
-.gx-deck.scatter .gx-deck-card { transform:translate(var(--ex), var(--ey)) rotate(var(--er)) scale(0.85); transition:box-shadow 0.3s, transform 0.32s cubic-bezier(.1,.8,.3,1); }
-.gx-deck.gather .gx-deck-card { transition:box-shadow 0.3s, transform 0.3s cubic-bezier(.5,0,.7,1) calc(var(--k) * 25ms); }
+.gx-deck.split .gx-deck-aura, .gx-deck.scatter .gx-deck-aura { opacity:0; }
 /* 確定演出（タップ前）：タップ待ちの背景に流れ星 */
 .gx-meteors { position:absolute; inset:0; pointer-events:none; z-index:0; transition:opacity 0.5s; }
 .gx-meteors.out { opacity:0; }
