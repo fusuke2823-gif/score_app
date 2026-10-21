@@ -74,7 +74,6 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
   cu.dataset.r = shownRarity;
   cu.innerHTML = `
     <div class="gx-glow"></div>
-    <div class="gx-up-rays"></div>
     <div class="gx-up-ring"></div>
     <div class="gx-up-flash"></div>
     <div class="gx-burst"></div>
@@ -232,7 +231,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
   // 札は12枚。扇の角度と、切るときに1枚ずつ違う距離・角度で広がるように値をずらす
   const DECK_N = 12;
   const sparkColors = ['#ffd700', '#ff66cc', '#00eeff', '#7cff8a', '#b07cff'];
-  deck.innerHTML = '<div class="gx-deck-aura"></div><div class="gx-deck-ring"></div>' +
+  deck.innerHTML = '<div class="gx-deck-bloom"></div><div class="gx-deck-aura"></div>' +
     `<div class="gx-deck-sparks">${Array.from({ length: 14 }, (_, k) => `<i style="--x:${(k * 37) % 100}%;--d:${(k * 113) % 1600}ms;--c:${sparkColors[k % sparkColors.length]}"></i>`).join('')}</div>` +
     Array.from({ length: DECK_N }, (_, k) => {
       const side = k % 2 ? 1 : -1;
@@ -243,17 +242,17 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
       return `<div class="gx-deck-card" style="--k:${k};--sx:${side * spread}%;--sy:${sy}%;--sr:${rot}deg;--dl:${k * 14}ms;--fa:${fa}deg;--fd:${k * 18}ms"><img src="/img/logo.png" alt=""></div>`;
     }).join('');
   stage.appendChild(deck);
-  const ring = () => _gxRestart(deck, 'burst');
+  const bloom = () => _gxRestart(deck, 'bloom');
   const setTint = t => _gxSetTint(ov, deck, t);
 
-  // 1. 上から回りながら落ちてきて、着地で光の輪と小さな揺れ
+  // 1. 上から回りながら落ちてきて、着地で小さな揺れ
   setTint(steps[0]);
   requestAnimationFrame(() => deck.classList.add('in'));
   await waitOrSkip(480);
-  if (!fast()) { _sePlay('/sounds/putcard.mp3'); ring(); _gxRestart(stage, 'gx-quake'); }
+  if (!fast()) { _sePlay('/sounds/putcard.mp3'); _gxRestart(stage, 'gx-quake'); }
   if (steps[0] === 'SS' && !fast()) {
     await waitOrSkip(200);
-    _gxScreenFlash(); ring();
+    _gxScreenFlash();
     const a = _sePlay('/sounds/ss_sound.mp3'); setTimeout(() => _seStop(a), 700);
     await waitOrSkip(450);
   }
@@ -273,7 +272,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
       setTimeout(() => _seStop(upAudio), 700);
       setTint(up);
       if (up === 'SS') _gxScreenFlash();
-      ring();
+      bloom();
       await waitOrSkip(520);
     }
     await waitOrSkip(180);

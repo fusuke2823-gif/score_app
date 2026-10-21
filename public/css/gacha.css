@@ -404,7 +404,6 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.95), rgba(255,180,240,0.5) 35%, rgba(120,220,255,0.15) 65%, transparent 80%); }
 .gx-screen-flash.go { animation:gxScreenFlash 0.7s ease-out; }
 @keyframes gxScreenFlash { 0% { opacity:1; } 100% { opacity:0; } }
-.gx-deck[data-t="SS"] .gx-deck-ring { border-color:#fff; box-shadow:0 0 30px #ffd700, 0 0 50px #ff66cc, inset 0 0 24px #00eeff; }
 .gx-deck-card img { width:62%; opacity:0.7; }
 /* シャッフル：札が1枚ずつ違う距離・角度で左右に広がり、交互に重なって戻る */
 .gx-deck.riffle .gx-deck-card { animation:gxRiffle 0.62s cubic-bezier(.4,0,.3,1) both; animation-delay:var(--dl); }
@@ -422,10 +421,12 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   30% { transform:translate(-4px,0) rotate(-3deg); } 40% { transform:translate(4px,1px) rotate(3deg); } 50% { transform:translate(-5px,-1px) rotate(-3deg); }
   60% { transform:translate(5px,0) rotate(3deg); } 70% { transform:translate(-4px,1px) rotate(-2deg); } 80% { transform:translate(4px,-1px) rotate(2deg); } 90% { transform:translate(-2px,0); }
 }
-.gx-deck-ring { position:absolute; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; opacity:0;
-  border:4px solid rgba(255,255,255,0.95); box-shadow:0 0 30px rgba(var(--dc),1), inset 0 0 20px rgba(var(--dc),0.9); }
-.gx-deck.burst .gx-deck-ring { animation:gxDeckRing 0.6s ease-out; }
-@keyframes gxDeckRing { 0% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(14); } }
+/* 格上げの瞬間：束の後ろから、その色のやわらかい光がふわっと広がって消える */
+.gx-deck-bloom { position:absolute; left:50%; top:50%; width:calc(var(--dw) * 4); aspect-ratio:1; transform:translate(-50%,-50%) scale(0.3); border-radius:50%; pointer-events:none; opacity:0; z-index:-1;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(var(--dc),0.75) 28%, rgba(var(--dc),0.25) 50%, transparent 70%); }
+.gx-deck[data-t="SS"] .gx-deck-bloom { background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,150,240,0.7) 25%, rgba(120,220,255,0.35) 45%, rgba(255,215,0,0.15) 58%, transparent 70%); }
+.gx-deck.bloom .gx-deck-bloom { animation:gxDeckBloom 0.9s ease-out; }
+@keyframes gxDeckBloom { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.3); } 35% { opacity:0.9; } 100% { opacity:0; transform:translate(-50%,-50%) scale(1.5); } }
 /* 配る直前にぐっと光る */
 .gx-deck.charge { transform:scale(1.08); }
 .gx-deck.charge .gx-deck-aura { box-shadow:0 0 34px 8px rgba(var(--dc),1), 0 0 90px 20px rgba(var(--dc),0.6); }
@@ -500,16 +501,12 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 }
 .gx-big.up-pop { animation:gxUpPop 0.6s cubic-bezier(.2,1.5,.4,1); }
 @keyframes gxUpPop { 0% { transform:scale(1.22); filter:brightness(2.6); } 100% { transform:none; filter:none; } }
-.gx-up-ring { position:absolute; left:50%; top:50%; width:40px; height:40px; margin:-20px 0 0 -20px; border-radius:50%; pointer-events:none; opacity:0;
-  border:5px solid #fff; box-shadow:0 0 30px rgba(var(--gx-tint),1), inset 0 0 24px rgba(var(--gx-tint),0.9); }
-.gx-closeup.upgraded .gx-up-ring { animation:gxUpRing 0.8s ease-out forwards; }
-@keyframes gxUpRing { 0% { opacity:1; transform:scale(1); border-width:5px; } 100% { opacity:0; transform:scale(12); border-width:1px; } }
-.gx-closeup[data-r="SS"].upgraded .gx-up-ring { border-color:#fff; box-shadow:0 0 30px #ffd700, 0 0 50px #ff66cc, inset 0 0 24px #00eeff; }
-.gx-up-rays { position:absolute; left:50%; top:50%; width:min(150vw, 720px); aspect-ratio:1; transform:translate(-50%,-50%) scale(0.3); pointer-events:none; opacity:0;
-  background:repeating-conic-gradient(from 0deg, rgba(var(--gx-tint),0.55) 0deg 4deg, transparent 4deg 15deg);
-  -webkit-mask:radial-gradient(circle, #000 10%, transparent 62%); mask:radial-gradient(circle, #000 10%, transparent 62%); }
-.gx-closeup.upgraded .gx-up-rays { animation:gxUpRays 1.1s ease-out forwards; }
-@keyframes gxUpRays { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.3) rotate(0deg); } 100% { opacity:0; transform:translate(-50%,-50%) scale(1.3) rotate(40deg); } }
+/* 昇格の瞬間：カードの後ろから、その色のやわらかい光がふわっと広がって消える（輪ではなく光） */
+.gx-up-ring { position:absolute; left:50%; top:50%; width:min(90vw, 420px); aspect-ratio:1; transform:translate(-50%,-50%) scale(0.4); border-radius:50%; pointer-events:none; opacity:0;
+  background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(var(--gx-tint),0.75) 28%, rgba(var(--gx-tint),0.25) 50%, transparent 70%); }
+.gx-closeup[data-r="SS"] .gx-up-ring { background:radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,150,240,0.7) 25%, rgba(120,220,255,0.35) 45%, rgba(255,215,0,0.15) 58%, transparent 70%); }
+.gx-closeup.upgraded .gx-up-ring { animation:gxUpBloom 0.9s ease-out forwards; }
+@keyframes gxUpBloom { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 35% { opacity:0.9; } 100% { opacity:0; transform:translate(-50%,-50%) scale(1.6); } }
 .gx-up-flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:2; }
 .gx-closeup.upgraded .gx-up-flash { animation:gxFlash 0.45s ease-out forwards; }
 .gx-closeup[hidden] { display:none; }
