@@ -55,7 +55,7 @@ function closeGxOverlay() {
 }
 
 // 1枚ずつ中央に大きく出してめくる演出。
-//  SS：虹のカード（昇格するときは低い色のカード → 昇格）→ 暗くして名前 → 明るく戻す → 溜め → めくる（長め）
+//  SS：虹のカード（昇格するときは低い色のカード → 昇格）→ カードを消して名前 → カードを戻す → 溜め → めくる（長め）
 //  S・A：カード → 短い溜め → めくる（名前の前置きなし）
 // 演出の途中でタップすると、その1枚はめくれた状態まで飛ばす。めくれたあとはタップか一定時間で次へ
 let _gxActiveReveal = null;
@@ -143,10 +143,12 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
     big.classList.remove('up-pop');
   }
   big.dataset.r = r;
-  // SS：虹のカードが出たあと、画面ごと暗くして名前を出し、明るく戻してからめくる
+  // SS：虹のカードが出たあと、カードを消して背景の上に名前を出し、カードを戻してからめくる
   if (intro) {
+    const ov = document.getElementById('gx-overlay');
     if (!jumped) {
       cu.classList.add('dim');
+      ov.classList.add('cu-name');
       await wait(350);
     }
     if (!jumped) {
@@ -155,6 +157,7 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
     }
     intro.classList.add('out');
     cu.classList.remove('dim');
+    ov.classList.remove('cu-name');
     if (!jumped) await wait(400);
   }
   if (!jumped) {
@@ -223,7 +226,7 @@ async function _gxDealFrom(cardEls, from, { fast, onEach } = {}) {
     const rot = (Math.random() * 24 - 12).toFixed(1);
     _sePlay('/sounds/putcard.mp3');
     // 飛んでいる間は山札の札と同じ見た目にし、着地したところで色（見せかけのレアリティ）を付ける
-    setTimeout(() => card.classList.remove('in-flight'), 470);
+    setTimeout(() => card.classList.remove('in-flight'), 340);
     // 札と同じ位置・大きさから持ち上げて、弧を描いて飛ぶ
     card.animate([
       { transform: `translate(${dx}px, ${dy}px) scale(${sc})` },

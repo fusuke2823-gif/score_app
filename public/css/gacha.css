@@ -381,7 +381,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 /* 配られたカード：位置は Web Animations で弧を描いて動かすので、CSSの移り変わりは止める */
 .gx-stage .g-card.dealt { opacity:1; transform:none; transition:none; }
 /* 飛んでいる間は山札の札と同じ見た目（色は着地してから付く） */
-.gx-stage .g-card .g-card-front { transition:border-color 0.25s, box-shadow 0.25s; }
+.gx-stage .g-card .g-card-front { transition:border-color 0.12s, box-shadow 0.12s; }
 .gx-stage .g-card.in-flight .g-card-front { border:2px solid rgba(255,255,255,0.28); background:#201c3a; box-shadow:0 4px 10px rgba(0,0,0,0.55); animation:none; transition:none; }
 .gx-deck-aura { position:absolute; inset:0; border-radius:12px; transition:box-shadow 0.4s;
   box-shadow:0 0 26px 7px rgba(var(--dc),0.95), 0 0 70px 18px rgba(var(--dc),0.55); }
@@ -411,6 +411,9 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 /* リフルシャッフル：左右の山に割る → 下の札から交互に（--md ずつ遅らせて）真ん中へ落とす */
 .gx-deck.split .gx-deck-card { transform:translate(var(--hx), calc(var(--k) * -1.1px - 4%)) rotate(var(--hr)); transition:box-shadow 0.3s, transform 0.3s cubic-bezier(.3,0,.3,1); }
 .gx-deck.merge .gx-deck-card { transition:box-shadow 0.3s, transform 0.16s cubic-bezier(.5,0,.7,1) var(--md); }
+/* 割っている間は束の後ろの光を消す（光はカードの形の周りに付くので、真ん中に模様のない札があるように見えるため） */
+.gx-deck-aura { transition:box-shadow 0.4s, opacity 0.2s; }
+.gx-deck.split .gx-deck-aura { opacity:0; }
 /* 格上げ：扇のカードが少し浮き、真ん中から外へ光が伝わる（カードの色は変えず、光だけ） */
 .gx-deck.fan.lift .gx-deck-card { transform:rotate(var(--fa)) translateY(-11%); transition:box-shadow 0.3s, transform 0.4s ease-out; }
 .gx-deck.wave .gx-deck-card { animation:gxCardWave 0.7s ease-out var(--wd) both; }
@@ -525,9 +528,12 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
   opacity:0; filter:blur(10px); transition:opacity 0.5s, filter 0.5s, transform 0.5s;
 }
 .gx-cu-intro.in { opacity:1; filter:none; }
-/* 名前を出す間は、カードと周りの光を暗く沈める */
-.gx-big { transition:opacity 0.35s, transform 0.5s cubic-bezier(.2,1.3,.4,1), filter 0.35s; }
-.gx-closeup.dim .gx-big { filter:brightness(0.18) saturate(0.6); }
+/* 名前を出す間は、カードを消して背景の上に名前だけを出す */
+.gx-closeup.dim .gx-big { opacity:0; transform:scale(0.92); transition:opacity 0.3s, transform 0.3s; }
+/* 名前を出す間だけ、後ろのオーロラ・星を透かして見せる（並んだカードは隠す） */
+.gx-closeup { transition:opacity 0.25s, background-color 0.4s; }
+.gx-closeup.dim { background-color:rgba(3,2,10,0.3); }
+.gx-overlay.cu-name .gx-stage { opacity:0; transition:opacity 0.3s; }
 .gx-cu-intro.out { opacity:0; filter:blur(6px); transform:translateY(-50%) scale(1.15); transition-duration:0.35s; }
 .gx-big-inner { position:absolute; inset:0; transform-style:preserve-3d; transition:transform 0.7s cubic-bezier(.3,1.4,.5,1); }
 .gx-big.flipped .gx-big-inner { transform:rotateY(180deg); }
