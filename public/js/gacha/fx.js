@@ -194,9 +194,15 @@ function _gxTintSteps(finalTint) {
 }
 
 // ===== 最初の演出 =====
-// どれも同じ形の関数：{ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast } を受け取り、
-// 光の色を steps の順に上げながら盛り上げて、最後に cardEls を並べ終える（card-visible を付ける）
+// どれも同じ形の関数：{ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast, waitTap } を受け取り、
+// 主役（山札など）を出して waitTap() でタップを待ち、そのあと光の色を steps の順に上げながら盛り上げて、
+// 最後に cardEls を並べ終える（card-visible を付ける）。画面のタップで飛ばせるのは waitTap() のあとから
 const GX_INTROS = {};
+
+// 確定演出（SSが出るときだけ呼ぶ。あとで追加する）。どちらも ctx = { ov, stage, anchor, results } を受け取る
+//  wait：タップ待ちの画面に出す（タップされるまで出しっぱなしにする要素を ctx.stage に足す。戻り値は無視）
+//  tap ：タップした直後に流す（終わるまで待つ async 関数）
+const GX_CONFIRM_FX = { wait: null, tap: null };
 
 // 光の色（オーバーレイ全体と、演出の主役の要素）を変える
 function _gxSetTint(ov, el, t) {
@@ -243,8 +249,8 @@ async function _gxDealFrom(cardEls, from, { fast, onEach } = {}) {
   setTimeout(() => cardEls.forEach(c => c.classList.remove('dealt')), 500);
 }
 
-// 山札：上から落ちてくる → 左右に割ってリフルシャッフル → 扇に広げる（ここで光の色が上がることがある） → 閉じる → 光を溜めて沈む → 弧を描いて配る
-GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast }) => {
+// 山札：上から落ちてくる → タップ待ち → 左右に割ってリフルシャッフル → 扇に広げる（ここで光の色が上がることがある） → 閉じる → 光を溜めて沈む → 弧を描いて配る
+GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fast, waitTap }) => {
   const deck = document.createElement('div');
   deck.className = 'gx-deck';
   // 札は12枚。偶数番は左・奇数番は右の山に割り、下から交互に落として噛み合わせる。扇は真ん中から外へ光が伝わる
@@ -273,9 +279,12 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
     const a = _sePlay('/sounds/ss_sound.mp3'); setTimeout(() => _seStop(a), 700);
     await waitOrSkip(450);
   }
-  await waitOrSkip(200);
 
-  // 2. リフルシャッフル：左右の山に割り、下から交互に落として1つに噛み合わせる
+  // 2. タップを待つ（山札の下に「タップ」が点滅）
+  await waitTap(deck);
+  await waitOrSkip(150);
+
+  // 3. リフルシャッフル：左右の山に割り、下から交互に落として1つに噛み合わせる
   if (!fast()) {
     deck.classList.add('split');
     await waitOrSkip(320);
@@ -288,7 +297,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
     await waitOrSkip(160);
   }
 
-  // 3. 扇に広げる。格上げがある場合は、広げたままカードが浮いて震え、真ん中から外へ光が伝わって色が上がる
+  // 4. 扇に広げる。格上げがある場合は、広げたままカードが浮いて震え、真ん中から外へ光が伝わって色が上がる
   if (!fast()) {
     deck.classList.add('fan');
     _sePlay('/sounds/turn.mp3');
@@ -312,11 +321,11 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
   }
   setTint(tint);
 
-  // 4. 閉じる
+  // 5. 閉じる
   deck.classList.remove('fan', 'wave');
   if (!fast()) await waitOrSkip(300);
 
-  // 5. 光を溜めながら、並ぶ場所の下へ沈む
+  // 6. 光を溜めながら、並ぶ場所の下へ沈む
   const wrapRect = wrap.getBoundingClientRect();
   const d0 = deck.getBoundingClientRect();
   const stageRect = stage.getBoundingClientRect();
@@ -331,7 +340,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, waitOrSkip, fas
   if (!fast()) await waitOrSkip(380);
   deck.classList.remove('charge');
 
-  // 6. 山札の一番上の札を持ち上げて、弧を描いて配る（持ち上げた札は山札から消える）
+  // 7. 山札の一番上の札を持ち上げて、弧を描いて配る（持ち上げた札は山札から消える）
   deck.classList.add('dealing');
   const deckCards = [...deck.querySelectorAll('.gx-deck-card')].reverse(); // 上の札から順に
   await _gxDealFrom(cardEls, k => deckCards[Math.min(k, deckCards.length - 1)].getBoundingClientRect(), {
@@ -395,17 +404,38 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     skip = true; skipBtn.hidden = true; cardEls.forEach(c => c.classList.add('card-visible'));
     if (_gxActiveReveal && _gxActiveReveal.rarity !== 'SS') _gxActiveReveal.close();
   };
-  // 最初の演出（シャッフル・配る）の間は、画面のタップでその演出だけ飛ばす（めくる演出はそのまま）
+  // 最初の演出（シャッフル・配る）の間は、画面のタップでその演出だけ飛ばす（めくる演出はそのまま）。
+  // 受け付けるのはタップ待ち（waitTap）のあとから
   let introSkip = false;
   const onIntroTap = () => { introSkip = true; };
-  ov.addEventListener('click', onIntroTap);
+  const hasSS = results.some(r => r.rarity === 'SS');
+  // タップ待ち：anchor（山札など）の下に「タップ」を点滅させ、画面のどこかがタップされるかSKIPされるまで待つ
+  const waitTap = async anchor => {
+    if (skip) return;
+    const ctx = { ov, stage, anchor, results };
+    const hint = document.createElement('div');
+    hint.className = 'gx-tap-hint';
+    hint.textContent = 'タップ';
+    const ar = anchor.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    hint.style.top = `${ar.bottom - sr.top + 26}px`;
+    stage.appendChild(hint);
+    if (hasSS && GX_CONFIRM_FX.wait) { try { GX_CONFIRM_FX.wait(ctx); } catch (_) {} }
+    await new Promise(res => {
+      const done = () => { clearInterval(iv); ov.removeEventListener('click', done); res(); };
+      const iv = setInterval(() => { if (skip) done(); }, 40);
+      ov.addEventListener('click', done);
+    });
+    hint.remove();
+    if (hasSS && GX_CONFIRM_FX.tap && !skip) { try { await GX_CONFIRM_FX.tap(ctx); } catch (_) {} }
+    ov.addEventListener('click', onIntroTap);
+  };
 
   // ===== 最初の演出 → 配る =====
   // SKIPされたら途中でも抜ける待ち時間
   const waitOrSkip = async ms => { const end = Date.now() + ms; while (!skip && !introSkip && Date.now() < end) await _gxWait(40); };
   const fast = () => skip || introSkip;
   const intro = GX_INTROS.deck; // SS用の別の演出はここで選ぶ（tint・steps を見て）
-  await intro({ ov, stage, wrap, cardEls, tint, steps: _gxTintSteps(tint), waitOrSkip, fast });
+  await intro({ ov, stage, wrap, cardEls, tint, steps: _gxTintSteps(tint), waitOrSkip, fast, waitTap });
   ov.removeEventListener('click', onIntroTap);
   await _gxWait(fast() ? 450 : 600);
 
