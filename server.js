@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 3000;
 // シンプルなレート制限（15分間に20回まで）
 const _rateLimitStore = new Map();
 function authLimiter(req, res, next) {
+  // 【一時】回数制限で使うIPが、利用者ごとのIPになっているか確かめるためのログ（確認が済んだら消す）
+  console.log('[ip-check]', JSON.stringify({ ip: req.ip, xff: req.headers['x-forwarded-for'] || null, cf: req.headers['cf-connecting-ip'] || null, remote: req.socket.remoteAddress }));
   const key = req.ip;
   const now = Date.now();
   const windowMs = 15 * 60 * 1000;
@@ -21,6 +23,16 @@ function authLimiter(req, res, next) {
   next();
 }
 
+app.disable('x-powered-by');
+// セキュリティ用の応答ヘッダー：ほかのサイトに埋め込ませない（クリックジャッキング対策）、ファイルの種類を推測させない、
+// ほかのサイトへ移るときにURLの細かい部分を渡さない
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 // 画像は中身がほとんど変わらないので、ブラウザに30日覚えさせる（デプロイのたびに全員が読み直して転送量が増えないように）。
