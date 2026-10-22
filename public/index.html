@@ -25,7 +25,7 @@
 /* ===== トップの見た目 ===== */
 .top-head { position:relative; padding:6px 0 4px; }
 .top-head .top-eyebrow, .top-head .top-title { padding-right:44px; }
-.top-eyebrow { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.62rem; letter-spacing:0.28em; color:var(--accent); text-shadow:0 0 10px rgba(230,57,80,0.6); }
+.top-eyebrow { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.62rem; letter-spacing:0.28em; color:var(--accent); text-shadow:0 0 10px rgba(255,77,101,0.6); }
 .top-title { margin:4px 0 0; font-family:"Zen Kaku Gothic New", sans-serif; font-size:1.65rem; font-weight:900; line-height:1.25; letter-spacing:0.02em;
   background:linear-gradient(180deg,#fff 30%,#c9c9e6); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 2px 10px rgba(0,0,0,0.6)); }
 .top-title-line { width:64px; height:3px; border-radius:2px; margin:10px 0 10px; background:linear-gradient(90deg, var(--accent), transparent); }
@@ -40,7 +40,7 @@
   background:radial-gradient(circle at 50% 30%, rgba(255,255,255,0.12), rgba(20,18,40,0.75) 70%); border:1px solid rgba(255,255,255,0.18);
   box-shadow:0 6px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12); backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
   transition:transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
-.top-act:hover .top-act-ico { transform:translateY(-2px); border-color:rgba(230,57,80,0.7); box-shadow:0 8px 22px rgba(0,0,0,0.5), 0 0 16px rgba(230,57,80,0.35); }
+.top-act:hover .top-act-ico { transform:translateY(-2px); border-color:rgba(255,77,101,0.7); box-shadow:0 8px 22px rgba(0,0,0,0.5), 0 0 16px rgba(255,77,101,0.35); }
 .top-filter { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:99px; border:1px solid rgba(255,255,255,0.18); background:rgba(20,18,40,0.6);
   backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%); color:var(--text-primary); font-size:0.85rem; cursor:pointer; }
 .top-filter:hover { border-color:var(--accent); }
@@ -74,7 +74,7 @@
   color:var(--text-muted); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
 .ev-status.open { color:#6ee7a0; background:rgba(76,175,80,0.14); border-color:rgba(110,231,160,0.4); }
 .ev-status.open::before { content:''; width:6px; height:6px; border-radius:50%; background:#6ee7a0; box-shadow:0 0 6px #6ee7a0; animation:evPulse 1.6s ease-in-out infinite; }
-.ev-status.soon { color:#ff8a9a; background:rgba(230,57,80,0.14); border-color:rgba(255,138,154,0.45); }
+.ev-status.soon { color:#ff8a9a; background:rgba(255,77,101,0.14); border-color:rgba(255,138,154,0.45); }
 .ev-status.soon::before { background:#ff8a9a; box-shadow:0 0 6px #ff8a9a; }
 @keyframes evPulse { 50% { opacity:0.35; } }
 /* 開催中：ときどき光がカードの縁を一周する */
@@ -132,7 +132,7 @@
 .new-badge {
   position:absolute; top:-6px; right:-8px; padding:1px 6px; border-radius:99px;
   background:linear-gradient(90deg, #ff5470, #ff8a3d); color:#fff; font-size:0.62rem; font-weight:900; letter-spacing:0.04em;
-  box-shadow:0 2px 8px rgba(230,57,80,0.5); pointer-events:none;
+  box-shadow:0 2px 8px rgba(255,77,101,0.5); pointer-events:none;
   animation:newBadgePop 1.8s ease-in-out infinite;
 }
 @keyframes newBadgePop { 0%, 100% { transform:scale(1); } 50% { transform:scale(1.1); } }

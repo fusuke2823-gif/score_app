@@ -35,7 +35,7 @@
 }
 .gacha-type-indicator {
   position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px); border-radius:10px;
-  background:linear-gradient(135deg, #ff5470, #c2185b); box-shadow:0 4px 14px rgba(230,57,80,0.45);
+  background:linear-gradient(135deg, #ff5470, #c2185b); box-shadow:0 4px 14px rgba(255,77,101,0.45);
   transition:transform 0.3s cubic-bezier(.4,1.3,.5,1), background 0.3s, box-shadow 0.3s;
 }
 .gacha-type-tabs[data-active="special"] .gacha-type-indicator {
@@ -101,7 +101,7 @@
 .g-new {
   position:absolute; top:-9px; right:-6px; z-index:2; padding:1px 6px; border-radius:99px;
   background:linear-gradient(90deg, #ff5470, #ff8a3d); color:#fff; font-size:0.58rem; font-weight:900; letter-spacing:0.04em;
-  box-shadow:0 2px 6px rgba(230,57,80,0.5);
+  box-shadow:0 2px 6px rgba(255,77,101,0.5);
 }
 .g-card-back .g-name { font-size:0.62rem; color:var(--text-primary); text-align:center; word-break:break-all; line-height:1.2; max-width:80px; }
 .g-rarity-tag { position:absolute; top:-20px; left:50%; transform:translateX(-50%); white-space:nowrap; font-size:0.65rem; font-weight:bold; padding:1px 7px; border-radius:4px; }
@@ -212,7 +212,7 @@
 .gx-ptab-name { font-size:0.7rem; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 2px; }
 .gx-ptab:hover .gx-ptab-thumb { filter:brightness(0.85); }
 .gx-ptab.on { color:var(--text-primary); }
-.gx-ptab.on .gx-ptab-thumb { filter:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 4px 14px rgba(230,57,80,0.35); transform:translateY(-1px); }
+.gx-ptab.on .gx-ptab-thumb { filter:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 4px 14px rgba(255,77,101,0.35); transform:translateY(-1px); }
 /* PC：本文の幅いっぱいまで使い、収まるときは中央に（はみ出すときは左から並べてスクロールできるように、中央寄せは余白で） */
 @media (min-width:720px) { .gx-ptab { width:150px; } .gx-pooltabs > .gx-ptab:first-child { margin-left:auto; } .gx-pooltabs > .gx-ptab:last-child { margin-right:auto; } }
 .gx-hero .pool-banner { cursor:default; pointer-events:none; aspect-ratio:2.2 / 1; }
@@ -601,7 +601,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-big-new {
   position:absolute; top:-12px; right:-12px; z-index:2; padding:3px 12px; border-radius:99px;
   background:linear-gradient(90deg,#ff5470,#ff8a3d); color:#fff; font-size:0.78rem; font-weight:900; letter-spacing:0.05em;
-  box-shadow:0 3px 10px rgba(230,57,80,0.55); opacity:0; transform:scale(0.5); transition:opacity 0.25s, transform 0.3s cubic-bezier(.2,1.6,.4,1);
+  box-shadow:0 3px 10px rgba(255,77,101,0.55); opacity:0; transform:scale(0.5); transition:opacity 0.25s, transform 0.3s cubic-bezier(.2,1.6,.4,1);
 }
 .gx-closeup.revealed .gx-big-new { opacity:1; transform:none; }
 /* めくれる瞬間の光の輪と白いフラッシュ */

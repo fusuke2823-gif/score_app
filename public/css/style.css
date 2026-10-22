@@ -13,9 +13,10 @@
   --text-primary: #e8e8f0;
   --text-secondary: #8888aa;
   --text-muted: #8080a0; /* 暗いカード上でもコントラスト比4.5:1以上を確保 */
-  --accent: #e63950;
-  --accent-hover: #ff4d65;
-  --accent-dim: rgba(230, 57, 80, 0.15);
+  --accent: #ff4d65; /* サイトのイメージカラー（アイコンのピンク） */
+  --accent-hover: #ff6b80;
+  --accent-grad: linear-gradient(135deg, #ff4d65, #a03070); /* 強調するボタンなど（アイコンと同じグラデ） */
+  --accent-dim: rgba(255, 77, 101, 0.15);
   --success: #2ecc71;
   --warning: #f39c12;
   --danger: #e74c3c;
@@ -90,8 +91,8 @@ nav {
 }
 .nav-logo:hover { text-decoration: none; }
 .nav-logo-mark { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 0 12px rgba(230,57,80,0.5), inset 0 1px 0 rgba(255,255,255,0.3); transition: transform 0.15s, box-shadow 0.15s; }
-.nav-logo:hover .nav-logo-mark { transform: translateY(-1px); box-shadow: 0 0 16px rgba(230,57,80,0.7), inset 0 1px 0 rgba(255,255,255,0.3); }
+  background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 0 12px rgba(255,77,101,0.5), inset 0 1px 0 rgba(255,255,255,0.3); transition: transform 0.15s, box-shadow 0.15s; }
+.nav-logo:hover .nav-logo-mark { transform: translateY(-1px); box-shadow: 0 0 16px rgba(255,77,101,0.7), inset 0 1px 0 rgba(255,255,255,0.3); }
 .nav-logo-txt { display: flex; flex-direction: column; line-height: 1; }
 .nav-logo-txt b { font-family: "Orbitron", sans-serif; font-weight: 900; font-size: 1rem; letter-spacing: 0.08em; color: #fff; }
 .nav-logo-txt i { font-style: normal; font-family: "Orbitron", sans-serif; font-weight: 700; font-size: 0.5rem; letter-spacing: 0.24em; color: #ff6b80; margin-top: 3px; }
@@ -127,11 +128,11 @@ nav {
 .nav-admin-badge {
   display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; line-height: 1;
   padding: 3px 7px 3px 5px; border-radius: 99px;
-  border: 1px solid rgba(230,57,80,0.75); background: rgba(230,57,80,0.12);
+  border: 1px solid rgba(255,77,101,0.75); background: rgba(255,77,101,0.12);
   color: #ff7088; font-family: 'Orbitron', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.12em;
-  box-shadow: 0 0 6px rgba(230,57,80,0.35);
+  box-shadow: 0 0 6px rgba(255,77,101,0.35);
 }
-.nav-admin-badge svg { color: #e63950; flex-shrink: 0; }
+.nav-admin-badge svg { color: #ff4d65; flex-shrink: 0; }
 
 /* メインコンテンツ */
 main {
@@ -187,8 +188,8 @@ main {
   transition: all 0.2s;
   text-decoration: none;
 }
-.btn-primary { background: var(--accent); color: white; }
-.btn-primary:hover { background: var(--accent-hover); color: white; text-decoration: none; }
+.btn-primary { background: var(--accent-grad); color: white; }
+.btn-primary:hover { background: linear-gradient(135deg, #ff6b80, #b8407f); color: white; text-decoration: none; }
 .btn-secondary { background: var(--bg-card2); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); color: var(--text-primary); border: 1px solid var(--border); }
 .btn-secondary:hover { border-color: var(--border-light); background: var(--border); text-decoration: none; }
 .btn-success { background: var(--success); color: white; }
@@ -554,7 +555,7 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   align-items: center;
   padding: 12px 14px;
   border-radius: 12px;
-  background: linear-gradient(120deg, rgba(230,57,80,0.10), rgba(255,255,255,0.02) 55%), var(--bg-card2);
+  background: linear-gradient(120deg, rgba(255,77,101,0.10), rgba(255,255,255,0.02) 55%), var(--bg-card2);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--border);
@@ -763,7 +764,7 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .nav-mobile.open .nm-panel { transform: none; }
 .nm-user { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--text-primary);
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
-.nm-user:hover { text-decoration: none; color: var(--text-primary); border-color: rgba(230,57,80,0.5); }
+.nm-user:hover { text-decoration: none; color: var(--text-primary); border-color: rgba(255,77,101,0.5); }
 .nm-avatar { width: 38px; height: 38px; border-radius: 20%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   background: linear-gradient(135deg, #ff4d65, #a03070); color: #fff; font-weight: 900; font-size: 1rem; }
 .nm-avatar.has-img { background: none; }
@@ -773,19 +774,16 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .nm-user-body small { font-size: 0.72rem; color: var(--text-muted); }
 .nm-chev { color: var(--text-muted); flex-shrink: 0; }
 .nm-guest { display: flex; gap: 8px; margin-bottom: 12px; }
-/* ログイン・新規登録（未ログインのヘッダーとメニュー）：ログインはピンクに光る細い枠、新規登録は赤→マゼンタのグラデにときどき光がなでる */
+/* ログイン・新規登録（未ログインのヘッダーとメニュー）：ログインはピンクに光る細い枠、新規登録は赤→マゼンタのグラデ */
 .au-login, .au-reg { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; text-decoration: none;
   padding: 6px 14px; border-radius: 99px; font-size: 0.8rem; transition: box-shadow 0.2s, transform 0.15s, background 0.2s; }
 .au-login:hover, .au-reg:hover { text-decoration: none; transform: translateY(-1px); }
-.au-login { font-weight: 700; color: #ffd6dc; background: rgba(230,57,80,0.06);
-  border: 1px solid rgba(255,107,128,0.55); box-shadow: 0 0 10px rgba(230,57,80,0.25), inset 0 0 8px rgba(230,57,80,0.15); }
-.au-login:hover { color: #fff; background: rgba(230,57,80,0.14); box-shadow: 0 0 14px rgba(230,57,80,0.45), inset 0 0 10px rgba(230,57,80,0.25); }
-.au-reg { position: relative; overflow: hidden; padding: 6px 16px; font-weight: 800; color: #fff;
-  background: linear-gradient(110deg, #e63950, #ff4f9a); box-shadow: 0 0 14px rgba(255,79,154,0.55), inset 0 1px 0 rgba(255,255,255,0.35); }
-.au-reg:hover { color: #fff; box-shadow: 0 0 20px rgba(255,79,154,0.75), inset 0 1px 0 rgba(255,255,255,0.4); }
-.au-reg::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-20deg); pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); animation: auShine 3.2s ease-in-out infinite; }
-@keyframes auShine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.au-login { font-weight: 700; color: #ffd6dc; background: rgba(255,77,101,0.06);
+  border: 1px solid rgba(255,107,128,0.55); box-shadow: 0 0 10px rgba(255,77,101,0.25), inset 0 0 8px rgba(255,77,101,0.15); }
+.au-login:hover { color: #fff; background: rgba(255,77,101,0.14); box-shadow: 0 0 14px rgba(255,77,101,0.45), inset 0 0 10px rgba(255,77,101,0.25); }
+.au-reg { padding: 6px 16px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 0 14px rgba(255,77,101,0.55), inset 0 1px 0 rgba(255,255,255,0.35); }
+.au-reg:hover { color: #fff; box-shadow: 0 0 20px rgba(255,77,101,0.75), inset 0 1px 0 rgba(255,255,255,0.4); }
 .au-ico { width: 15px; height: 15px; flex-shrink: 0; }
 .au-short { display: none; }
 .nm-guest .au-login, .nm-guest .au-reg { flex: 1; padding: 12px; font-size: 0.92rem; }
@@ -795,13 +793,13 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   .nav-user .au-reg .au-short { display: inline; }
   .nav-user .au-login, .nav-user .au-reg { padding: 5px 12px; }
 }
-@media (prefers-reduced-motion: reduce) { .au-reg::after { animation: none; } }
+
 .nm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .nm-grid > span[style*="contents"] { display: contents; }
 .nm-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px 9px; border-radius: 12px; text-decoration: none;
   color: var(--text-secondary); background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); transition: background 0.15s, border-color 0.15s; }
 .nm-tile:hover { text-decoration: none; color: var(--text-primary); background: rgba(255,255,255,0.07); }
-.nm-tile.active { color: #fff; border-color: rgba(230,57,80,0.6); background: rgba(230,57,80,0.14); }
+.nm-tile.active { color: #fff; border-color: rgba(255,77,101,0.6); background: rgba(255,77,101,0.14); }
 .nm-ico { position: relative; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #ff7a8c;
   background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.1), rgba(20,18,40,0.6) 75%); border: 1px solid rgba(255,255,255,0.1); }
 .nm-ico svg { width: 20px; height: 20px; }
@@ -818,7 +816,7 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .nm-lang { position: relative; display: inline-flex; padding: 3px; border-radius: 99px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
 .nm-lang button { position: relative; z-index: 1; background: none; border: none; border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 0.76rem; font-weight: bold;
   color: var(--text-muted); cursor: pointer; transition: color 0.15s, background 0.15s; }
-.nm-lang button.on { color: #fff; background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 2px 8px rgba(230,57,80,0.4); cursor: default; }
+.nm-lang button.on { color: #fff; background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 2px 8px rgba(255,77,101,0.4); cursor: default; }
 /* ハンバーガー → × */
 .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .nav-hamburger.open span:nth-child(2) { opacity: 0; }

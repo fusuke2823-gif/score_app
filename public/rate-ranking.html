@@ -50,20 +50,20 @@
 .rr-pick-item { display:flex; align-items:center; gap:8px; width:100%; padding:8px 10px; border:none; border-radius:8px; background:none; color:var(--text-secondary);
   font-size:0.82rem; text-align:left; cursor:pointer; }
 .rr-pick-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
-.rr-pick-item.active { background:rgba(230,57,80,0.2); color:#fff; font-weight:bold; }
+.rr-pick-item.active { background:rgba(255,77,101,0.2); color:#fff; font-weight:bold; }
 .rr-pick-item small { margin-left:auto; font-size:0.66rem; color:var(--text-muted); }
 .rr-pick-item .dot { width:6px; height:6px; border-radius:50%; background:#6ee7a0; flex-shrink:0; }
 /* 光の板が動く切り替え（ランキング画面と同じ） */
 .seg { --n:4; position:relative; display:grid; grid-template-columns:repeat(var(--n), auto); padding:3px; border-radius:99px; isolation:isolate;
   background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); }
 .seg::before { content:''; position:absolute; z-index:-1; top:3px; bottom:3px; left:var(--x, 3px); width:var(--w, 0); border-radius:99px;
-  background:linear-gradient(135deg, #ff4d65, #a03070); box-shadow:0 2px 10px rgba(230,57,80,0.45); transition:left .25s cubic-bezier(.2,.8,.2,1), width .25s cubic-bezier(.2,.8,.2,1); }
+  background:linear-gradient(135deg, #ff4d65, #a03070); box-shadow:0 2px 10px rgba(255,77,101,0.45); transition:left .25s cubic-bezier(.2,.8,.2,1), width .25s cubic-bezier(.2,.8,.2,1); }
 .seg button { border:none; background:none; color:var(--text-muted); height:26px; padding:0 13px; border-radius:99px; font-size:0.78rem; font-weight:bold; cursor:pointer; white-space:nowrap; transition:color .2s; }
 .seg button.active { color:#fff; }
 
 /* ===== 自分のカード：左に名前、真ん中にランクのバッジ、右にレートと順位 ===== */
 .rr-me { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:10px; padding:12px 16px; margin-bottom:12px; border-radius:12px;
-  background:linear-gradient(110deg, rgba(230,57,80,0.16), rgba(18,16,34,0.7) 55%); border:1px solid rgba(230,57,80,0.35); }
+  background:linear-gradient(110deg, rgba(255,77,101,0.16), rgba(18,16,34,0.7) 55%); border:1px solid rgba(255,77,101,0.35); }
 .rr-me-badge { display:flex; align-items:center; justify-content:center; }
 .rr-me-badge img { height:76px; width:auto; max-width:120px; object-fit:contain; filter:drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
 .rr-me-badge img.sq { width:72px; height:72px; }
@@ -98,7 +98,7 @@
 #rate-ranking-content tr.rank-1 td { background:rgba(255,215,0,0.06); }
 #rate-ranking-content tr.rank-2 td { background:rgba(210,210,225,0.045); }
 #rate-ranking-content tr.rank-3 td { background:rgba(205,127,50,0.055); }
-#rate-ranking-content tr.is-me:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(230,57,80,0.14); }
+#rate-ranking-content tr.is-me:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(255,77,101,0.14); }
 .rr-rank-label { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
 .rr-rank-label img { height:28px; width:auto; object-fit:contain; }
 .rr-exn { font-weight:700; font-size:0.86rem; color:#a855f7; }
