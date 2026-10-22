@@ -16,10 +16,7 @@
 @media (max-width:600px) { .filter-bar select { max-width:none; } }
 .filter-attrs { display:flex; gap:5px; flex-wrap:wrap; align-items:center; margin-bottom:6px; }
 .filter-attrs .attr-btn { padding:4px 13px; font-size:0.82rem; }
-.sort-seg { display:inline-flex; flex-shrink:0; padding:3px; gap:3px; border:1px solid var(--border-light); border-radius:9px; background:var(--bg-card); }
-.sort-seg button { background:transparent; border:none; border-radius:6px; color:var(--text-primary); opacity:0.75; font:inherit; font-size:0.82rem; padding:0 12px; cursor:pointer; white-space:nowrap; }
-.sort-seg button:hover { opacity:1; }
-.sort-seg button.on { background:var(--accent); color:#fff; opacity:1; font-weight:bold; }
+.sort-seg { flex-shrink:0; }
 .filter-reset { background:none; border:none; color:var(--text-muted); font-size:0.8rem; cursor:pointer; padding:4px; }
 .filter-reset:hover { color:var(--text-primary); }
 .result-count { font-size:0.75rem; color:var(--text-muted); }
@@ -42,7 +39,7 @@
     <select id="event-select" class="form-input" onchange="search()">
       <option value="" data-i18n="chart.all_events">全イベント</option>
     </select>
-    <span class="sort-seg" id="sort-seg">
+    <span class="sort-seg pill-tabs" id="sort-seg">
       <button data-sort="new" class="on" onclick="setSort('new')" data-i18n="chart.sort_new">新しい順</button><button data-sort="popular" onclick="setSort('popular')" data-i18n="chart.sort_popular">人気順</button>
     </span>
   </div>

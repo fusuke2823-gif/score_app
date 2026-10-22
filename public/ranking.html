@@ -149,9 +149,9 @@
 
   <!-- ランキング -->
   <div class="card rk-card">
-    <div id="scope-toggle" style="display:none;gap:0;border:1px solid var(--border-light);border-radius:8px;overflow:hidden;backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);margin-bottom:8px;width:fit-content">
-      <button id="scope-btn-internal" onclick="setScope('internal')" style="padding:4px 10px;font-size:0.78rem;background:var(--bg-card2);color:var(--text-muted);border:none;cursor:pointer" data-i18n="scope.internal">内部</button>
-      <button id="scope-btn-public" onclick="setScope('public')" style="padding:4px 10px;font-size:0.78rem;background:rgba(255,77,101,0.4);color:#fff;font-weight:bold;border:none;cursor:pointer" data-i18n="scope.public">外部</button>
+    <div id="scope-toggle" class="pill-tabs pill-sm" style="display:none;margin-bottom:8px">
+      <button id="scope-btn-internal" onclick="setScope('internal')" data-i18n="scope.internal">内部</button>
+      <button id="scope-btn-public" class="on" onclick="setScope('public')" data-i18n="scope.public">外部</button>
     </div>
     <div id="ranking-updated" style="font-size:0.75rem;color:var(--text-muted);text-align:right;margin-bottom:4px"></div>
     <div id="ranking-content">
@@ -296,17 +296,13 @@ let _rankingScope = 'public';
 
 // 内部ユーザーならスコープ切替ボタンを表示
 if (isInternal()) {
-  document.getElementById('scope-toggle').style.display = 'flex';
+  document.getElementById('scope-toggle').style.display = 'inline-flex';
 }
 
 function setScope(scope) {
   _rankingScope = scope;
-  document.getElementById('scope-btn-internal').style.background = scope === 'internal' ? 'rgba(255,77,101,0.4)' : 'var(--bg-card2)';
-  document.getElementById('scope-btn-internal').style.color = scope === 'internal' ? '#fff' : 'var(--text-muted)';
-  document.getElementById('scope-btn-internal').style.fontWeight = scope === 'internal' ? 'bold' : 'normal';
-  document.getElementById('scope-btn-public').style.background = scope === 'public' ? 'rgba(255,77,101,0.4)' : 'var(--bg-card2)';
-  document.getElementById('scope-btn-public').style.color = scope === 'public' ? '#fff' : 'var(--text-muted)';
-  document.getElementById('scope-btn-public').style.fontWeight = scope === 'public' ? 'bold' : 'normal';
+  document.getElementById('scope-btn-internal').classList.toggle('on', scope === 'internal');
+  document.getElementById('scope-btn-public').classList.toggle('on', scope === 'public');
   loadRanking();
 }
 

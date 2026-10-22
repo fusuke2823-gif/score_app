@@ -13,9 +13,7 @@
 .event-group-header { font-size:0.85rem; font-weight:bold; color:var(--text-muted); margin:22px 0 8px; display:flex; align-items:center; gap:8px; }
 .event-group-header::after { content:''; flex:1; height:1px; background:var(--border); }
 .event-group-header small { font-weight:normal; font-size:0.72rem; }
-.cm-tabs { display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:4px; }
-.cm-tabs button { background:none; border:none; border-bottom:2px solid transparent; color:var(--text-muted); font:inherit; font-size:0.86rem; padding:8px 12px; cursor:pointer; margin-bottom:-1px; display:inline-flex; align-items:center; gap:5px; }
-.cm-tabs button.on { color:var(--text-primary); border-bottom-color:var(--accent); font-weight:bold; }
+.cm-tabs { margin-bottom:10px; }
 .chart-card-actions .danger { background:rgba(200,50,50,0.15); color:#e57373; border:1px solid #e5737366; }
 </style>
 </head>
@@ -27,7 +25,7 @@
     <h2 style="font-size:1.1rem;font-weight:bold;margin:0" data-i18n="chart.my_charts">マイチャート</h2>
     <a href="/chart-editor.html" class="btn btn-primary btn-sm" data-i18n="chart.new">+ 新規作成</a>
   </div>
-  <div class="cm-tabs" id="cm-tabs">
+  <div class="cm-tabs pill-tabs" id="cm-tabs">
     <button data-tab="mine" onclick="setTab('mine')" data-i18n="chart.tab_mine">作ったチャート</button>
     <button data-tab="fav" onclick="setTab('fav')"></button>
   </div>
