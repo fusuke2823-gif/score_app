@@ -154,7 +154,7 @@ async function handleGoogleCredential(response) {
       setAuth(data.token, data.user);
       location.href = '/index.html';
     } else if (data.needs_username) {
-      _pendingGoogleId = data.google_id;
+      _pendingGoogleId = data.google_token;
       document.getElementById('username-setup-modal').style.display = 'flex';
       lockBodyScroll();
       document.getElementById('setup-username-input').focus();
@@ -184,7 +184,7 @@ async function submitUsernameSetup() {
       const ref = getParam('ref') || undefined;
       const data = await apiFetch('/auth/google/register', {
         method: 'POST',
-        body: JSON.stringify({ google_id: _pendingGoogleId, username, ref, oshi_character, twitter_username, youtube_channel })
+        body: JSON.stringify({ google_token: _pendingGoogleId, username, ref, oshi_character, twitter_username, youtube_channel })
       });
       setAuth(data.token, data.user);
     } else {

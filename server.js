@@ -33,6 +33,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/google/register', authLimiter);
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/scores', require('./routes/scores'));

@@ -202,8 +202,9 @@ router.post('/google/verify', async (req, res) => {
       return res.json({ token, user: { id: user.id, username: user.username, role: user.role, oshi_character: user.oshi_character, is_internal: user.is_internal } });
     }
 
-    // 新規 → ユーザー名設定が必要
-    res.json({ needs_username: true, google_id: googleId });
+    // 新規 → ユーザー名設定が必要。Googleで確認済みのIDを、改ざんできない形（署名付き・30分有効）で渡す
+    const googleToken = jwt.sign({ purpose: 'google-register', sub: googleId }, process.env.JWT_SECRET, { expiresIn: '30m' });
+    res.json({ needs_username: true, google_token: googleToken });
   } catch (err) {
     console.error('[google verify error]', err.message);
     res.status(401).json({ error: 'Google認証に失敗しました' });
@@ -231,10 +232,19 @@ router.post('/google/link', authenticateToken, async (req, res) => {
   }
 });
 
-// Google新規登録（ユーザー名確定）
+// Google新規登録（ユーザー名確定）。google_token は /google/verify が発行したもの（Googleで確認済みのID）
 router.post('/google/register', async (req, res) => {
-  const { google_id, username, oshi_character, ref, twitter_username, youtube_channel } = req.body;
-  if (!google_id || !username) return res.status(400).json({ error: 'ユーザー名を入力してください' });
+  const { google_token, username, oshi_character, ref, twitter_username, youtube_channel } = req.body;
+  if (!google_token) return res.status(400).json({ error: 'Googleでのログインからやり直してください' });
+  let google_id;
+  try {
+    const t = jwt.verify(google_token, process.env.JWT_SECRET);
+    if (t.purpose !== 'google-register' || !t.sub) throw new Error('purpose');
+    google_id = t.sub;
+  } catch (_) {
+    return res.status(401).json({ error: 'Googleでのログインからやり直してください' });
+  }
+  if (!username) return res.status(400).json({ error: 'ユーザー名を入力してください' });
   if (username.length < 1 || username.length > 12)
     return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
   if (twitter_username && !/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
@@ -245,6 +255,9 @@ router.post('/google/register', async (req, res) => {
   const isInternal = !!(process.env.INTERNAL_REF_CODE && ref && ref === process.env.INTERNAL_REF_CODE);
 
   try {
+    const linked = await pool.query('SELECT id FROM users WHERE google_id = $1', [google_id]);
+    if (linked.rows.length > 0)
+      return res.status(409).json({ error: 'このGoogleアカウントは登録済みです。Googleでログインしてください' });
     const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
     if (existing.rows.length > 0)
       return res.status(409).json({ error: 'このユーザー名は既に使用されています' });

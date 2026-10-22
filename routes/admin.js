@@ -528,14 +528,13 @@ router.delete('/enemies/:id', async (req, res) => {
   }
 });
 
-// 通知設定取得
+// 一般設定取得
 router.get('/settings', async (req, res) => {
   try {
-    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('notify_on_submit', 'app_version', 'ai_score_check_enabled')");
+    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('app_version', 'ai_score_check_enabled')");
     const map = {};
     result.rows.forEach(r => { map[r.key] = r.value; });
     res.json({
-      notify_on_submit: map['notify_on_submit'] === 'true',
       app_version: map['app_version'] || '4.03.22',
       ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false',
       attr_check_mode: await getAttrCheckMode(),
@@ -546,19 +545,13 @@ router.get('/settings', async (req, res) => {
   }
 });
 
-// 通知設定更新
+// 一般設定更新
 router.put('/settings', async (req, res) => {
-  const { notify_on_submit, app_version, ai_score_check_enabled, attr_check_mode } = req.body;
+  const { app_version, ai_score_check_enabled, attr_check_mode } = req.body;
   try {
     if (attr_check_mode !== undefined) {
       if (!['off', 'record', 'enforce'].includes(attr_check_mode)) return res.status(400).json({ error: '無効なモードです' });
       await pool.query("INSERT INTO settings (key, value) VALUES ('attr_check_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [attr_check_mode]);
-    }
-    if (notify_on_submit !== undefined) {
-      await pool.query(
-        "INSERT INTO settings (key, value) VALUES ('notify_on_submit', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-        [notify_on_submit ? 'true' : 'false']
-      );
     }
     if (ai_score_check_enabled !== undefined) {
       await pool.query(

@@ -4,7 +4,6 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
-const { sendScoreNotification } = require('../utils/mailer');
 const { extractScoreResult, isAiCheckEnabled } = require('../utils/gemini');
 const { approveScoreRow } = require('./rankUtils');
 const { getAttrCheckMode, judgeSubmission } = require('../utils/attrJudge');
@@ -118,11 +117,9 @@ router.post('/', authenticateToken, (req, res, next) => {
       mimeType: req.file.mimetype,
       eventId: event_id,
       eventType: event_type,
-      eventName: eventResult.rows[0].name,
       attribute,
       scoreNum,
       userId: req.user.id,
-      username: req.user.username,
     });
   } catch (err) {
     console.error(err);
@@ -132,7 +129,7 @@ router.post('/', authenticateToken, (req, res, next) => {
 
 // レスポンスを返した後にバックグラウンドで実行するAIチェック。
 // 例外は投げず内部でログのみ（呼び出し側はawaitしない前提）。
-async function runAiCheckInBackground({ scoreId, imageUrl, buffer, mimeType, eventId, eventType, eventName, attribute, scoreNum, userId, username }) {
+async function runAiCheckInBackground({ scoreId, imageUrl, buffer, mimeType, eventId, eventType, attribute, scoreNum, userId }) {
   try {
     if (!(await isAiCheckEnabled())) return;
 
@@ -203,7 +200,6 @@ async function runAiCheckInBackground({ scoreId, imageUrl, buffer, mimeType, eve
         'UPDATE scores SET ai_extracted_score = $2, ai_match = $3, ai_note = $4 WHERE id = $1 AND status = \'pending\'',
         [scoreId, aiExtractedScore, aiMatch, aiNote]
       );
-      sendScoreNotification({ username, eventName, attribute, score: scoreNum });
     }
   } catch (err) {
     console.error('AIチェック（バックグラウンド）でエラー:', err);

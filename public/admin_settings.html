@@ -90,18 +90,7 @@
         トップページのタイトル下に表示されるバージョン番号を設定します。
       </p>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="section-title">通知設定</div>
-      <div id="settings-alert" style="margin-bottom:12px"></div>
-      <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-        <input type="checkbox" id="notify-toggle" onchange="saveNotifySetting()" style="width:18px;height:18px">
-        <span>スコアが投稿されたらメールで通知する</span>
-      </label>
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
-        送信先: <code id="notify-email-display"></code><br>
-        環境変数 <code>ADMIN_NOTIFY_EMAIL</code> / <code>GMAIL_USER</code> / <code>GMAIL_APP_PASSWORD</code> が設定されている場合のみ機能します。
-      </p>
-    </div>
+    <div id="settings-alert" style="margin-bottom:12px"></div>
     <div class="card" style="margin-bottom:16px">
       <div class="section-title">スコア投稿のAI自動承認</div>
       <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
@@ -295,8 +284,6 @@ function switchTab(name) {
 async function loadSettings() {
   try {
     const s = await apiFetch('/admin/settings');
-    document.getElementById('notify-toggle').checked = s.notify_on_submit;
-    document.getElementById('notify-email-display').textContent = s.notify_email || '（環境変数で設定）';
     document.getElementById('ai-check-toggle').checked = s.ai_score_check_enabled;
     document.querySelectorAll('input[name="attr-mode"]').forEach(r => { r.checked = r.value === s.attr_check_mode; });
     loadAttrStats();
@@ -343,19 +330,6 @@ async function saveVersion() {
     showAlert('#version-alert', `バージョンを ${v} に更新しました`, 'success');
   } catch (err) {
     showAlert('#version-alert', err.message);
-  }
-}
-
-async function saveNotifySetting() {
-  const enabled = document.getElementById('notify-toggle').checked;
-  try {
-    await apiFetch('/admin/settings', {
-      method: 'PUT',
-      body: JSON.stringify({ notify_on_submit: enabled })
-    });
-    showAlert('#settings-alert', enabled ? '通知をオンにしました' : '通知をオフにしました', 'success');
-  } catch (err) {
-    showAlert('#settings-alert', err.message);
   }
 }
 

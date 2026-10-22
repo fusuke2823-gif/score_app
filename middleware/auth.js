@@ -6,7 +6,8 @@ const authenticateToken = (req, res, next) => {
   if (!token) return res.status(401).json({ error: '認証が必要です' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'トークンが無効です' });
+    // purpose 付きはログイン用ではない（Google登録の合格証など）
+    if (err || user.purpose) return res.status(403).json({ error: 'トークンが無効です' });
     req.user = user;
     next();
   });
@@ -25,7 +26,7 @@ const optionalAuth = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return next();
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (!err) req.user = user;
+    if (!err && !user.purpose) req.user = user;
     next();
   });
 };
