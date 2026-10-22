@@ -5,6 +5,7 @@ const cloudinary = require('cloudinary').v2;
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
+const { rateLimitKey } = require('../utils/clientIp');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -17,6 +18,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const ROOMS = ['火', '氷', '雷', '光', '闇', '無', '雑談'];
 
 const postLimiter = rateLimit({
+  keyGenerator: rateLimitKey, // 利用者ごとに数える（req.ip は Render の中継のIPなので使わない）
+  validate: { xForwardedForHeader: false },
   windowMs: 10 * 1000,
   max: 10,
   standardHeaders: true,

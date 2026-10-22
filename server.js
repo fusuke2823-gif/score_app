@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const { rateLimitKey } = require('./utils/clientIp');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,9 +10,7 @@ const PORT = process.env.PORT || 3000;
 // シンプルなレート制限（15分間に20回まで）
 const _rateLimitStore = new Map();
 function authLimiter(req, res, next) {
-  // 【一時】回数制限で使うIPが、利用者ごとのIPになっているか確かめるためのログ（確認が済んだら消す）
-  console.log('[ip-check]', JSON.stringify({ ip: req.ip, xff: req.headers['x-forwarded-for'] || null, cf: req.headers['cf-connecting-ip'] || null, remote: req.socket.remoteAddress }));
-  const key = req.ip;
+  const key = rateLimitKey(req); // 利用者ごとに数える（req.ip は Render の中継のIPなので使わない）
   const now = Date.now();
   const windowMs = 15 * 60 * 1000;
   const max = 20;

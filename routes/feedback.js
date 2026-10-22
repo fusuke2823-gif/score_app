@@ -3,8 +3,11 @@ const router = express.Router();
 const pool = require('../db/index');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
+const { rateLimitKey } = require('../utils/clientIp');
 
 const feedbackLimiter = rateLimit({
+  keyGenerator: rateLimitKey, // 利用者ごとに数える（req.ip は Render の中継のIPなので使わない）
+  validate: { xForwardedForHeader: false },
   windowMs: 60 * 1000,
   max: 10,
   standardHeaders: true,
