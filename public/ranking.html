@@ -60,6 +60,18 @@
 #filter-section { background:rgba(12,11,26,0.92) !important; backdrop-filter:blur(14px) saturate(140%); -webkit-backdrop-filter:blur(14px) saturate(140%); padding-top:8px !important; padding-bottom:8px !important; }
 .rk-row { display:flex; align-items:center; gap:8px; }
 .rk-row + .rk-row { margin-top:8px; }
+/* スコア投稿 / 結果を共有：ヘッダーの新規登録と同じネオンのボタン（共有は紫→青で見分ける） */
+.rk-act { position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 16px; border:none; border-radius:99px; cursor:pointer;
+  font-family:inherit; font-size:0.8rem; font-weight:800; color:#fff; white-space:nowrap;
+  background:linear-gradient(110deg,#e63950,#ff4f9a); box-shadow:0 0 14px rgba(255,79,154,0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition:box-shadow 0.2s, transform 0.15s; }
+.rk-act:hover { transform:translateY(-1px); box-shadow:0 0 20px rgba(255,79,154,0.75), inset 0 1px 0 rgba(255,255,255,0.4); }
+.rk-act::after { content:''; position:absolute; top:0; bottom:0; left:-60%; width:40%; transform:skewX(-20deg); pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent); animation:auShine 3.2s ease-in-out infinite; }
+.rk-act.is-share { background:linear-gradient(110deg,#7b5cff,#3fa9ff); box-shadow:0 0 14px rgba(90,140,255,0.5), inset 0 1px 0 rgba(255,255,255,0.35); }
+.rk-act.is-share:hover { box-shadow:0 0 20px rgba(90,140,255,0.75), inset 0 1px 0 rgba(255,255,255,0.4); }
+.rk-act-ico { width:14px; height:14px; flex-shrink:0; }
+@media (prefers-reduced-motion: reduce) { .rk-act::after { animation:none; } }
 .rk-row #col-toggle { margin-bottom:0 !important; }
 #filter-title-row { font-size:0.85rem !important; }
 /* スマホでも全属性ON〜✦を1行に収める（見た目はそのまま、間隔と横の余白だけ詰める） */
@@ -119,7 +131,7 @@
         <button class="btn btn-sm" onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
         <button class="btn btn-sm" onclick="setColMode('rank')">ランク</button>
       </div>
-      <button id="submit-btn" class="btn btn-primary btn-sm" style="margin-left:auto" onclick="goSubmit()" data-i18n="ranking.submit_btn">スコア投稿</button>
+      <button id="submit-btn" class="rk-act" style="margin-left:auto" onclick="goSubmit()"><svg class="rk-act-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></svg><span data-i18n="ranking.submit_btn">スコア投稿</span></button>
     </div>
     <div class="rk-btns" style="display:flex;gap:8px;margin:8px 0;align-items:center">
       <button class="attr-btn" onclick="selectAllAttrs()" style="color:#e8e8e8;border-color:#e8e8e8;opacity:1" data-i18n="ranking.all_on">全属性ON</button>
@@ -231,10 +243,6 @@
     font-weight: bold;
     box-sizing: border-box;
     transition: color 0.2s;
-  }
-  #submit-btn {
-    height: 30px;
-    box-sizing: border-box;
   }
   #col-toggle button.active {
     color: #fff;
@@ -716,8 +724,8 @@ function isEventEnded() {
 function updateSubmitButton() {
   if (!isEventEnded()) return;
   const btn = document.getElementById('submit-btn');
-  btn.removeAttribute('data-i18n');
-  btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="margin-right:5px;vertical-align:-1px"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>結果を共有';
+  btn.classList.add('is-share');
+  btn.innerHTML = '<svg class="rk-act-ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.75l7.73-8.835L1.254 2.25H8.08l4.259 5.632L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>結果を共有';
 }
 
 function goSubmit() {

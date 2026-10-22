@@ -665,8 +665,8 @@ function renderNav() {
           ? `<a href="/user.html?id=${user.id}" class="nav-username">${escHtml(user.username)}</a>
              ${user.role === 'admin' ? adminBadgeHtml() : ''}
              <button class="btn btn-secondary btn-sm nav-desktop-only" onclick="logout()">${t('nav.logout')}</button>`
-          : `<a href="/login.html" class="btn btn-secondary btn-sm">${t('nav.login')}</a>
-             <a href="/register.html" class="btn btn-primary btn-sm">${t('nav.register')}</a>`
+          : `<a href="/login.html" class="au-login">${t('nav.login')}</a>
+             <a href="/register.html" class="au-reg">${AU_ICON_REG}<span class="au-full">${t('nav.register_full')}</span><span class="au-short">${t('nav.register')}</span></a>`
         }
       </div>
       <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="${t('nav.menu')}">
@@ -683,8 +683,8 @@ function renderNav() {
                <svg class="nm-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
              </a>`
           : `<div class="nm-guest">
-               <a href="/login.html" class="btn btn-secondary">${t('nav.login')}</a>
-               <a href="/register.html" class="btn btn-primary">${t('nav.register_full')}</a>
+               <a href="/login.html" class="au-login">${AU_ICON_LOGIN}${t('nav.login')}</a>
+               <a href="/register.html" class="au-reg">${AU_ICON_REG}${t('nav.register_full')}</a>
              </div>`}
         <div class="nm-grid">
           ${nmTile('/submit.html', 'submit', t('nav.submit'), currentPath === '/submit.html')}
@@ -719,6 +719,10 @@ function updateNavAvatar(user) {
 }
 
 // メニューのタイル（アイコン＋名前）。nb はバッジ（未読数）を入れる場所
+// ログイン・新規登録ボタンのアイコン（ドアに入る矢印、人型＋）
+const AU_ICON_LOGIN = '<svg class="au-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>';
+const AU_ICON_REG = '<svg class="au-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/><path d="M19 8v6M16 11h6"/></svg>';
+
 function nmTile(href, icon, label, active) {
   return `<a href="${href}" class="nm-tile${active ? ' active' : ''}"><span class="nm-ico">${NAV_ICONS[icon] || ''}<span class="nb"></span></span><span class="nm-label">${label}</span></a>`;
 }

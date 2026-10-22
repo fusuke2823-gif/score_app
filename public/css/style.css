@@ -773,7 +773,29 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .nm-user-body small { font-size: 0.72rem; color: var(--text-muted); }
 .nm-chev { color: var(--text-muted); flex-shrink: 0; }
 .nm-guest { display: flex; gap: 8px; margin-bottom: 12px; }
-.nm-guest .btn { flex: 1; justify-content: center; text-align: center; }
+/* ログイン・新規登録（未ログインのヘッダーとメニュー）：ログインはピンクに光る細い枠、新規登録は赤→マゼンタのグラデにときどき光がなでる */
+.au-login, .au-reg { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; text-decoration: none;
+  padding: 6px 14px; border-radius: 99px; font-size: 0.8rem; transition: box-shadow 0.2s, transform 0.15s, background 0.2s; }
+.au-login:hover, .au-reg:hover { text-decoration: none; transform: translateY(-1px); }
+.au-login { font-weight: 700; color: #ffd6dc; background: rgba(230,57,80,0.06);
+  border: 1px solid rgba(255,107,128,0.55); box-shadow: 0 0 10px rgba(230,57,80,0.25), inset 0 0 8px rgba(230,57,80,0.15); }
+.au-login:hover { color: #fff; background: rgba(230,57,80,0.14); box-shadow: 0 0 14px rgba(230,57,80,0.45), inset 0 0 10px rgba(230,57,80,0.25); }
+.au-reg { position: relative; overflow: hidden; padding: 6px 16px; font-weight: 800; color: #fff;
+  background: linear-gradient(110deg, #e63950, #ff4f9a); box-shadow: 0 0 14px rgba(255,79,154,0.55), inset 0 1px 0 rgba(255,255,255,0.35); }
+.au-reg:hover { color: #fff; box-shadow: 0 0 20px rgba(255,79,154,0.75), inset 0 1px 0 rgba(255,255,255,0.4); }
+.au-reg::after { content: ''; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; transform: skewX(-20deg); pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent); animation: auShine 3.2s ease-in-out infinite; }
+@keyframes auShine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.au-ico { width: 15px; height: 15px; flex-shrink: 0; }
+.au-short { display: none; }
+.nm-guest .au-login, .nm-guest .au-reg { flex: 1; padding: 12px; font-size: 0.92rem; }
+/* スマホのヘッダーは幅が狭いので、新規登録は短い表示（アイコンなし） */
+@media (max-width: 640px) {
+  .nav-user .au-reg .au-ico, .nav-user .au-reg .au-full { display: none; }
+  .nav-user .au-reg .au-short { display: inline; }
+  .nav-user .au-login, .nav-user .au-reg { padding: 5px 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .au-reg::after { animation: none; } }
 .nm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .nm-grid > span[style*="contents"] { display: contents; }
 .nm-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px 9px; border-radius: 12px; text-decoration: none;
