@@ -41,9 +41,6 @@
   box-shadow:0 6px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12); backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
   transition:transform 0.15s, box-shadow 0.15s, border-color 0.15s; }
 .top-act:hover .top-act-ico { transform:translateY(-2px); border-color:rgba(255,77,101,0.7); box-shadow:0 8px 22px rgba(0,0,0,0.5), 0 0 16px rgba(255,77,101,0.35); }
-.top-filter { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:99px; border:1px solid rgba(255,255,255,0.18); background:rgba(20,18,40,0.6);
-  backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%); color:var(--text-primary); font-size:0.85rem; cursor:pointer; }
-.top-filter:hover { border-color:var(--accent); }
 
 /* イベントカード：種類ごとの色の帯と札、敵画像の後ろに光 */
 .event-grid { gap:12px; }
@@ -81,7 +78,7 @@
 @property --ev-ang { syntax:'<angle>'; inherits:false; initial-value:0deg; }
 .event-card.ev.live::after { content:''; position:absolute; inset:0; border-radius:inherit; padding:1.5px; pointer-events:none; z-index:2;
   background:conic-gradient(from var(--ev-ang), transparent 0deg, transparent 300deg, color-mix(in srgb, var(--tc) 60%, #fff) 340deg, #fff 352deg, transparent 360deg);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); mask-composite:exclude;
   opacity:0; animation:evOrbit 6s linear infinite; animation-delay:var(--ev-delay, 0s); filter:drop-shadow(0 0 4px var(--tc)); }
 /* 6秒のうち最初の約1.6秒で一周し、あとは消えて待つ */
 @keyframes evOrbit {
@@ -105,30 +102,6 @@
   .top-title { font-size:1.42rem; }
 }
 
-.filter-pill {
-  padding: 5px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--border-light);
-  background: transparent;
-  color: #c0c0d8;
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: border-color .15s, background .15s, color .15s;
-  white-space: nowrap;
-}
-.filter-pill:hover { border-color: #5a5a80; color: var(--text-primary); }
-.filter-pill.active {
-  border-color: var(--accent);
-  background: var(--accent-dim);
-  color: var(--text-primary);
-}
-.filter-section-label {
-  font-size: 0.75rem;
-  color: #9090b0;
-  margin-bottom: 8px;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-}
 .new-badge {
   position:absolute; top:-6px; right:-8px; padding:1px 6px; border-radius:99px;
   background:linear-gradient(90deg, #ff5470, #ff8a3d); color:#fff; font-size:0.62rem; font-weight:900; letter-spacing:0.04em;
@@ -217,24 +190,24 @@
   </div>
 
   <div id="filter-bar" style="display:none;align-items:center;gap:8px;margin-bottom:14px">
-    <button id="filter-open-btn" class="top-filter" onclick="openFilterModal()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-      <span data-i18n="filter.title">フィルター</span>
-    </button>
-    <button id="filter-reset-btn" onclick="resetFilters()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-size:0.88rem;cursor:pointer" data-i18n="filter.default">デフォルト</button>
+    <button type="button" id="filter-open-btn" class="fl-btn" onclick="openFilterModal()"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span data-i18n="filter.title">フィルター</span></button>
+    <button type="button" id="filter-reset-btn" class="fl-clear" hidden onclick="resetFilters()"><svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span data-i18n="filter.reset">リセット</span></button>
   </div>
 
-  <div id="filter-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.65);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeFilterModal()">
-    <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:12px;width:100%;max-width:460px;padding:20px 20px 24px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <span style="font-weight:bold;font-size:1rem" data-i18n="filter.title">フィルター</span>
-        <button onclick="closeFilterModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
+  <div id="filter-modal" class="fl-modal" hidden onclick="if(event.target===this)closeFilterModal()">
+    <div class="fl-box" role="dialog" aria-modal="true" aria-labelledby="filter-modal-title">
+      <div class="fl-head">
+        <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span id="filter-modal-title" data-i18n="filter.title">フィルター</span>
+        <button type="button" class="fl-x" onclick="closeFilterModal()" aria-label="close"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
       </div>
-      <div id="modal-body"></div>
-      <div style="display:flex;gap:8px;margin-top:22px">
-        <button onclick="resetFilters()" style="flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.9rem;cursor:pointer" data-i18n="filter.reset">リセット</button>
-        <button onclick="closeFilterModal()" style="flex:2;padding:9px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:0.9rem;cursor:pointer;font-weight:bold" data-i18n="filter.apply_close">適用して閉じる</button>
+      <div class="fl-body" id="modal-body"></div>
+      <div class="fl-foot">
+        <button type="button" class="btn btn-secondary" onclick="resetFilters(true)" data-i18n="filter.reset">リセット</button>
+        <button type="button" class="btn btn-primary" id="filter-show-btn" onclick="closeFilterModal()"></button>
       </div>
+    </div>
+  </div>
     </div>
   </div>
 
@@ -494,7 +467,7 @@ function closeVersionModal() {
 
 let allEvents = [];
 
-const ALL_TYPES = ['score', 'seraph', 'ex'];
+const ALL_TYPES = ['score', 'ex', 'seraph'];
 const TYPE_LABEL_KEY = { score: 'filter.score_attack', seraph: 'filter.seraph', ex: 'filter.score_attack_ex' };
 const ALL_ENEMY_COUNTS = ['single', 'multi'];
 const ATTRS = ['火','氷','雷','光','闇'];
@@ -515,8 +488,9 @@ function getEventType(e) {
   return 'other';
 }
 
+// 敵数で絞れるのは、選んだ種類がスコアアタック・スコアタEXだけのとき
 function isScoreOnly() {
-  return filterState.types.size === 1 && filterState.types.has('score');
+  return filterState.types.size > 0 && [...filterState.types].every(v => v === 'score' || v === 'ex');
 }
 
 function isFiltered() {
@@ -528,70 +502,40 @@ function isFiltered() {
 }
 
 function updateFilterBar() {
-  document.getElementById('filter-reset-btn').style.display = isFiltered() ? '' : 'none';
+  const on = isFiltered();
+  document.getElementById('filter-reset-btn').hidden = !on;
+  document.getElementById('filter-open-btn').classList.toggle('on', on);
+  const show = document.getElementById('filter-show-btn');
+  if (show) show.textContent = t('filter.show', filterEvents().length);
 }
 
 function renderModal() {
   const scoreOnly = isScoreOnly();
+  const chip = (on, onclick, label, c) => `<button type="button" class="${on ? 'on' : ''}"${c ? ` data-c="${c}"` : ''} aria-pressed="${on}" onclick="${onclick}"><span>${label}</span></button>`;
 
-  const typePills = ALL_TYPES.map(v => {
-    const label = t(TYPE_LABEL_KEY[v]);
-    const cls = filterState.types.has(v) ? 'filter-pill active' : 'filter-pill';
-    return `<button class="${cls}" onclick="toggleType('${v}')">${label}</button>`;
-  }).join('');
-
-  const enemyCountPills = [
-    { v: 'single', key: 'filter.single' },
-    { v: 'multi',  key: 'filter.multi'  },
-  ].map(({ v, key }) => {
-    const cls = filterState.enemyCounts.has(v) ? 'filter-pill active' : 'filter-pill';
-    return `<button class="${cls}" onclick="toggleEnemyCount('${v}')">${t(key)}</button>`;
-  }).join('');
-
-  const attrModePills = [
-    { v: 'or',  key: 'filter.or'  },
-    { v: 'and', key: 'filter.and' },
-  ].map(({ v, key }) => {
-    const cls = filterState.attrMode === v ? 'filter-pill active' : 'filter-pill';
-    return `<button class="${cls}" onclick="setAttrMode('${v}')">${t(key)}</button>`;
-  }).join('');
-
-  const attrPills = ATTRS.map(a => {
-    const isActive = filterState.attrs.has(a);
-    return `<button class="attr-btn attr-${a}${isActive ? ' active' : ''}" onclick="toggleAttr('${a}')">${t('attr.' + a)}</button>`;
-  }).join('');
+  const typePills = ALL_TYPES.map(v => chip(filterState.types.has(v), `toggleType('${v}')`, t(TYPE_LABEL_KEY[v]))).join('');
+  const enemyCountPills = [['single', 'filter.single'], ['multi', 'filter.multi']]
+    .map(([v, key]) => chip(filterState.enemyCounts.has(v), `toggleEnemyCount('${v}')`, t(key))).join('');
+  const attrModePills = [['or', 'filter.or'], ['and', 'filter.and']]
+    .map(([v, key]) => `<button type="button" class="${filterState.attrMode === v ? 'on' : ''}" onclick="setAttrMode('${v}')">${t(key)}</button>`).join('');
+  const attrPills = ATTRS.map(a => `<button type="button" class="attr-btn attr-${a}${filterState.attrs.has(a) ? ' active' : ''}" aria-pressed="${filterState.attrs.has(a)}" onclick="toggleAttr('${a}')">${t('attr.' + a)}</button>`).join('');
 
   document.getElementById('modal-body').innerHTML = `
-    <div style="margin-bottom:18px">
-      <div class="filter-section-label">${t('filter.event_type')}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${typePills}</div>
+    <div class="fl-label">${t('filter.event_type')}</div>
+    <div class="fl-chips fit">${typePills}</div>
+    <div class="fl-sec${scoreOnly ? '' : ' off'}">
+      <div class="fl-label">${t('filter.enemy_count')}</div>
+      <div class="fl-chips" style="--n:2">${enemyCountPills}</div>
     </div>
-    <div style="margin-bottom:18px;transition:opacity .2s;${scoreOnly ? '' : 'opacity:0.3;pointer-events:none'}">
-      <div class="filter-section-label">${t('filter.enemy_count')}</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${enemyCountPills}</div>
-    </div>
-    <div style="margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span class="filter-section-label" style="margin:0">${t('filter.weak_attr')}</span>
-        <div style="display:flex;gap:4px">${attrModePills}</div>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${attrPills}</div>
-    </div>
-    <div>
-      <div class="filter-section-label">${t('filter.destruction_rate')}</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <input id="dr-min" type="number" min="0" step="100" placeholder="100" value="${filterState.drMin}"
-          style="width:60px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2);color:var(--text-primary);font-size:0.85rem;text-align:center"
-          oninput="setDr('Min',this.value)">
-        <span style="color:#9090b0">%　〜　</span>
-        <input id="dr-max" type="number" min="0" step="100" placeholder="999" value="${filterState.drMax}"
-          style="width:60px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-light);background:var(--bg-card2);color:var(--text-primary);font-size:0.85rem;text-align:center"
-          oninput="setDr('Max',this.value)">
-        <span style="color:#9090b0">%</span>
-        <button onclick="resetDr()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:#c0c0d8;font-size:0.82rem;cursor:pointer">${t('filter.reset')}</button>
-      </div>
+    <div class="fl-label">${t('filter.weak_attr')}<div class="pill-tabs pill-sm">${attrModePills}</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${attrPills}</div>
+    <div class="fl-label">${t('filter.destruction_rate')}</div>
+    <div class="fl-range">
+      <input id="dr-min" type="number" min="0" step="100" placeholder="100" value="${escHtml(filterState.drMin)}" oninput="setDr('Min',this.value)"><span>% 〜</span>
+      <input id="dr-max" type="number" min="0" step="100" placeholder="999" value="${escHtml(filterState.drMax)}" oninput="setDr('Max',this.value)"><span>%</span>
     </div>
   `;
+  updateFilterBar();
 }
 
 function toggleType(v) {
@@ -617,17 +561,6 @@ function setDr(type, value) {
   renderEvents();
 }
 
-function resetDr() {
-  filterState.drMin = '';
-  filterState.drMax = '';
-  const minEl = document.getElementById('dr-min');
-  const maxEl = document.getElementById('dr-max');
-  if (minEl) minEl.value = '';
-  if (maxEl) maxEl.value = '';
-  updateFilterBar();
-  renderEvents();
-}
-
 function setAttrMode(v) {
   filterState.attrMode = v;
   renderModal();
@@ -644,25 +577,29 @@ function toggleAttr(a) {
 
 function openFilterModal() {
   renderModal();
-  document.getElementById('filter-modal').style.display = 'flex';
+  document.getElementById('filter-modal').hidden = false;
   lockBodyScroll();
 }
 
 function closeFilterModal() {
-  document.getElementById('filter-modal').style.display = 'none';
+  const m = document.getElementById('filter-modal');
+  if (m.hidden) return;
+  m.hidden = true;
   unlockBodyScroll();
 }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFilterModal(); });
 
-function resetFilters() {
+// keepOpen：モーダルの中のリセットは開いたまま、外のリセットはそのまま
+function resetFilters(keepOpen) {
   filterState.types.clear();
   filterState.enemyCounts.clear();
   filterState.attrMode = 'or';
   filterState.attrs.clear();
   filterState.drMin = '';
   filterState.drMax = '';
+  if (keepOpen) renderModal();
   updateFilterBar();
   renderEvents();
-  closeFilterModal();
 }
 
 function filterEvents() {

@@ -134,23 +134,35 @@
 .shop-tab-content.active { display: block; }
 .section-label { font-size: 0.82rem; font-weight: bold; color: var(--text-muted); margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* アイコングリッド（装備タブ） */
-.equip-icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; }
-.equip-icon-card {
-  background: var(--bg-card2); backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px solid var(--border-light); border-radius: 10px;
-  padding: 10px 8px; text-align: center; cursor: pointer; transition: border-color 0.15s;
+/* アイコン（装備タブ）：上に装備中、下に小さいタイルの一覧 */
+.ic-current { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 14px 16px; margin-bottom: 14px; border-radius: 12px;
+  background: linear-gradient(160deg, rgba(255,77,101,0.14), rgba(160,48,112,0.04)); border: 1px solid rgba(255,107,128,0.45); }
+.ic-cur-icon { width: 64px; height: 64px; flex-shrink: 0; }
+.ic-cur-icon img { width: 100%; height: 100%; border-radius: 20%; object-fit: cover; display: block; }
+.ic-cur-icon .ic-empty { width: 100%; height: 100%; border-radius: 20%; border: 1px dashed var(--border-light); background: var(--bg-card2); }
+.ic-cur-body { flex: 0 1 200px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.ic-cur-label { font-size: 0.7rem; font-weight: bold; color: var(--accent-hover); letter-spacing: 0.05em; }
+.ic-cur-name { font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ic-cur-body .title-row-btn { margin-top: 2px; }
+.ic-cur-sample { flex: 1 1 260px; min-width: 0; max-width: 360px; }
+.ic-cur-sample .frame-sample { margin: 6px 0; }
+.ic-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.ic-unit { display: flex; align-items: baseline; gap: 6px; font-size: 0.78rem; font-weight: bold; color: rgba(232,232,240,0.75); margin: 16px 0 8px; }
+.ic-unit .ic-count { font-size: 0.7rem; font-weight: normal; color: var(--text-muted); }
+.ic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.ic-grid.flat { margin-top: 14px; }
+.ic-tile { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; padding: 8px 4px 6px; border-radius: 10px;
+  background: var(--bg-card2); border: 1px solid var(--border-light); color: var(--text-secondary); font: inherit; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.ic-tile:hover { border-color: rgba(255,107,128,0.55); }
+.ic-tile img { width: 100%; max-width: 56px; aspect-ratio: 1; border-radius: 20%; object-fit: cover; display: block; }
+.ic-tile .ic-tname { width: 100%; font-size: 0.66rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.ic-tile.equipped { background: linear-gradient(160deg, rgba(255,77,101,0.22), rgba(160,48,112,0.08)); border-color: rgba(255,107,128,0.8); box-shadow: 0 0 12px -2px rgba(255,77,101,0.55); color: #fff; }
+.ic-tile .ic-check { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-grad); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 6px rgba(255,77,101,0.6); }
+@media (max-width: 640px) {
+  .ic-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .ic-tile { padding: 6px 3px 5px; }
+  .ic-cur-sample { flex-basis: 100%; max-width: none; }
 }
-.equip-icon-card.equipped { background: linear-gradient(160deg, rgba(255,77,101,0.18), rgba(160,48,112,0.06)); border-color: rgba(255,107,128,0.7); box-shadow: 0 0 12px -2px rgba(255,77,101,0.5); }
-.equip-icon-card img { width: 56px; height: 56px; border-radius: 20%; object-fit: cover; }
-.equip-icon-card .iname { font-size: 0.72rem; margin-top: 6px; word-break: break-all; color: var(--text-secondary); }
-.equip-icon-none {
-  background: var(--bg-card2); backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
-  border: 1px dashed var(--border-light); border-radius: 10px;
-  padding: 10px 8px; text-align: center; cursor: pointer; transition: border-color 0.15s;
-}
-.equip-icon-none.equipped { border-color: var(--accent); background: var(--accent-dim); }
-.equip-icon-none .iname { font-size: 0.72rem; margin-top: 6px; color: var(--text-muted); }
 </style>
 </head>
 <body>
@@ -193,9 +205,33 @@
       <div id="my-frames"><div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div></div>
     </div>
     <div class="shop-tab-content" id="equip-tab-icons">
-      <div style="display:flex;gap:6px;margin-bottom:12px">
-        <button class="btn btn-secondary btn-sm" id="icon-sort-impl" onclick="setIconSort('impl')" style="opacity:1" data-i18n="shop.sort_unit">部隊順</button>
-        <button class="btn btn-secondary btn-sm" id="icon-sort-acq" onclick="setIconSort('acq')" style="opacity:0.45" data-i18n="shop.sort_acq">入手順</button>
+      <div id="icon-current"></div>
+      <div class="ic-toolbar">
+        <div class="pill-tabs pill-sm" id="icon-sort">
+          <button class="on" data-v="impl" onclick="setIconSort('impl')" data-i18n="shop.sort_unit">部隊順</button>
+          <button data-v="acq" onclick="setIconSort('acq')" data-i18n="shop.sort_acq">入手順</button>
+        </div>
+        <button type="button" class="fl-btn" id="icon-filter-btn" onclick="openIconFilter()"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span data-i18n="shop.filter">絞り込み</span></button>
+        <button type="button" class="fl-clear" id="icon-filter-clear" hidden onclick="resetIconFilter()"><svg width="11" height="11" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span data-i18n="filter.reset">リセット</span></button>
+      </div>
+      <div class="fl-modal" id="icon-filter-modal" hidden onclick="if (event.target === this) closeIconFilter()">
+        <div class="fl-box" role="dialog" aria-modal="true" aria-labelledby="icon-filter-title">
+          <div class="fl-head">
+            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+            <span id="icon-filter-title" data-i18n="shop.filter">絞り込み</span>
+            <button type="button" class="fl-x" onclick="closeIconFilter()" aria-label="閉じる"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+          </div>
+          <div class="fl-body">
+            <div class="fl-label" data-i18n="shop.filter_rarity">レア度</div>
+            <div class="fl-chips" id="icon-filter-rarity"></div>
+            <div class="fl-label" data-i18n="shop.filter_unit">部隊</div>
+            <div class="fl-chips" style="--n:4" id="icon-filter-unit"></div>
+          </div>
+          <div class="fl-foot">
+            <button type="button" class="btn btn-secondary" onclick="resetIconFilter()" data-i18n="filter.reset">リセット</button>
+            <button type="button" class="btn btn-primary" id="icon-filter-show" onclick="closeIconFilter()"></button>
+          </div>
+        </div>
       </div>
       <div id="my-icons"><div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div></div>
     </div>
@@ -569,60 +605,65 @@ async function equipFrame(id) {
 // ===== アイコン =====
 let myIconData = null;
 let iconSort = 'impl';
+const iconFilter = { rarity: new Set(), unit: new Set() };
+const IC_CHECK = '<svg width="10" height="10" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-function setIconSort(mode) {
-  iconSort = mode;
-  document.getElementById('icon-sort-impl').style.opacity = mode === 'impl' ? '1' : '0.45';
-  document.getElementById('icon-sort-acq').style.opacity  = mode === 'acq'  ? '1' : '0.45';
+function setPillOn(id, v) {
+  document.querySelectorAll(`#${id} > button`).forEach(b => b.classList.toggle('on', b.dataset.v === v));
+}
+function setIconSort(mode) { iconSort = mode; setPillOn('icon-sort', mode); renderMyIcons(); }
+
+// 絞り込み（レア度・部隊、それぞれ複数選べる。何も選ばなければ全部）
+const unitKey = ic => ic.unit || '';
+const iconMatches = ic => (!iconFilter.rarity.size || iconFilter.rarity.has(ic.rarity)) && (!iconFilter.unit.size || iconFilter.unit.has(unitKey(ic)));
+function renderIconFilterChips() {
+  const icons = myIconData?.icons || [];
+  const rar = ['SS', 'S', 'A'].filter(r => icons.some(ic => ic.rarity === r));
+  const units = [...new Set(icons.map(unitKey))].sort((a, b) => unitOrder(a) - unitOrder(b));
+  const chip = (kind, v, label) => `<button type="button" class="${iconFilter[kind].has(v) ? 'on' : ''}"${kind === 'rarity' ? ` data-c="${escHtml(v)}"` : ''} aria-pressed="${iconFilter[kind].has(v)}" onclick="toggleIconFilter('${kind}', '${escHtml(v)}')"><span>${escHtml(label)}</span></button>`;
+  document.getElementById('icon-filter-rarity').innerHTML = rar.map(r => chip('rarity', r, r)).join('');
+  document.getElementById('icon-filter-unit').innerHTML = units.map(u => chip('unit', u, u || t('shop.no_unit'))).join('');
+  const n = iconFilter.rarity.size + iconFilter.unit.size;
+  document.getElementById('icon-filter-clear').hidden = !n;
+  document.getElementById('icon-filter-btn').classList.toggle('on', !!n);
+  document.getElementById('icon-filter-show').textContent = t('filter.show', icons.filter(iconMatches).length);
+}
+function toggleIconFilter(kind, v) {
+  const set = iconFilter[kind];
+  set.has(v) ? set.delete(v) : set.add(v);
   renderMyIcons();
 }
+function resetIconFilter() { iconFilter.rarity.clear(); iconFilter.unit.clear(); renderMyIcons(); }
+function openIconFilter() { renderIconFilterChips(); document.getElementById('icon-filter-modal').hidden = false; }
+function closeIconFilter() { document.getElementById('icon-filter-modal').hidden = true; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeIconFilter(); });
 
 const UNIT_ORDER = ['31A','31B','31C','31D','31E','31F','30G','31X'];
 const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
+const unitOrder = u => { const i = UNIT_ORDER.indexOf(u); return i < 0 ? UNIT_ORDER.length : i; };
 
-function iconCardHtml(icon, equippedId) {
+function iconTileHtml(icon, equippedId) {
   const equipped = icon.id === equippedId;
-  return `<div class="equip-icon-card${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})">
-    <img src="${escHtml(thumbUrl(icon.image_url))}" alt="${escHtml(icon.name)}" class="${equipped ? `icon-rarity-${escHtml(icon.rarity)}` : ''}">
-    <div class="iname">${escHtml(icon.name)}</div>
-    ${equipped ? `<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">${t('shop.equipped_badge')}</div>` : ''}
-  </div>`;
+  return `<button type="button" class="ic-tile${equipped ? ' equipped' : ''}" onclick="equipIcon(${icon.id})" title="${escHtml(icon.name)}">
+    <img src="${escHtml(thumbUrl(icon.image_url))}" alt="" loading="lazy" class="icon-rarity-${escHtml(icon.rarity)}">
+    <span class="ic-tname">${escHtml(icon.name)}</span>
+    ${equipped ? `<span class="ic-check">${IC_CHECK}</span>` : ''}
+  </button>`;
 }
 
-function renderIconsUnit(icons, equippedId) {
-  const noneEquipped = equippedId === null;
-  const noneCard = `<div class="equip-icon-none${noneEquipped ? ' equipped' : ''}" onclick="equipIcon(null)">
-    <div style="width:56px;height:56px;border-radius:20%;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.4rem">✕</div>
-    <div class="iname">${t('shop.icon_none')}</div>
-    ${noneEquipped ? `<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">${t('shop.equipped_badge')}</div>` : ''}
-  </div>`;
-
-  const groups = {};
-  for (const u of UNIT_ORDER) groups[u] = [];
-  groups[''] = [];
-  for (const icon of icons) groups[icon.unit || ''].push(icon);
-
-  let html = noneCard;
-  for (const u of [...UNIT_ORDER, '']) {
-    const group = groups[u];
-    if (!group.length) continue;
-    group.sort((a, b) => rarityOrder(a.rarity) - rarityOrder(b.rarity));
-    html += `</div><div style="font-size:0.78rem;font-weight:bold;color:rgba(232,232,240,0.75);margin:16px 0 6px">${u || t('shop.no_unit')}</div><div class="equip-icon-grid">`;
-    html += group.map(ic => iconCardHtml(ic, equippedId)).join('');
-  }
-  return `<div class="equip-icon-grid">${html}</div>`;
-}
-
-function renderIconsAcq(icons, equippedId) {
-  const noneEquipped = equippedId === null;
-  const sorted = [...icons].sort((a, b) => new Date(a.acquired_at) - new Date(b.acquired_at));
-  return `<div class="equip-icon-grid">
-    <div class="equip-icon-none${noneEquipped ? ' equipped' : ''}" onclick="equipIcon(null)">
-      <div style="width:56px;height:56px;border-radius:20%;background:var(--bg-primary);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:1.4rem">✕</div>
-      <div class="iname">${t('shop.icon_none')}</div>
-      ${noneEquipped ? `<div style="font-size:0.68rem;color:var(--accent);margin-top:2px">${t('shop.equipped_badge')}</div>` : ''}
+// 上の「装備中」：大きめのアイコン、外すボタン、ランキングでの見え方
+function renderIconCurrent(icons, equippedId) {
+  const cur = icons.find(ic => ic.id === equippedId);
+  const frame = myData?.frames?.find(f => f.id === myData.equipped_frame_id);
+  const sample = frameSampleHtml(frame ? frame.css_class : '', user?.username, cur ? thumbUrl(cur.image_url) : null);
+  document.getElementById('icon-current').innerHTML = `<div class="ic-current">
+    <div class="ic-cur-icon">${cur ? `<img src="${escHtml(thumbUrl(cur.image_url))}" alt="" class="icon-rarity-${escHtml(cur.rarity)}">` : '<div class="ic-empty"></div>'}</div>
+    <div class="ic-cur-body">
+      <div class="ic-cur-label">${t('shop.equipped_badge')}</div>
+      <div class="ic-cur-name">${cur ? escHtml(cur.name) : t('shop.icon_none')}</div>
+      ${cur ? `<button class="title-row-btn equipped" onclick="equipIcon(null)">${t('shop.unequip')}</button>` : ''}
     </div>
-    ${sorted.map(ic => iconCardHtml(ic, equippedId)).join('')}
+    <div class="ic-cur-sample">${sample}</div>
   </div>`;
 }
 
@@ -633,12 +674,28 @@ async function renderMyIcons() {
     const icons = myIconData.icons || [];
     const equippedId = myIconData.equipped_icon_id ?? null;
     if (icons.length === 0) {
+      document.getElementById('icon-current').innerHTML = '';
       el.innerHTML = `<div class="empty-state"><p>${t('shop.no_icons')}<br><a href="/gacha.html" style="color:var(--accent)">${t('shop.go_gacha')}</a></p></div>`;
       return;
     }
-    el.innerHTML = iconSort === 'acq'
-      ? renderIconsAcq(icons, equippedId)
-      : renderIconsUnit(icons, equippedId);
+    renderIconCurrent(icons, equippedId);
+    renderIconFilterChips();
+    const list = icons.filter(iconMatches);
+    if (!list.length) { el.innerHTML = `<div class="empty-state"><p>${t('shop.icon_filter_empty')}</p></div>`; return; }
+    const byUnit = (a, b) => unitOrder(a.unit) - unitOrder(b.unit) || rarityOrder(a.rarity) - rarityOrder(b.rarity) || a.id - b.id;
+    if (iconSort === 'impl') {
+      const groups = new Map();
+      for (const ic of [...list].sort(byUnit)) {
+        const u = ic.unit || '';
+        if (!groups.has(u)) groups.set(u, []);
+        groups.get(u).push(ic);
+      }
+      el.innerHTML = [...groups].map(([u, g]) => `<div class="ic-unit">${escHtml(u || t('shop.no_unit'))}<span class="ic-count">${g.length}</span></div>
+        <div class="ic-grid">${g.map(ic => iconTileHtml(ic, equippedId)).join('')}</div>`).join('');
+    } else {
+      const sorted = [...list].sort((a, b) => new Date(a.acquired_at) - new Date(b.acquired_at));
+      el.innerHTML = `<div class="ic-grid flat">${sorted.map(ic => iconTileHtml(ic, equippedId)).join('')}</div>`;
+    }
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
@@ -652,7 +709,16 @@ async function equipIcon(id) {
     myIconData.icons.forEach(ic => { ic.is_equipped = ic.id === id; });
     renderMyIcons();
     const u = getUser();
-    if (u) { u.equipped_icon_id = id; setAuth(getToken(), u); }
+    if (u) {
+      const ic = myIconData.icons.find(x => x.id === id);
+      u.equipped_icon_id = id;
+      u.icon_url = ic ? ic.image_url : null;
+      u.icon_rarity = ic ? ic.rarity : null;
+      setAuth(getToken(), u);
+      if (user) { user.icon_url = u.icon_url; user.icon_rarity = u.icon_rarity; }
+      updateNavAvatar(u);
+      renderMyFrames();
+    }
   } catch (err) { showAlert('#alert', err.message); }
 }
 

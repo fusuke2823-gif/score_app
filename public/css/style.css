@@ -203,6 +203,60 @@ main {
 .pill-tabs > button:hover { color: var(--text-primary); }
 .pill-tabs > button.active, .pill-tabs > button.on { background: var(--accent-grad); color: #fff; font-weight: bold; box-shadow: 0 0 10px rgba(255,77,101,0.35); }
 .pill-tabs.pill-sm > button { padding: 4px 12px; font-size: 0.76rem; }
+
+/* 絞り込み：開くボタン・絞り込み中だけ出すリセット・モーダル（スマホは下から出るシート） */
+.fl-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 15px; border-radius: 99px; border: 1px solid var(--border-light); background: var(--bg-card); color: var(--text-secondary); font: inherit; font-size: 0.8rem; cursor: pointer;
+  backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%); }
+.fl-btn:hover { color: var(--text-primary); border-color: rgba(255,107,128,0.55); }
+.fl-btn.on { color: #fff; border-color: rgba(255,107,128,0.8); box-shadow: 0 0 10px -2px rgba(255,77,101,0.5); }
+.fl-clear { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 99px; border: 1px solid var(--border-light); background: var(--bg-card); color: var(--text-secondary); font: inherit; font-size: 0.8rem; cursor: pointer; }
+.fl-clear[hidden] { display: none; }
+.fl-clear:hover { color: var(--text-primary); background: rgba(255,255,255,0.08); }
+.fl-modal { position: fixed; inset: 0; z-index: 2000; background: rgba(6,5,18,0.62); display: flex; align-items: center; justify-content: center; padding: 16px; animation: flFade 0.15s ease-out; }
+.fl-modal[hidden] { display: none; }
+.fl-box { position: relative; width: 100%; max-width: 420px; max-height: calc(100vh - 32px); display: flex; flex-direction: column; overflow: hidden; border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255,77,101,0.10), rgba(255,77,101,0) 90px), var(--bg-modal); border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 20px 50px -10px rgba(0,0,0,0.7); backdrop-filter: blur(20px) saturate(150%); -webkit-backdrop-filter: blur(20px) saturate(150%); animation: flPop 0.18s ease-out; }
+.fl-head { display: flex; align-items: center; gap: 8px; padding: 16px 16px 4px 20px; font-weight: bold; }
+.fl-head > svg { color: var(--accent-hover); }
+.fl-x { margin-left: auto; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(255,255,255,0.06); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.fl-x:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.fl-body { padding: 4px 20px 18px; overflow-y: auto; }
+.fl-sec { transition: opacity 0.2s; }
+.fl-sec.off { opacity: 0.35; pointer-events: none; }
+.fl-label { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: bold; color: var(--text-muted); letter-spacing: 0.06em; margin: 14px 0 8px; }
+.fl-label::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-light), transparent); }
+.fl-label > .pill-tabs { order: 2; }
+.fl-chips { display: grid; gap: 6px; grid-template-columns: repeat(var(--n, 3), 1fr); }
+.fl-chips button { --c: rgba(255,107,128,0.9); --bg: rgba(255,77,101,0.16); min-width: 0; min-height: 38px; padding: 4px 6px; line-height: 1.25; border-radius: 10px; border: 1px solid var(--border-light); background: rgba(255,255,255,0.03);
+  color: var(--text-secondary); font: inherit; font-size: 0.84rem; font-weight: bold; cursor: pointer; overflow-wrap: anywhere; transition: border-color 0.12s, background 0.12s, color 0.12s; }
+/* 名前の長さがまちまちな選択肢：文字の幅に合わせて並べ、入りきらなければ次の段へ */
+.fl-chips.fit { display: flex; flex-wrap: wrap; }
+.fl-chips.fit button { flex: 1 1 auto; padding: 4px 14px; white-space: nowrap; }
+.fl-chips button:hover { border-color: rgba(255,255,255,0.28); color: var(--text-primary); }
+.fl-chips button.on { border-color: var(--c); background: var(--bg); color: #fff; box-shadow: 0 0 10px -3px var(--c); }
+/* 色つきの選択肢（レア度）：文字をその色に */
+.fl-chips button[data-c] { color: var(--c); }
+.fl-chips button[data-c].on { color: var(--c); }
+.fl-chips button[data-c="A"] { --c: #4fc3f7; --bg: rgba(79,195,247,0.14); }
+.fl-chips button[data-c="S"] { --c: #ffd700; --bg: rgba(255,215,0,0.12); }
+.fl-chips button[data-c="SS"] { --c: #ff66cc; --bg: linear-gradient(135deg, rgba(255,215,0,0.14), rgba(255,102,204,0.16), rgba(0,238,255,0.14)); }
+.fl-chips button[data-c="SS"] span { background: linear-gradient(90deg, #ffd700, #ff66cc, #00eeff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.fl-range { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.85rem; }
+.fl-range input { width: 84px; height: 38px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--border-light); background: rgba(255,255,255,0.03); color: var(--text-primary); font: inherit; font-size: 0.88rem; text-align: center; }
+.fl-range input:focus { outline: none; border-color: rgba(255,107,128,0.8); }
+.fl-foot { display: flex; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid rgba(255,255,255,0.07); background: rgba(0,0,0,0.15); }
+.fl-foot .btn-primary { flex: 1; }
+@keyframes flFade { from { opacity: 0; } }
+@keyframes flPop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }
+@keyframes flSheet { from { transform: translateY(100%); } }
+@media (max-width: 640px) {
+  .fl-modal { align-items: flex-end; padding: 0; }
+  .fl-box { max-width: none; border-radius: 20px 20px 0 0; border-bottom: none; max-height: 85vh; animation: flSheet 0.22s cubic-bezier(.2,.8,.3,1); }
+  .fl-box::before { content: ''; position: absolute; top: 7px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 4px; background: rgba(255,255,255,0.2); }
+  .fl-head { padding-top: 20px; }
+  .fl-foot { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+}
 .btn-success { background: var(--success); color: white; }
 .btn-success:hover { background: #27ae60; color: white; text-decoration: none; }
 .btn-danger { background: var(--danger); color: white; }
