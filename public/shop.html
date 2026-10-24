@@ -615,10 +615,12 @@ function setIconSort(mode) { iconSort = mode; setPillOn('icon-sort', mode); rend
 
 // 絞り込み（レア度・部隊、それぞれ複数選べる。何も選ばなければ全部）
 const unitKey = ic => ic.unit || '';
-const iconMatches = ic => (!iconFilter.rarity.size || iconFilter.rarity.has(ic.rarity)) && (!iconFilter.unit.size || iconFilter.unit.has(unitKey(ic)));
+// 絞り込みのレア度：SSRはSSに含める
+const rarityGroup = r => r === 'SSR' ? 'SS' : r;
+const iconMatches = ic => (!iconFilter.rarity.size || iconFilter.rarity.has(rarityGroup(ic.rarity))) && (!iconFilter.unit.size || iconFilter.unit.has(unitKey(ic)));
 function renderIconFilterChips() {
   const icons = myIconData?.icons || [];
-  const rar = ['SS', 'S', 'A'].filter(r => icons.some(ic => ic.rarity === r));
+  const rar = ['SS', 'S', 'A'].filter(r => icons.some(ic => rarityGroup(ic.rarity) === r));
   const units = [...new Set(icons.map(unitKey))].sort((a, b) => unitOrder(a) - unitOrder(b));
   const chip = (kind, v, label) => `<button type="button" class="${iconFilter[kind].has(v) ? 'on' : ''}"${kind === 'rarity' ? ` data-c="${escHtml(v)}"` : ''} aria-pressed="${iconFilter[kind].has(v)}" onclick="toggleIconFilter('${kind}', '${escHtml(v)}')"><span>${escHtml(label)}</span></button>`;
   document.getElementById('icon-filter-rarity').innerHTML = rar.map(r => chip('rarity', r, r)).join('');
@@ -639,7 +641,7 @@ function closeIconFilter() { document.getElementById('icon-filter-modal').hidden
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeIconFilter(); });
 
 const UNIT_ORDER = ['31A','31B','31C','31D','31E','31F','30G','31X'];
-const rarityOrder = r => r === 'SS' ? 1 : r === 'S' ? 2 : 3;
+const rarityOrder = r => r === 'SSR' ? 0 : r === 'SS' ? 1 : r === 'S' ? 2 : 3;
 const unitOrder = u => { const i = UNIT_ORDER.indexOf(u); return i < 0 ? UNIT_ORDER.length : i; };
 
 function iconTileHtml(icon, equippedId) {
