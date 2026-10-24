@@ -471,6 +471,56 @@ function showAlert(container, message, type = 'error') {
   el.innerHTML = `<div class="alert alert-${type}">${escHtml(message)}</div>`;
 }
 
+// 絞り込みのシート（スマホで下から出る .fl-modal）は、下に引くと閉じる。
+// 少し引いただけなら元に戻す。中身を下にスクロールしている途中は閉じる操作にしない。閉じるのは .fl-x を押したのと同じ
+function initSheetSwipe(modal) {
+  const box = modal.querySelector('.fl-box');
+  if (!box || box._swipe) return;
+  box._swipe = true;
+  const body = box.querySelector('.fl-body');
+  let y0 = null, dy = 0, t0 = 0, drag = false;
+  box.addEventListener('touchstart', e => {
+    y0 = null;
+    if (!matchMedia('(max-width: 640px)').matches || e.target.closest('input')) return;
+    if (body && body.contains(e.target) && body.scrollTop > 0) return;
+    y0 = e.touches[0].clientY; dy = 0; t0 = Date.now(); drag = false;
+  }, { passive: true });
+  box.addEventListener('touchmove', e => {
+    if (y0 === null) return;
+    dy = e.touches[0].clientY - y0;
+    if (!drag) {
+      if (dy < -6) { y0 = null; return; }
+      if (dy <= 6) return;
+      drag = true;
+      box.style.animation = 'none';
+      box.style.transition = 'none';
+    }
+    e.preventDefault();
+    box.style.transform = `translateY(${Math.max(0, dy)}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (y0 === null) return;
+    y0 = null;
+    if (!drag) return;
+    const speed = dy / Math.max(1, Date.now() - t0);
+    box.style.transition = 'transform 0.22s cubic-bezier(.2,.8,.3,1)';
+    if (dy > Math.min(120, box.offsetHeight * 0.3) || (dy > 30 && speed > 0.6)) {
+      box.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        modal.querySelector('.fl-x')?.click();
+        box.style.transition = box.style.transform = box.style.animation = '';
+      }, 220);
+    } else {
+      box.style.transform = '';
+    }
+  };
+  box.addEventListener('touchend', end);
+  box.addEventListener('touchcancel', end);
+}
+function initSheetSwipes() { document.querySelectorAll('.fl-modal').forEach(initSheetSwipe); }
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initSheetSwipes);
+else initSheetSwipes();
+
 // 画面の上に数秒だけ出すお知らせ。type は 'success'（既定）か 'error'。押すとすぐ消える
 let _toastTimer = null;
 function showToast(message, type = 'success') {
