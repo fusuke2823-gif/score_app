@@ -52,7 +52,7 @@ document.getElementById('body').addEventListener('input', function() {
 async function submitFeedback() {
   const category = document.getElementById('category').value;
   const body = document.getElementById('body').value.trim();
-  if (!body) return showAlert('#alert', t('feedback.err_empty'));
+  if (!body) return showToast(t('feedback.err_empty'), 'error');
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
   btn.textContent = t('feedback.btn_loading');
@@ -61,12 +61,12 @@ async function submitFeedback() {
       method: 'POST',
       body: JSON.stringify({ category, body })
     });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     document.getElementById('body').value = '';
     document.getElementById('char-count').textContent = '0';
     loadMyFeedback();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = t('feedback.btn');
@@ -127,7 +127,7 @@ async function submitUserReply(id) {
     await apiFetch(`/feedback/${id}/user-reply`, { method: 'POST', body: JSON.stringify({ body }) });
     loadMyFeedback();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 

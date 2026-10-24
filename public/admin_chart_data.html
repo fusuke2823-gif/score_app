@@ -118,18 +118,18 @@ async function loadStats() {
 
 async function upload(type, inputId) {
   const file = document.getElementById(inputId).files[0];
-  if (!file) return showAlert('#alert', 'ファイルを選択してください');
+  if (!file) return showToast('ファイルを選択してください', 'error');
   const fd = new FormData();
   fd.append('csv', file);
   fd.append('sync', document.getElementById(inputId + '-sync').checked ? '1' : '0');
   try {
     const res = await apiFormFetch(`/admin/chart-data/import-${type}`, fd);
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     // スキップ理由を1行ずつ表示する
     document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
     loadStats();
     loadIcons();
-  } catch (e) { showAlert('#alert', e.message); }
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function deleteSkills() {
@@ -141,11 +141,11 @@ async function deleteData(type, label) {
   if (!await showConfirm(`${label}を全削除しますか？${note}\nチャートで使われているものは残ります。`, { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/chart-data/${type}`, { method: 'DELETE' });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
     loadStats();
     loadIcons();
-  } catch (e) { showAlert('#alert', e.message); }
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
 let chars = [];
@@ -183,7 +183,7 @@ async function uploadIcon(id, file) {
     chars.find(c => c.id === id).icon_url = r.icon_url;
     return true;
   } catch (e) {
-    showAlert('#alert', `${chars.find(c => c.id === id)?.name}: ${e.message}`);
+    showToast(`${chars.find(c => c.id === id)?.name}: ${e.message}`, 'error');
     return false;
   } finally {
     document.getElementById('icon-' + id)?.classList.remove('busy');
@@ -197,7 +197,7 @@ async function removeIcon(id) {
     await apiFetch(`/admin/chart-data/characters/${id}/icon`, { method: 'DELETE' });
     c.icon_url = null;
     renderIcons();
-  } catch (e) { showAlert('#alert', e.message); }
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
 // ファイル名（拡張子なし）をキャラ名か略称に合わせる

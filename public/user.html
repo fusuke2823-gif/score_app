@@ -605,9 +605,9 @@ async function handleGoogleLinkProfile(response) {
     });
     document.getElementById('google-link-btn-profile').style.display = 'none';
     localStorage.setItem('google_link_dismissed', '1');
-    showAlert('#alert', 'Googleアカウントを連携しました', 'success');
+    showToast('Googleアカウントを連携しました');
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 

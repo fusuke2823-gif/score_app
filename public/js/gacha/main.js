@@ -407,9 +407,9 @@ async function equipIcon(iconId, imgEl) {
     document.querySelectorAll('#my-icons img').forEach(el => el.classList.remove('equipped'));
     document.querySelectorAll('#my-icons .icon-none-btn').forEach(el => el.classList.remove('equipped'));
     imgEl.classList.add('equipped');
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -419,9 +419,9 @@ async function unequipIcon(el) {
     document.querySelectorAll('#my-icons img').forEach(e => e.classList.remove('equipped'));
     document.querySelectorAll('#my-icons .icon-none-btn').forEach(e => e.classList.remove('equipped'));
     el.classList.add('equipped');
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -460,7 +460,7 @@ async function doPull(type) {
   } catch (err) {
     next = 'close';
     closeGxOverlay();
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   } finally {
     isPulling = false;
     btnS.disabled = false;

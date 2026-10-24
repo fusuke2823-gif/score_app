@@ -85,8 +85,8 @@ async function approve(id) {
   try {
     const res = await apiFetch(`/admin/pending-videos/${id}/approve`, { method: 'POST' });
     document.getElementById(`pv-${id}`)?.remove();
-    showAlert('#alert', res.message, 'success');
-  } catch (e) { showAlert('#alert', e.message); }
+    showToast(res.message);
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
 async function reject(id) {
@@ -97,8 +97,8 @@ async function reject(id) {
       body: JSON.stringify({ note })
     });
     document.getElementById(`pv-${id}`)?.remove();
-    showAlert('#alert', res.message, 'success');
-  } catch (e) { showAlert('#alert', e.message); }
+    showToast(res.message);
+  } catch (e) { showToast(e.message, 'error'); }
 }
 
 load();

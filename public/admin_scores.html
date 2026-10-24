@@ -301,7 +301,7 @@ async function approveScore(id, clearYoutube = false) {
   const editEl = document.getElementById(`score-edit-${id}`);
   if (editEl && editEl.style.display !== 'none') {
     const val = parseInt(document.getElementById(`score-input-${id}`).value, 10);
-    if (!Number.isFinite(val) || val < 0) return showAlert('#alert', 'スコアが不正です');
+    if (!Number.isFinite(val) || val < 0) return showToast('スコアが不正です', 'error');
     body.score = val;
   }
   const attrEditEl = document.getElementById(`attr-edit-${id}`);
@@ -325,10 +325,10 @@ async function approveScore(id, clearYoutube = false) {
       body: JSON.stringify(body)
     });
     document.getElementById(`pending-${id}`)?.remove();
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     const cnt = document.querySelectorAll('[id^="pending-"]').length;
     document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function rejectScore(id) {
@@ -339,10 +339,10 @@ async function rejectScore(id) {
       body: JSON.stringify({ note })
     });
     document.getElementById(`pending-${id}`)?.remove();
-    showAlert('#alert', '却下しました', 'info');
+    showToast('却下しました');
     const cnt = document.querySelectorAll('[id^="pending-"]').length;
     document.getElementById('pending-count').textContent = cnt > 0 ? `(${cnt})` : '';
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== 全スコア一覧 =====
@@ -466,9 +466,9 @@ async function toggleExclude(id) {
   if (!a) return;
   try {
     await apiFetch('/admin/attr-check/exclude', { method: 'POST', body: JSON.stringify({ image_url: a.image_url, excluded: !a.excluded }) });
-    showAlert('#alert', a.excluded ? 'お手本に戻しました' : 'お手本から外しました', 'success');
+    showToast(a.excluded ? 'お手本に戻しました' : 'お手本から外しました');
     loadReviewScores();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function reviewFixAttr(id) {
@@ -478,10 +478,10 @@ async function reviewFixAttr(id) {
       method: 'POST',
       body: JSON.stringify({ attribute: newAttr })
     });
-    showAlert('#alert', '属性を修正しました', 'success');
+    showToast('属性を修正しました');
     loadReviewScores();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 </script>

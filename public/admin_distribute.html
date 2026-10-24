@@ -200,7 +200,7 @@ async function grantPoints() {
   const userId = document.getElementById('grant-user').value || null;
   const amount = document.getElementById('grant-amount').value;
   const reason = document.getElementById('grant-reason').value.trim();
-  if (!amount || Number(amount) < 1) { showAlert('#grant-alert', '付与ポイント数を入力してください'); return; }
+  if (!amount || Number(amount) < 1) { showToast('付与ポイント数を入力してください', 'error'); return; }
   const target = userId ? document.getElementById('grant-user').selectedOptions[0].text : '全員';
   if (!await showConfirm(`${target} に ${amount}pt を付与しますか？`)) return;
   try {
@@ -208,11 +208,11 @@ async function grantPoints() {
       method: 'POST',
       body: JSON.stringify({ user_id: userId ? Number(userId) : null, amount: Number(amount), reason })
     });
-    showAlert('#grant-alert', res.message, 'success');
+    showToast(res.message);
     document.getElementById('grant-amount').value = '';
     document.getElementById('grant-reason').value = '';
     loadGrantUsers();
-  } catch (err) { showAlert('#grant-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== 配布ボーナス設定 =====
@@ -228,8 +228,8 @@ async function saveDistBonus() {
   DIST_BONUS_FIELDS.forEach(k => { body[k] = parseInt(document.getElementById(`bonus-${k}`).value, 10) || 0; });
   try {
     await apiFetch('/admin/settings/distribution-bonus', { method: 'PUT', body: JSON.stringify(body) });
-    showAlert('#bonus-alert', '保存しました（開いている試算は再計算してください）', 'success');
-  } catch (err) { showAlert('#bonus-alert', err.message); }
+    showToast('保存しました（開いている試算は再計算してください）');
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // 共闘目標の段階（3段階）
@@ -245,9 +245,9 @@ async function saveCoopTiers() {
     .filter(t => t.pct && t.pts !== '');
   try {
     await apiFetch('/admin/settings/coop-tiers', { method: 'PUT', body: JSON.stringify({ tiers }) });
-    showAlert('#coop-alert', '保存しました', 'success');
+    showToast('保存しました');
     loadCoopTiers();
-  } catch (err) { showAlert('#coop-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== ポイント配布 =====
@@ -424,9 +424,9 @@ async function distributeExtPoints(id) {
       method: 'POST',
       body: JSON.stringify({ award_titles })
     });
-    showAlert('#ext-points-alert', res.message, 'success');
+    showToast(res.message);
     loadExtDistributable();
-  } catch (err) { showAlert('#ext-points-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== ポイント履歴 =====

@@ -168,10 +168,10 @@ async function toggleUserRole(id, currentRole) {
   if (!await showConfirm(label)) return;
   try {
     const res = await apiFetch(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role: newRole }) });
-    showAlert('#list-alert', res.message, 'success');
+    showToast(res.message);
     loadUsersList();
   } catch (err) {
-    showAlert('#list-alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -179,10 +179,10 @@ async function deleteUser(id, name) {
   if (!await showConfirm(`「${name}」を削除しますか？スコアや称号履歴も全て削除されます。`, { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
-    showAlert('#list-alert', res.message, 'success');
+    showToast(res.message);
     loadUsersList();
   } catch (err) {
-    showAlert('#list-alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -251,12 +251,11 @@ async function resetPassword(userId) {
       method: 'PATCH',
       body: JSON.stringify({ new_password: pw })
     });
-    showAlert('#flags-alert', 'パスワードを変更しました', 'success');
-    setTimeout(() => { document.getElementById('flags-alert').innerHTML = ''; }, 3000);
+    showToast('パスワードを変更しました');
     togglePwForm(userId);
     document.getElementById(`pw-input-${userId}`).value = '';
   } catch (err) {
-    showAlert('#flags-alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -269,7 +268,7 @@ async function setInternal(userId, val) {
     _allUsers = _allUsers.map(u => u.id === userId ? { ...u, is_internal: val } : u);
     filterUsers();
   } catch (err) {
-    showAlert('#flags-alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 

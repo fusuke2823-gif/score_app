@@ -237,7 +237,7 @@ async function runSgGauges(tokens) {
       res = await apiFetch('/special-gacha/gauge', { method: 'POST', body: JSON.stringify({ token: tokens[i], accuracy }) });
     } catch (err) {
       overlay.hidden = true;
-      showAlert('#alert', err.message);
+      showToast(err.message, 'error');
       break;
     }
     const result = document.getElementById('sg-gauge-result');
@@ -515,7 +515,7 @@ async function doSpecialPull() {
     updatePointsDisplay(currentPoints);
     await finishSgTurn(progress, defeated, awardedIcon);
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
     btn.disabled = false;
     setSgPullCollapsed(false);
   }

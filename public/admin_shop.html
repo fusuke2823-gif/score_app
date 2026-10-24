@@ -547,9 +547,9 @@ async function grantTitleToUser() {
       method: 'POST',
       body: JSON.stringify({ title_id: Number(titleId) })
     });
-    showAlert('#grant-title-alert', res.message, 'success');
+    showToast(res.message);
   } catch (err) {
-    showAlert('#grant-title-alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -597,7 +597,7 @@ async function createTitle() {
   const name = document.getElementById('title-name').value.trim();
   const cost = document.getElementById('title-cost').value;
   const desc = document.getElementById('title-desc').value.trim();
-  if (!name) return showAlert('#title-create-alert', '称号名を入力してください');
+  if (!name) return showToast('称号名を入力してください', 'error');
   try {
     await apiFetch('/admin/titles', {
       method: 'POST',
@@ -606,10 +606,10 @@ async function createTitle() {
     document.getElementById('title-name').value = '';
     document.getElementById('title-cost').value = '';
     document.getElementById('title-desc').value = '';
-    showAlert('#title-create-alert', '追加しました', 'success');
+    showToast('追加しました');
     loadTitles();
   } catch (err) {
-    showAlert('#title-create-alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -625,10 +625,10 @@ async function saveDesc(id) {
       method: 'PATCH',
       body: JSON.stringify({ description: desc })
     });
-    showAlert('#alert', '説明を更新しました', 'success');
+    showToast('説明を更新しました');
     loadTitles();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -638,10 +638,10 @@ async function toggleTitleVisibility(id, makeActive) {
       method: 'PATCH',
       body: JSON.stringify({ is_active: makeActive })
     });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     loadTitles();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -676,7 +676,7 @@ async function revokeTitle(titleId, userId, btn) {
     await apiFetch(`/admin/titles/${titleId}/holders/${userId}`, { method: 'DELETE' });
     btn.closest('div[style]').remove();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -686,7 +686,7 @@ async function deleteTitle(id) {
     await apiFetch(`/admin/titles/${id}`, { method: 'DELETE' });
     loadTitles();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -775,17 +775,17 @@ async function saveFramePrice(id) {
   const cost = Number(document.getElementById(`frame-cost-${id}`).value);
   try {
     const res = await apiFetch(`/admin/frames/${id}/price`, { method: 'PATCH', body: JSON.stringify({ point_cost: cost }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     loadFrames();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function toggleFrameVisibility(id, makeActive) {
   try {
     const res = await apiFetch(`/admin/frames/${id}/visibility`, { method: 'PATCH', body: JSON.stringify({ is_active: makeActive }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     loadFrames();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== ガチャプール管理 =====
@@ -873,18 +873,18 @@ async function createPool() {
   const toUTC = v => v ? new Date(v).toISOString() : null;
   const start_at = toUTC(document.getElementById('pool-start').value);
   const end_at   = toUTC(document.getElementById('pool-end').value);
-  if (!name) { showAlert('#pool-alert', 'ガチャ名を入力してください'); return; }
+  if (!name) { showToast('ガチャ名を入力してください', 'error'); return; }
   try {
     const side = document.getElementById('pool-side').value;
     await apiFetch('/admin/gacha/pools', { method: 'POST', body: JSON.stringify({ name, description: desc, order_index: parseInt(order)||0, start_at, end_at, side }) });
-    showAlert('#pool-alert', '作成しました', 'success');
+    showToast('作成しました');
     document.getElementById('pool-name').value = '';
     document.getElementById('pool-desc').value = '';
     document.getElementById('pool-order').value = '0';
     document.getElementById('pool-start').value = '';
     document.getElementById('pool-end').value = '';
     loadPools();
-  } catch (err) { showAlert('#pool-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function openPoolEditModal(poolId, tab = 'basic') {
@@ -1028,19 +1028,19 @@ function setPoolBannerPreview(url) {
 async function uploadPoolBanner() {
   if (!_editPoolId) return;
   const file = document.getElementById('edit-pool-banner-file').files[0];
-  if (!file) { showAlert('#pool-edit-alert', '画像ファイルを選択してください'); return; }
+  if (!file) { showToast('画像ファイルを選択してください', 'error'); return; }
   // base64化で約1.35倍になり、サーバーのJSON上限（10MB）を超えないように
-  if (file.size > 7 * 1024 * 1024) { showAlert('#pool-edit-alert', '画像は7MB以内にしてください'); return; }
+  if (file.size > 7 * 1024 * 1024) { showToast('画像は7MB以内にしてください', 'error'); return; }
   const btn = document.getElementById('edit-pool-banner-btn');
   btn.disabled = true;
   try {
     const image_base64 = await readFileAsDataUrl(file);
     const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/image`, { method: 'PATCH', body: JSON.stringify({ image_base64 }) });
     setPoolBannerPreview(res.image_url);
-    showAlert('#pool-edit-alert', 'バナー画像を更新しました', 'success');
+    showToast('バナー画像を更新しました');
     loadPools();
   } catch (err) {
-    showAlert('#pool-edit-alert', err.message);
+    showToast(err.message, 'error');
   } finally {
     btn.disabled = false;
   }
@@ -1049,7 +1049,7 @@ async function uploadPoolBanner() {
 async function saveBasicSettings() {
   if (!_editPoolId) return;
   const name = document.getElementById('edit-pool-name').value.trim();
-  if (!name) { showAlert('#pool-edit-alert', 'ガチャ名を入力してください'); return; }
+  if (!name) { showToast('ガチャ名を入力してください', 'error'); return; }
   const desc = document.getElementById('edit-pool-desc').value.trim();
   const order = parseInt(document.getElementById('edit-pool-order').value) || 0;
   const is_active = document.getElementById('edit-pool-active').checked;
@@ -1060,9 +1060,9 @@ async function saveBasicSettings() {
       body: JSON.stringify({ name, description: desc || null, is_active, order_index: order, side })
     });
     document.getElementById('pool-edit-modal-title').textContent = escHtml(name);
-    showAlert('#pool-edit-alert', '更新しました', 'success');
+    showToast('更新しました');
     loadPools();
-  } catch (err) { showAlert('#pool-edit-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function savePeriodSettings() {
@@ -1071,23 +1071,23 @@ async function savePeriodSettings() {
   const start_at = toUTC(document.getElementById('edit-period-start').value);
   const end_at   = toUTC(document.getElementById('edit-period-end').value);
   if (start_at && end_at && new Date(start_at) >= new Date(end_at)) {
-    showAlert('#pool-edit-alert', '終了日時は開始日時より後にしてください');
+    showToast('終了日時は開始日時より後にしてください', 'error');
     return;
   }
   try {
     await apiFetch(`/admin/gacha/pools/${_editPoolId}/period`, { method: 'PATCH', body: JSON.stringify({ start_at, end_at }) });
-    showAlert('#pool-edit-alert', '期間を更新しました', 'success');
+    showToast('期間を更新しました');
     loadPools();
-  } catch (err) { showAlert('#pool-edit-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function deletePool(id, name) {
   if (!await showConfirm(`「${name}」を削除しますか？`, { danger: true })) return;
   try {
     await apiFetch(`/admin/gacha/pools/${id}`, { method: 'DELETE' });
-    showAlert('#pool-alert', '削除しました', 'success');
+    showToast('削除しました');
     loadPools();
-  } catch (err) { showAlert('#pool-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function loadIconsTab() {
@@ -1246,7 +1246,7 @@ async function saveGachaSettings() {
   const ss = parseFloat(document.getElementById('gs-ss').value);
   const s  = parseFloat(document.getElementById('gs-s').value);
   if (isNaN(ss) || isNaN(s) || ss < 0 || s < 0 || ss + s > 100) {
-    showAlert('#gacha-settings-alert', '確率の合計が100%を超えています');
+    showToast('確率の合計が100%を超えています', 'error');
     return;
   }
   const a = 100 - ss - s;
@@ -1263,9 +1263,9 @@ async function saveGachaSettings() {
         dup_a_pts:  parseInt(document.getElementById('gs-dup-a').value)  || 0
       })
     });
-    showAlert('#gacha-settings-alert', '設定を保存しました', 'success');
+    showToast('設定を保存しました');
     localStorage.removeItem('gacha_show_nav');
-  } catch (err) { showAlert('#gacha-settings-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== キャンバスクロッパー =====
@@ -1394,10 +1394,10 @@ function getCroppedDataUrl() {
 }
 
 async function addGachaIcon() {
-  if (!cropState.img) { showAlert('#gacha-icon-alert', '画像を選択してください'); return; }
+  if (!cropState.img) { showToast('画像を選択してください', 'error'); return; }
   const name = document.getElementById('icon-name').value.trim();
   const rarity = document.getElementById('icon-rarity').value;
-  if (!name) { showAlert('#gacha-icon-alert', 'アイコン名を入力してください'); return; }
+  if (!name) { showToast('アイコン名を入力してください', 'error'); return; }
   const btn = document.getElementById('add-icon-btn');
   btn.disabled = true;
   try {
@@ -1406,14 +1406,14 @@ async function addGachaIcon() {
       method: 'POST',
       body: JSON.stringify({ name, rarity, image_base64 })
     });
-    showAlert('#gacha-icon-alert', '追加しました', 'success');
+    showToast('追加しました');
     document.getElementById('icon-name').value = '';
     document.getElementById('icon-file').value = '';
     document.getElementById('crop-section').style.display = 'none';
     cropState.img = null;
     loadGachaIcons();
   } catch (err) {
-    showAlert('#gacha-icon-alert', err.message);
+    showToast(err.message, 'error');
   } finally {
     btn.disabled = false;
   }
@@ -1465,19 +1465,19 @@ async function setIconRarity(id, sel) {
   }
   try {
     const res = await apiFetch(`/admin/gacha/icons/${id}/rarity`, { method: 'PATCH', body: JSON.stringify({ rarity: to }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     loadGachaIcons();
     loadSsrIconOptions();
   } catch (err) {
     sel.value = from;
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
 async function setIconUnit(id, unit) {
   try {
     await apiFetch(`/admin/gacha/icons/${id}/unit`, { method: 'PATCH', body: JSON.stringify({ unit }) });
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function toggleIconVisibility(id, makeActive) {
@@ -1485,9 +1485,9 @@ async function toggleIconVisibility(id, makeActive) {
     const res = await apiFetch(`/admin/gacha/icons/${id}/visibility`, {
       method: 'PATCH', body: JSON.stringify({ is_active: makeActive })
     });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     loadGachaIcons();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function deleteGachaIcon(id) {
@@ -1495,7 +1495,7 @@ async function deleteGachaIcon(id) {
   try {
     await apiFetch(`/admin/gacha/icons/${id}`, { method: 'DELETE' });
     loadGachaIcons();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== 討伐ガチャ（期間限定ボス）管理 =====
@@ -1558,7 +1558,7 @@ async function addSpecialGachaEnemy() {
   const file = document.getElementById('sg-enemy-file').files[0];
   const ssrIconId = document.getElementById('sg-ssr-icon').value;
   if (!name || !file || !ssrIconId) {
-    showAlert('#sg-alert', '名前・画像・SSRアイコンは必須です');
+    showToast('名前・画像・SSRアイコンは必須です', 'error');
     return;
   }
   const btn = document.getElementById('sg-add-btn');
@@ -1569,12 +1569,12 @@ async function addSpecialGachaEnemy() {
       method: 'POST',
       body: JSON.stringify({ name, image_base64, ssr_icon_id: ssrIconId, gimmick })
     });
-    showAlert('#sg-alert', '作成して有効化しました', 'success');
+    showToast('作成して有効化しました');
     document.getElementById('sg-enemy-name').value = '';
     document.getElementById('sg-enemy-file').value = '';
     loadSpecialGachaEnemies();
   } catch (err) {
-    showAlert('#sg-alert', err.message);
+    showToast(err.message, 'error');
   } finally {
     btn.disabled = false;
   }
@@ -1651,7 +1651,7 @@ async function deleteSpecialGachaEnemy(id) {
   try {
     await apiFetch(`/admin/special-gacha/enemies/${id}`, { method: 'DELETE' });
     loadSpecialGachaEnemies();
-  } catch (err) { showAlert('#sg-alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== 称号スコープ =====

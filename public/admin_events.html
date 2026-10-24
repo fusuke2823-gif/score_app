@@ -449,7 +449,7 @@ async function deleteEnemy(enemyId, eventId) {
   try {
     await apiFetch(`/admin/enemies/${enemyId}`, { method: 'DELETE' });
     loadEnemyList(eventId);
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // イベント作成
@@ -474,10 +474,10 @@ document.getElementById('create-event-form').addEventListener('submit', async e 
         submission_end: toISO(document.getElementById('event-end').value)
       })
     });
-    showAlert(alertEl, 'イベントを作成しました', 'success');
+    showToast('イベントを作成しました');
     document.getElementById('create-event-form').reset();
     loadEvents();
-  } catch (err) { showAlert(alertEl, err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 });
 
 // ===== イベント編集モーダル =====
@@ -610,7 +610,7 @@ document.getElementById('event-edit-form').addEventListener('submit', async e =>
     });
     closeEventEditModal();
     loadEvents();
-    showAlert('#alert', 'イベントを更新しました', 'success');
+    showToast('イベントを更新しました');
   } catch (err) {
     alertEl.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
@@ -660,7 +660,7 @@ document.getElementById('enemy-form').addEventListener('submit', async e => {
     await apiFormFetch(`/admin/events/${eventId}/enemies`, formData);
     closeEnemyModal();
     loadEnemyList(eventId);
-    showAlert('#alert', '敵情報を追加しました', 'success');
+    showToast('敵情報を追加しました');
   } catch (err) {
     document.querySelector(alertEl).innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   } finally { btn.disabled = false; }
@@ -740,7 +740,7 @@ async function deleteNote(id) {
   try {
     await apiFetch(`/admin/event-notes/${id}`, { method: 'DELETE' });
     await loadNoteMaster(document.getElementById('note-master-search').value);
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 function openNoteEditModal(id) {

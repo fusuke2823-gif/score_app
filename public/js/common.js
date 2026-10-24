@@ -471,6 +471,29 @@ function showAlert(container, message, type = 'error') {
   el.innerHTML = `<div class="alert alert-${type}">${escHtml(message)}</div>`;
 }
 
+// 画面の上に数秒だけ出すお知らせ。type は 'success'（既定）か 'error'。押すとすぐ消える
+let _toastTimer = null;
+function showToast(message, type = 'success') {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.addEventListener('click', () => el.classList.remove('show'));
+    document.body.appendChild(el);
+  }
+  const ico = type === 'error'
+    ? '<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v9" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/><circle cx="12" cy="19.5" r="2" fill="#fff"/></svg>'
+    : '<svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  el.className = 'toast' + (type === 'error' ? ' error' : '');
+  el.innerHTML = `<span class="toast-ico">${ico}</span><span class="toast-msg">${escHtml(message)}</span>`;
+  void el.offsetWidth; // 出し直しでも毎回すべり込ませる
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), type === 'error' ? 4000 : 2500);
+}
+
 function clearAlert(container) {
   const el = document.querySelector(container);
   if (el) el.innerHTML = '';

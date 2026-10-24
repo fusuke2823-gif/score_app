@@ -160,7 +160,7 @@ async function handleGoogleCredential(response) {
       document.getElementById('setup-username-input').focus();
     }
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -224,7 +224,7 @@ document.getElementById('register-form').addEventListener('submit', async e => {
     document.getElementById('username-setup-modal').style.display = 'flex';
     document.getElementById('setup-username-input').focus();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
     btn.disabled = false;
     btn.textContent = t('register.btn');
   }

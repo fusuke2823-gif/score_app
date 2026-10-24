@@ -805,7 +805,7 @@ async function saveChart() {
   state.description = document.getElementById('desc-input').value.trim();
   state.attribute = selectedAttr;
 
-  const fail = msg => { showAlert('#alert', msg); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const fail = msg => showToast(msg, 'error');
   if (!state.event_id) return fail('イベントを選択してください');
   if (!state.attribute) return fail('属性を選択してください');
   if (!state.title) return fail('タイトルを入力してください');

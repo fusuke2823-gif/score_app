@@ -223,7 +223,7 @@ async function sendChatMessage() {
     lastId = m.id;
     scrollToBottom();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
     input.value = body;
   } finally {
     input.disabled = false;
@@ -236,7 +236,7 @@ async function deleteChatMessage(id) {
     await apiFetch(`/admin/chat/${id}`, { method: 'DELETE' });
     document.querySelector(`[data-msg-id="${id}"]`)?.remove();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 

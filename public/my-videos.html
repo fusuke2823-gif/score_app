@@ -207,10 +207,10 @@ async function submitVideo() {
   const imageFile = document.getElementById('submit-image').files[0];
   const btn = document.getElementById('submit-btn');
 
-  if (!eventId) return showAlert('#submit-alert', t('submit.err_event') || 'イベントを選択してください');
-  if (!selectedAttr) return showAlert('#submit-alert', t('submit.err_attr') || '属性を選択してください');
-  if (!score) return showAlert('#submit-alert', t('submit.err_score') || 'スコアを入力してください');
-  if (!ytUrl) return showAlert('#submit-alert', 'YouTubeのURLを入力してください');
+  if (!eventId) return showToast(t('submit.err_event') || 'イベントを選択してください', 'error');
+  if (!selectedAttr) return showToast(t('submit.err_attr') || '属性を選択してください', 'error');
+  if (!score) return showToast(t('submit.err_score') || 'スコアを入力してください', 'error');
+  if (!ytUrl) return showToast('YouTubeのURLを入力してください', 'error');
 
   const formData = new FormData();
   formData.append('event_id', eventId);
@@ -222,7 +222,7 @@ async function submitVideo() {
   btn.disabled = true;
   try {
     const res = await apiFormFetch('/my-videos/pending', formData);
-    showAlert('#submit-alert', res.message, 'success');
+    showToast(res.message);
     document.getElementById('submit-yt').value = '';
     document.getElementById('submit-score').value = '';
     document.getElementById('submit-image').value = '';
@@ -232,7 +232,7 @@ async function submitVideo() {
     renderAttrBtns();
     loadPending();
   } catch (e) {
-    showAlert('#submit-alert', e.message);
+    showToast(e.message, 'error');
   } finally {
     btn.disabled = false;
   }
@@ -269,7 +269,7 @@ async function cancelPending(id) {
     await apiFetch(`/my-videos/pending/${id}`, { method: 'DELETE' });
     document.getElementById(`pend-${id}`)?.remove();
   } catch (e) {
-    showAlert('#main-alert', e.message);
+    showToast(e.message, 'error');
   }
 }
 
@@ -327,7 +327,7 @@ async function toggleHidden(id, btn) {
       btn.textContent = t('myvid.hide') || '非表示';
     }
   } catch (e) {
-    showAlert('#main-alert', e.message);
+    showToast(e.message, 'error');
   }
 }
 
@@ -337,7 +337,7 @@ async function deleteVideo(id) {
     await apiFetch(`/my-videos/${id}`, { method: 'DELETE' });
     document.getElementById(`vid-${id}`)?.remove();
   } catch (e) {
-    showAlert('#main-alert', e.message);
+    showToast(e.message, 'error');
   }
 }
 

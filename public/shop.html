@@ -449,35 +449,35 @@ function confirmBuy() {
 async function buyTitle(id) {
   try {
     const res = await apiFetch(`/shop/buy/${id}`, { method: 'POST' });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     await refreshMyData();
     const [titles, oshiTitles] = await Promise.all([apiFetch('/shop/titles'), apiFetch('/shop/titles?tag=oshi')]);
     renderShopTitles(titles);
     renderShopOshiTitles(oshiTitles);
     renderMyTitles();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function equipTitle(id) {
   try {
     const res = await apiFetch('/shop/equip', { method: 'POST', body: JSON.stringify({ title_id: id }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     await refreshMyData();
     const titles = await apiFetch('/shop/titles');
     renderShopTitles(titles);
     renderMyTitles();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function equipTitleInternal(id) {
   try {
     const res = await apiFetch('/shop/equip-internal', { method: 'POST', body: JSON.stringify({ title_id: id }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     await refreshMyData();
     const titles = await apiFetch('/shop/titles');
     renderShopTitles(titles);
     renderMyTitles();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== フレーム =====
@@ -583,23 +583,23 @@ function renderMyFrames() {
 async function buyFrame(id) {
   try {
     const res = await apiFetch(`/shop/frames/buy/${id}`, { method: 'POST' });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     await refreshMyData();
     const frames = await apiFetch('/shop/frames');
     renderShopFrames(frames);
     renderMyFrames();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 async function equipFrame(id) {
   try {
     const res = await apiFetch('/shop/frames/equip', { method: 'POST', body: JSON.stringify({ frame_id: id }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     await refreshMyData();
     const frames = await apiFetch('/shop/frames');
     renderShopFrames(frames);
     renderMyFrames();
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== アイコン =====
@@ -693,7 +693,8 @@ async function renderMyIcons() {
       el.innerHTML = [...groups].map(([u, g]) => `<div class="ic-unit">${escHtml(u || t('shop.no_unit'))}<span class="ic-count">${g.length}</span></div>
         <div class="ic-grid">${g.map(ic => iconTileHtml(ic, equippedId)).join('')}</div>`).join('');
     } else {
-      const sorted = [...list].sort((a, b) => new Date(a.acquired_at) - new Date(b.acquired_at));
+      // 入手順は新しいものから
+      const sorted = [...list].sort((a, b) => new Date(b.acquired_at) - new Date(a.acquired_at) || b.id - a.id);
       el.innerHTML = `<div class="ic-grid flat">${sorted.map(ic => iconTileHtml(ic, equippedId)).join('')}</div>`;
     }
   } catch (err) {
@@ -704,7 +705,7 @@ async function renderMyIcons() {
 async function equipIcon(id) {
   try {
     const res = await apiFetch('/gacha/equip', { method: 'POST', body: JSON.stringify({ icon_id: id }) });
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     myIconData.equipped_icon_id = id ?? null;
     myIconData.icons.forEach(ic => { ic.is_equipped = ic.id === id; });
     renderMyIcons();
@@ -719,7 +720,7 @@ async function equipIcon(id) {
       updateNavAvatar(u);
       renderMyFrames();
     }
-  } catch (err) { showAlert('#alert', err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // 称号ツールチップ（タップ）

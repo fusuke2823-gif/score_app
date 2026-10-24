@@ -128,7 +128,7 @@ async function handleGoogleCredential(response) {
       document.getElementById('google-username-input').focus();
     }
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   }
 }
 
@@ -170,7 +170,7 @@ document.getElementById('login-form').addEventListener('submit', async e => {
     const redirect = new URLSearchParams(location.search).get('redirect');
     location.href = redirect || '/index.html';
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
     btn.disabled = false;
     btn.textContent = t('login.btn');
   }

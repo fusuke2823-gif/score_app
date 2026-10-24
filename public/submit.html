@@ -388,10 +388,10 @@ document.getElementById('submit-form').addEventListener('submit', async e => {
   const attrInput = document.querySelector('input[name="attribute"]:checked');
   const score = getScoreValue();
 
-  if (!eventId) return showAlert('#alert', t('submit.err_event'));
-  if (!attrInput) return showAlert('#alert', t('submit.err_attr'));
-  if (!document.getElementById('image-input').files[0]) return showAlert('#alert', t('submit.err_image'));
-  if (!score) return showAlert('#alert', t('submit.err_score'));
+  if (!eventId) return showToast(t('submit.err_event'), 'error');
+  if (!attrInput) return showToast(t('submit.err_attr'), 'error');
+  if (!document.getElementById('image-input').files[0]) return showToast(t('submit.err_image'), 'error');
+  if (!score) return showToast(t('submit.err_score'), 'error');
 
   const scoreNum = parseInt(score);
   const selectedOpt = document.getElementById('event-select').selectedOptions[0];
@@ -439,14 +439,14 @@ async function doSubmit(isAnon) {
 
   try {
     const res = await apiFormFetch('/scores', formData);
-    showAlert('#alert', res.message, 'success');
+    showToast(res.message);
     document.getElementById('score-input').value = '';
     document.getElementById('image-input').value = '';
     showPreview(null);
     document.getElementById('youtube-input').value = '';
     loadMyScores();
   } catch (err) {
-    showAlert('#alert', err.message);
+    showToast(err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = t('submit.btn');
