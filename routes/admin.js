@@ -531,11 +531,10 @@ router.delete('/enemies/:id', async (req, res) => {
 // 一般設定取得
 router.get('/settings', async (req, res) => {
   try {
-    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('app_version', 'ai_score_check_enabled')");
+    const result = await pool.query("SELECT key, value FROM settings WHERE key = 'ai_score_check_enabled'");
     const map = {};
     result.rows.forEach(r => { map[r.key] = r.value; });
     res.json({
-      app_version: map['app_version'] || '4.03.22',
       ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false',
       attr_check_mode: await getAttrCheckMode(),
     });
@@ -547,7 +546,7 @@ router.get('/settings', async (req, res) => {
 
 // 一般設定更新
 router.put('/settings', async (req, res) => {
-  const { app_version, ai_score_check_enabled, attr_check_mode } = req.body;
+  const { ai_score_check_enabled, attr_check_mode } = req.body;
   try {
     if (attr_check_mode !== undefined) {
       if (!['off', 'record', 'enforce'].includes(attr_check_mode)) return res.status(400).json({ error: '無効なモードです' });
@@ -557,12 +556,6 @@ router.put('/settings', async (req, res) => {
       await pool.query(
         "INSERT INTO settings (key, value) VALUES ('ai_score_check_enabled', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
         [ai_score_check_enabled ? 'true' : 'false']
-      );
-    }
-    if (app_version !== undefined) {
-      await pool.query(
-        "INSERT INTO settings (key, value) VALUES ('app_version', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-        [String(app_version)]
       );
     }
     res.json({ success: true });

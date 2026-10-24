@@ -82,15 +82,6 @@ app.get('/api/image-mode', async (req, res) => {
   }
 });
 
-app.get('/api/version', async (req, res) => {
-  try {
-    const result = await pool.query("SELECT value FROM settings WHERE key = 'app_version'");
-    res.json({ version: result.rows[0]?.value || '4.00.65' });
-  } catch {
-    res.json({ version: '4.00.65' });
-  }
-});
-
 // 結果画像シェア
 const cloudinary = require('cloudinary').v2;
 cloudinary.config({ cloud_name: process.env.CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });

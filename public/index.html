@@ -218,7 +218,8 @@
         <span style="font-weight:bold;font-size:1rem">バージョン履歴</span>
         <button onclick="closeVersionModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:0">
+      <!-- 一番上の項目の番号が、タイトル下に出るバージョンになる（更新したら上に足す） -->
+      <div id="version-list" style="display:flex;flex-direction:column;gap:0">
         <div style="padding:12px 0;border-bottom:1px solid var(--border)">
           <div style="font-weight:bold;font-size:0.95rem;color:var(--accent);margin-bottom:4px">ver 4.05.00</div>
           <div style="font-size:0.85rem;color:var(--text)">レートにシーズン制を導入（テストシーズン開始）、レートランキング画面を刷新、フレームを追加</div>
@@ -450,10 +451,12 @@ document.addEventListener('click', () => {
   if (m) m.style.display = 'none';
 });
 
-apiFetch('/version').then(d => {
+// タイトル下のバージョン：履歴の一番上の番号
+(() => {
+  const latest = document.querySelector('#version-list > div > div');
   const el = document.getElementById('app-version');
-  if (el && d.version) el.textContent = 'ver ' + d.version;
-}).catch(() => {});
+  if (el && latest) el.textContent = latest.textContent.trim();
+})();
 
 function openVersionModal() {
   const m = document.getElementById('version-modal');
