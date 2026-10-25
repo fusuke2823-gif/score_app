@@ -25,10 +25,11 @@
 
 /* アイコングリッド */
 .icon-unit-counts { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-.icon-unit-counts span { display:inline-flex; align-items:baseline; gap:5px; padding:4px 10px; border-radius:99px; border:1px solid var(--border-light); background:var(--bg-card2); font-size:0.78rem; color:var(--text-secondary); }
+.icon-unit-counts button { font:inherit; cursor:pointer; display:inline-flex; align-items:baseline; gap:5px; padding:4px 10px; border-radius:99px; border:1px solid var(--border-light); background:var(--bg-card2); font-size:0.78rem; color:var(--text-secondary); }
 .icon-unit-counts b { color:var(--text-primary); font-variant-numeric:tabular-nums; }
 .icon-unit-counts small { color:var(--text-muted); font-size:0.68rem; }
-.icon-unit-counts .total { border-color:rgba(255,107,128,0.6); }
+.icon-unit-counts button:hover { border-color:rgba(255,255,255,0.3); }
+.icon-unit-counts button.on { border-color:rgba(255,107,128,0.9); background:rgba(255,77,101,0.18); color:#fff; box-shadow:0 0 10px -3px rgba(255,77,101,0.7); }
 .admin-icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:12px; }
 .admin-icon-card {
   background:var(--bg-primary); border:1px solid var(--border); border-radius:10px;
@@ -1494,7 +1495,7 @@ async function loadGachaIcons() {
     }
     const UNITS = ['','31A','31B','31C','31D','31E','31F','30G','31X'];
     el.innerHTML = `<div class="icon-unit-counts" id="icon-unit-counts"></div><div class="admin-icon-grid">${icons.map(icon => `
-      <div class="admin-icon-card">
+      <div class="admin-icon-card" data-unit="${escHtml(icon.unit || '')}">
         <span class="rarity-badge rarity-badge-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
         <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"
              ${!icon.is_active ? 'style="opacity:0.4"' : ''}>
@@ -1522,15 +1523,25 @@ async function loadGachaIcons() {
 }
 
 // 部隊ごとの実装数（表示中のアイコン）。非表示のものは別に小さく添える
+// 部隊を押すとその部隊だけに絞る（もう一度押すか「合計」で全部に戻す）
+let iconUnitFilter = null;
+function setIconUnitFilter(u) {
+  iconUnitFilter = iconUnitFilter === u ? null : u;
+  renderIconUnitCounts();
+}
 function renderIconUnitCounts() {
   const el = document.getElementById('icon-unit-counts');
   if (!el) return;
   const UNITS = ['31A','31B','31C','31D','31E','31F','30G','31X',''];
   const cnt = (list, u) => list.filter(ic => (ic.unit || '') === u).length;
   const active = gachaIconList.filter(ic => ic.is_active), hidden = gachaIconList.filter(ic => !ic.is_active);
-  const chip = (label, n, h, cls = '') => `<span class="${cls}">${escHtml(label)}<b>${n}</b>${h ? `<small>非表示${h}</small>` : ''}</span>`;
-  el.innerHTML = UNITS.filter(u => u || cnt(gachaIconList, '')).map(u => chip(u || '部隊なし', cnt(active, u), cnt(hidden, u))).join('')
-    + chip('合計', active.length, hidden.length, 'total');
+  if (iconUnitFilter !== null && !cnt(gachaIconList, iconUnitFilter)) iconUnitFilter = null;
+  const chip = (label, n, h, u) => `<button type="button" class="${(u === iconUnitFilter) ? 'on' : ''}" onclick="setIconUnitFilter(${u === null ? 'null' : `'${u}'`})">${escHtml(label)}<b>${n}</b>${h ? `<small>非表示${h}</small>` : ''}</button>`;
+  el.innerHTML = UNITS.filter(u => u || cnt(gachaIconList, '')).map(u => chip(u || '部隊なし', cnt(active, u), cnt(hidden, u), u)).join('')
+    + chip('合計', active.length, hidden.length, null);
+  document.querySelectorAll('#gacha-icon-list .admin-icon-card').forEach(c => {
+    c.style.display = iconUnitFilter === null || c.dataset.unit === iconUnitFilter ? '' : 'none';
+  });
 }
 
 // レアリティは排出率に関わるので確認してから変更。キャンセル・失敗時は選択を元に戻す
@@ -1557,6 +1568,8 @@ async function setIconUnit(id, unit) {
     await apiFetch(`/admin/gacha/icons/${id}/unit`, { method: 'PATCH', body: JSON.stringify({ unit }) });
     const ic = gachaIconList.find(x => x.id === id);
     if (ic) ic.unit = unit || null;
+    const card = document.querySelector(`#gacha-icon-list select[onchange="setIconUnit(${id}, this.value)"]`)?.closest('.admin-icon-card');
+    if (card) card.dataset.unit = unit || '';
     renderIconUnitCounts();
   } catch (err) { showToast(err.message, 'error'); }
 }
