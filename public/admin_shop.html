@@ -24,6 +24,11 @@
 .event-list-item:last-child { border-bottom:none; }
 
 /* アイコングリッド */
+.icon-unit-counts { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.icon-unit-counts span { display:inline-flex; align-items:baseline; gap:5px; padding:4px 10px; border-radius:99px; border:1px solid var(--border-light); background:var(--bg-card2); font-size:0.78rem; color:var(--text-secondary); }
+.icon-unit-counts b { color:var(--text-primary); font-variant-numeric:tabular-nums; }
+.icon-unit-counts small { color:var(--text-muted); font-size:0.68rem; }
+.icon-unit-counts .total { border-color:rgba(255,107,128,0.6); }
 .admin-icon-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:12px; }
 .admin-icon-card {
   background:var(--bg-primary); border:1px solid var(--border); border-radius:10px;
@@ -414,8 +419,13 @@
     </div>
 
     <!-- アイコン追加 -->
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">アイコン追加</div>
+    <div class="card" style="margin-bottom:24px" id="icon-form-card">
+      <div class="section-title" id="icon-form-title">アイコン追加</div>
+      <div id="icon-replace-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,107,128,0.55);background:rgba(255,77,101,0.08)">
+        <img id="icon-replace-img" src="" alt="" style="width:40px;height:40px;border-radius:20%;object-fit:cover">
+        <span style="flex:1;min-width:0;font-size:0.85rem">「<b id="icon-replace-name"></b>」の画像を変更します。新しい画像を選んで切り抜いてください</span>
+        <button class="btn btn-secondary btn-sm" onclick="cancelReplaceIcon()">やめる</button>
+      </div>
       <div id="gacha-icon-alert" style="margin-bottom:12px"></div>
       <div class="form-group">
         <label class="form-label">画像を選択</label>
@@ -442,7 +452,7 @@
         </p>
       </div>
 
-      <div class="enemy-form-grid">
+      <div class="enemy-form-grid" id="icon-meta-fields">
         <div class="form-group">
           <label class="form-label">アイコン名</label>
           <input class="form-input" type="text" id="icon-name" placeholder="例: ハルカ">
@@ -1393,11 +1403,45 @@ function getCroppedDataUrl() {
   return c.toDataURL('image/png');
 }
 
+// 画像の差し替え：上の追加欄を「画像変更」の形にして、同じ切り抜きで新しい画像を作る
+let replaceIconId = null;
+function startReplaceIcon(id) {
+  const ic = gachaIconList.find(x => x.id === id);
+  if (!ic) return;
+  replaceIconId = id;
+  document.getElementById('icon-form-title').textContent = '画像変更';
+  document.getElementById('icon-replace-name').textContent = ic.name;
+  document.getElementById('icon-replace-img').src = ic.image_url;
+  document.getElementById('icon-replace-bar').style.display = 'flex';
+  document.getElementById('icon-meta-fields').style.display = 'none';
+  document.getElementById('add-icon-btn').textContent = '画像を変更する';
+  resetIconCrop();
+  document.getElementById('icon-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function cancelReplaceIcon() {
+  replaceIconId = null;
+  document.getElementById('icon-form-title').textContent = 'アイコン追加';
+  document.getElementById('icon-replace-bar').style.display = 'none';
+  document.getElementById('icon-meta-fields').style.display = '';
+  document.getElementById('add-icon-btn').textContent = '追加する';
+  resetIconCrop();
+}
+function resetIconCrop() {
+  document.getElementById('icon-file').value = '';
+  document.getElementById('crop-section').style.display = 'none';
+  cropState.img = null;
+}
+
 async function addGachaIcon() {
   if (!cropState.img) { showToast('画像を選択してください', 'error'); return; }
+  if (replaceIconId !== null) return replaceIconImage();
   const name = document.getElementById('icon-name').value.trim();
   const rarity = document.getElementById('icon-rarity').value;
   if (!name) { showToast('アイコン名を入力してください', 'error'); return; }
+  // 同じ名前のアイコンがあれば確認（全角・半角や空白の違いは同じとみなす）
+  const norm = v => String(v).normalize('NFKC').replace(/\s+/g, '').toLowerCase();
+  const same = gachaIconList.filter(ic => norm(ic.name) === norm(name));
+  if (same.length && !await showConfirm(`同じ名前のアイコンがすでにあります：${same.map(ic => `${ic.name}（${ic.rarity}）`).join('、')}\nそれでも追加しますか？`)) return;
   const btn = document.getElementById('add-icon-btn');
   btn.disabled = true;
   try {
@@ -1408,9 +1452,27 @@ async function addGachaIcon() {
     });
     showToast('追加しました');
     document.getElementById('icon-name').value = '';
-    document.getElementById('icon-file').value = '';
-    document.getElementById('crop-section').style.display = 'none';
-    cropState.img = null;
+    resetIconCrop();
+    loadGachaIcons();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function replaceIconImage() {
+  const ic = gachaIconList.find(x => x.id === replaceIconId);
+  if (!await showConfirm(`「${ic ? ic.name : ''}」の画像を、切り抜いた新しい画像に変更しますか？\n持っている人のアイコンも新しい画像になります。`)) return;
+  const btn = document.getElementById('add-icon-btn');
+  btn.disabled = true;
+  try {
+    const res = await apiFetch(`/admin/gacha/icons/${replaceIconId}/image`, {
+      method: 'PATCH',
+      body: JSON.stringify({ image_base64: getCroppedDataUrl() })
+    });
+    showToast(res.message);
+    cancelReplaceIcon();
     loadGachaIcons();
   } catch (err) {
     showToast(err.message, 'error');
@@ -1420,16 +1482,18 @@ async function addGachaIcon() {
 }
 
 // ===== アイコン一覧 =====
+let gachaIconList = [];
 async function loadGachaIcons() {
   const el = document.getElementById('gacha-icon-list');
   try {
     const icons = await apiFetch('/admin/gacha/icons');
+    gachaIconList = icons;
     if (icons.length === 0) {
       el.innerHTML = '<div class="empty-state"><p>アイコンがありません</p></div>';
       return;
     }
     const UNITS = ['','31A','31B','31C','31D','31E','31F','30G','31X'];
-    el.innerHTML = `<div class="admin-icon-grid">${icons.map(icon => `
+    el.innerHTML = `<div class="icon-unit-counts" id="icon-unit-counts"></div><div class="admin-icon-grid">${icons.map(icon => `
       <div class="admin-icon-card">
         <span class="rarity-badge rarity-badge-${escHtml(icon.rarity)}">${escHtml(icon.rarity)}</span><br>
         <img src="${escHtml(icon.image_url)}" alt="${escHtml(icon.name)}"
@@ -1447,12 +1511,26 @@ async function loadGachaIcons() {
           <button class="btn btn-secondary btn-sm" onclick="toggleIconVisibility(${icon.id}, ${!icon.is_active})">
             ${icon.is_active ? '非表示' : '表示'}
           </button>
+          <button class="btn btn-secondary btn-sm" onclick="startReplaceIcon(${icon.id})">画像変更</button>
           <button class="btn btn-danger btn-sm" onclick="deleteGachaIcon(${icon.id})">削除</button>
         </div>
       </div>`).join('')}</div>`;
+    renderIconUnitCounts();
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+
+// 部隊ごとの実装数（表示中のアイコン）。非表示のものは別に小さく添える
+function renderIconUnitCounts() {
+  const el = document.getElementById('icon-unit-counts');
+  if (!el) return;
+  const UNITS = ['31A','31B','31C','31D','31E','31F','30G','31X',''];
+  const cnt = (list, u) => list.filter(ic => (ic.unit || '') === u).length;
+  const active = gachaIconList.filter(ic => ic.is_active), hidden = gachaIconList.filter(ic => !ic.is_active);
+  const chip = (label, n, h, cls = '') => `<span class="${cls}">${escHtml(label)}<b>${n}</b>${h ? `<small>非表示${h}</small>` : ''}</span>`;
+  el.innerHTML = UNITS.filter(u => u || cnt(gachaIconList, '')).map(u => chip(u || '部隊なし', cnt(active, u), cnt(hidden, u))).join('')
+    + chip('合計', active.length, hidden.length, 'total');
 }
 
 // レアリティは排出率に関わるので確認してから変更。キャンセル・失敗時は選択を元に戻す
@@ -1477,6 +1555,9 @@ async function setIconRarity(id, sel) {
 async function setIconUnit(id, unit) {
   try {
     await apiFetch(`/admin/gacha/icons/${id}/unit`, { method: 'PATCH', body: JSON.stringify({ unit }) });
+    const ic = gachaIconList.find(x => x.id === id);
+    if (ic) ic.unit = unit || null;
+    renderIconUnitCounts();
   } catch (err) { showToast(err.message, 'error'); }
 }
 

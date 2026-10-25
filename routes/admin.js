@@ -1254,6 +1254,25 @@ router.post('/gacha/icons', async (req, res) => {
   }
 });
 
+// 画像の差し替え（名前・レアリティ・持っている人はそのまま。画像のURLだけ新しくする）
+router.patch('/gacha/icons/:id/image', async (req, res) => {
+  const { image_base64 } = req.body;
+  if (!image_base64) return res.status(400).json({ error: '画像がありません' });
+  try {
+    const exists = await pool.query('SELECT id FROM gacha_icons WHERE id=$1', [req.params.id]);
+    if (!exists.rows.length) return res.status(404).json({ error: 'アイコンが見つかりません' });
+    const uploadResult = await cloudinary.uploader.upload(image_base64, {
+      folder: 'hbr-ranking/gacha-icons',
+      resource_type: 'image'
+    });
+    const result = await pool.query('UPDATE gacha_icons SET image_url=$1 WHERE id=$2 RETURNING *', [uploadResult.secure_url, req.params.id]);
+    res.json({ message: '画像を変更しました', icon: result.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.patch('/gacha/icons/:id/unit', async (req, res) => {
   const { unit } = req.body;
   const VALID_UNITS = ['31A','31B','31C','31D','31E','31F','30G','31X',null,''];
