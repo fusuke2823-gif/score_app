@@ -705,6 +705,37 @@ const UI_ICON_PATHS = {
 function uiIcon(name, size = 40) {
   return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${UI_ICON_PATHS[name]}</svg>`;
 }
+// 管理画面のページ移動の帯：<div class="admin-nav" data-current="scores"></div> を置けば中身を作る。
+// 承認待ちのスコアとお便りの未読は数を添える。スマホでは横にスクロールし、今のページが見える位置にする
+const ADMIN_PAGES = [
+  { key: 'scores', href: '/admin_scores.html', label: 'スコア', icon: 'check' },
+  { key: 'events', href: '/admin_events.html', label: 'イベント', icon: 'calendar' },
+  { key: 'users', href: '/admin_users.html', label: 'ユーザー', icon: 'user' },
+  { key: 'shop', href: '/admin_shop.html', label: 'ショップ', icon: 'bag' },
+  { key: 'distribute', href: '/admin_distribute.html', label: '配布', icon: 'gift' },
+  { key: 'settings', href: '/admin_settings.html', label: '設定', icon: 'gear' },
+  { key: 'videos', href: '/admin_pending_videos.html', label: '動画', icon: 'play' },
+  { key: 'chart', href: '/admin_chart_data.html', label: 'チャート', icon: 'list' },
+  { key: 'analytics', href: '/admin_analytics.html', label: '集計', icon: 'chart' },
+];
+function renderAdminNav() {
+  const el = document.querySelector('.admin-nav[data-current]');
+  if (!el) return;
+  const cur = el.dataset.current;
+  el.innerHTML = ADMIN_PAGES.map(pg => pg.key === cur
+    ? `<span class="on" aria-current="page" data-key="${pg.key}">${uiIcon(pg.icon, 15)}${pg.label}</span>`
+    : `<a href="${pg.href}" data-key="${pg.key}">${uiIcon(pg.icon, 15)}${pg.label}</a>`).join('');
+  const on = el.querySelector('.on');
+  if (on) el.scrollLeft = on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2;
+  apiFetch('/feedback/admin-unread-count').then(d => {
+    const put = (key, n) => { const a = el.querySelector(`[data-key="${key}"]`); if (a && n > 0) a.insertAdjacentHTML('beforeend', `<b class="admin-nav-n">${n}</b>`); };
+    put('scores', d.scores || 0);
+    put('settings', d.feedback || 0);
+  }).catch(() => {});
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderAdminNav);
+else setTimeout(renderAdminNav);
+
 // 本文中に並べる小さいアイコン（チップ・バナー用）
 function uiIconInline(name) {
   return `<span style="display:inline-flex;vertical-align:-0.15em;margin-right:4px">${uiIcon(name, 13)}</span>`;

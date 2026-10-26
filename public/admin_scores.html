@@ -10,7 +10,6 @@
 <title>スコア管理 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
 .pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
 @media(max-width:600px){ .hide-mobile{display:none;} }
 .user-name-cell{ max-width:6em; white-space:normal; word-break:break-all; }
@@ -66,23 +65,13 @@
 </div>
 
 <main>
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <h1 class="page-title" style="margin:0">スコア管理</h1>
-    <div style="display:flex;gap:5px;flex-wrap:wrap">
-      <span class="btn btn-sm btn-primary" style="cursor:default">スコア</span>
-      <a href="/admin_events.html" class="btn btn-sm btn-secondary">イベント</a>
-      <a href="/admin_users.html" class="btn btn-sm btn-secondary">ユーザー</a>
-      <a href="/admin_shop.html" class="btn btn-sm btn-secondary">ショップ</a>
-      <a href="/admin_distribute.html" class="btn btn-sm btn-secondary">配布</a>
-      <a href="/admin_settings.html" class="btn btn-sm btn-secondary">設定</a>
-      <a href="/admin_pending_videos.html" class="btn btn-sm btn-secondary">動画</a>
-      <a href="/admin_chart_data.html" class="btn btn-sm btn-secondary">チャート</a>
-      <a href="/admin_analytics.html" class="btn btn-sm btn-secondary">集計</a>
-    </div>
+  <div class="admin-head">
+    <h1 class="page-title">スコア管理</h1>
+    <div class="admin-nav" data-current="scores"></div>
   </div>
   <div id="alert"></div>
 
-  <div class="tabs" style="margin-bottom:0">
+  <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('pending')">承認待ち <span id="pending-count"></span></button>
     <button class="tab-btn" onclick="switchTab('all-scores')">全スコア一覧</button>
     <button class="tab-btn" onclick="switchTab('review')">属性チェック</button>

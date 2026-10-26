@@ -10,7 +10,6 @@
 <title>ショップ管理 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.section-title { font-size:1rem; font-weight:bold; margin-bottom:16px; color:var(--text-primary); }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
 .scope-badge { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:4px; }
@@ -238,23 +237,13 @@
 </div>
 
 <main>
-  <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
-    <h1 class="page-title" style="margin:0">ショップ管理</h1>
-    <div style="display:flex;gap:5px;flex-wrap:wrap">
-      <a href="/admin_scores.html" class="btn btn-sm btn-secondary">スコア</a>
-      <a href="/admin_events.html" class="btn btn-sm btn-secondary">イベント</a>
-      <a href="/admin_users.html" class="btn btn-sm btn-secondary">ユーザー</a>
-      <span class="btn btn-sm btn-primary" style="cursor:default">ショップ</span>
-      <a href="/admin_distribute.html" class="btn btn-sm btn-secondary">配布</a>
-      <a href="/admin_settings.html" class="btn btn-sm btn-secondary">設定</a>
-      <a href="/admin_pending_videos.html" class="btn btn-sm btn-secondary">動画</a>
-      <a href="/admin_chart_data.html" class="btn btn-sm btn-secondary">チャート</a>
-      <a href="/admin_analytics.html" class="btn btn-sm btn-secondary">集計</a>
-    </div>
+  <div class="admin-head">
+    <h1 class="page-title">ショップ管理</h1>
+    <div class="admin-nav" data-current="shop"></div>
   </div>
   <div id="alert"></div>
 
-  <div class="tabs" style="margin-bottom:0">
+  <div class="tabs">
     <button class="tab-btn active" onclick="switchTab('titles')">称号</button>
     <button class="tab-btn" onclick="switchTab('frames')">フレーム</button>
     <button class="tab-btn" onclick="switchTab('gacha')">ガチャ</button>

@@ -711,21 +711,30 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* タブ */
-.tabs { display: flex; gap: 2px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
-.tab-btn {
-  padding: 10px 20px;
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 0.9rem;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: all 0.2s;
+/* タブ（管理画面のページ内の切り替え）：丸い枠に並べ、選択中はイメージカラーのグラデ */
+.tabs { display: inline-flex; gap: 3px; padding: 3px; margin-bottom: 16px; border: 1px solid var(--border-light); border-radius: 99px; background: var(--bg-card); max-width: 100%; overflow-x: auto; scrollbar-width: none; vertical-align: top; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs > .tab-btn { display: inline-flex; flex-shrink: 0; align-items: center; gap: 5px; padding: 6px 16px; border: none; border-radius: 99px; background: transparent; color: var(--text-secondary); cursor: pointer; font: inherit; font-size: 0.85rem; white-space: nowrap; transition: color 0.15s, background 0.15s; }
+.tabs > .tab-btn:hover { color: var(--text-primary); }
+.tabs > .tab-btn.active { background: var(--accent-grad); color: #fff; font-weight: bold; box-shadow: 0 0 10px rgba(255,77,101,0.35); }
+.section-title { font-size: 1rem; font-weight: bold; margin-bottom: 16px; color: var(--text-primary); }
+
+/* 管理画面のページ移動の帯（renderAdminNav） */
+.admin-head { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.admin-head .page-title { margin: 0; }
+.admin-nav { display: flex; gap: 2px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; border: 1px solid var(--border-light); border-radius: 99px; background: var(--bg-card);
+  backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%); }
+.admin-nav::-webkit-scrollbar { display: none; }
+.admin-nav > a, .admin-nav > span { position: relative; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; padding: 6px 12px; border-radius: 99px; color: var(--text-secondary); font-size: 0.8rem; text-decoration: none; white-space: nowrap; }
+.admin-nav > a:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); text-decoration: none; }
+.admin-nav > a svg { opacity: 0.75; }
+.admin-nav > .on { background: var(--accent-grad); color: #fff; font-weight: bold; box-shadow: 0 0 10px rgba(255,77,101,0.35); }
+.admin-nav-n { min-width: 16px; height: 16px; padding: 0 4px; border-radius: 99px; background: #ef5350; color: #fff; font-size: 0.62rem; line-height: 16px; text-align: center; }
+@media (max-width: 640px) {
+  .admin-head { gap: 10px; }
+  /* 横にスクロールできることが分かるよう、両端を薄くする */
+  .admin-nav { flex-basis: 100%; -webkit-mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent); }
 }
-.tab-btn:hover { color: var(--text-primary); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
