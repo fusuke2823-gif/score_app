@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db/index');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
 
 // 引くときの確率・コスト・重複補償。標準のガチャ設定に、ガチャ（プール）ごとの上書きを重ねる
@@ -21,6 +21,17 @@ async function gachaParams(db, poolRow = null) {
     last_guarantee: poolRow?.last_guarantee === 'SS' ? 'SS' : 'S', // 10連の最後の1枚
     dupMap: { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') },
   };
+}
+
+// そのガチャで引けるか（引ける種類・1人の回数制限）。引けないときはエラーの文を返す
+async function pullBlocked(db, userId, poolRow, type) {
+  if (!poolRow) return null;
+  if (poolRow.pull_types && poolRow.pull_types !== type) return poolRow.pull_types === 'single' ? 'このガチャは単発のみです' : 'このガチャは10連のみです';
+  if (poolRow.pull_limit != null) {
+    const r = await db.query('SELECT COUNT(*)::int AS n FROM gacha_pull_logs WHERE user_id=$1 AND pool_id=$2', [userId, poolRow.id]);
+    if (r.rows[0].n >= poolRow.pull_limit) return `このガチャは1人${poolRow.pull_limit}回までです`;
+  }
+  return null;
 }
 
 // ガチャ設定（公開）
@@ -46,11 +57,12 @@ router.get('/settings', async (req, res) => {
 });
 
 // アクティブなガチャプール一覧（公開）
-router.get('/pools', async (req, res) => {
+router.get('/pools', optionalAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
               gp.start_at, gp.end_at, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
+              gp.pull_types, gp.pull_limit,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
                 (SELECT json_agg(jsonb_build_object('id', gi.id, 'name', gi.name, 'image_url', gi.image_url) ORDER BY gi.id)
@@ -67,9 +79,18 @@ router.get('/pools', async (req, res) => {
        GROUP BY gp.id
        ORDER BY gp.order_index ASC, gp.id ASC`
     );
+    // ログインしていれば、回数制限のあるガチャで自分が引いた回数も返す
+    const myPulls = {};
+    if (req.user && result.rows.some(r => r.pull_limit != null)) {
+      const c = await pool.query('SELECT pool_id, COUNT(*)::int AS n FROM gacha_pull_logs WHERE user_id=$1 AND pool_id IS NOT NULL GROUP BY pool_id', [req.user.id]);
+      c.rows.forEach(x => { myPulls[x.pool_id] = x.n; });
+    }
+    // 回数制限まで引いたガチャは、その人には出さない
+    const rows = result.rows.filter(r => !(req.user && r.pull_limit != null && (myPulls[r.id] || 0) >= r.pull_limit));
     // 確率・コストは上書きのない項目が null（画面で標準の設定と重ねる）
-    res.json(result.rows.map(r => ({
+    res.json(rows.map(r => ({
       ...r,
+      my_pulls: r.pull_limit != null ? (myPulls[r.id] || 0) : undefined,
       image_url: optimizeUrl(r.image_url),
       pickup_icons: (r.pickup_icons || []).map(p => ({ ...p, image_url: optimizeUrl(p.image_url) }))
     })));
@@ -251,7 +272,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     // pool_id 指定時はプールが存在・有効か確認
     let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
       poolRow = pr.rows[0];
     }
@@ -261,6 +282,9 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     const cost = gp.single_cost;
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
+    // 引ける種類・回数制限（ユーザーの行を押さえてから数えるので、同時に引いても超えない）
+    const blocked = await pullBlocked(client, req.user.id, poolRow, 'single');
+    if (blocked) { await client.query('ROLLBACK'); return res.status(400).json({ error: blocked }); }
     if (userResult.rows[0].points < cost) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: `ポイントが不足しています（必要: ${cost}pt）` });
@@ -300,7 +324,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     // pool_id 指定時はプールが存在・有効か確認
     let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
       poolRow = pr.rows[0];
     }
@@ -310,6 +334,9 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     const cost = gp.multi_cost;
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
+    // 引ける種類・回数制限（ユーザーの行を押さえてから数えるので、同時に引いても超えない）
+    const blocked = await pullBlocked(client, req.user.id, poolRow, 'multi');
+    if (blocked) { await client.query('ROLLBACK'); return res.status(400).json({ error: blocked }); }
     if (userResult.rows[0].points < cost) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: `ポイントが不足しています（必要: ${cost}pt）` });

@@ -73,6 +73,9 @@
 .gbtn-cost { position:absolute; left:0; right:0; bottom:14%; display:flex; align-items:baseline; justify-content:center; gap:0.5em; pointer-events:none;
   font-size:calc(var(--bw) * 0.092); font-weight:900; line-height:1; letter-spacing:0.02em; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .gbtn-cost small { font-size:0.82em; font-weight:bold; }
+.gacha-btn[hidden] { display:none; }
+.gx-pull-limit { text-align:center; margin:8px 0 16px; font-size:0.8rem; color:var(--text-secondary); }
+.gx-pull-limit b { color:#ffd24a; }
 .gacha-btn-single .gbtn-cost, .gbtn-cost.gbtn-single { color:#ffd9de; text-shadow:0 0 4px #ff3355, 0 0 10px rgba(255,51,85,0.8), 0 0 18px rgba(255,51,85,0.45); }
 .gacha-btn-multi .gbtn-cost, .gbtn-cost.gbtn-multi { color:#ffe9a8; text-shadow:0 0 4px #d9a520, 0 0 10px rgba(255,200,60,0.75), 0 0 18px rgba(255,190,40,0.4); }
 .g-card { opacity:0; transform:scale(0.8); transition:opacity 0.18s, transform 0.18s; }

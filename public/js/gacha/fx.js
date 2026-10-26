@@ -565,15 +565,16 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   // 結果のボタン
   const actions = document.getElementById('gx-actions');
   const cost = againType === 'single' ? gSettings?.single_cost : againType === 'multi' ? gSettings?.multi_cost : null;
-  const canAgain = againType && cost != null && currentPoints >= cost;
+  const noLeft = againType && pullsLeft() <= 0;
+  const canAgain = againType && cost != null && currentPoints >= cost && !noLeft;
   const againImg = againType ? PULL_BTN_IMG[againType] : '';
   actions.innerHTML = `
     <button type="button" class="gx-close" data-act="close" aria-label="閉じる">
       <span class="gx-close-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
       閉じる
     </button>
-    ${againType ? `<button type="button" class="gx-again" data-act="again"${canAgain ? '' : ' disabled title="ポイントが足りません"'} aria-label="もう一度引く（${againType === 'single' ? '単発' : '10連'} ${cost}pt）">
-      <span class="gx-again-tag">${canAgain ? 'もう一度' : 'ポイント不足'}</span>
+    ${againType ? `<button type="button" class="gx-again" data-act="again"${canAgain ? '' : ` disabled title="${noLeft ? '回数の上限です' : 'ポイントが足りません'}"`} aria-label="もう一度引く（${againType === 'single' ? '単発' : '10連'} ${cost}pt）">
+      <span class="gx-again-tag">${canAgain ? 'もう一度' : noLeft ? '上限' : 'ポイント不足'}</span>
       <img src="${againImg}" alt=""><span class="gbtn-cost gbtn-${againType}">${pullCostText(againType, cost)}</span>
     </button>` : ''}`;
   actions.hidden = false;

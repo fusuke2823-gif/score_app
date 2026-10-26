@@ -295,6 +295,9 @@ const initDB = async () => {
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS multi_cost INTEGER;
       -- 10連の最後の1枚：空・'S' なら S以上確定、'SS' なら SS確定
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS last_guarantee VARCHAR(3);
+      -- 引ける種類（空なら両方、'single' 単発のみ、'multi' 10連のみ）と、1人が引ける回数（空なら無制限。10連も1回と数える）
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_types VARCHAR(10);
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_limit INTEGER;
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_internal BOOLEAN NOT NULL DEFAULT FALSE;

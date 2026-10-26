@@ -23,6 +23,10 @@
 .event-list-item:last-child { border-bottom:none; }
 
 /* アイコングリッド */
+.mk-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.mk-head .section-title { margin:0; }
+.mk-box { background:var(--bg-primary); border:1px solid var(--border-light); border-radius:10px; padding:16px; margin-bottom:16px; }
+.mk-box-title { font-size:0.85rem; font-weight:bold; margin-bottom:10px; color:var(--accent-hover); }
 .icon-unit-counts { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
 .icon-unit-counts button { font:inherit; cursor:pointer; display:inline-flex; align-items:baseline; gap:5px; padding:4px 10px; border-radius:99px; border:1px solid var(--border-light); background:var(--bg-card2); font-size:0.78rem; color:var(--text-secondary); }
 .icon-unit-counts b { color:var(--text-primary); font-variant-numeric:tabular-nums; }
@@ -121,7 +125,7 @@
     <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)">
       <button id="tab-btn-basic" onclick="switchEditTab('basic')" style="padding:7px 18px;border:none;border-bottom:2px solid #4fc3f7;background:none;color:var(--text);font-size:0.88rem;cursor:pointer;font-weight:bold">基本設定</button>
       <button id="tab-btn-period" onclick="switchEditTab('period')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">期間設定</button>
-      <button id="tab-btn-rates" onclick="switchEditTab('rates')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">確率・コスト</button>
+      <button id="tab-btn-rates" onclick="switchEditTab('rates')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">引き方・確率</button>
       <button id="tab-btn-icons" onclick="switchEditTab('icons')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">アイコン設定</button>
     </div>
     <div id="pool-edit-alert" style="margin-bottom:10px"></div>
@@ -191,8 +195,25 @@
       </div>
     </div>
 
-    <!-- 確率・コストタブ：空欄なら標準のガチャ設定と同じ -->
+    <!-- 引き方・確率タブ：引ける種類と回数制限、確率・コスト（空欄なら標準のガチャ設定と同じ） -->
     <div id="tab-content-rates" style="display:none">
+      <div class="mk-box-title">引き方</div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">引ける種類</label>
+          <select class="form-input" id="edit-pull-types">
+            <option value="">単発・10連の両方</option>
+            <option value="single">単発のみ</option>
+            <option value="multi">10連のみ</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">1人が引ける回数（10連も1回）</label>
+          <input class="form-input" type="number" id="edit-pull-limit" min="1" step="1" placeholder="空欄で無制限">
+          <div class="form-hint">上限まで引いた人には、このガチャが出なくなります</div>
+        </div>
+      </div>
+      <div class="mk-box-title" style="margin-top:6px">確率・コスト</div>
       <p class="form-hint" style="margin:0 0 14px">空欄の項目は、ガチャ設定（標準）の値を使います。変えたい項目だけ入れてください。重複補償は標準のままです。</p>
       <div class="enemy-form-grid">
         <div class="form-group">
@@ -223,7 +244,7 @@
         </select>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
-        <button class="btn btn-secondary" onclick="clearPoolRates()">全部標準に戻す</button>
+        <button class="btn btn-secondary" onclick="clearPoolRates()">全部元に戻す</button>
         <button class="btn btn-primary" onclick="savePoolRates()">保存する</button>
       </div>
     </div>
@@ -285,6 +306,9 @@
     <button class="tab-btn active" onclick="switchTab('titles')">称号</button>
     <button class="tab-btn" onclick="switchTab('frames')">フレーム</button>
     <button class="tab-btn" onclick="switchTab('gacha')">ガチャ</button>
+    <button class="tab-btn" onclick="switchTab('icons')">アイコン</button>
+    <button class="tab-btn" onclick="switchTab('special')">討伐ガチャ</button>
+    <button class="tab-btn" onclick="switchTab('gsettings')">ガチャ設定</button>
   </div>
 
   <!-- 称号タブ -->
@@ -346,15 +370,14 @@
     </div>
   </div>
 
-  <!-- ガチャタブ -->
+  <!-- ガチャタブ（プール） -->
   <div class="tab-content" id="tab-gacha">
-
     <!-- ガチャプール管理 -->
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">ガチャプール管理</div>
+    <div class="card" style="margin-bottom:0">
+      <div class="mk-head"><div class="section-title">ガチャ（プール）</div><button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('pool-new')">＋ 新しいガチャを作る</button></div>
       <div id="pool-alert" style="margin-bottom:12px"></div>
-      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
-        <div style="font-size:0.85rem;font-weight:bold;margin-bottom:10px;color:var(--text-muted)">新規プール作成</div>
+      <div id="pool-new" class="mk-box" hidden>
+        <div class="mk-box-title">新しいガチャを作る</div>
         <div class="enemy-form-grid">
           <div class="form-group">
             <label class="form-label">ガチャ名</label>
@@ -397,57 +420,12 @@
       <div id="pool-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
-    <!-- ガチャ設定 -->
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">ガチャ設定</div>
-      <div id="gacha-settings-alert" style="margin-bottom:12px"></div>
-      <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">SS確率（%）</label>
-          <input class="form-input" type="number" id="gs-ss" min="0" max="100" step="0.1" placeholder="例: 3">
-        </div>
-        <div class="form-group">
-          <label class="form-label">S確率（%）</label>
-          <input class="form-input" type="number" id="gs-s" min="0" max="100" step="0.1" placeholder="例: 15">
-        </div>
-        <div class="form-group">
-          <label class="form-label">A確率（%）<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px">自動計算</span></label>
-          <input class="form-input" type="number" id="gs-a" readonly style="background:var(--bg-primary);color:var(--text-muted)">
-        </div>
-        <div class="form-group">
-          <label class="form-label">単発コスト（pt）</label>
-          <input class="form-input" type="number" id="gs-single" min="1" placeholder="例: 50">
-        </div>
-        <div class="form-group">
-          <label class="form-label">10連コスト（pt）</label>
-          <input class="form-input" type="number" id="gs-multi" min="1" placeholder="例: 450">
-        </div>
-      </div>
-      <div class="enemy-form-grid" style="margin-top:4px">
-        <div class="form-group">
-          <label class="form-label">SS重複補償（pt）</label>
-          <input class="form-input" type="number" id="gs-dup-ss" min="0" placeholder="例: 30">
-        </div>
-        <div class="form-group">
-          <label class="form-label">S重複補償（pt）</label>
-          <input class="form-input" type="number" id="gs-dup-s" min="0" placeholder="例: 10">
-        </div>
-        <div class="form-group">
-          <label class="form-label">A重複補償（pt）</label>
-          <input class="form-input" type="number" id="gs-dup-a" min="0" placeholder="例: 3">
-        </div>
-      </div>
-      <div class="form-group" style="margin-top:4px">
-        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-          <input type="checkbox" id="gs-show-nav" style="width:18px;height:18px">
-          <span>ナビゲーションバーにガチャを表示する</span>
-        </label>
-      </div>
-      <button class="btn btn-primary" style="margin-top:8px" onclick="saveGachaSettings()">保存する</button>
-    </div>
+  </div>
 
+  <!-- アイコンタブ -->
+  <div class="tab-content" id="tab-icons">
     <!-- アイコン追加 -->
-    <div class="card" style="margin-bottom:24px" id="icon-form-card">
+    <div class="card" style="margin-bottom:16px" id="icon-form-card" hidden>
       <div class="section-title" id="icon-form-title">アイコン追加</div>
       <div id="icon-replace-bar" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,107,128,0.55);background:rgba(255,77,101,0.08)">
         <img id="icon-replace-img" src="" alt="" style="width:40px;height:40px;border-radius:20%;object-fit:cover">
@@ -500,14 +478,22 @@
 
     <!-- アイコン一覧 -->
     <div class="card">
-      <details>
-        <summary class="section-title" style="cursor:pointer;display:list-item">アイコン一覧</summary>
+      <div class="mk-head"><div class="section-title">アイコン一覧</div><button type="button" class="btn btn-secondary btn-sm" onclick="openIconAdd()">＋ アイコンを追加</button></div>
+      <div>
         <div id="gacha-icon-list" style="margin-top:12px"><div class="loading"><div class="spinner"></div></div></div>
-      </details>
+      </div>
     </div>
 
+  </div>
+
+  <!-- 討伐ガチャタブ -->
+  <div class="tab-content" id="tab-special">
+    <div class="card">
+      <div class="mk-head"><div class="section-title">討伐ガチャの敵</div><button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('sg-new')">＋ 敵を作る</button></div>
+      <div id="sg-enemy-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
     <!-- 討伐ガチャ（期間限定ボス）管理 -->
-    <div class="card" style="margin-top:20px">
+    <div class="card" id="sg-new" hidden style="margin-top:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
         <div class="section-title" style="margin:0">討伐ガチャ（期間限定）</div>
         <button class="btn btn-secondary btn-sm" onclick="openSgStatsModal()">討伐ガチャの統計</button>
@@ -539,10 +525,60 @@
       <button class="btn btn-primary" id="sg-add-btn" onclick="addSpecialGachaEnemy()">敵を作成して有効化</button>
     </div>
 
-    <div class="card" style="margin-top:16px">
-      <div class="section-title">討伐ガチャの敵 一覧</div>
-      <div id="sg-enemy-list"><div class="loading"><div class="spinner"></div></div></div>
+  </div>
+
+  <!-- ガチャ設定タブ（標準の確率・コスト・重複補償） -->
+  <div class="tab-content" id="tab-gsettings">
+    <!-- ガチャ設定 -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">ガチャ設定（標準）</div>
+      <p class="form-hint" style="margin:-8px 0 14px">ガチャごとの「確率・コスト」で上書きしていない項目は、ここの値を使います。</p>
+      <div id="gacha-settings-alert" style="margin-bottom:12px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">SS確率（%）</label>
+          <input class="form-input" type="number" id="gs-ss" min="0" max="100" step="0.1" placeholder="例: 3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">S確率（%）</label>
+          <input class="form-input" type="number" id="gs-s" min="0" max="100" step="0.1" placeholder="例: 15">
+        </div>
+        <div class="form-group">
+          <label class="form-label">A確率（%）<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px">自動計算</span></label>
+          <input class="form-input" type="number" id="gs-a" readonly style="background:var(--bg-primary);color:var(--text-muted)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">単発コスト（pt）</label>
+          <input class="form-input" type="number" id="gs-single" min="1" placeholder="例: 50">
+        </div>
+        <div class="form-group">
+          <label class="form-label">10連コスト（pt）</label>
+          <input class="form-input" type="number" id="gs-multi" min="1" placeholder="例: 450">
+        </div>
+      </div>
+      <div class="enemy-form-grid" style="margin-top:4px">
+        <div class="form-group">
+          <label class="form-label">SS重複補償（pt）</label>
+          <input class="form-input" type="number" id="gs-dup-ss" min="0" placeholder="例: 30">
+        </div>
+        <div class="form-group">
+          <label class="form-label">S重複補償（pt）</label>
+          <input class="form-input" type="number" id="gs-dup-s" min="0" placeholder="例: 10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">A重複補償（pt）</label>
+          <input class="form-input" type="number" id="gs-dup-a" min="0" placeholder="例: 3">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:4px">
+        <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
+          <input type="checkbox" id="gs-show-nav" style="width:18px;height:18px">
+          <span>ナビゲーションバーにガチャを表示する</span>
+        </label>
+      </div>
+      <button class="btn btn-primary" style="margin-top:8px" onclick="saveGachaSettings()">保存する</button>
     </div>
+
   </div>
 </main>
 
@@ -552,14 +588,17 @@ renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['titles','frames','gacha'][i] === name);
+  document.querySelectorAll('.tabs > .tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['titles','frames','gacha','icons','special','gsettings'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadTitleScopes(); }
   if (name === 'frames') loadFrames();
-  if (name === 'gacha') { loadGachaSettings(); loadGachaIcons(); loadPools(); loadSgGimmicks().then(loadSpecialGachaEnemies); loadSsrIconOptions(); }
+  if (name === 'gacha') loadPools();
+  if (name === 'icons') loadGachaIcons();
+  if (name === 'special') { loadSgGimmicks().then(loadSpecialGachaEnemies); loadSsrIconOptions(); }
+  if (name === 'gsettings') loadGachaSettings();
 }
 
 // ===== 称号付与 =====
@@ -864,6 +903,7 @@ async function loadPools() {
             ${p.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(p.description)}</div>` : ''}
             <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px">アイコン ${p.icon_count}枚　順 ${p.order_index}</div>
             <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px">${formatPeriod(p.start_at, p.end_at)}</div>
+            ${poolOverrideChips(p)}
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap">
             <button class="btn btn-secondary btn-sm" onclick="openPoolEditModal(${p.id})">編集</button>
@@ -879,6 +919,18 @@ async function loadPools() {
 function formatDatetimeJST(dt) {
   if (!dt) return null;
   return new Date(dt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+// 標準から変えている確率・コスト・確定を札で出す（変えていなければ何も出さない）
+function poolOverrideChips(p) {
+  const c = [];
+  if (p.ss_rate != null) c.push(`SS ${+p.ss_rate}%`);
+  if (p.s_rate != null) c.push(`S ${+p.s_rate}%`);
+  if (p.single_cost != null) c.push(`単発 ${p.single_cost}pt`);
+  if (p.multi_cost != null) c.push(`10連 ${p.multi_cost}pt`);
+  if (p.last_guarantee === 'SS') c.push('最後の1枚SS確定');
+  if (p.pull_types) c.push(p.pull_types === 'single' ? '単発のみ' : '10連のみ');
+  if (p.pull_limit != null) c.push(`1人${p.pull_limit}回まで`);
+  return c.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${c.map(x => `<span style="font-size:0.7rem;font-weight:bold;padding:2px 8px;border-radius:99px;background:rgba(255,77,101,0.14);color:var(--accent-hover)">${escHtml(x)}</span>`).join('')}</div>` : '';
 }
 function formatPeriod(start_at, end_at) {
   if (!start_at && !end_at) return '期間: 常時開催';
@@ -925,6 +977,17 @@ async function createPool() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
+// 「＋ 新しく作る」の欄の開け閉め（開いたら見える位置へ）
+function toggleMk(id, open) {
+  const el = document.getElementById(id);
+  el.hidden = open === undefined ? !el.hidden : !open;
+  if (!el.hidden) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+function openIconAdd() {
+  if (replaceIconId !== null) cancelReplaceIcon();
+  toggleMk('icon-form-card', true);
+}
+
 // ===== ガチャごとの確率・コスト =====
 let _poolRateBase = null;
 // 入力欄にそのガチャの上書きを入れ、空欄の見本（placeholder）に標準の値を出す
@@ -935,6 +998,8 @@ function fillPoolRates(p, base) {
   set('edit-cost-single', p.single_cost, base.single_cost, 'pt');
   set('edit-cost-multi', p.multi_cost, base.multi_cost, 'pt');
   document.getElementById('edit-last-guarantee').value = p.last_guarantee === 'SS' ? 'SS' : '';
+  document.getElementById('edit-pull-types').value = p.pull_types || '';
+  document.getElementById('edit-pull-limit').value = p.pull_limit ?? '';
   updatePoolRateA();
 }
 // Aの確率は100からSS・Sを引いた残り（空欄は標準の値で計算）
@@ -947,7 +1012,7 @@ function updatePoolRateA() {
   el.style.color = a < 0 ? '#ff6b6b' : '';
 }
 function clearPoolRates() {
-  ['edit-rate-ss', 'edit-rate-s', 'edit-cost-single', 'edit-cost-multi', 'edit-last-guarantee'].forEach(id => { document.getElementById(id).value = ''; });
+  ['edit-rate-ss', 'edit-rate-s', 'edit-cost-single', 'edit-cost-multi', 'edit-last-guarantee', 'edit-pull-types', 'edit-pull-limit'].forEach(id => { document.getElementById(id).value = ''; });
   updatePoolRateA();
 }
 async function savePoolRates() {
@@ -955,7 +1020,7 @@ async function savePoolRates() {
   try {
     const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/rates`, {
       method: 'PATCH',
-      body: JSON.stringify({ ss_rate: v('edit-rate-ss'), s_rate: v('edit-rate-s'), single_cost: v('edit-cost-single'), multi_cost: v('edit-cost-multi'), last_guarantee: v('edit-last-guarantee') })
+      body: JSON.stringify({ ss_rate: v('edit-rate-ss'), s_rate: v('edit-rate-s'), single_cost: v('edit-cost-single'), multi_cost: v('edit-cost-multi'), last_guarantee: v('edit-last-guarantee'), pull_types: v('edit-pull-types'), pull_limit: v('edit-pull-limit') })
     });
     showToast(res.message);
     loadPools();
@@ -1484,6 +1549,7 @@ function startReplaceIcon(id) {
   document.getElementById('icon-meta-fields').style.display = 'none';
   document.getElementById('add-icon-btn').textContent = '画像を変更する';
   resetIconCrop();
+  document.getElementById('icon-form-card').hidden = false;
   document.getElementById('icon-form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function cancelReplaceIcon() {

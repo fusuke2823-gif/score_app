@@ -1514,7 +1514,7 @@ router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.is_active, gp.order_index, gp.created_at,
-              gp.start_at, gp.end_at, gp.side, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
+              gp.start_at, gp.end_at, gp.side, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee, gp.pull_types, gp.pull_limit,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
@@ -1569,9 +1569,12 @@ router.patch('/gacha/pools/:id/rates', async (req, res) => {
     const effSS = ss ?? (m.gacha_ss_rate ?? 3), effS = s ?? (m.gacha_s_rate ?? 15);
     if (effSS + effS > 100) return res.status(400).json({ error: `SSとSの確率の合計が100%を超えています（${effSS}+${effS}）` });
     const guarantee = req.body.last_guarantee === 'SS' ? 'SS' : null; // 空なら標準（S以上確定）
-    const r = await pool.query('UPDATE gacha_pools SET ss_rate=$1, s_rate=$2, single_cost=$3, multi_cost=$4, last_guarantee=$5 WHERE id=$6 RETURNING *', [ss, s, single, multi, guarantee, req.params.id]);
+    const types = ['single', 'multi'].includes(req.body.pull_types) ? req.body.pull_types : null; // 空なら両方
+    const limit = num(req.body.pull_limit);
+    if (limit !== null && (!Number.isInteger(limit) || limit < 1)) return res.status(400).json({ error: '回数制限は1以上の整数で入力してください（空欄で無制限）' });
+    const r = await pool.query('UPDATE gacha_pools SET ss_rate=$1, s_rate=$2, single_cost=$3, multi_cost=$4, last_guarantee=$5, pull_types=$6, pull_limit=$7 WHERE id=$8 RETURNING *', [ss, s, single, multi, guarantee, types, limit, req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: '見つかりません' });
-    res.json({ message: '確率・コストを保存しました', pool: r.rows[0] });
+    res.json({ message: '引き方・確率・コストを保存しました', pool: r.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

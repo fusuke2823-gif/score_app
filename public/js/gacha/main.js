@@ -60,8 +60,7 @@ async function init() {
     updateRateInfo(gSettings, selPool ? (selPool.pickup_icons || []) : []);
     updatePullButtons();
 
-    document.getElementById('btn-single').disabled = false;
-    document.getElementById('btn-multi').disabled = false;
+    refreshPullButtons();
 
     renderMyIcons(myData.icons);
   } catch (err) {
@@ -73,6 +72,30 @@ async function init() {
 const PULL_BTN_IMG = { single: '/img/gacha_btn_single.webp', multi: '/img/gacha_btn_multi.webp' };
 // 10連は最後の1枚の確定（S以上／SS）も添える
 const pullCostText = (type, cost, guarantee = gSettings?.last_guarantee) => (cost == null ? '' : type === 'multi' ? `${cost}pt<small>${guarantee === 'SS' ? 'SSレア確定' : 'Sレア以上確定'}</small>` : `${cost}pt`);
+// 選んでいるガチャで、あと何回引けるか（回数制限がなければ Infinity）
+function pullsLeft() {
+  const p = gPools.find(x => x.id === selectedPoolId);
+  return p && p.pull_limit != null ? Math.max(0, p.pull_limit - (p.my_pulls || 0)) : Infinity;
+}
+// ボタンの押せる・押せないと、回数制限の表示（引ける種類以外のボタンは隠す）
+function refreshPullButtons() {
+  const p = gPools.find(x => x.id === selectedPoolId);
+  const left = pullsLeft();
+  [['single', 'btn-single'], ['multi', 'btn-multi']].forEach(([type, id]) => {
+    const btn = document.getElementById(id);
+    btn.hidden = !!(p && p.pull_types && p.pull_types !== type);
+    btn.disabled = isPulling || left <= 0;
+  });
+  let el = document.getElementById('gx-pull-limit');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'gx-pull-limit';
+    el.className = 'gx-pull-limit';
+    document.querySelector('.gacha-pull-btns').insertAdjacentElement('afterend', el);
+  }
+  el.hidden = !(p && p.pull_limit != null);
+  if (!el.hidden) el.innerHTML = left > 0 ? `1人${p.pull_limit}回まで　<b>残り${left}回</b>` : `1人${p.pull_limit}回まで　<b>上限まで引きました</b>`;
+}
 function updatePullButtons() {
   if (!gSettings) return;
   [['single', 'btn-single'], ['multi', 'btn-multi']].forEach(([type, id]) => {
@@ -81,6 +104,7 @@ function updatePullButtons() {
     btn.querySelector('.gbtn-cost').innerHTML = pullCostText(type, cost);
     btn.querySelector('img').alt = `${type === 'multi' ? '10連' : '単発'}ガチャ ${cost}pt`;
   });
+  refreshPullButtons();
 }
 
 function updateRateInfo(settings, pickupIcons) {
@@ -475,6 +499,9 @@ async function doPull(type) {
     if (overlayOpen) openGxOverlay(title);
     const body = selectedPoolId ? JSON.stringify({ pool_id: selectedPoolId }) : '{}';
     const res = await apiFetch(`/gacha/pull/${type}`, { method: 'POST', body });
+    // 回数制限のあるガチャは、引いた回数を数え直す（もう一度引くボタンにも効く）
+    const pp = gPools.find(x => x.id === selectedPoolId);
+    if (pp && pp.pull_limit != null) pp.my_pulls = (pp.my_pulls || 0) + 1;
     // コスト分を即座に減らす
     const dupTotal = res.results.reduce((s, r) => s + (r.dup_pts || 0), 0);
     const afterCost = res.new_points - dupTotal;
@@ -495,11 +522,20 @@ async function doPull(type) {
     showToast(err.message, 'error');
   } finally {
     isPulling = false;
-    btnS.disabled = false;
-    btnM.disabled = false;
+    refreshPullButtons();
   }
   if (next === 'again') doPull(type);
-  else closeGxOverlay();
+  else {
+    closeGxOverlay();
+    removeFinishedPool();
+  }
+}
+
+// 回数制限まで引いたガチャは一覧から消して、残りのガチャに切り替える
+function removeFinishedPool() {
+  if (!selectedPoolId || pullsLeft() > 0) return;
+  gPools = gPools.filter(x => x.id !== selectedPoolId);
+  renderPoolSelector(gPools);
 }
 
 let _lastPoolModalPoolId = null;
