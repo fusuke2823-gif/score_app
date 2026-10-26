@@ -4,6 +4,25 @@ const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
 
+// 引くときの確率・コスト・重複補償。標準のガチャ設定に、ガチャ（プール）ごとの上書きを重ねる
+// 上書きは確率（SS・S）・コスト（単発・10連）・10連の最後の1枚の確定だけ。重複補償は標準のまま。Aの確率は100から引いた残り
+async function gachaParams(db, poolRow = null) {
+  const r = await db.query(
+    "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_single_cost','gacha_multi_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
+  );
+  const sm = {};
+  r.rows.forEach(x => { sm[x.key] = x.value; });
+  const pick = (v, base) => (v === null || v === undefined ? base : Number(v));
+  return {
+    ss_rate: pick(poolRow?.ss_rate, parseFloat(sm.gacha_ss_rate || '3')),
+    s_rate: pick(poolRow?.s_rate, parseFloat(sm.gacha_s_rate || '15')),
+    single_cost: pick(poolRow?.single_cost, parseInt(sm.gacha_single_cost || '50')),
+    multi_cost: pick(poolRow?.multi_cost, parseInt(sm.gacha_multi_cost || '450')),
+    last_guarantee: poolRow?.last_guarantee === 'SS' ? 'SS' : 'S', // 10連の最後の1枚
+    dupMap: { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') },
+  };
+}
+
 // ガチャ設定（公開）
 router.get('/settings', async (req, res) => {
   try {
@@ -31,7 +50,7 @@ router.get('/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
-              gp.start_at, gp.end_at,
+              gp.start_at, gp.end_at, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
                 (SELECT json_agg(jsonb_build_object('id', gi.id, 'name', gi.name, 'image_url', gi.image_url) ORDER BY gi.id)
@@ -48,6 +67,7 @@ router.get('/pools', async (req, res) => {
        GROUP BY gp.id
        ORDER BY gp.order_index ASC, gp.id ASC`
     );
+    // 確率・コストは上書きのない項目が null（画面で標準の設定と重ねる）
     res.json(result.rows.map(r => ({
       ...r,
       image_url: optimizeUrl(r.image_url),
@@ -229,20 +249,16 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     // pool_id 指定時はプールが存在・有効か確認
+    let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
+      poolRow = pr.rows[0];
     }
 
-    const settingsResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_single_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
-    );
-    const sm = {};
-    settingsResult.rows.forEach(r => { sm[r.key] = r.value; });
-    const ss_rate = parseFloat(sm.gacha_ss_rate || '3');
-    const s_rate  = parseFloat(sm.gacha_s_rate  || '15');
-    const cost    = parseInt(sm.gacha_single_cost || '50');
-    const dupMap  = { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') };
+    const gp = await gachaParams(client, poolRow);
+    const { ss_rate, s_rate, dupMap } = gp;
+    const cost = gp.single_cost;
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     if (userResult.rows[0].points < cost) {
@@ -274,7 +290,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
   }
 });
 
-// 10連ガチャ（最後の1枚はSレア以上確定）
+// 10連ガチャ（最後の1枚はSレア以上確定。ガチャによってはSS確定）
 router.post('/pull/multi', authenticateToken, async (req, res) => {
   const { pool_id } = req.body;
   const client = await pool.connect();
@@ -282,20 +298,16 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     await client.query('BEGIN');
 
     // pool_id 指定時はプールが存在・有効か確認
+    let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
+      poolRow = pr.rows[0];
     }
 
-    const settingsResult = await client.query(
-      "SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate','gacha_multi_cost','gacha_dup_ss_pts','gacha_dup_s_pts','gacha_dup_a_pts')"
-    );
-    const sm = {};
-    settingsResult.rows.forEach(r => { sm[r.key] = r.value; });
-    const ss_rate = parseFloat(sm.gacha_ss_rate || '3');
-    const s_rate  = parseFloat(sm.gacha_s_rate  || '15');
-    const cost    = parseInt(sm.gacha_multi_cost || '450');
-    const dupMap  = { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') };
+    const gp = await gachaParams(client, poolRow);
+    const { ss_rate, s_rate, dupMap } = gp;
+    const cost = gp.multi_cost;
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     if (userResult.rows[0].points < cost) {
@@ -309,8 +321,8 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     const results = [];
     let totalDupPts = 0;
     for (let i = 0; i < 10; i++) {
-      const forceS = (i === 9);
-      const rarity = pickRarity(ss_rate, s_rate, forceS);
+      const isLast = (i === 9);
+      const rarity = isLast && gp.last_guarantee === 'SS' ? 'SS' : pickRarity(ss_rate, s_rate, isLast);
       const icon = await pickIcon(client, rarity, pool_id || null, ss_rate);
       if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
       const result = await acquireIcon(client, req.user.id, icon, dupMap);

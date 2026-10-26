@@ -113,7 +113,7 @@
 
 <!-- プール編集モーダル -->
 <div id="pool-edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 12px">
-  <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:24px;max-width:640px;width:100%;margin:auto">
+  <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:24px;max-width:640px;width:100%;margin:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:16px">
       <div style="font-weight:bold;font-size:1rem" id="pool-edit-modal-title">プール編集</div>
       <button onclick="closePoolEditModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1;padding:0 4px">×</button>
@@ -121,6 +121,7 @@
     <div style="display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)">
       <button id="tab-btn-basic" onclick="switchEditTab('basic')" style="padding:7px 18px;border:none;border-bottom:2px solid #4fc3f7;background:none;color:var(--text);font-size:0.88rem;cursor:pointer;font-weight:bold">基本設定</button>
       <button id="tab-btn-period" onclick="switchEditTab('period')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">期間設定</button>
+      <button id="tab-btn-rates" onclick="switchEditTab('rates')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">確率・コスト</button>
       <button id="tab-btn-icons" onclick="switchEditTab('icons')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">アイコン設定</button>
     </div>
     <div id="pool-edit-alert" style="margin-bottom:10px"></div>
@@ -187,6 +188,43 @@
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
         <button class="btn btn-secondary" onclick="closePoolEditModal()">閉じる</button>
         <button class="btn btn-primary" onclick="savePeriodSettings()">保存する</button>
+      </div>
+    </div>
+
+    <!-- 確率・コストタブ：空欄なら標準のガチャ設定と同じ -->
+    <div id="tab-content-rates" style="display:none">
+      <p class="form-hint" style="margin:0 0 14px">空欄の項目は、ガチャ設定（標準）の値を使います。変えたい項目だけ入れてください。重複補償は標準のままです。</p>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">SS確率（%）</label>
+          <input class="form-input" type="number" id="edit-rate-ss" min="0" max="100" step="0.001" oninput="updatePoolRateA()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">S確率（%）</label>
+          <input class="form-input" type="number" id="edit-rate-s" min="0" max="100" step="0.001" oninput="updatePoolRateA()">
+        </div>
+      </div>
+      <div class="form-hint" id="edit-rate-a" style="margin:-8px 0 14px"></div>
+      <div class="enemy-form-grid">
+        <div class="form-group">
+          <label class="form-label">単発コスト（pt）</label>
+          <input class="form-input" type="number" id="edit-cost-single" min="0" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">10連コスト（pt）</label>
+          <input class="form-input" type="number" id="edit-cost-multi" min="0" step="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">10連の最後の1枚</label>
+        <select class="form-input" id="edit-last-guarantee">
+          <option value="">S以上確定（標準）</option>
+          <option value="SS">SS確定</option>
+        </select>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button class="btn btn-secondary" onclick="clearPoolRates()">全部標準に戻す</button>
+        <button class="btn btn-primary" onclick="savePoolRates()">保存する</button>
       </div>
     </div>
 
@@ -887,6 +925,43 @@ async function createPool() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
+// ===== ガチャごとの確率・コスト =====
+let _poolRateBase = null;
+// 入力欄にそのガチャの上書きを入れ、空欄の見本（placeholder）に標準の値を出す
+function fillPoolRates(p, base) {
+  const set = (id, v, std, unit) => { const el = document.getElementById(id); el.value = v ?? ''; el.placeholder = `標準 ${std}${unit}`; };
+  set('edit-rate-ss', p.ss_rate, base.ss_rate, '%');
+  set('edit-rate-s', p.s_rate, base.s_rate, '%');
+  set('edit-cost-single', p.single_cost, base.single_cost, 'pt');
+  set('edit-cost-multi', p.multi_cost, base.multi_cost, 'pt');
+  document.getElementById('edit-last-guarantee').value = p.last_guarantee === 'SS' ? 'SS' : '';
+  updatePoolRateA();
+}
+// Aの確率は100からSS・Sを引いた残り（空欄は標準の値で計算）
+function updatePoolRateA() {
+  const b = _poolRateBase || {};
+  const val = (id, d) => { const v = document.getElementById(id).value; return v === '' ? +d : +v; };
+  const ss = val('edit-rate-ss', b.ss_rate), s = val('edit-rate-s', b.s_rate), a = 100 - ss - s;
+  const el = document.getElementById('edit-rate-a');
+  el.textContent = a < 0 ? `SSとSの合計が100%を超えています（${+(ss + s).toFixed(3)}%）` : `A確率は ${+a.toFixed(3)}%（100からSS・Sを引いた残り）`;
+  el.style.color = a < 0 ? '#ff6b6b' : '';
+}
+function clearPoolRates() {
+  ['edit-rate-ss', 'edit-rate-s', 'edit-cost-single', 'edit-cost-multi', 'edit-last-guarantee'].forEach(id => { document.getElementById(id).value = ''; });
+  updatePoolRateA();
+}
+async function savePoolRates() {
+  const v = id => document.getElementById(id).value;
+  try {
+    const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/rates`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ss_rate: v('edit-rate-ss'), s_rate: v('edit-rate-s'), single_cost: v('edit-cost-single'), multi_cost: v('edit-cost-multi'), last_guarantee: v('edit-last-guarantee') })
+    });
+    showToast(res.message);
+    loadPools();
+  } catch (err) { showToast(err.message, 'error'); }
+}
+
 async function openPoolEditModal(poolId, tab = 'basic') {
   _editPoolId = poolId;
   _poolIconModalId = poolId;
@@ -899,11 +974,14 @@ async function openPoolEditModal(poolId, tab = 'basic') {
   document.getElementById('pool-edit-modal').style.display = 'flex';
   switchEditTab(tab);
   try {
-    const [pools, stats] = await Promise.all([
+    const [pools, stats, base] = await Promise.all([
       apiFetch('/admin/gacha/pools'),
-      apiFetch('/admin/gacha/pools/stats')
+      apiFetch('/admin/gacha/pools/stats'),
+      apiFetch('/admin/gacha/settings')
     ]);
     const p = pools.find(x => x.id === poolId);
+    _poolRateBase = base;
+    if (p) fillPoolRates(p, base);
     if (p) {
       document.getElementById('pool-edit-modal-title').textContent = escHtml(p.name);
       document.getElementById('edit-pool-name').value = p.name;
@@ -926,7 +1004,7 @@ async function openPoolEditModal(poolId, tab = 'basic') {
 }
 
 function switchEditTab(tab) {
-  ['basic', 'period', 'icons'].forEach(t => {
+  ['basic', 'period', 'rates', 'icons'].forEach(t => {
     document.getElementById(`tab-content-${t}`).style.display = t === tab ? '' : 'none';
     const btn = document.getElementById(`tab-btn-${t}`);
     btn.style.borderBottom = t === tab ? '2px solid #4fc3f7' : '2px solid transparent';

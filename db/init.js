@@ -288,6 +288,13 @@ const initDB = async () => {
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS end_at TIMESTAMPTZ;
       ALTER TABLE events ADD COLUMN IF NOT EXISTS points_distributed_at TIMESTAMPTZ;
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS side VARCHAR(5) NOT NULL DEFAULT '表';
+      -- ガチャごとの確率・コスト（空なら標準のガチャ設定と同じ）
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS ss_rate NUMERIC(6,3);
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS s_rate NUMERIC(6,3);
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS single_cost INTEGER;
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS multi_cost INTEGER;
+      -- 10連の最後の1枚：空・'S' なら S以上確定、'SS' なら SS確定
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS last_guarantee VARCHAR(3);
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_internal BOOLEAN NOT NULL DEFAULT FALSE;

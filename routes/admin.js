@@ -1514,7 +1514,7 @@ router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.is_active, gp.order_index, gp.created_at,
-              gp.start_at, gp.end_at, gp.side,
+              gp.start_at, gp.end_at, gp.side, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
@@ -1550,6 +1550,28 @@ router.patch('/gacha/pools/:id/image', async (req, res) => {
     const up = await cloudinary.uploader.upload(image_base64, { folder: 'hbr-ranking/gacha-pools', resource_type: 'image' });
     await pool.query('UPDATE gacha_pools SET image_url=$1 WHERE id=$2', [up.secure_url, req.params.id]);
     res.json({ image_url: up.secure_url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ガチャごとの確率・コスト・10連の最後の1枚の確定（空欄・null なら標準のガチャ設定と同じ）
+router.patch('/gacha/pools/:id/rates', async (req, res) => {
+  const num = v => (v === '' || v === null || v === undefined ? null : Number(v));
+  const ss = num(req.body.ss_rate), s = num(req.body.s_rate), single = num(req.body.single_cost), multi = num(req.body.multi_cost);
+  if ([ss, s].some(v => v !== null && (!Number.isFinite(v) || v < 0 || v > 100))) return res.status(400).json({ error: '確率は0〜100で入力してください' });
+  if ([single, multi].some(v => v !== null && (!Number.isInteger(v) || v < 0))) return res.status(400).json({ error: 'コストは0以上の整数で入力してください' });
+  try {
+    // 片方だけ上書きしても合計が100を超えないか、標準の値と合わせて確かめる
+    const st = await pool.query("SELECT key, value FROM settings WHERE key IN ('gacha_ss_rate','gacha_s_rate')");
+    const m = Object.fromEntries(st.rows.map(r => [r.key, parseFloat(r.value)]));
+    const effSS = ss ?? (m.gacha_ss_rate ?? 3), effS = s ?? (m.gacha_s_rate ?? 15);
+    if (effSS + effS > 100) return res.status(400).json({ error: `SSとSの確率の合計が100%を超えています（${effSS}+${effS}）` });
+    const guarantee = req.body.last_guarantee === 'SS' ? 'SS' : null; // 空なら標準（S以上確定）
+    const r = await pool.query('UPDATE gacha_pools SET ss_rate=$1, s_rate=$2, single_cost=$3, multi_cost=$4, last_guarantee=$5 WHERE id=$6 RETURNING *', [ss, s, single, multi, guarantee, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: '見つかりません' });
+    res.json({ message: '確率・コストを保存しました', pool: r.rows[0] });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

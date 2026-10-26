@@ -9,6 +9,17 @@ document.getElementById('gacha-type-tabs').style.display = 'flex';
 document.getElementById('tab-btn-special').style.display = '';
 
 let gSettings = null;
+let gBaseSettings = null; // 標準のガチャ設定。gSettings は選んでいるガチャの上書きを重ねたもの
+// 選んだガチャの確率・コスト（上書きのない項目は標準のまま、Aは100から引いた残り）
+function poolSettings(p) {
+  const b = gBaseSettings || {};
+  if (!p) return b;
+  const v = (x, d) => (x === null || x === undefined ? d : +x);
+  const ss = v(p.ss_rate, +b.ss_rate), s = v(p.s_rate, +b.s_rate);
+  const rateChanged = p.ss_rate != null || p.s_rate != null;
+  return { ...b, ss_rate: ss, s_rate: s, a_rate: rateChanged ? Math.max(0, +(100 - ss - s).toFixed(3)) : b.a_rate,
+    single_cost: v(p.single_cost, b.single_cost), multi_cost: v(p.multi_cost, b.multi_cost), last_guarantee: p.last_guarantee === 'SS' ? 'SS' : 'S' };
+}
 let isPulling = false;
 let currentPoints = 0;
 let currentGp = 0;
@@ -24,6 +35,7 @@ async function init() {
       apiFetch('/gacha/my'),
       apiFetch('/gacha/pools')
     ]);
+    gBaseSettings = settings;
     gSettings = settings;
     gPools = pools;
     currentPoints = myData.points;
@@ -43,7 +55,10 @@ async function init() {
       }
     } catch (_) {}
 
-    updateRateInfo(settings, []);
+    // 選んでいるガチャの確率・ピックアップで出す（ガチャがなければ標準）
+    const selPool = gPools.find(x => x.id === selectedPoolId);
+    updateRateInfo(gSettings, selPool ? (selPool.pickup_icons || []) : []);
+    updatePullButtons();
 
     document.getElementById('btn-single').disabled = false;
     document.getElementById('btn-multi').disabled = false;
@@ -52,6 +67,20 @@ async function init() {
   } catch (err) {
     showAlert('#alert', err.message);
   }
+}
+
+// 単発・10連のボタン：画像の下の帯に、選んでいるガチャのコストを重ねる
+const PULL_BTN_IMG = { single: '/img/gacha_btn_single.webp', multi: '/img/gacha_btn_multi.webp' };
+// 10連は最後の1枚の確定（S以上／SS）も添える
+const pullCostText = (type, cost, guarantee = gSettings?.last_guarantee) => (cost == null ? '' : type === 'multi' ? `${cost}pt<small>${guarantee === 'SS' ? 'SSレア確定' : 'Sレア以上確定'}</small>` : `${cost}pt`);
+function updatePullButtons() {
+  if (!gSettings) return;
+  [['single', 'btn-single'], ['multi', 'btn-multi']].forEach(([type, id]) => {
+    const btn = document.getElementById(id);
+    const cost = gSettings[type + '_cost'];
+    btn.querySelector('.gbtn-cost').innerHTML = pullCostText(type, cost);
+    btn.querySelector('img').alt = `${type === 'multi' ? '10連' : '単発'}ガチャ ${cost}pt`;
+  });
 }
 
 function updateRateInfo(settings, pickupIcons) {
@@ -73,9 +102,10 @@ function updateRateInfo(settings, pickupIcons) {
         <div class="gx-rate-pu-rest"><span>${zh ? '通常SS（均等）' : '通常SS（均等）'}</span><span>${normalRate.toFixed(2)}%</span></div>
       </div>`;
   }
+  const ssLast = settings.last_guarantee === 'SS';
   const rateNote = zh
-    ? `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}稀度內機率均等。十連最後1枚A→S保底。`
-    : `${puCount > 0 ? 'PickUpのSSは各0.75%。' : ''}レアリティ内の確率は均等。10連の最後の1枚はAがSに変わります。`;
+    ? `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}稀度內機率均等。${ssLast ? '十連最後1枚SS保底。' : '十連最後1枚A→S保底。'}`
+    : `${puCount > 0 ? 'PickUpのSSは各0.75%。' : ''}レアリティ内の確率は均等。${ssLast ? '10連の最後の1枚はSS確定です。' : '10連の最後の1枚はAがSに変わります。'}`;
   document.getElementById('rate-info').innerHTML = `
     <div class="gx-rate-bar">${bar}</div>
     ${row('SS', puCount > 0 ? 'PickUp含む' : '', ssRate)}
@@ -221,9 +251,11 @@ function selectPool(poolId) {
     b.setAttribute('aria-selected', on);
     if (on) b.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   });
-  // 排出率をピックアップ対応に更新
+  // 排出率をそのガチャの確率・ピックアップに更新
   const pickupIcons = p ? (p.pickup_icons || []) : [];
+  gSettings = poolSettings(p);
   if (gSettings) updateRateInfo(gSettings, pickupIcons);
+  updatePullButtons();
   // GP交換（そのガチャを引いた回数・PU対応）を更新
   loadExchangeList();
   showGachaMain();

@@ -67,8 +67,14 @@
 .gacha-btn:disabled { opacity:0.45; cursor:not-allowed; transform:none; }
 .gacha-btn-single { color:#fff; }
 .gacha-btn-multi { color:#ffd700; }
-.gacha-btn img { width:160px; max-width:38vw; height:auto; display:block; }
-.gacha-btn .gcost { font-size:0.88rem; font-weight:bold; }
+.gacha-btn { position:relative; --bw:min(160px, 38vw); }
+.gacha-btn img { width:var(--bw); height:auto; display:block; }
+/* ボタンの画像の下の空いた帯に、コストを光る文字で重ねる（ガチャごとにコストが変わるため画像には入れない） */
+.gbtn-cost { position:absolute; left:0; right:0; bottom:14%; display:flex; align-items:baseline; justify-content:center; gap:0.5em; pointer-events:none;
+  font-size:calc(var(--bw) * 0.092); font-weight:900; line-height:1; letter-spacing:0.02em; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.gbtn-cost small { font-size:0.82em; font-weight:bold; }
+.gacha-btn-single .gbtn-cost, .gbtn-cost.gbtn-single { color:#ffd9de; text-shadow:0 0 4px #ff3355, 0 0 10px rgba(255,51,85,0.8), 0 0 18px rgba(255,51,85,0.45); }
+.gacha-btn-multi .gbtn-cost, .gbtn-cost.gbtn-multi { color:#ffe9a8; text-shadow:0 0 4px #d9a520, 0 0 10px rgba(255,200,60,0.75), 0 0 18px rgba(255,190,40,0.4); }
 .g-card { opacity:0; transform:scale(0.8); transition:opacity 0.18s, transform 0.18s; }
 .g-card.card-visible { opacity:1; transform:scale(1); }
 
@@ -640,7 +646,8 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .gx-close:hover .gx-close-ring { background:rgba(255,255,255,0.14); border-color:rgba(255,255,255,0.6); }
 /* もう一度：引く画面と同じボタン画像に「もう一度」の札を付ける */
 .gx-again { position:relative; padding:0; border:none; background:none; cursor:pointer; transition:transform 0.15s, filter 0.2s; }
-.gx-again img { display:block; width:min(44vw, 180px); height:auto; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
+.gx-again { --bw:min(44vw, 180px); }
+.gx-again img { display:block; width:var(--bw); height:auto; filter:drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
 .gx-again:hover:not(:disabled) { transform:translateY(-3px); }
 .gx-again:disabled { filter:grayscale(1) brightness(0.6); cursor:not-allowed; }
 .gx-again-tag {
