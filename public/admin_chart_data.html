@@ -22,67 +22,95 @@
 .sync-row { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; font-size:0.8rem; margin-bottom:10px; cursor:pointer; }
 .sync-row small { color:var(--text-muted); font-size:0.72rem; }
 .icon-tile.busy { opacity:0.5; pointer-events:none; }
+.cd-desc { font-size:0.8rem; color:var(--text-muted); line-height:1.7; margin:0 0 12px; }
+.cd-list { border-radius:12px; border:1px solid rgba(255,255,255,0.06); overflow:hidden; }
+.cd-sec { padding:14px 16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.cd-sec:last-child { border-bottom:none; }
+.cd-sec-head { display:flex; align-items:baseline; gap:10px; margin-bottom:6px; }
+.cd-sec-head b { font-size:0.95rem; }
+.cd-num { font-size:0.8rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.cd-num strong { font-size:1rem; color:var(--text-primary); }
+.cd-cols { font-size:0.74rem; color:var(--text-muted); margin-bottom:10px; word-break:break-all; }
+.cd-cols code { font-size:0.72rem; }
+.cd-up { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+.cd-up .form-input { flex:1 1 160px; min-width:0; padding:6px; font-size:0.82rem; }
+.cd-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.cd-foot .sync-row { margin:0; }
+.cd-del { background:transparent; color:#ff6b6b; border:1px solid rgba(231,76,60,0.65); }
+.cd-del:hover { background:rgba(231,76,60,0.14); color:#ff6b6b; }
+#alert .alert { white-space:pre-line; }
 </style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main class="container" style="padding-top:20px;padding-bottom:40px">
   <div class="admin-head">
-    <h1 class="page-title">チャートデータ管理</h1>
+    <h1 class="page-title">チャートデータ</h1>
     <div class="admin-nav" data-current="chart"></div>
   </div>
   <div id="alert"></div>
 
-  <div id="stats" style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap"></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('csv')">CSVの取り込み</button>
+    <button class="tab-btn" onclick="switchTab('icons')">アイコン</button>
+  </div>
 
-  <div style="display:grid;gap:16px">
-    <!-- キャラクター -->
-    <div class="card" style="padding:16px">
-      <div style="font-weight:bold;margin-bottom:8px">キャラクター CSV</div>
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: sort_order,name,abbreviation(略称)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <input type="file" id="char-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
-        <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">インポート</button>
+  <div class="tab-content active" id="tab-csv">
+    <div class="card">
+      <div class="section-title">CSVの取り込み</div>
+      <p class="cd-desc">「CSVにない行を削除する」は、CSVに全件そろっているときだけ使ってください。チャートで使われている行は消さずに残します。</p>
+      <div class="cd-list">
+        <div class="cd-sec">
+          <div class="cd-sec-head"><b>キャラクター</b><span class="cd-num" id="n-characters"></span></div>
+          <div class="cd-cols">ヘッダー行：<code>sort_order,name,abbreviation(略称)</code></div>
+          <div class="cd-up">
+            <input type="file" id="char-csv" accept=".csv" class="form-input">
+            <button class="btn btn-primary btn-sm" onclick="upload('characters','char-csv')">取り込む</button>
+          </div>
+          <div class="cd-foot">
+            <label class="sync-row"><input type="checkbox" id="char-csv-sync"> CSVにない行を削除する</label>
+            <button class="btn btn-sm cd-del" onclick="deleteData('characters','キャラクター')">キャラクターを全削除</button>
+          </div>
+        </div>
+        <div class="cd-sec">
+          <div class="cd-sec-head"><b>スタイル</b><span class="cd-num" id="n-styles"></span></div>
+          <div class="cd-cols">ヘッダー行：<code>style_name,abbreviation(略称),character_name,has_special_skill(0/1)</code></div>
+          <div class="cd-up">
+            <input type="file" id="style-csv" accept=".csv" class="form-input">
+            <button class="btn btn-primary btn-sm" onclick="upload('styles','style-csv')">取り込む</button>
+          </div>
+          <div class="cd-foot">
+            <label class="sync-row"><input type="checkbox" id="style-csv-sync"> CSVにない行を削除する</label>
+            <button class="btn btn-sm cd-del" onclick="deleteData('styles','スタイル')">スタイルを全削除</button>
+          </div>
+        </div>
+        <div class="cd-sec">
+          <div class="cd-sec-head"><b>技</b><span class="cd-num" id="n-skills"></span></div>
+          <div class="cd-cols">ヘッダー行：<code>skill_name,abbreviation(略称),style_name(空=キャラ共通),character_name(空=全キャラ共通),has_target(0/1),is_special(0/1)</code></div>
+          <div class="cd-up">
+            <input type="file" id="skill-csv" accept=".csv" class="form-input">
+            <button class="btn btn-primary btn-sm" onclick="upload('skills','skill-csv')">取り込む</button>
+          </div>
+          <div class="cd-foot">
+            <label class="sync-row"><input type="checkbox" id="skill-csv-sync"> CSVにない行を削除する</label>
+            <button class="btn btn-sm cd-del" onclick="deleteSkills()">技を全削除</button>
+          </div>
+        </div>
       </div>
-      <label class="sync-row"><input type="checkbox" id="char-csv-sync"> CSVにない行を削除する<small>（チャートで使われている行は残します。CSVに全件そろっているときだけ使ってください）</small></label>
-      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('characters','キャラクター')">キャラクターを全削除</button>
     </div>
+  </div>
 
-    <!-- チャート用アイコン -->
-    <div class="card" style="padding:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <div style="font-weight:bold">チャート用アイコン <span id="icon-count" style="font-weight:normal;font-size:0.8rem;color:var(--text-muted)"></span></div>
+  <div class="tab-content" id="tab-icons">
+    <div class="card">
+      <div class="mk-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="section-title" style="margin:0">チャート用アイコン <span id="icon-count" class="cd-num"></span></div>
         <label class="btn btn-secondary btn-sm" style="cursor:pointer">まとめてアップロード
           <input type="file" accept="image/*" multiple style="display:none" onchange="bulkIcons(this)">
         </label>
       </div>
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">キャラを押して画像を選ぶと差し替えます。正方形（顔が中央）の画像を推奨。まとめてアップロードはファイル名をキャラ名か略称にしてください（例：茅森月歌.png）</div>
+      <p class="cd-desc">キャラを押して画像を選ぶと差し替えます。正方形（顔が中央）の画像がおすすめです。まとめてアップロードは、ファイル名をキャラ名か略称にしてください（例：茅森月歌.png）。</p>
       <div id="icon-grid" class="icon-grid"></div>
       <input type="file" id="icon-one" accept="image/*" style="display:none">
-    </div>
-
-    <!-- スタイル -->
-    <div class="card" style="padding:16px">
-      <div style="font-weight:bold;margin-bottom:8px">スタイル CSV</div>
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: style_name,abbreviation(略称),character_name,has_special_skill(0/1)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <input type="file" id="style-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
-        <button class="btn btn-primary btn-sm" onclick="upload('styles','style-csv')">インポート</button>
-      </div>
-      <label class="sync-row"><input type="checkbox" id="style-csv-sync"> CSVにない行を削除する<small>（チャートで使われている行は残します。CSVに全件そろっているときだけ使ってください）</small></label>
-      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteData('styles','スタイル')">スタイルを全削除</button>
-    </div>
-
-    <!-- 技 -->
-    <div class="card" style="padding:16px">
-      <div style="font-weight:bold;margin-bottom:8px">技 CSV</div>
-      <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px">ヘッダー行: skill_name,abbreviation(略称),style_name(空=キャラ共通),character_name(空=全キャラ共通),has_target(0/1),is_special(0/1)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
-        <input type="file" id="skill-csv" accept=".csv" class="form-input" style="flex:1;padding:6px">
-        <button class="btn btn-primary btn-sm" onclick="upload('skills','skill-csv')">インポート</button>
-      </div>
-      <label class="sync-row"><input type="checkbox" id="skill-csv-sync"> CSVにない行を削除する<small>（チャートで使われている行は残します。CSVに全件そろっているときだけ使ってください）</small></label>
-      <button class="btn btn-sm" style="background:rgba(200,50,50,0.15);color:#e57373;border:1px solid #e5737366" onclick="deleteSkills()">技データを全削除</button>
     </div>
   </div>
 </main>
@@ -91,18 +119,15 @@
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
+function switchTab(name) {
+  document.querySelectorAll('.tabs > .tab-btn').forEach((b, i) => b.classList.toggle('active', ['csv', 'icons'][i] === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === 'tab-' + name));
+}
+
 async function loadStats() {
   try {
     const s = await apiFetch('/admin/chart-data/stats');
-    document.getElementById('stats').innerHTML = [
-      ['キャラクター', s.characters],
-      ['スタイル', s.styles],
-      ['技', s.skills],
-    ].map(([label, n]) => `
-      <div class="card" style="padding:12px 20px;text-align:center;min-width:100px">
-        <div style="font-size:1.4rem;font-weight:bold">${n}</div>
-        <div style="font-size:0.8rem;color:var(--text-muted)">${label}</div>
-      </div>`).join('');
+    for (const k of ['characters', 'styles', 'skills']) document.getElementById('n-' + k).innerHTML = `<strong>${s[k]}</strong>件`;
   } catch (e) { /* ignore */ }
 }
 
@@ -114,9 +139,9 @@ async function upload(type, inputId) {
   fd.append('sync', document.getElementById(inputId + '-sync').checked ? '1' : '0');
   try {
     const res = await apiFormFetch(`/admin/chart-data/import-${type}`, fd);
-    showToast(res.message);
-    // スキップ理由を1行ずつ表示する
-    document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
+    // スキップ理由が何行も付くことがあるので、トーストでなく上に残す
+    showAlert('#alert', res.message, 'success');
+    document.getElementById(inputId).value = '';
     loadStats();
     loadIcons();
   } catch (e) { showToast(e.message, 'error'); }
@@ -131,8 +156,7 @@ async function deleteData(type, label) {
   if (!await showConfirm(`${label}を全削除しますか？${note}\nチャートで使われているものは残ります。`, { danger: true })) return;
   try {
     const res = await apiFetch(`/admin/chart-data/${type}`, { method: 'DELETE' });
-    showToast(res.message);
-    document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
+    showAlert('#alert', res.message, 'success');
     loadStats();
     loadIcons();
   } catch (e) { showToast(e.message, 'error'); }
@@ -205,7 +229,6 @@ async function bulkIcons(input) {
     renderIcons();
   }
   showAlert('#alert', `${ok}件アップロードしました` + (unmatched.length ? `\nキャラが見つからないファイル: ${unmatched.join('、')}` : ''), unmatched.length ? 'error' : 'success');
-  document.querySelector('#alert .alert').style.whiteSpace = 'pre-line';
 }
 
 loadStats();

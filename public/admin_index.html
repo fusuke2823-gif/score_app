@@ -10,73 +10,51 @@
 <title>管理メニュー - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.admin-nav-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:4px; }
-@media (min-width:720px) { .admin-nav-grid { grid-template-columns:repeat(5, 1fr); gap:12px; } }
-.admin-nav-card { position:relative; display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 6px 14px; border-radius:14px; text-decoration:none;
+.admin-nav-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:10px; }
+.admin-nav-card { position:relative; display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:14px; text-decoration:none;
   background:var(--bg-card2); backdrop-filter:blur(16px) saturate(150%); -webkit-backdrop-filter:blur(16px) saturate(150%);
   border:1px solid var(--border-light); transition:border-color 0.15s, transform 0.15s; }
 .admin-nav-card:hover { border-color:var(--accent); transform:translateY(-2px); text-decoration:none; }
-.admin-nav-icon { width:48px; height:48px; border-radius:14px; display:flex; align-items:center; justify-content:center; color:#ff7a8c; line-height:0;
+.admin-nav-icon { flex-shrink:0; width:46px; height:46px; border-radius:13px; display:flex; align-items:center; justify-content:center; color:#ff7a8c; line-height:0;
   background:radial-gradient(circle at 50% 30%, rgba(255,255,255,0.1), rgba(20,18,40,0.6) 75%); border:1px solid rgba(255,255,255,0.1); }
-.admin-nav-icon svg { width:26px; height:26px; }
-.admin-nav-title { font-size:0.82rem; font-weight:bold; color:var(--text-primary); text-align:center; white-space:nowrap; }
-.admin-nav-badge { position:absolute; top:8px; right:8px; min-width:20px; height:20px; line-height:20px; padding:0 6px; border-radius:10px;
-  background:#ef5350; color:#fff; font-size:0.7rem; font-weight:bold; text-align:center; }
+.admin-nav-icon svg { width:24px; height:24px; }
+.admin-nav-text { min-width:0; }
+.admin-nav-card:has(.admin-nav-badge) { padding-right:48px; }
+.admin-nav-title { font-size:0.95rem; font-weight:bold; color:var(--text-primary); }
+.admin-nav-desc { font-size:0.74rem; color:var(--text-muted); margin-top:2px; }
+.admin-nav-badge { position:absolute; top:50%; right:14px; transform:translateY(-50%); min-width:22px; height:22px; line-height:22px; padding:0 7px; border-radius:11px;
+  background:#ef5350; color:#fff; font-size:0.74rem; font-weight:bold; text-align:center; }
+@media (max-width:480px) {
+  .admin-nav-grid { grid-template-columns:minmax(0, 1fr); gap:8px; }
+  .admin-nav-card { padding:12px 14px; }
+}
 </style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main>
   <h1 class="page-title" style="margin-bottom:14px">管理メニュー</h1>
-  <div class="admin-nav-grid">
-    <a href="/admin_scores.html" class="admin-nav-card" id="card-scores">
-      <div class="admin-nav-icon" data-icon="check"></div>
-      <div class="admin-nav-title">スコア管理</div>
-    </a>
-    <a href="/admin_events.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="calendar"></div>
-      <div class="admin-nav-title">イベント管理</div>
-    </a>
-    <a href="/admin_users.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="user"></div>
-      <div class="admin-nav-title">ユーザー管理</div>
-    </a>
-    <a href="/admin_shop.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="bag"></div>
-      <div class="admin-nav-title">ショップ管理</div>
-    </a>
-    <a href="/admin_distribute.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="gift"></div>
-      <div class="admin-nav-title">配布管理</div>
-    </a>
-    <a href="/admin_pending_videos.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="play"></div>
-      <div class="admin-nav-title">動画承認</div>
-    </a>
-    <a href="/admin_chart_data.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="list"></div>
-      <div class="admin-nav-title">チャートデータ</div>
-    </a>
-    <a href="/admin_settings.html" class="admin-nav-card" id="card-settings">
-      <div class="admin-nav-icon" data-icon="gear"></div>
-      <div class="admin-nav-title">設定</div>
-    </a>
-    <a href="/admin_analytics.html" class="admin-nav-card">
-      <div class="admin-nav-icon" data-icon="chart"></div>
-      <div class="admin-nav-title">集計</div>
-    </a>
-  </div>
+  <div class="admin-nav-grid" id="admin-nav-grid"></div>
 </main>
 <script src="/js/common.js"></script>
 <script>
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
-document.querySelectorAll('.admin-nav-icon[data-icon]').forEach(el => { el.innerHTML = uiIcon(el.dataset.icon, 32); });
-// 承認待ちのスコア・お便りの未読を数で出す
+// 並びと名前は上の管理ナビ（ADMIN_PAGES）と同じ
+document.getElementById('admin-nav-grid').innerHTML = ADMIN_PAGES.map(pg => `
+  <a href="${pg.href}" class="admin-nav-card" id="card-${pg.key}">
+    <div class="admin-nav-icon">${uiIcon(pg.icon, 32)}</div>
+    <div class="admin-nav-text">
+      <div class="admin-nav-title">${pg.label}</div>
+      <div class="admin-nav-desc">${pg.desc}</div>
+    </div>
+  </a>`).join('');
+// 承認待ちのスコア・動画とお便りの未読を数で出す
 apiFetch('/feedback/admin-unread-count').then(d => {
-  const put = (id, n) => { if (n > 0) document.getElementById(id).insertAdjacentHTML('beforeend', `<span class="admin-nav-badge">${n}</span>`); };
-  put('card-scores', d.scores || 0);
-  put('card-settings', d.feedback || 0);
+  const put = (key, n) => { if (n > 0) document.getElementById('card-' + key).insertAdjacentHTML('beforeend', `<span class="admin-nav-badge">${n}</span>`); };
+  put('scores', d.scores || 0);
+  put('settings', d.feedback || 0);
+  put('videos', d.videos || 0);
 }).catch(() => {});
 </script>
 </body>

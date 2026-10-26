@@ -10,23 +10,41 @@
 <title>動画承認 - HBR管理</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.pv-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 14px 16px;
-  margin-bottom: 12px;
+.pv-count { font-size:0.82rem; color:var(--text-muted); margin-bottom:10px; }
+.pv { margin-bottom:14px; border-radius:14px; border:1px solid var(--border-light); background:var(--bg-card); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); overflow:hidden; }
+.pv-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.pv-user { font-weight:bold; font-size:0.98rem; color:var(--text-primary); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.pv-event { font-size:0.8rem; color:var(--text-muted); }
+.pv-time { margin-left:auto; font-size:0.75rem; color:var(--text-muted); white-space:nowrap; }
+.pv-body { display:grid; grid-template-columns:minmax(0, 1.25fr) minmax(0, 1fr); gap:16px; padding:14px 16px; }
+.pv-body.no-img { grid-template-columns:minmax(0, 1fr); }
+.pv-img { display:block; border-radius:10px; overflow:hidden; background:var(--bg-primary); border:1px solid var(--border); cursor:zoom-in; aspect-ratio:16/9; }
+.pv-img img { width:100%; height:100%; object-fit:contain; display:block; }
+.pv-info { display:flex; flex-direction:column; gap:10px; min-width:0; }
+.pv-label { font-size:0.72rem; color:var(--text-muted); margin-bottom:2px; }
+.pv-score { font-size:1.6rem; font-weight:900; font-variant-numeric:tabular-nums; color:#fff; letter-spacing:0.01em; }
+.pv-yt { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:7px 14px; border-radius:99px; border:1px solid rgba(255,90,90,0.5); background:rgba(255,90,90,0.1); color:#ff6b6b; font-size:0.85rem; font-weight:bold; text-decoration:none; }
+.pv-yt:hover { background:rgba(255,90,90,0.18); color:#ff8080; }
+.pv-url { font-size:0.74rem; color:var(--text-muted); word-break:break-all; }
+.pv-foot { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 16px; border-top:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.15); }
+.pv-foot .form-input { flex:1 1 200px; min-width:0; padding:8px 12px; font-size:0.85rem; }
+.pv-btn-ok { background:linear-gradient(135deg,#2ecc71,#1e9e57); color:#fff; border:none; box-shadow:0 0 12px -2px rgba(46,204,113,0.5); min-width:96px; }
+.pv-btn-ok:hover { color:#fff; filter:brightness(1.08); }
+.pv-btn-ng { background:transparent; color:#ff6b6b; border:1px solid rgba(231,76,60,0.65); }
+.pv-btn-ng:hover { background:rgba(231,76,60,0.14); color:#ff6b6b; }
+@media (max-width:640px) {
+  .pv-body { grid-template-columns:minmax(0, 1fr); }
+  .pv-time { margin-left:0; width:100%; }
+  .pv-foot .form-input { flex-basis:100%; }
+  .pv-foot .btn { flex:1; }
 }
-.pv-meta { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; }
-.pv-url { font-size: 0.85rem; color: var(--accent); word-break: break-all; margin-bottom: 10px; }
-.pv-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 </style>
 </head>
 <body>
 <nav id="nav"></nav>
 <main class="container" style="padding-top:20px;padding-bottom:40px">
   <div class="admin-head">
-    <h1 class="page-title">動画承認待ち</h1>
+    <h1 class="page-title">動画の承認</h1>
     <div class="admin-nav" data-current="videos"></div>
   </div>
   <div id="alert"></div>
@@ -37,33 +55,35 @@
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
+const PV_YT = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>';
 async function load() {
   const el = document.getElementById('list');
   try {
     const items = await apiFetch('/admin/pending-videos');
     if (!items.length) {
-      el.innerHTML = '<p style="color:var(--text-muted)">承認待ちの動画はありません</p>';
+      el.innerHTML = '<div class="empty-state"><p>承認待ちの動画はありません</p></div>';
       return;
     }
-    el.innerHTML = items.map(item => `
-      <div class="pv-card" id="pv-${item.id}">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span class="attr-badge attr-${escHtml(item.attribute)} small">${item.attribute}</span>
-          <span style="font-weight:bold;font-size:0.9rem">${escHtml(item.event_name)}</span>
+    el.innerHTML = `<div class="pv-count" id="pv-count">承認待ち ${items.length}件（古い順）</div>` + items.map(item => `
+      <div class="pv" id="pv-${item.id}">
+        <div class="pv-head">
+          <a class="pv-user" href="/user.html?id=${item.user_id}" target="_blank">${escHtml(item.username)}</a>
+          <span class="attr-badge attr-${escHtml(item.attribute)} small">${escHtml(item.attribute)}</span>
+          <span class="pv-event">第${item.event_number}回 ${escHtml(item.event_name)}</span>
+          <span class="pv-time">${new Date(item.created_at).toLocaleString('ja-JP')}</span>
         </div>
-        <div class="pv-meta">
-          投稿者: <a href="/user.html?id=${item.user_id}" target="_blank" style="color:var(--accent)">${escHtml(item.username)}</a>
-          &nbsp;·&nbsp; ${new Date(item.created_at).toLocaleString('ja-JP')}
+        <div class="pv-body${item.pending_image_url ? '' : ' no-img'}">
+          ${item.pending_image_url ? `<a class="pv-img" href="${escHtml(item.pending_image_url)}" target="_blank" rel="noopener"><img src="${escHtml(thumbUrl(item.pending_image_url))}" alt="" loading="lazy"></a>` : ''}
+          <div class="pv-info">
+            ${item.pending_score ? `<div><div class="pv-label">新しいスコア</div><div class="pv-score">${formatScore(item.pending_score)}</div></div>` : ''}
+            <a class="pv-yt" href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer">${PV_YT}動画を見る</a>
+            <div class="pv-url">${escHtml(item.video_url)}</div>
+          </div>
         </div>
-        ${item.pending_score ? `<div class="pv-meta">スコア: <strong>${formatScore(item.pending_score)}</strong></div>` : ''}
-        ${item.pending_image_url ? `<div style="margin-bottom:8px"><img src="${escHtml(item.pending_image_url)}" style="max-width:240px;border-radius:6px;cursor:pointer" onclick="window.open('${escHtml(item.pending_image_url)}','_blank')"></div>` : ''}
-        <div class="pv-url">
-          <a href="${escHtml(item.video_url)}" target="_blank" rel="noopener noreferrer">${escHtml(item.video_url)}</a>
-        </div>
-        <div class="pv-actions">
-          <button class="btn btn-success btn-sm" onclick="approve(${item.id})">承認</button>
-          <input id="note-${item.id}" class="form-input" type="text" placeholder="却下理由（任意）" style="flex:1;min-width:160px;font-size:0.82rem;padding:5px 8px">
-          <button class="btn btn-danger btn-sm" onclick="reject(${item.id})">却下</button>
+        <div class="pv-foot">
+          <input id="note-${item.id}" class="form-input" type="text" placeholder="却下理由（任意）">
+          <button class="btn btn-sm pv-btn-ng" onclick="reject(${item.id})">却下</button>
+          <button class="btn btn-sm pv-btn-ok" onclick="approve(${item.id})">承認</button>
         </div>
       </div>`).join('');
   } catch (e) {
@@ -71,10 +91,18 @@ async function load() {
   }
 }
 
+// 処理した札を消して件数を合わせる
+function removeItem(id) {
+  document.getElementById(`pv-${id}`)?.remove();
+  const left = document.querySelectorAll('.pv').length;
+  if (!left) document.getElementById('list').innerHTML = '<div class="empty-state"><p>承認待ちの動画はありません</p></div>';
+  else document.getElementById('pv-count').textContent = `承認待ち ${left}件（古い順）`;
+}
+
 async function approve(id) {
   try {
     const res = await apiFetch(`/admin/pending-videos/${id}/approve`, { method: 'POST' });
-    document.getElementById(`pv-${id}`)?.remove();
+    removeItem(id);
     showToast(res.message);
   } catch (e) { showToast(e.message, 'error'); }
 }
@@ -86,7 +114,7 @@ async function reject(id) {
       method: 'POST',
       body: JSON.stringify({ note })
     });
-    document.getElementById(`pv-${id}`)?.remove();
+    removeItem(id);
     showToast(res.message);
   } catch (e) { showToast(e.message, 'error'); }
 }
