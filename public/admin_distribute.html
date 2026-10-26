@@ -36,10 +36,37 @@
   .dt-attr label { gap:3px; padding:2px 6px; font-size:0.7rem; }
   .dt-attr input { width:12px; height:12px; }
 }
-.ph-sign { display:inline-flex; border:1px solid var(--border-light); border-radius:8px; overflow:hidden; }
-.ph-sign button { padding:6px 12px; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; font-size:0.82rem; cursor:pointer; }
-.ph-sign button + button { border-left:1px solid var(--border-light); }
-.ph-sign button.active { background:var(--accent); color:#fff; font-weight:bold; }
+/* ポイント履歴 */
+.ph-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.ph-tools .ph-user { flex:0 1 220px; min-width:0; width:auto; padding:7px 10px; font-size:0.84rem; }
+.ph-opts { display:flex; flex-wrap:wrap; gap:6px; }
+.ph-opts label { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:99px; border:1px solid var(--border-light); font-size:0.78rem; cursor:pointer; white-space:nowrap; }
+.ph-opts label:has(input:checked) { border-color:rgba(255,107,128,0.8); background:rgba(255,77,101,0.14); color:#fff; }
+.ph-opts input { accent-color:#ff4d65; margin:0; }
+.ph-count { font-size:0.8rem; color:var(--text-muted); white-space:nowrap; margin-left:auto; }
+.ph-list { border-radius:12px; border:1px solid rgba(255,255,255,0.06); overflow:hidden; }
+.ph-day { padding:6px 14px; font-size:0.74rem; font-weight:bold; color:var(--text-muted); background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.06); }
+.ph-row { display:grid; grid-template-columns:5.5em minmax(0,1fr) minmax(0,11em) 3em; gap:14px; align-items:center; padding:7px 14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.ph-list > :last-child { border-bottom:none; }
+.ph-row:hover { background:rgba(255,255,255,0.025); }
+.ph-amt { text-align:right; font-weight:bold; font-size:0.92rem; font-variant-numeric:tabular-nums; }
+.ph-amt.plus { color:var(--accent-hover); }
+.ph-amt.minus { color:var(--text-secondary); }
+.ph-reason, .ph-user-link { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ph-reason { font-size:0.86rem; }
+.ph-user-link { font-size:0.8rem; color:var(--text-muted); }
+.ph-user-link:hover { color:var(--accent-hover); }
+.ph-time { text-align:right; font-size:0.76rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+@media (max-width:480px) {
+  #tab-history .card { padding:14px 8px; }
+  #tab-history .section-title { padding:0 6px; }
+  .ph-tools { padding:0 4px; }
+  .ph-row { grid-template-columns:3.9em minmax(0,1fr) minmax(0,4.6em) 2.4em; gap:6px; padding:8px 8px; }
+  .ph-day { padding:5px 8px; }
+  .ph-amt { font-size:0.82rem; }
+  .ph-reason { font-size:0.8rem; }
+  .ph-user-link, .ph-time { font-size:0.68rem; }
+}
 .dist-preview-table { font-size:0.78rem; }
 .dist-preview-table th, .dist-preview-table td { padding:5px 8px; text-align:right; white-space:nowrap; }
 .dist-preview-table th:nth-child(2), .dist-preview-table td:nth-child(2), .dist-preview-table th:last-child, .dist-preview-table td:last-child { text-align:left; }
@@ -136,30 +163,23 @@
   <div class="tab-content" id="tab-history">
     <div class="card">
       <div class="section-title">ポイント履歴</div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-        <select class="form-input" id="ph-user" style="max-width:220px" onchange="loadHistory(true)">
+      <div class="ph-tools">
+        <select class="form-input ph-user" id="ph-user" onchange="loadHistory(true)" aria-label="ユーザー">
           <option value="">全ユーザー</option>
         </select>
-        <div class="ph-sign" role="group" aria-label="増減で絞り込み">
-          <button type="button" class="active" data-sign="" onclick="setPhSign(this)">全て</button>
-          <button type="button" data-sign="plus" onclick="setPhSign(this)">＋ 獲得</button>
-          <button type="button" data-sign="minus" onclick="setPhSign(this)">− 消費</button>
+        <div class="pill-tabs pill-sm" id="ph-sign">
+          <button class="on" data-sign="" onclick="setPhSign(this)">すべて</button>
+          <button data-sign="plus" onclick="setPhSign(this)">獲得</button>
+          <button data-sign="minus" onclick="setPhSign(this)">消費</button>
         </div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer">
-          <input type="checkbox" id="ph-exclude-admin" onchange="loadHistory(true)"> 管理者を除外
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer">
-          <input type="checkbox" id="ph-exclude-dup" onchange="loadHistory(true)"> ガチャ重複補償を除外
-        </label>
-        <span id="ph-total" style="font-size:0.82rem;color:var(--text-muted)"></span>
+        <div class="ph-opts">
+          <label><input type="checkbox" id="ph-exclude-admin" onchange="loadHistory(true)">管理者を除く</label>
+          <label><input type="checkbox" id="ph-exclude-dup" onchange="loadHistory(true)">ガチャ重複補償を除く</label>
+        </div>
+        <span id="ph-total" class="ph-count"></span>
       </div>
-      <div style="overflow-x:auto">
-        <table class="table" id="ph-table">
-          <thead><tr><th>日時</th><th>ユーザー</th><th style="text-align:right">pt</th><th>理由</th></tr></thead>
-          <tbody id="ph-body"></tbody>
-        </table>
-      </div>
-      <div id="ph-more" style="text-align:center;margin-top:16px;display:none">
+      <div id="ph-list"><div class="loading"><div class="spinner"></div></div></div>
+      <div id="ph-more" style="text-align:center;margin-top:14px;display:none">
         <button class="btn btn-secondary" onclick="loadHistoryMore()">さらに読み込む</button>
       </div>
     </div>
@@ -382,8 +402,10 @@ async function loadHistoryUsers() {
   } catch {}
 }
 
+// 読み込んだ分をためておき、日付ごとに区切って出す
+let _phRows = [];
 async function loadHistory(reset = false) {
-  if (reset) _phOffset = 0;
+  if (reset) { _phOffset = 0; _phRows = []; }
   const userId = document.getElementById('ph-user').value;
   const params = new URLSearchParams({ limit: PH_LIMIT, offset: _phOffset });
   if (userId) params.set('user_id', userId);
@@ -392,20 +414,38 @@ async function loadHistory(reset = false) {
   if (_phSign) params.set('sign', _phSign);
   try {
     const data = await apiFetch('/admin/point-history?' + params);
-    const tbody = document.getElementById('ph-body');
-    if (reset) tbody.innerHTML = '';
-    tbody.innerHTML += data.rows.map(r => `
-      <tr>
-        <td style="white-space:nowrap;font-size:0.82rem">${escHtml(new Date(r.created_at).toLocaleString('ja-JP'))}</td>
-        <td><a href="/user.html?id=${r.user_id}" style="color:var(--accent)">${escHtml(r.username)}</a></td>
-        <td style="text-align:right;font-weight:bold;color:${r.amount >= 0 ? 'var(--accent)' : '#f87171'}">${r.amount >= 0 ? '+' : ''}${r.amount}</td>
-        <td style="font-size:0.85rem;color:var(--text-muted)">${escHtml(r.reason || '')}</td>
-      </tr>`).join('');
-    document.getElementById('ph-total').textContent = `全 ${data.total} 件`;
+    _phRows = _phRows.concat(data.rows);
     _phOffset += data.rows.length;
-    document.getElementById('ph-more').style.display =
-      _phOffset < data.total ? 'block' : 'none';
+    renderHistory();
+    document.getElementById('ph-total').textContent = `全${data.total.toLocaleString()}件`;
+    document.getElementById('ph-more').style.display = _phOffset < data.total ? 'block' : 'none';
   } catch (err) { showAlert('#alert', err.message); }
+}
+
+function renderHistory() {
+  const el = document.getElementById('ph-list');
+  if (_phRows.length === 0) {
+    el.innerHTML = '<div class="empty-state"><p>履歴がありません</p></div>';
+    return;
+  }
+  const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
+  let lastDay = '';
+  const html = _phRows.map(r => {
+    const d = new Date(r.created_at);
+    const day = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}（${WEEK[d.getDay()]}）`;
+    const head = day !== lastDay ? `<div class="ph-day">${day}</div>` : '';
+    lastDay = day;
+    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const plus = r.amount >= 0;
+    return `${head}
+      <div class="ph-row">
+        <div class="ph-amt ${plus ? 'plus' : 'minus'}">${plus ? '+' : '−'}${Math.abs(r.amount).toLocaleString()}</div>
+        <div class="ph-reason" title="${escHtml(r.reason || '')}">${escHtml(r.reason || '（理由なし）')}</div>
+        <a class="ph-user-link" href="/user.html?id=${r.user_id}" target="_blank">${escHtml(r.username)}</a>
+        <div class="ph-time">${time}</div>
+      </div>`;
+  }).join('');
+  el.innerHTML = `<div class="ph-list">${html}</div>`;
 }
 
 function loadHistoryMore() { loadHistory(false); }
@@ -413,7 +453,7 @@ function loadHistoryMore() { loadHistory(false); }
 let _phSign = '';
 function setPhSign(btn) {
   _phSign = btn.dataset.sign;
-  document.querySelectorAll('.ph-sign button').forEach(b => b.classList.toggle('active', b === btn));
+  document.querySelectorAll('#ph-sign > button').forEach(b => b.classList.toggle('on', b === btn));
   loadHistory(true);
 }
 
