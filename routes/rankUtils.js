@@ -152,78 +152,6 @@ async function getCombinedXPt(client, userId, maxEventNumber) {
   return newBestPt * 0.40 + saSeraphRecent4 * 0.40 + exDecayed * 0.20;
 }
 
-// ===== 新しいレート計算（試算中。出して損をしない形） =====
-// 試算画面から変えられる値。既定は ベスト40% + 直近（5回中良い3回）40% + EX20%
-// bestN：ベストを直近何回（スコアタ・遭遇戦・EXを合わせた回数）の中から取るか。0 なら全期間
-const RATE_V2_DEFAULTS = { recentN: 5, recentK: 3, wBest: 40, wRecent: 40, wEx: 20, bestN: 0 };
-
-// スコアタ・遭遇戦・EXを合わせた直近 bestN 回の中でのベストpt（bestN が 0 なら全期間）
-async function getRecentBestPt(client, userId, maxEventNumber, bestN) {
-  if (!bestN) return getBestPtAllTypes(client, userId, maxEventNumber);
-  const { rows } = await client.query(
-    `SELECT e.event_type, MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score
-     FROM (
-       SELECT id, event_number, event_type, score_multiplier FROM events
-       WHERE event_type IN ('score_attack', 'seraph', 'score_attack_ex') AND ($2::int IS NULL OR event_number <= $2)
-       ORDER BY event_number DESC LIMIT $3
-     ) e
-     JOIN scores s ON s.event_id = e.id AND s.user_id = $1
-       AND s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'internal', 'external')
-     GROUP BY e.id, e.event_type`,
-    [userId, maxEventNumber, bestN]
-  );
-  return rows.reduce((max, r) => Math.max(max, ptForEventType(r.event_type, r.score)), 0);
-}
-
-// 直近N回のうち良いK回の合計 ÷ K。出た回がK回に満たない分は0として数える。
-// 低い回は良いK回に入らないだけなので、投稿して下がることはない。休み続けると1回ずつ下がる
-async function getRecentTopKPt(client, userId, eventTypes, maxEventNumber, recentN, recentK) {
-  const { rows } = await client.query(
-    `SELECT e.event_type, MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score
-     FROM (
-       SELECT id, event_number, event_type, score_multiplier FROM events
-       WHERE event_type = ANY($1) AND ($3::int IS NULL OR event_number <= $3)
-       ORDER BY event_number DESC LIMIT $4
-     ) e
-     LEFT JOIN scores s ON s.event_id = e.id AND s.user_id = $2
-       AND s.approved_score IS NOT NULL AND s.ranking_scope IN ('public', 'internal', 'external')
-     GROUP BY e.id, e.event_type`,
-    [eventTypes, userId, maxEventNumber, recentN]
-  );
-  const pts = rows.filter(r => r.score != null).map(r => ptForEventType(r.event_type, r.score));
-  const pt = [...pts].sort((a, b) => b - a).slice(0, recentK).reduce((s, p) => s + p, 0) / recentK;
-  return { pt, count: pts.length };
-}
-
-// EX：参加した各回の最高pt × 0.9^(その回より後のEXの回数) の最大値。出た回が増えても下がらない
-async function getExDecayedBestPt(client, userId, maxEventNumber) {
-  const { rows } = await client.query(
-    `SELECT MAX(s.approved_score::float * COALESCE(e.score_multiplier, 1.0)) AS score,
-            (SELECT COUNT(*)::int FROM events e2
-             WHERE e2.event_type = 'score_attack_ex' AND e2.event_number > e.event_number
-               AND ($2::int IS NULL OR e2.event_number <= $2)) AS later
-     FROM scores s JOIN events e ON e.id = s.event_id
-     WHERE s.user_id = $1 AND s.approved_score IS NOT NULL
-       AND s.ranking_scope IN ('public', 'internal', 'external')
-       AND e.event_type = 'score_attack_ex' AND ($2::int IS NULL OR e.event_number <= $2)
-     GROUP BY e.id, e.event_number`,
-    [userId, maxEventNumber]
-  );
-  return rows.reduce((max, r) => Math.max(max, convertExScoreToPoints(r.score) * Math.pow(0.9, r.later)), 0);
-}
-
-// 新しい合成pt = ベスト × wBest% + スコアタ・遭遇戦の直近 × wRecent% + EX減衰ベスト × wEx%
-// recentCount は直近N回のうち出た回数（試算画面の表示用）
-async function getCombinedXPtV2(client, userId, maxEventNumber, opts = {}) {
-  const o = { ...RATE_V2_DEFAULTS, ...opts };
-  const [bestPt, recent, ex] = await Promise.all([
-    getRecentBestPt(client, userId, maxEventNumber, o.bestN),
-    getRecentTopKPt(client, userId, ['score_attack', 'seraph'], maxEventNumber, o.recentN, o.recentK),
-    getExDecayedBestPt(client, userId, maxEventNumber),
-  ]);
-  return { pt: (bestPt * o.wBest + recent.pt * o.wRecent + ex * o.wEx) / 100, recentCount: recent.count };
-}
-
 // S以上のユーザーの合成ptからランクとレートを決める（Legendは X/Ex に戻し、syncLegendRanks で判定する）
 function rankFromCombined(rank, prevXRate, combinedXPt) {
   const sRate = combinedXPt - 500;
@@ -407,8 +335,6 @@ module.exports = {
   getDecayedModePt,
   getBestPtAllTypes,
   getCombinedXPt,
-  getCombinedXPtV2,
-  RATE_V2_DEFAULTS,
   rankFromCombined,
   legendRanksFor,
   updateUserRanks,

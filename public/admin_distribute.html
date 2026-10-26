@@ -17,6 +17,25 @@
   padding:12px 16px; border-bottom:1px solid var(--border);
 }
 .event-list-item:last-child { border-bottom:none; }
+/* 最終配布の各イベント */
+.dt-row { display:flex; flex-direction:column; gap:8px; padding:14px 16px; margin-bottom:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.02); }
+.dt-head { display:flex; align-items:baseline; gap:8px; }
+.dt-no { font-size:0.82rem; font-weight:bold; color:var(--accent-hover); }
+.dt-label { font-size:0.74rem; font-weight:bold; color:var(--text-muted); margin-top:4px; }
+.dt-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.dt-chips label, .dt-attr label { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:99px; border:1px solid var(--border-light); font-size:0.8rem; cursor:pointer; }
+.dt-chips label:has(input:checked), .dt-attr label:has(input:checked) { border-color:rgba(255,107,128,0.8); background:rgba(255,77,101,0.14); color:#fff; }
+.dt-chips input, .dt-attr input { accent-color:#ff4d65; margin:0; }
+.dt-attrs { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:6px; }
+.dt-attr { display:flex; align-items:center; gap:5px; flex-wrap:wrap; padding:6px 8px; border-radius:10px; background:var(--bg-primary); font-size:0.76rem; }
+.dt-attr b { min-width:1.8em; padding:1px 6px; border-radius:6px; text-align:center; font-size:0.74rem; }
+.dt-attr label { padding:2px 8px; font-size:0.74rem; }
+.dt-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
+@media (max-width:480px) {
+  .dt-attr { gap:3px; padding:5px 6px; flex-wrap:nowrap; }
+  .dt-attr label { gap:3px; padding:2px 6px; font-size:0.7rem; }
+  .dt-attr input { width:12px; height:12px; }
+}
 .ph-sign { display:inline-flex; border:1px solid var(--border-light); border-radius:8px; overflow:hidden; }
 .ph-sign button { padding:6px 12px; border:none; background:transparent; color:var(--text-secondary); font-family:inherit; font-size:0.82rem; cursor:pointer; }
 .ph-sign button + button { border-left:1px solid var(--border-light); }
@@ -27,10 +46,6 @@
 .dist-preview-table thead th { position:sticky; top:0; background:var(--bg-modal); }
 .coop-tiers { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; font-size:0.85rem; }
 .coop-tiers input { width:80px; padding:4px 6px; margin:0 4px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
-.rate-opts { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin-bottom:12px; font-size:0.85rem; }
-.rate-opts input[type=number] { width:56px; padding:4px 6px; margin:0 2px; border:1px solid var(--border-light); border-radius:6px; background:var(--bg-primary); color:var(--text-primary); font-family:inherit; text-align:right; }
-.rate-opts-sum { font-size:0.78rem; color:var(--text-muted); }
-.rate-opts-sum.warn { color:#e0a040; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -43,13 +58,26 @@
   <div id="alert"></div>
 
   <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('points')">ポイント配布</button>
+    <button class="tab-btn active" onclick="switchTab('final')">最終配布</button>
+    <button class="tab-btn" onclick="switchTab('grant')">手動付与</button>
+    <button class="tab-btn" onclick="switchTab('config')">配布の設定</button>
     <button class="tab-btn" onclick="switchTab('history')">ポイント履歴</button>
   </div>
 
-  <!-- ポイント配布タブ -->
-  <div class="tab-content active" id="tab-points">
-    <div class="card" style="margin-bottom:20px">
+  <!-- 最終配布タブ -->
+  <div class="tab-content active" id="tab-final">
+    <div class="card">
+      <div class="section-title" style="margin:0 0 4px">最終配布（終了済みイベント）</div>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">ランキングに公開されているスコアでポイント・称号を配布します。1回のみ実行可能です。配布前に「試算する」で内訳を確認できます。</p>
+      <div id="ext-points-alert" style="margin-bottom:12px"></div>
+      <div id="ext-distributable-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+
+  </div>
+
+  <!-- 手動付与タブ -->
+  <div class="tab-content" id="tab-grant">
+    <div class="card" style="max-width:560px">
       <div class="section-title">手動ポイント付与</div>
       <div id="grant-alert" style="margin-bottom:12px"></div>
       <div class="form-group">
@@ -67,6 +95,10 @@
       <button class="btn btn-primary" onclick="grantPoints()">付与する</button>
     </div>
 
+  </div>
+
+  <!-- 配布の設定タブ（配布ボーナス・共闘目標の段階） -->
+  <div class="tab-content" id="tab-config">
     <!-- 最終配布の配布ボーナス設定 -->
     <div class="card" style="margin-bottom:20px">
       <div class="section-title" style="margin:0 0 4px">配布ボーナス設定</div>
@@ -87,7 +119,7 @@
     </div>
 
     <!-- 共闘目標の段階（全イベント共通） -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <div class="section-title" style="margin:0 0 4px">共闘目標の段階</div>
       <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;line-height:1.7">
         全員の合計スコアが目標（イベントごとに設定）の何%に届いたかで、その回にスコアを出した全員の最終配布に一律でポイントを足します。<br>
@@ -98,32 +130,6 @@
       <button class="btn btn-primary" onclick="saveCoopTiers()">保存する</button>
     </div>
 
-    <div class="card">
-      <div class="section-title" style="margin:0 0 4px">最終配布（終了済みイベント）</div>
-      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px">ランキングに公開されているスコアでポイント・称号を配布します。1回のみ実行可能です。配布前に「試算する」で内訳を確認できます。</p>
-      <div id="ext-points-alert" style="margin-bottom:12px"></div>
-      <div id="ext-distributable-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-
-    <!-- レート計算の試算（DBは変更しない） -->
-    <div class="card" style="margin-top:20px">
-      <div class="section-title" style="margin:0 0 4px">レート計算の試算</div>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;line-height:1.7">
-        S以上の全員について、今のレートと計算し直した場合を並べます（DBは変更しません）。<br>
-        今の式（全員）… 今の計算式のまま、投稿しなかった人も含めて全員を再計算<br>
-        新しい式 … ベスト ＋ 直近（スコアタ・遭遇戦の直近◯回のうち良い◯回の平均。出た回が足りない分は0）＋ EX（参加した回を新しさで割り引いた最大値）を下の割合で合計
-      </p>
-      <div class="rate-opts">
-        <label>直近 <input type="number" id="rp-n" value="5" min="1" max="20"> 回のうち良い <input type="number" id="rp-k" value="3" min="1" max="20"> 回</label>
-        <label>ベストは直近 <input type="number" id="rp-best-n" value="0" min="0" max="100"> 回から（0＝全期間）</label>
-        <label>ベスト <input type="number" id="rp-w-best" value="40" min="0" max="100">%</label>
-        <label>直近 <input type="number" id="rp-w-recent" value="40" min="0" max="100">%</label>
-        <label>EX <input type="number" id="rp-w-ex" value="20" min="0" max="100">%</label>
-        <span id="rp-w-sum" class="rate-opts-sum"></span>
-      </div>
-      <button class="btn btn-secondary btn-sm" onclick="previewRates()">試算する</button>
-      <div id="rate-preview" style="margin-top:12px"></div>
-    </div>
   </div>
 
   <!-- ポイント履歴タブ -->
@@ -166,12 +172,14 @@ renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
 function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['points','history'][i] === name);
+  document.querySelectorAll('.tabs > .tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['final','grant','config','history'][i] === name);
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'points') { loadDistBonus(); loadCoopTiers(); loadExtDistributable(); loadGrantUsers(); }
+  if (name === 'final') loadExtDistributable();
+  if (name === 'grant') loadGrantUsers();
+  if (name === 'config') { loadDistBonus(); loadCoopTiers(); }
   if (name === 'history') { loadHistoryUsers(); loadHistory(true); }
 }
 
@@ -251,13 +259,13 @@ async function loadExtDistributable() {
       return;
     }
     el.innerHTML = events.map(e => `
-      <div class="event-list-item" style="flex-direction:column;align-items:stretch;gap:10px">
-        <div>
-          <span style="color:var(--accent);font-size:0.85rem;margin-right:8px">第${e.event_number}回</span>
+      <div class="dt-row">
+        <div class="dt-head">
+          <span class="dt-no">第${e.event_number}回</span>
           <strong>${escHtml(e.name)}</strong>
         </div>
-        <div style="font-size:0.82rem;color:var(--text-muted)">称号付与（任意）</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:0.82rem">
+        <div class="dt-label">総合の称号（任意）</div>
+        <div class="dt-chips">
           <label><input type="checkbox" id="et-r1-${e.id}" data-tier-group="overall-${e.id}" data-tier="0" checked> 優勝</label>
           <label><input type="checkbox" id="et-r2-${e.id}" data-tier-group="overall-${e.id}" data-tier="1"> 準優勝</label>
           <label><input type="checkbox" id="et-r3-${e.id}" data-tier-group="overall-${e.id}" data-tier="2"> 3位</label>
@@ -265,18 +273,18 @@ async function loadExtDistributable() {
           <label><input type="checkbox" id="et-top30-${e.id}" data-tier-group="overall-${e.id}" data-tier="4"> TOP30</label>
           <label><input type="checkbox" id="et-top50-${e.id}" data-tier-group="overall-${e.id}" data-tier="5"> TOP50</label>
         </div>
-        <div style="font-size:0.78rem;color:var(--text-muted)">属性別称号（1位/2位/3位/TOP5）</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:0.78rem">
+        <div class="dt-label">属性別の称号（任意）</div>
+        <div class="dt-attrs">
           ${AWARD_ATTRS.map(a => `
-            <span style="display:inline-flex;gap:4px;align-items:center;background:var(--bg-primary);padding:3px 8px;border-radius:6px">
-              <b>${a}</b>
+            <span class="dt-attr">
+              <b class="attr-${a}">${a}</b>
               <label><input type="checkbox" id="et-a1-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="0"> 1位</label>
               <label><input type="checkbox" id="et-a2-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="1"> 2位</label>
               <label><input type="checkbox" id="et-a3-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="2"> 3位</label>
               <label><input type="checkbox" id="et-a5-${a}-${e.id}" data-tier-group="attr-${a}-${e.id}" data-tier="3"> TOP5</label>
             </span>`).join('')}
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px">
+        <div class="dt-actions">
           <button class="btn btn-secondary btn-sm" onclick="previewDistribution(${e.id})">試算する</button>
           <button class="btn btn-primary btn-sm" onclick="distributeExtPoints(${e.id})">最終配布する</button>
         </div>
@@ -334,64 +342,6 @@ async function previewDistribution(id) {
 const RANK_ORDER = { S: 0, X: 1, Ex: 2, Legend: 3 };
 const rateKey = v => (v.rate == null ? -Infinity : v.rank === 'S' ? v.rate : v.rate + 1000);
 // 割合の合計を表示（100%以外だとレート全体が上下にずれるので注意を出す）
-function updateRateWeightSum() {
-  const sum = ['rp-w-best', 'rp-w-recent', 'rp-w-ex'].reduce((a, id) => a + (Number(document.getElementById(id).value) || 0), 0);
-  const el = document.getElementById('rp-w-sum');
-  el.textContent = sum === 100 ? '合計 100%' : `合計 ${sum}%（100%でないとレート全体がずれます）`;
-  el.classList.toggle('warn', sum !== 100);
-}
-['rp-w-best', 'rp-w-recent', 'rp-w-ex'].forEach(id => document.getElementById(id).addEventListener('input', updateRateWeightSum));
-updateRateWeightSum();
-
-async function previewRates() {
-  const el = document.getElementById('rate-preview');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-  const v = id => document.getElementById(id).value;
-  const qs = new URLSearchParams({ n: v('rp-n'), k: v('rp-k'), w_best: v('rp-w-best'), w_recent: v('rp-w-recent'), w_ex: v('rp-w-ex'), best_n: v('rp-best-n') });
-  try {
-    const p = await apiFetch('/admin/rate-preview?' + qs);
-    if (!p.rows.length) { el.innerHTML = '<div class="form-hint">S以上のユーザーがいません</div>'; return; }
-    // 順位：今の値での並びと、新しい式での並び（同じレートは同じ順位）
-    const positions = key => {
-      const sorted = [...p.rows].sort((a, b) => key(b) - key(a));
-      const m = new Map();
-      sorted.forEach((r, i) => m.set(r.id, i > 0 && key(r) === key(sorted[i - 1]) ? m.get(sorted[i - 1].id) : i + 1));
-      return m;
-    };
-    const curPos = positions(r => rateKey(r.current)), newPos = positions(r => rateKey(r.v2));
-    const rows = p.rows.sort((a, b) => rateKey(b.v2) - rateKey(a.v2));
-    const fmt = v => `${v.rank} ${v.rate == null ? '-' : Math.round(v.rate)}`;
-    const diff = r => rateKey(r.v2) - rateKey(r.current);
-    const rankMark = (from, to) => RANK_ORDER[to] > RANK_ORDER[from] ? 'color:#4caf7a;font-weight:bold' : RANK_ORDER[to] < RANK_ORDER[from] ? 'color:#e05a5a;font-weight:bold' : '';
-    const up = rows.filter(r => diff(r) >= 1).length, down = rows.filter(r => diff(r) <= -1).length;
-    const rankChanged = rows.filter(r => r.v2.rank !== r.current.rank).length;
-    el.innerHTML = `
-      <div style="font-size:0.82rem;margin:4px 0 2px">新しい式：直近${p.opts.recentN}回のうち良い${p.opts.recentK}回 ／ ベスト（${p.opts.bestN ? `直近${p.opts.bestN}回` : '全期間'}）${p.opts.wBest}%・直近${p.opts.wRecent}%・EX${p.opts.wEx}%</div>
-      <div style="font-size:0.82rem;margin:0 0 6px">対象 ${rows.length}人（第${p.max_event_number}回まで）／ 新しい式で 上がる ${up}人・下がる ${down}人・ランクが変わる ${rankChanged}人</div>
-      <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
-        <table class="table dist-preview-table">
-          <thead><tr><th>#</th><th>ユーザー</th><th>直近の出場</th><th>順位（今→新）</th><th>現在</th><th>今の式（全員）</th><th>新しい式</th><th>差（新しい式−現在）</th></tr></thead>
-          <tbody>${rows.map((r, i) => {
-            const d = diff(r);
-            return `<tr>
-              <td>${i + 1}</td>
-              <td>${escHtml(r.username)}</td>
-              <td style="color:${r.recent_count >= p.opts.recentK ? 'var(--text-secondary)' : '#e0a040'}">${r.recent_count}/${p.opts.recentN}</td>
-              <td>${(() => { const a = curPos.get(r.id), b = newPos.get(r.id), dp = a - b;
-                return `${a} → ${b} <span style="color:${dp > 0 ? '#4caf7a' : dp < 0 ? '#e05a5a' : 'var(--text-muted)'}">(${dp > 0 ? '+' + dp : dp < 0 ? dp : '±0'})</span>`; })()}</td>
-              <td>${fmt(r.current)}</td>
-              <td style="${rankMark(r.current.rank, r.all.rank)}">${fmt(r.all)}</td>
-              <td style="${rankMark(r.current.rank, r.v2.rank)}">${fmt(r.v2)}</td>
-              <td style="text-align:left;color:${d >= 1 ? '#4caf7a' : d <= -1 ? '#e05a5a' : 'var(--text-muted)'}">${Number.isFinite(d) ? (d > 0 ? '+' : '') + Math.round(d) : '-'}</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>
-      </div>`;
-  } catch (err) {
-    el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
 async function distributeExtPoints(id) {
   if (!await showConfirm('ポイントを配布しますか？この操作は1回のみ実行できます。', { danger: true })) return;
   const award_titles = {
@@ -467,11 +417,8 @@ function setPhSign(btn) {
   loadHistory(true);
 }
 
-// 初期ロード
-loadDistBonus();
-loadCoopTiers();
+// 初期ロード（最初のタブの分だけ）
 loadExtDistributable();
-loadGrantUsers();
 </script>
 </body>
 </html>
