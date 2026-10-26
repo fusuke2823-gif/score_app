@@ -10,7 +10,46 @@
 <title>スコア管理 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-.pending-score { font-size:1.1rem; font-weight:bold; color:var(--accent); }
+/* 承認待ちのカード：左に大きいリザルト画像、右に点数と確認の札、下に却下理由と操作 */
+.pq { margin-bottom:14px; border-radius:14px; border:1px solid var(--border-light); background:var(--bg-card); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); overflow:hidden; }
+.pq.has-warn { border-color:rgba(255,107,128,0.55); }
+.pq-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.pq-user { font-weight:bold; font-size:0.98rem; color:var(--text-primary); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.pq-event { font-size:0.8rem; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px; }
+.pq-time { margin-left:auto; font-size:0.75rem; color:var(--text-muted); white-space:nowrap; }
+.pq-body { display:grid; grid-template-columns:minmax(0, 1.25fr) minmax(0, 1fr); gap:16px; padding:14px 16px; }
+.pq-img { display:block; position:relative; border-radius:10px; overflow:hidden; background:var(--bg-primary); border:1px solid var(--border); cursor:zoom-in; aspect-ratio:16/9; }
+.pq-img img { width:100%; height:100%; object-fit:contain; display:block; }
+.pq-info { display:flex; flex-direction:column; gap:8px; min-width:0; }
+.pq-score-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pending-score { font-size:1.6rem; font-weight:900; font-variant-numeric:tabular-nums; color:#fff; letter-spacing:0.01em; }
+.pq-prev { font-size:0.8rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.pq-prev b { font-weight:bold; }
+.pq-prev .up { color:#5dde8e; } .pq-prev .down { color:#ff6b6b; }
+.pq-flags { display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+.pq-flag { display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:bold; padding:4px 10px; border-radius:8px; line-height:1.4; }
+.pq-flag svg { flex-shrink:0; }
+.pq-flags .ai-attr { margin-bottom:0; }
+.pq-flag.ng { background:rgba(231,76,60,0.16); color:#ff6b5e; }
+.pq-flag.dup { background:rgba(243,156,18,0.18); color:#f5b041; border:none; cursor:pointer; font:inherit; font-size:0.78rem; font-weight:bold; }
+.pq-flag.dup:hover { background:rgba(243,156,18,0.28); }
+.pq-yt { display:inline-flex; align-items:center; gap:5px; font-size:0.8rem; color:#ff5a5a; }
+.pq-icon-btn { display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0; border-radius:50%; border:1px solid var(--border-light); background:rgba(255,255,255,0.04); color:var(--text-secondary); cursor:pointer; flex-shrink:0; }
+.pq-icon-btn:hover { color:#fff; border-color:rgba(255,107,128,0.6); }
+.pq-foot { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 16px; border-top:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.15); }
+.pq-foot .form-input { flex:1 1 200px; min-width:0; padding:8px 12px; font-size:0.85rem; }
+.pq-btn-ok { background:linear-gradient(135deg,#2ecc71,#1e9e57); color:#fff; border:none; box-shadow:0 0 12px -2px rgba(46,204,113,0.5); min-width:96px; }
+.pq-btn-ok:hover { color:#fff; filter:brightness(1.08); }
+.pq-btn-ok2 { background:transparent; color:#5dde8e; border:1px solid rgba(46,204,113,0.6); }
+.pq-btn-ok2:hover { background:rgba(46,204,113,0.12); color:#5dde8e; }
+.pq-btn-ng { background:transparent; color:#ff6b6b; border:1px solid rgba(231,76,60,0.65); }
+.pq-btn-ng:hover { background:rgba(231,76,60,0.14); color:#ff6b6b; }
+@media (max-width:720px) {
+  .pq-body { grid-template-columns:1fr; gap:12px; }
+  .pq-foot .form-input { flex-basis:100%; }
+  .pq-foot .btn { flex:1; white-space:nowrap; padding-left:8px; padding-right:8px; }
+  .pq-time { margin-left:0; width:100%; }
+}
 @media(max-width:600px){ .hide-mobile{display:none;} }
 .user-name-cell{ max-width:6em; white-space:normal; word-break:break-all; }
 .all-scores-table th:first-child, .all-scores-table td:first-child { width:auto; }
@@ -24,7 +63,7 @@
 .review-card .rname { font-size:0.8rem; font-weight:bold; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .review-card .rscore { font-size:0.82rem; color:var(--text-secondary); margin-bottom:6px; }
 /* 属性の自動判定 */
-.ai-attr { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:0.74rem; font-weight:bold; padding:2px 8px; border-radius:4px; margin-bottom:6px; background:rgba(255,255,255,0.06); color:var(--text-secondary); }
+.ai-attr { display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; font-size:0.78rem; font-weight:bold; padding:4px 10px; border-radius:8px; margin-bottom:6px; background:rgba(255,255,255,0.06); color:var(--text-secondary); }
 .ai-attr.ok { background:rgba(46,204,113,0.14); color:#2ecc71; }
 .ai-attr.ng { background:rgba(231,76,60,0.16); color:#ff6b5e; }
 .ai-attr.warn { background:rgba(243,156,18,0.16); color:#f5b041; }
@@ -44,7 +83,7 @@
 <div id="dup-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:16px" onclick="if(event.target===this)closeDupModal()">
   <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;width:100%;max-width:900px;padding:20px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <span style="font-weight:bold;font-size:1rem;color:var(--warning)">⚠ リザルト比較</span>
+      <span style="font-weight:bold;font-size:1rem;color:var(--warning)">リザルト比較</span>
       <button onclick="closeDupModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;padding:0 4px">&times;</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -171,6 +210,10 @@ function aiAttrHTML(ac, attr) {
   return `<div class="ai-attr ${cls}">AI属性: ${ac.pred}（${AI_TIER_LABEL[ac.tier] || ac.tier}）${cls === 'ng' ? ` ≠ ${attr}` : ''} <small>${sigs}</small>${mode}</div>`;
 }
 let _pendingById = {};
+const PQ_PEN = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+const PQ_WARN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.3" r="0.6" fill="currentColor"/></svg>';
+// 投稿の日時（例：10/25 21:34）
+const formatDateTime = d => { const x = new Date(d); return isNaN(x) ? '' : `${x.getMonth() + 1}/${x.getDate()} ${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
 
 async function loadPending() {
   const el = document.getElementById('pending-list');
@@ -185,62 +228,65 @@ async function loadPending() {
     }
 
     _pendingById = Object.fromEntries(items.map(i => [i.id, i]));
-    el.innerHTML = items.map(item => `
-      <div class="pending-item" id="pending-${item.id}">
-        <div class="pending-info">
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span id="event-display-${item.id}" style="display:inline-flex;align-items:center;gap:6px">
-              第${item.event_number}回 ${escHtml(item.event_name)}
-              <button class="btn btn-secondary btn-sm" style="padding:2px 6px;font-size:0.72rem" onclick="startEditEvent(${item.id})" title="イベントを修正">✎</button>
-            </span>
-            <span id="event-edit-${item.id}" style="display:none;align-items:center;gap:4px">
-              <select class="form-select" id="event-input-${item.id}" style="width:auto;max-width:260px;padding:2px 6px;font-size:0.82rem">
-                ${_scoreEvents.map(e => `<option value="${e.id}" ${e.id === item.event_id ? 'selected' : ''}>第${e.event_number}回 ${escHtml(e.name)}</option>`).join('')}
-              </select>
-              <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="cancelEditEvent(${item.id})">キャンセル</button>
-            </span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-            <span id="attr-display-${item.id}" style="display:inline-flex;align-items:center;gap:4px">
-              ${attrBadge(item.attribute)}
-              <button class="btn btn-secondary btn-sm" style="padding:2px 6px;font-size:0.72rem" onclick="startEditAttr(${item.id})" title="属性を修正">✎</button>
-            </span>
-            <span id="attr-edit-${item.id}" style="display:none;align-items:center;gap:4px">
-              <select class="form-select" id="attr-input-${item.id}" style="width:auto;padding:2px 6px;font-size:0.85rem">
-                ${ATTRIBUTES.map(a => `<option value="${a}" ${a === item.attribute ? 'selected' : ''}>${t('attr.' + a) || a}</option>`).join('')}
-              </select>
-              <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="cancelEditAttr(${item.id})">キャンセル</button>
-            </span>
-            <a href="/user.html?id=${item.user_id}" target="_blank" style="font-weight:bold">${escHtml(item.username)}</a>
-            ${item.dup_image_url ? `<button onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')" style="background:#f39c12;color:#000;font-size:0.72rem;font-weight:bold;padding:2px 7px;border-radius:4px;letter-spacing:.03em;border:none;cursor:pointer">⚠ 既存スコアと一致</button>` : ''}
-          </div>
-          ${item.ai_note ? `<div style="background:rgba(231,76,60,0.15);color:#e74c3c;font-size:0.78rem;font-weight:bold;padding:4px 8px;border-radius:4px;margin-bottom:6px;display:inline-block">AI: ${escHtml(item.ai_note)}</div>` : ''}
-          ${item.attr_check ? `<div>${aiAttrHTML(item.attr_check, item.attribute)}</div>` : ''}
-          <div id="score-display-${item.id}" style="display:flex;align-items:center;gap:6px">
-            <span class="pending-score">${formatScore(item.pending_score)}</span>
-            <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:0.75rem" onclick="startEditScore(${item.id})" title="スコアを修正">✎ 修正</button>
-          </div>
-          <div id="score-edit-${item.id}" style="display:none;align-items:center;gap:6px;margin-top:2px">
-            <input type="number" class="form-input" id="score-input-${item.id}" style="width:160px" value="${item.pending_score}">
-            <button class="btn btn-secondary btn-sm" onclick="cancelEditScore(${item.id})">キャンセル</button>
-          </div>
-          ${item.approved_score ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">現在の承認済み: ${formatScore(item.approved_score)}</div>` : ''}
-          ${item.pending_youtube_url ? `<div style="margin-top:4px"><a href="${escHtml(item.pending_youtube_url)}" target="_blank" rel="noopener" style="font-size:0.8rem;color:#ff4444;display:inline-flex;align-items:center;gap:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="#ff4444"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>YouTube動画を見る</a></div>` : ''}
-          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">${formatDate(item.updated_at)}</div>
-          <div style="margin-top:8px">
-            <input class="form-input" type="text" placeholder="却下理由（任意）" id="note-${item.id}" style="font-size:0.85rem">
+    el.innerHTML = items.map(item => {
+      const diff = item.approved_score ? item.pending_score - item.approved_score : null;
+      const warn = item.ai_note || item.dup_image_url || (item.attr_check && item.attr_check.pred && item.attr_check.pred !== item.attribute);
+      return `
+      <div class="pq${warn ? ' has-warn' : ''}" id="pending-${item.id}">
+        <div class="pq-head">
+          <span id="attr-display-${item.id}" style="display:inline-flex;align-items:center;gap:4px">
+            ${attrBadge(item.attribute)}
+            <button class="pq-icon-btn" onclick="startEditAttr(${item.id})" title="属性を修正" aria-label="属性を修正">${PQ_PEN}</button>
+          </span>
+          <span id="attr-edit-${item.id}" style="display:none;align-items:center;gap:4px">
+            <select class="form-select" id="attr-input-${item.id}" style="width:auto;padding:3px 8px;font-size:0.85rem">
+              ${ATTRIBUTES.map(a => `<option value="${a}" ${a === item.attribute ? 'selected' : ''}>${t('attr.' + a) || a}</option>`).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="cancelEditAttr(${item.id})">戻す</button>
+          </span>
+          <a class="pq-user" href="/user.html?id=${item.user_id}" target="_blank">${escHtml(item.username)}</a>
+          <span class="pq-event" id="event-display-${item.id}">
+            第${item.event_number}回 ${escHtml(item.event_name)}
+            <button class="pq-icon-btn" onclick="startEditEvent(${item.id})" title="イベントを修正" aria-label="イベントを修正">${PQ_PEN}</button>
+          </span>
+          <span id="event-edit-${item.id}" style="display:none;align-items:center;gap:4px">
+            <select class="form-select" id="event-input-${item.id}" style="width:auto;max-width:260px;padding:3px 8px;font-size:0.82rem">
+              ${_scoreEvents.map(e => `<option value="${e.id}" ${e.id === item.event_id ? 'selected' : ''}>第${e.event_number}回 ${escHtml(e.name)}</option>`).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="cancelEditEvent(${item.id})">戻す</button>
+          </span>
+          <span class="pq-time">${formatDateTime(item.updated_at)}</span>
+        </div>
+        <div class="pq-body">
+          ${item.pending_image_url
+            ? `<a class="pq-img" href="${escHtml(item.pending_image_url)}" target="_blank" rel="noopener" title="画像を大きく開く"><img src="${escHtml(item.pending_image_url)}" alt="リザルト" loading="lazy"></a>`
+            : '<div class="pq-img" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.8rem;cursor:default">画像なし</div>'}
+          <div class="pq-info">
+            <div id="score-display-${item.id}" class="pq-score-row">
+              <span class="pending-score">${formatScore(item.pending_score)}</span>
+              <button class="pq-icon-btn" onclick="startEditScore(${item.id})" title="スコアを修正" aria-label="スコアを修正">${PQ_PEN}</button>
+            </div>
+            <div id="score-edit-${item.id}" style="display:none;align-items:center;gap:6px">
+              <input type="number" class="form-input" id="score-input-${item.id}" style="width:170px" value="${item.pending_score}">
+              <button class="btn btn-secondary btn-sm" onclick="cancelEditScore(${item.id})">戻す</button>
+            </div>
+            ${item.approved_score ? `<div class="pq-prev">今の承認済み ${formatScore(item.approved_score)}　<b class="${diff >= 0 ? 'up' : 'down'}">${diff >= 0 ? '+' : '−'}${formatScore(Math.abs(diff))}</b></div>` : '<div class="pq-prev">初めての投稿</div>'}
+            <div class="pq-flags">
+              ${item.ai_note ? `<span class="pq-flag ng">${PQ_WARN}${escHtml(item.ai_note)}</span>` : ''}
+              ${item.dup_image_url ? `<button class="pq-flag dup" onclick="openDupModal('${escHtml(item.pending_image_url||'')}','${escHtml(item.username)}','${escHtml(item.dup_image_url)}','${escHtml(item.dup_username||'')}')">${PQ_WARN}既存スコアと一致（比べる）</button>` : ''}
+              ${item.attr_check ? aiAttrHTML(item.attr_check, item.attribute) : ''}
+            </div>
+            ${item.pending_youtube_url ? `<a class="pq-yt" href="${escHtml(item.pending_youtube_url)}" target="_blank" rel="noopener"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>YouTube動画を見る</a>` : ''}
           </div>
         </div>
-        ${item.pending_image_url
-          ? `<div class="pending-img-wrap">
-               <img src="${escHtml(item.pending_image_url)}" alt="リザルト" style="cursor:pointer" onclick="window.open('${escHtml(item.pending_image_url)}','_blank')">
-             </div>` : ''}
-        <div class="pending-actions">
-          <button class="btn btn-success btn-sm" onclick="approveScore(${item.id})">承認</button>
-          ${item.pending_youtube_url ? `<button class="btn btn-sm" style="background:#e67e22;color:#fff;border:none" onclick="approveScore(${item.id}, true)">動画なし承認</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="rejectScore(${item.id})">却下</button>
+        <div class="pq-foot">
+          <input class="form-input" type="text" placeholder="却下理由（任意）" id="note-${item.id}">
+          <button class="btn btn-sm pq-btn-ng" onclick="rejectScore(${item.id})">却下</button>
+          ${item.pending_youtube_url ? `<button class="btn btn-sm pq-btn-ok2" onclick="approveScore(${item.id}, true)">動画なしで承認</button>` : ''}
+          <button class="btn btn-sm pq-btn-ok" onclick="approveScore(${item.id})">承認</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
