@@ -12,7 +12,30 @@
 <style>
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
-.scope-badge { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:4px; }
+.ev-tools { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.ev-tools .form-input { flex:1; min-width:0; max-width:320px; padding:8px 12px; font-size:0.88rem; }
+.ev-count { font-size:0.8rem; color:var(--text-muted); white-space:nowrap; }
+.ti-list { border-radius:12px; border:1px solid rgba(255,255,255,0.06); overflow:hidden; }
+.ti-row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:8px 14px; align-items:center; padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.ti-row:last-child { border-bottom:none; }
+.ti-row:hover { background:rgba(255,255,255,0.025); }
+.ti-row.is-hidden .ti-main { opacity:0.55; }
+.ti-main { min-width:0; }
+.ti-name { font-weight:bold; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.ti-desc { font-size:0.8rem; color:var(--text-muted); margin-top:3px; }
+.ti-tag { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:99px; background:rgba(255,255,255,0.07); color:var(--text-secondary); }
+.ti-tag.cost { background:rgba(255,77,101,0.14); color:var(--accent-hover); }
+.ti-tag.hidden { background:rgba(231,76,60,0.16); color:#ff6b6b; }
+.ti-scope { display:flex; align-items:center; gap:6px; font-size:0.75rem; color:var(--text-muted); white-space:nowrap; }
+.ti-scope select { width:auto; padding:5px 8px; font-size:0.8rem; }
+.ti-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.ti-del { background:transparent; color:#ff6b6b; border:1px solid rgba(231,76,60,0.65); }
+.ti-del:hover { background:rgba(231,76,60,0.14); color:#ff6b6b; }
+.ti-sub { grid-column:1 / -1; padding:10px 12px; border-radius:8px; background:var(--bg-primary); }
+@media (max-width:760px) {
+  .ti-row { grid-template-columns:minmax(0,1fr); }
+  .ti-actions { justify-content:flex-start; }
+}
 .scope-common { background:#4fc3f7; color:#000; }
 .scope-internal { background:var(--accent); color:#fff; }
 .scope-external { background:#66bb6a; color:#000; }
@@ -23,6 +46,12 @@
 .event-list-item:last-child { border-bottom:none; }
 
 /* アイコングリッド */
+.gs-card { max-width:680px; }
+.gs-sec { margin:16px 0 8px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06); }
+.gs-grid3 { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:0 12px; }
+.gs-grid3 > * { min-width:0; }
+.ev-create-foot { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:6px; padding-top:14px; border-top:1px solid var(--border); }
+@media (max-width:520px) { .gs-grid3 { grid-template-columns:repeat(2, minmax(0,1fr)); } }
 .mk-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
 .mk-head .section-title { margin:0; }
 .mk-box { background:var(--bg-primary); border:1px solid var(--border-light); border-radius:10px; padding:16px; margin-bottom:16px; }
@@ -313,8 +342,16 @@
 
   <!-- 称号タブ -->
   <div class="tab-content active" id="tab-titles">
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">称号を追加</div>
+    <div class="card">
+      <div class="mk-head">
+        <div class="section-title">称号</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('title-grant')">称号を付与</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('title-new')">＋ 称号を作る</button>
+        </div>
+      </div>
+      <div id="title-new" class="mk-box" hidden>
+        <div class="mk-box-title">称号を作る</div>
       <div id="title-create-alert" style="margin-bottom:12px"></div>
       <div class="enemy-form-grid">
         <div class="form-group">
@@ -330,10 +367,10 @@
         <label class="form-label">説明（任意）</label>
         <input class="form-input" type="text" id="title-desc">
       </div>
-      <button class="btn btn-primary" onclick="createTitle()">追加する</button>
-    </div>
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">ユーザーに称号を付与</div>
+        <button class="btn btn-primary" onclick="createTitle()">作成する</button>
+      </div>
+      <div id="title-grant" class="mk-box" hidden>
+        <div class="mk-box-title">ユーザーに称号を付与</div>
       <div id="grant-title-alert" style="margin-bottom:12px"></div>
       <div class="enemy-form-grid">
         <div class="form-group">
@@ -345,19 +382,14 @@
           <select class="form-input" id="grant-title-id"></select>
         </div>
       </div>
-      <button class="btn btn-primary" onclick="grantTitleToUser()">付与する</button>
-    </div>
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title">称号一覧</div>
+        <button class="btn btn-primary" onclick="grantTitleToUser()">付与する</button>
+      </div>
+      <div class="ev-tools">
+        <input class="form-input" type="search" id="title-search" placeholder="称号名・説明で検索" oninput="renderTitles()">
+        <span id="title-count" class="ev-count"></span>
+      </div>
+      <p class="form-hint" style="margin:0 0 10px">表示先：全員＝内部・外部どちらのランキングにも／内部のみ／外部のみ</p>
       <div id="title-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-    <div class="card">
-      <div class="section-title">称号スコープ設定</div>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:16px">
-        <b>common</b>=全員表示 / <b>internal</b>=内部ランキングのみ / <b>external</b>=外部ランキングのみ
-      </p>
-      <div id="title-scope-alert" style="margin-bottom:12px"></div>
-      <div id="title-scope-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
     </div>
   </div>
 
@@ -529,56 +561,67 @@
 
   <!-- ガチャ設定タブ（標準の確率・コスト・重複補償） -->
   <div class="tab-content" id="tab-gsettings">
-    <!-- ガチャ設定 -->
-    <div class="card" style="margin-bottom:24px">
+    <!-- ガチャ設定（標準） -->
+    <div class="card gs-card">
       <div class="section-title">ガチャ設定（標準）</div>
-      <p class="form-hint" style="margin:-8px 0 14px">ガチャごとの「確率・コスト」で上書きしていない項目は、ここの値を使います。</p>
-      <div id="gacha-settings-alert" style="margin-bottom:12px"></div>
-      <div class="enemy-form-grid">
+      <p class="form-hint" style="margin:-8px 0 6px">ガチャごとの「引き方・確率」で上書きしていない項目は、ここの値を使います。</p>
+      <div id="gacha-settings-alert"></div>
+
+      <div class="mk-box-title gs-sec">確率</div>
+      <div class="gs-grid3">
         <div class="form-group">
-          <label class="form-label">SS確率（%）</label>
+          <label class="form-label">SS（%）</label>
           <input class="form-input" type="number" id="gs-ss" min="0" max="100" step="0.1" placeholder="例: 3">
         </div>
         <div class="form-group">
-          <label class="form-label">S確率（%）</label>
+          <label class="form-label">S（%）</label>
           <input class="form-input" type="number" id="gs-s" min="0" max="100" step="0.1" placeholder="例: 15">
         </div>
         <div class="form-group">
-          <label class="form-label">A確率（%）<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px">自動計算</span></label>
+          <label class="form-label">A（%）<span style="font-size:0.75rem;color:var(--text-muted);margin-left:4px">自動計算</span></label>
           <input class="form-input" type="number" id="gs-a" readonly style="background:var(--bg-primary);color:var(--text-muted)">
         </div>
+      </div>
+
+      <div class="mk-box-title gs-sec">コスト</div>
+      <div class="gs-grid3">
         <div class="form-group">
-          <label class="form-label">単発コスト（pt）</label>
+          <label class="form-label">単発（pt）</label>
           <input class="form-input" type="number" id="gs-single" min="1" placeholder="例: 50">
         </div>
         <div class="form-group">
-          <label class="form-label">10連コスト（pt）</label>
+          <label class="form-label">10連（pt）</label>
           <input class="form-input" type="number" id="gs-multi" min="1" placeholder="例: 450">
         </div>
       </div>
-      <div class="enemy-form-grid" style="margin-top:4px">
+
+      <div class="mk-box-title gs-sec">重複したときの補償（全部のガチャ共通）</div>
+      <div class="gs-grid3">
         <div class="form-group">
-          <label class="form-label">SS重複補償（pt）</label>
+          <label class="form-label">SS（pt）</label>
           <input class="form-input" type="number" id="gs-dup-ss" min="0" placeholder="例: 30">
         </div>
         <div class="form-group">
-          <label class="form-label">S重複補償（pt）</label>
+          <label class="form-label">S（pt）</label>
           <input class="form-input" type="number" id="gs-dup-s" min="0" placeholder="例: 10">
         </div>
         <div class="form-group">
-          <label class="form-label">A重複補償（pt）</label>
+          <label class="form-label">A（pt）</label>
           <input class="form-input" type="number" id="gs-dup-a" min="0" placeholder="例: 3">
         </div>
       </div>
-      <div class="form-group" style="margin-top:4px">
+
+      <div class="mk-box-title gs-sec">表示</div>
+      <div class="form-group">
         <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
           <input type="checkbox" id="gs-show-nav" style="width:18px;height:18px">
           <span>ナビゲーションバーにガチャを表示する</span>
         </label>
       </div>
-      <button class="btn btn-primary" style="margin-top:8px" onclick="saveGachaSettings()">保存する</button>
+      <div class="ev-create-foot" style="justify-content:flex-end">
+        <button class="btn btn-primary" onclick="saveGachaSettings()">保存する</button>
+      </div>
     </div>
-
   </div>
 </main>
 
@@ -593,7 +636,7 @@ function switchTab(name) {
   });
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); loadTitleScopes(); }
+  if (name === 'titles') { loadTitles(); loadGrantTitleSelectors(); }
   if (name === 'frames') loadFrames();
   if (name === 'gacha') loadPools();
   if (name === 'icons') loadGachaIcons();
@@ -631,43 +674,54 @@ async function grantTitleToUser() {
 }
 
 // ===== 称号管理 =====
+// 称号の一覧（表示先の切り替えも各行に）。検索欄の文字で絞って描く
+let _titles = [];
+const TITLE_SCOPES = [['common', '全員'], ['internal', '内部のみ'], ['external', '外部のみ']];
 async function loadTitles() {
   const el = document.getElementById('title-list');
   try {
-    const titles = await apiFetch('/admin/titles');
-    if (titles.length === 0) {
-      el.innerHTML = '<div class="empty-state"><p>称号がありません</p></div>';
-      return;
-    }
-    el.innerHTML = titles.map(t => `
-      <div>
-        <div class="event-list-item">
-          <div>
-            <strong>「${escHtml(t.name)}」</strong>
-            ${t.point_cost ? `<span style="font-size:0.8rem;color:var(--accent);margin-left:8px">${t.point_cost}pt</span>` : '<span style="font-size:0.8rem;color:var(--text-muted);margin-left:8px">ランク賞</span>'}
-            ${!t.is_active ? '<span class="status-badge status-rejected" style="margin-left:8px">非表示</span>' : ''}
-            ${t.description ? `<div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">${escHtml(t.description)}</div>` : ''}
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-secondary btn-sm" onclick="toggleTitleHolders(${t.id})">所持者</button>
-            <button class="btn btn-secondary btn-sm" onclick="toggleDescEdit(${t.id})">説明編集</button>
-            <button class="btn btn-secondary btn-sm" onclick="toggleTitleVisibility(${t.id}, ${!t.is_active})">${t.is_active ? '非表示' : '表示'}</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteTitle(${t.id})">削除</button>
-          </div>
-        </div>
-        <div id="holders-${t.id}" style="display:none;padding:12px 16px;border-top:1px solid var(--border);background:var(--bg-primary)">
-          <div id="holders-content-${t.id}" style="font-size:0.85rem;color:var(--text-muted)">読み込み中...</div>
-        </div>
-        <div id="desc-edit-${t.id}" style="display:none;padding:12px 16px;border-top:1px solid var(--border);background:var(--bg-primary)">
-          <div style="display:flex;gap:8px;align-items:center">
-            <input class="form-input" id="desc-input-${t.id}" type="text" value="${escHtml(t.description || '')}" placeholder="説明文を入力" maxlength="200" style="flex:1">
-            <button class="btn btn-primary btn-sm" onclick="saveDesc(${t.id})">保存</button>
-          </div>
-        </div>
-      </div>`).join('');
+    _titles = await apiFetch('/admin/titles');
+    renderTitles();
   } catch (err) {
     el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+function renderTitles() {
+  const el = document.getElementById('title-list');
+  const q = (document.getElementById('title-search').value || '').trim().normalize('NFKC').toLowerCase();
+  const list = _titles.filter(t => !q || `${t.name} ${t.description || ''}`.normalize('NFKC').toLowerCase().includes(q));
+  document.getElementById('title-count').textContent = q ? `${list.length} / ${_titles.length}件` : `${_titles.length}件`;
+  if (!list.length) { el.innerHTML = `<div class="empty-state"><p>${q ? '見つかりません' : '称号がありません'}</p></div>`; return; }
+  el.innerHTML = `<div class="ti-list">${list.map(t => `
+    <div class="ti-row${t.is_active ? '' : ' is-hidden'}">
+      <div class="ti-main">
+        <div class="ti-name">「${escHtml(t.name)}」
+          ${t.point_cost ? `<span class="ti-tag cost">${t.point_cost}pt</span>` : '<span class="ti-tag">ランク賞</span>'}
+          ${t.is_active ? '' : '<span class="ti-tag hidden">非表示</span>'}
+        </div>
+        ${t.description ? `<div class="ti-desc">${escHtml(t.description)}</div>` : ''}
+      </div>
+      <label class="ti-scope">表示先
+        <select class="form-input" onchange="setTitleScope(${t.id}, this.value)">
+          ${TITLE_SCOPES.map(([v, l]) => `<option value="${v}" ${(t.scope || 'common') === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </label>
+      <div class="ti-actions">
+        <button class="btn btn-secondary btn-sm" onclick="toggleTitleHolders(${t.id})">所持者</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleDescEdit(${t.id})">説明編集</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleTitleVisibility(${t.id}, ${!t.is_active})">${t.is_active ? '非表示' : '表示'}</button>
+        <button class="btn btn-sm ti-del" onclick="deleteTitle(${t.id})">削除</button>
+      </div>
+      <div class="ti-sub" id="holders-${t.id}" style="display:none">
+        <div id="holders-content-${t.id}" style="font-size:0.85rem;color:var(--text-muted)">読み込み中...</div>
+      </div>
+      <div class="ti-sub" id="desc-edit-${t.id}" style="display:none">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="form-input" id="desc-input-${t.id}" type="text" value="${escHtml(t.description || '')}" placeholder="説明文を入力" maxlength="200" style="flex:1;min-width:0">
+          <button class="btn btn-primary btn-sm" onclick="saveDesc(${t.id})">保存</button>
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
 }
 
 async function createTitle() {
@@ -1882,64 +1936,24 @@ async function deleteSpecialGachaEnemy(id) {
 }
 
 // ===== 称号スコープ =====
-async function loadTitleScopes() {
-  try {
-    const titles = await apiFetch('/admin/titles');
-    renderTitleScopes(titles);
-  } catch (err) {
-    document.getElementById('title-scope-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-function renderTitleScopes(titles) {
-  if (titles.length === 0) {
-    document.getElementById('title-scope-list').innerHTML = '<p style="color:var(--text-muted)">称号がありません</p>';
-    return;
-  }
-  document.getElementById('title-scope-list').innerHTML = `
-    <table class="ranking-table" style="table-layout:fixed;width:100%">
-      <thead><tr>
-        <th style="width:35%">称号名</th>
-        <th style="width:35%">説明</th>
-        <th style="width:10%">現在</th>
-        <th style="width:20%">変更</th>
-      </tr></thead>
-      <tbody>
-        ${titles.map(t => `
-          <tr>
-            <td style="font-weight:bold;word-break:break-all">${escHtml(t.name)}</td>
-            <td style="font-size:0.8rem;color:var(--text-muted);word-break:break-all">${escHtml(t.description || '')}</td>
-            <td><span class="scope-badge scope-${t.scope || 'common'}">${t.scope || 'common'}</span></td>
-            <td>
-              <select class="form-input" style="padding:4px 8px;font-size:0.8rem;width:100%" onchange="setTitleScope(${t.id}, this.value)">
-                <option value="common" ${(t.scope||'common')==='common'?'selected':''}>common</option>
-                <option value="internal" ${t.scope==='internal'?'selected':''}>internal</option>
-                <option value="external" ${t.scope==='external'?'selected':''}>external</option>
-              </select>
-            </td>
-          </tr>`).join('')}
-      </tbody>
-    </table>`;
-}
-
 async function setTitleScope(titleId, scope) {
   try {
     await apiFetch(`/admin/titles/${titleId}/scope`, {
       method: 'PATCH',
       body: JSON.stringify({ scope })
     });
-    const el = document.getElementById('title-scope-alert');
-    el.innerHTML = '<div class="alert alert-success">更新しました</div>';
-    setTimeout(() => { el.innerHTML = ''; }, 2000);
+    const t = _titles.find(x => x.id === titleId);
+    if (t) t.scope = scope;
+    showToast(`表示先を「${(TITLE_SCOPES.find(([v]) => v === scope) || [, scope])[1]}」にしました`);
   } catch (err) {
-    document.getElementById('title-scope-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
+    showToast(err.message, 'error');
+    renderTitles();
   }
 }
 
 // 初期ロード
 loadTitles();
 loadGrantTitleSelectors();
-loadTitleScopes();
 </script>
 </body>
 </html>
