@@ -10,29 +10,33 @@
 <title>ユーザー管理 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
-@media(max-width:600px){ .hide-mobile{display:none;} }
-#users-table td,#users-table th{ padding:6px 4px; }
-#users-table td:nth-child(1),#users-table th:nth-child(1){ white-space:nowrap; }
-#users-table td:nth-child(2),#users-table th:nth-child(2){ white-space:nowrap; width:1%; }
-#users-table td:nth-child(3),#users-table th:nth-child(3){ white-space:nowrap; width:1%; }
-#users-table td:nth-child(4),#users-table th:nth-child(4){ white-space:nowrap; width:1%; font-size:0.8rem; }
-#users-table td:nth-child(5),#users-table th:nth-child(5){ white-space:nowrap; font-size:0.8rem; }
-#users-table td:nth-child(6),#users-table th:nth-child(6){ white-space:nowrap; width:1%; font-size:0.8rem; }
-#users-table td:last-child,#users-table th:last-child{ width:1%; }
-@media(max-width:600px){
-  #users-table .user-name-cell{ white-space:normal; word-break:break-all; }
-  #users-table td:nth-child(2),#users-table th:nth-child(2){ font-size:0.72rem; }
-  #users-table td:nth-child(3),#users-table th:nth-child(3){ font-size:0.72rem; }
-  #users-table .btn-sm{ font-size:0.68rem; padding:2px 5px; white-space:nowrap; }
+.us-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.us-tools .form-input { flex:1 1 220px; min-width:0; max-width:320px; padding:8px 12px; font-size:0.88rem; }
+.us-tools .us-sort { flex:0 0 auto; width:auto; max-width:none; padding:7px 10px; font-size:0.82rem; }
+.us-count { font-size:0.8rem; color:var(--text-muted); white-space:nowrap; }
+.us-list { border-radius:12px; border:1px solid rgba(255,255,255,0.06); overflow:hidden; }
+.us-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 14px; align-items:center; padding:11px 14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.us-row:last-child { border-bottom:none; }
+.us-row:hover { background:rgba(255,255,255,0.025); }
+.us-main { min-width:0; }
+.us-name { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-weight:bold; }
+.us-name a { color:var(--text-primary); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.us-id { font-size:0.72rem; font-weight:normal; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.us-tag { font-size:0.68rem; font-weight:bold; padding:2px 8px; border-radius:99px; white-space:nowrap; }
+.us-tag.in { background:rgba(255,77,101,0.16); color:var(--accent-hover); }
+.us-tag.out { background:rgba(255,255,255,0.07); color:var(--text-muted); }
+.us-meta { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:4px; font-size:0.76rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.us-meta b { color:var(--text-secondary); font-weight:bold; }
+.us-meta .ti { color:var(--accent-hover); }
+.us-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.us-del { background:transparent; color:#ff6b6b; border:1px solid rgba(231,76,60,0.65); }
+.us-del:hover { background:rgba(231,76,60,0.14); color:#ff6b6b; }
+.us-pw { grid-column:1 / -1; display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 12px; border-radius:8px; background:var(--bg-primary); }
+.us-pw .form-input { flex:1 1 200px; min-width:0; padding:6px 10px; font-size:0.85rem; }
+@media (max-width:640px) {
+  .us-row { grid-template-columns:minmax(0,1fr); }
+  .us-actions { justify-content:flex-start; }
 }
-.user-name-cell{ white-space:nowrap; }
-.badge-internal { background:var(--accent); color:#fff; font-size:0.72rem; font-weight:bold; padding:2px 8px; border-radius:12px; }
-.badge-external { background:var(--bg-secondary); color:var(--text-muted); font-size:0.72rem; padding:2px 8px; border-radius:12px; border:1px solid var(--border); }
-.user-list-item {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:10px 16px; border-bottom:1px solid var(--border);
-}
-.user-list-item:last-child { border-bottom:none; }
 </style>
 </head>
 <body>
@@ -44,33 +48,26 @@
   </div>
   <div id="alert"></div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('users-list')">ユーザー一覧</button>
-    <button class="tab-btn" onclick="switchTab('users-flags')">内部/外部フラグ</button>
-  </div>
-
-  <!-- ユーザー一覧タブ -->
-  <div class="tab-content active" id="tab-users-list">
-    <div class="card">
-      <div class="section-title">ユーザー一覧 <span id="list-count" style="font-size:0.8rem;font-weight:normal;color:var(--text-muted)"></span></div>
-      <div id="list-alert" style="margin-bottom:12px"></div>
-      <div style="margin-bottom:12px">
-        <input class="form-input" id="list-search" type="search" placeholder="ユーザー名またはIDで検索" oninput="renderUsersList()" style="max-width:280px">
+  <div class="card">
+    <div class="us-tools">
+      <input class="form-input" id="list-search" type="search" placeholder="ユーザー名またはIDで検索" oninput="renderUsersList()">
+      <div class="pill-tabs pill-sm" id="us-filter">
+        <button class="on" data-v="" onclick="setUserFilter('')">すべて</button>
+        <button data-v="in" onclick="setUserFilter('in')">内部</button>
+        <button data-v="out" onclick="setUserFilter('out')">外部</button>
+        <button data-v="admin" onclick="setUserFilter('admin')">管理者</button>
       </div>
-      <div id="users-list"><div class="loading"><div class="spinner"></div></div></div>
+      <select class="form-input us-sort" id="us-sort" onchange="renderUsersList()" aria-label="並べ替え">
+        <option value="new">登録が新しい順</option>
+        <option value="old">登録が古い順</option>
+        <option value="points">ポイントが多い順</option>
+        <option value="gp">GPが多い順</option>
+        <option value="login">ログイン日数が多い順</option>
+        <option value="name">名前順</option>
+      </select>
+      <span id="list-count" class="us-count"></span>
     </div>
-  </div>
-
-  <!-- 内部/外部フラグタブ -->
-  <div class="tab-content" id="tab-users-flags">
-    <div class="card">
-      <div class="section-title">内部/外部フラグ管理</div>
-      <div id="flags-alert" style="margin-bottom:12px"></div>
-      <div style="margin-bottom:12px">
-        <input class="form-input" id="user-search" type="text" placeholder="ユーザー名で絞り込み" oninput="filterUsers()" style="max-width:260px">
-      </div>
-      <div id="flags-list"><div class="loading"><div class="spinner"></div><span>読み込み中...</span></div></div>
-    </div>
+    <div id="users-list"><div class="loading"><div class="spinner"></div></div></div>
   </div>
 </main>
 
@@ -79,76 +76,75 @@
 renderNav();
 if (!requireAdmin()) throw new Error('redirect');
 
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    b.classList.toggle('active', ['users-list','users-flags'][i] === name);
-  });
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  if (name === 'users-list') loadUsersList();
-  if (name === 'users-flags') loadUsersFlags();
-}
-
-// ===== ユーザー一覧 =====
+// ===== ユーザー一覧（内部/外部の切り替え・パスワード変更もここで） =====
 let _listUsers = [];
+let _userFilter = '';
 async function loadUsersList() {
   try {
-    _listUsers = await apiFetch('/admin/users');
+    _listUsers = await apiFetch('/admin/users?t=' + Date.now());
     renderUsersList();
   } catch (err) {
     document.getElementById('users-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
   }
+}
+function setUserFilter(v) {
+  _userFilter = v;
+  document.querySelectorAll('#us-filter > button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  renderUsersList();
 }
 
 // 検索欄の文字でユーザー名（部分一致・大文字小文字を区別しない）かID（数字のみのとき完全一致）を絞り込む
 function renderUsersList() {
   const el = document.getElementById('users-list');
   const q = document.getElementById('list-search').value.trim().toLowerCase();
-  const users = q
-    ? _listUsers.filter(u => u.username.toLowerCase().includes(q) || (/^\d+$/.test(q) && String(u.id) === q))
-    : _listUsers;
-  document.getElementById('list-count').textContent = q ? `${users.length}人 / 全${_listUsers.length}人` : `全${_listUsers.length}人`;
+  const byFilter = u => !_userFilter || (_userFilter === 'in' && u.is_internal) || (_userFilter === 'out' && !u.is_internal) || (_userFilter === 'admin' && u.role === 'admin');
+  const users = _listUsers.filter(u => byFilter(u) && (!q || u.username.toLowerCase().includes(q) || (/^\d+$/.test(q) && String(u.id) === q)));
+  // 並べ替え（同じ値のときは登録が新しい順）
+  const sortKey = document.getElementById('us-sort').value;
+  const newer = (a, b) => new Date(b.created_at) - new Date(a.created_at);
+  const SORTS = {
+    new: newer,
+    old: (a, b) => -newer(a, b),
+    points: (a, b) => (b.points || 0) - (a.points || 0) || newer(a, b),
+    gp: (a, b) => (b.gp || 0) - (a.gp || 0) || newer(a, b),
+    login: (a, b) => (b.total_login_days || 0) - (a.total_login_days || 0) || newer(a, b),
+    name: (a, b) => a.username.localeCompare(b.username, 'ja'),
+  };
+  users.sort(SORTS[sortKey] || newer);
+  document.getElementById('list-count').textContent = users.length === _listUsers.length ? `全${_listUsers.length}人` : `${users.length}人 / 全${_listUsers.length}人`;
   if (users.length === 0) {
-    el.innerHTML = `<div class="empty-state"><p>${q ? '該当するユーザーがいません' : 'ユーザーがいません'}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><p>${_listUsers.length ? '該当するユーザーがいません' : 'ユーザーがいません'}</p></div>`;
     return;
   }
-  {
-    el.innerHTML = `
-      <table class="ranking-table" id="users-table" style="width:100%">
-        <thead>
-          <tr>
-            <th>ユーザー名</th>
-            <th>ロール</th>
-            <th style="text-align:right">ポイント</th>
-            <th style="text-align:right" class="hide-mobile">GP</th>
-            <th style="text-align:right" class="hide-mobile">累計ログイン</th>
-            <th class="hide-mobile">称号</th>
-            <th class="hide-mobile">登録日</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${users.map(u => `
-            <tr>
-              <td class="user-name-cell"><a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a></td>
-              <td>${u.role === 'admin' ? adminBadgeHtml() : '一般'}</td>
-              <td style="text-align:right">${u.points}pt</td>
-              <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.gp || 0}GP</td>
-              <td style="text-align:right;font-size:0.85rem" class="hide-mobile">${u.total_login_days || 0}日</td>
-              <td style="font-size:0.8rem;color:var(--accent)" class="hide-mobile">${u.equipped_title ? `「${escHtml(u.equipped_title)}」` : '-'}</td>
-              <td style="font-size:0.8rem;color:var(--text-muted)" class="hide-mobile">${formatDate(u.created_at)}</td>
-              <td style="width:120px">
-                <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch">
-                  <button class="btn btn-secondary btn-sm" style="white-space:nowrap" onclick="toggleUserRole(${u.id}, '${u.role}')">
-                    ${u.role === 'admin' ? '管理者解除' : '管理者にする'}
-                  </button>
-                  <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id}, '${escHtml(u.username)}')">削除</button>
-                </div>
-              </td>
-            </tr>`).join('')}
-        </tbody>
-      </table>`;
-  }
+  el.innerHTML = `<div class="us-list">${users.map(u => `
+    <div class="us-row" id="us-${u.id}">
+      <div class="us-main">
+        <div class="us-name">
+          <a href="/user.html?id=${u.id}" target="_blank">${escHtml(u.username)}</a>
+          <span class="us-id">#${u.id}</span>
+          ${u.role === 'admin' ? adminBadgeHtml() : ''}
+          <span class="us-tag ${u.is_internal ? 'in' : 'out'}">${u.is_internal ? '内部' : '外部'}</span>
+        </div>
+        <div class="us-meta">
+          <span><b>${Number(u.points || 0).toLocaleString()}</b>pt</span>
+          <span><b>${Number(u.gp || 0).toLocaleString()}</b>GP</span>
+          <span>ログイン <b>${u.total_login_days || 0}</b>日</span>
+          ${u.equipped_title ? `<span class="ti">「${escHtml(u.equipped_title)}」</span>` : ''}
+          <span>登録 ${formatDate(u.created_at)}</span>
+        </div>
+      </div>
+      <div class="us-actions">
+        <button class="btn btn-secondary btn-sm" onclick="setInternal(${u.id}, ${!u.is_internal})">${u.is_internal ? '外部にする' : '内部にする'}</button>
+        <button class="btn btn-secondary btn-sm" onclick="togglePwForm(${u.id})">PW変更</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleUserRole(${u.id}, '${u.role}')">${u.role === 'admin' ? '管理者解除' : '管理者にする'}</button>
+        <button class="btn btn-sm us-del" onclick="deleteUser(${u.id}, '${escHtml(u.username).replace(/'/g, "\\'")}')">削除</button>
+      </div>
+      <div class="us-pw" id="pw-form-${u.id}" style="display:none">
+        <input class="form-input" id="pw-input-${u.id}" type="text" placeholder="新しいパスワード（6文字以上）">
+        <button class="btn btn-sm btn-primary" onclick="resetPassword(${u.id})">確定</button>
+        <button class="btn btn-sm btn-secondary" onclick="togglePwForm(${u.id})">キャンセル</button>
+      </div>
+    </div>`).join('')}</div>`;
 }
 
 async function toggleUserRole(id, currentRole) {
@@ -175,61 +171,10 @@ async function deleteUser(id, name) {
   }
 }
 
-// ===== 内部/外部フラグ管理 =====
-let _allUsers = [];
-
-async function loadUsersFlags() {
-  try {
-    _allUsers = await apiFetch('/admin/users?t=' + Date.now());
-    renderFlagUsers(_allUsers);
-  } catch (err) {
-    document.getElementById('flags-list').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-function filterUsers() {
-  const q = document.getElementById('user-search').value.toLowerCase();
-  renderFlagUsers(q ? _allUsers.filter(u => u.username.toLowerCase().includes(q)) : _allUsers);
-}
-
-function renderFlagUsers(users) {
-  if (users.length === 0) {
-    document.getElementById('flags-list').innerHTML = '<p style="color:var(--text-muted)">ユーザーが見つかりません</p>';
-    return;
-  }
-  document.getElementById('flags-list').innerHTML = `
-    <div class="card" style="padding:0">
-      ${users.map(u => `
-        <div style="border-bottom:1px solid var(--border)">
-          <div class="user-list-item" style="border-bottom:none">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-weight:bold">${escHtml(u.username)}</span>
-              ${u.role === 'admin' ? '<span style="font-size:0.72rem;color:var(--accent)">[管理者]</span>' : ''}
-              <span class="${u.is_internal ? 'badge-internal' : 'badge-external'}">${u.is_internal ? '内部' : '外部'}</span>
-            </div>
-            <div style="display:flex;gap:8px">
-              ${u.is_internal
-                ? `<button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="setInternal(${u.id}, false)">外部に変更</button>`
-                : `<button class="btn btn-sm btn-primary" onclick="setInternal(${u.id}, true)">内部に変更</button>`
-              }
-              <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="togglePwForm(${u.id})">PW変更</button>
-            </div>
-          </div>
-          <div id="pw-form-${u.id}" style="display:none;padding:8px 16px 12px">
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input class="form-input" id="pw-input-${u.id}" type="text" placeholder="新しいパスワード（6文字以上）" style="font-size:0.85rem;padding:5px 10px;flex:1;min-width:160px">
-              <button class="btn btn-sm btn-primary" onclick="resetPassword(${u.id})">確定</button>
-              <button class="btn btn-sm" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-muted)" onclick="togglePwForm(${u.id})">キャンセル</button>
-            </div>
-          </div>
-        </div>`).join('')}
-    </div>`;
-}
-
 function togglePwForm(userId) {
   const el = document.getElementById(`pw-form-${userId}`);
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  if (el.style.display === 'block') document.getElementById(`pw-input-${userId}`).focus();
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+  if (el.style.display === 'flex') document.getElementById(`pw-input-${userId}`).focus();
 }
 
 async function resetPassword(userId) {
@@ -254,8 +199,9 @@ async function setInternal(userId, val) {
       method: 'PATCH',
       body: JSON.stringify({ is_internal: val })
     });
-    _allUsers = _allUsers.map(u => u.id === userId ? { ...u, is_internal: val } : u);
-    filterUsers();
+    _listUsers = _listUsers.map(u => u.id === userId ? { ...u, is_internal: val } : u);
+    renderUsersList();
+    showToast(val ? '内部にしました' : '外部にしました');
   } catch (err) {
     showToast(err.message, 'error');
   }
