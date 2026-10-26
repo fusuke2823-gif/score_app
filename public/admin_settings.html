@@ -10,10 +10,25 @@
 <title>設定 - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
 <style>
+.mk-head { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.mk-head .section-title { margin:0; }
+.mk-box { background:var(--bg-primary); border:1px solid var(--border-light); border-radius:10px; padding:16px; margin-bottom:16px; }
+.mk-box { scroll-margin-top:80px; }
+.mk-box-title { font-size:0.85rem; font-weight:bold; margin-bottom:10px; color:var(--accent-hover); }
+.st-desc { font-size:0.8rem; color:var(--text-muted); line-height:1.7; margin:0 0 12px; }
+.st-sub { font-size:0.85rem; font-weight:bold; margin:16px 0 8px; display:flex; align-items:center; gap:8px; }
+/* オン・オフのスイッチ */
+.st-switch { display:flex; align-items:center; justify-content:space-between; gap:14px; cursor:pointer; }
+.st-switch input { position:absolute; opacity:0; pointer-events:none; }
+.st-switch .sw { flex-shrink:0; width:44px; height:24px; border-radius:99px; background:rgba(255,255,255,0.14); position:relative; transition:background 0.2s; }
+.st-switch .sw::after { content:''; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#fff; transition:transform 0.2s; }
+.st-switch input:checked + .sw { background:var(--accent-grad); }
+.st-switch input:checked + .sw::after { transform:translateX(20px); }
+.st-switch input:focus-visible + .sw { outline:2px solid var(--accent-hover); outline-offset:2px; }
+.st-switch-text b { display:block; font-size:0.92rem; }
+.st-switch-text small { font-size:0.78rem; color:var(--text-muted); }
 /* 属性の自動判定 */
-.attr-mode { display:flex; flex-direction:column; gap:6px; }
-.attr-mode label { display:flex; align-items:baseline; gap:8px; cursor:pointer; font-size:0.9rem; }
-.attr-mode small { color:var(--text-muted); font-size:0.75rem; }
+.attr-mode-note { font-size:0.78rem; color:var(--text-muted); margin-top:8px; }
 .attr-stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:8px; }
 .attr-stats-grid > div { background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:8px 10px; display:flex; flex-direction:column; gap:2px; }
 .attr-stats-grid span { font-size:0.7rem; color:var(--text-muted); }
@@ -21,8 +36,67 @@
 .attr-dis { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; }
 .attr-dis a { display:flex; gap:8px; align-items:center; background:var(--bg-primary); border:1px solid var(--border); border-radius:8px; padding:6px; color:var(--text-secondary); font-size:0.74rem; text-decoration:none; }
 .attr-dis img { width:72px; aspect-ratio:16/9; object-fit:cover; border-radius:4px; flex-shrink:0; }
+/* Cloudinary */
+.cld-meta { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.76rem; color:var(--text-muted); margin-top:4px; }
+.cld-limit { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cld-limit .form-input { width:90px; padding:6px 10px; }
+/* デイリーバトル */
+.lb-grid { display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+.lb-grid label { display:block; font-size:0.74rem; color:var(--text-muted); margin-bottom:4px; text-align:center; }
+.lb-grid .form-input { text-align:center; padding:7px 6px; }
+.boss-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px,1fr)); gap:8px; }
+.boss-card { position:relative; background:var(--bg-primary); border:1px solid var(--border); border-radius:10px; padding:8px; text-align:center; }
+.boss-card img { width:100%; height:72px; object-fit:contain; border-radius:6px; }
+.boss-card div { font-size:0.75rem; margin-top:4px; word-break:break-all; }
+.boss-del { position:absolute; top:4px; right:4px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border-radius:50%; border:none; background:rgba(0,0,0,0.55); color:#ff6b6b; cursor:pointer; }
+.boss-del:hover { background:rgba(231,76,60,0.3); }
+/* 一覧の行（特別ボーナス・お知らせ） */
+.st-list { border-radius:12px; border:1px solid rgba(255,255,255,0.06); overflow:hidden; }
+.st-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:8px 14px; align-items:center; padding:11px 14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.st-row:last-child { border-bottom:none; }
+.st-row.off { opacity:0.55; }
+.st-row-title { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-weight:bold; font-size:0.92rem; }
+.st-row-meta { display:flex; flex-wrap:wrap; gap:3px 12px; margin-top:4px; font-size:0.76rem; color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.st-row-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+.st-tag { font-size:0.68rem; font-weight:bold; padding:2px 8px; border-radius:99px; white-space:nowrap; background:rgba(255,255,255,0.07); color:var(--text-muted); }
+.st-tag.on { background:rgba(255,77,101,0.16); color:var(--accent-hover); }
+.st-del { background:transparent; color:#ff6b6b; border:1px solid rgba(231,76,60,0.65); }
+.st-del:hover { background:rgba(231,76,60,0.14); color:#ff6b6b; }
+.an-body { grid-column:1 / -1; display:flex; gap:10px; align-items:flex-start; }
+.an-body img { width:96px; aspect-ratio:16/9; object-fit:cover; border-radius:6px; flex-shrink:0; }
+.an-body p { margin:0; font-size:0.82rem; color:var(--text-secondary); white-space:pre-wrap; word-break:break-all; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+/* お便り箱 */
+.fb-tools { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.fb-count { font-size:0.8rem; color:var(--text-muted); margin-left:auto; }
+.fb-item { padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.fb-item:last-child { border-bottom:none; }
+.fb-item.read { opacity:0.6; }
+.fb-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px; font-size:0.78rem; color:var(--text-muted); }
+.fb-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+.fb-cat { font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:99px; }
+.fb-time { margin-left:auto; font-variant-numeric:tabular-nums; }
+.fb-text { font-size:0.88rem; white-space:pre-wrap; word-break:break-all; }
+.fb-thread { margin-top:10px; display:flex; flex-direction:column; gap:6px; }
+.fb-msg { padding:8px 12px; border-left:3px solid var(--border); background:var(--bg-primary); border-radius:0 8px 8px 0; }
+.fb-msg.admin { border-left-color:var(--accent); }
+.fb-msg small { display:block; font-size:0.7rem; color:var(--text-muted); margin-bottom:3px; }
+.fb-msg.admin small { color:var(--accent-hover); }
+.fb-msg div { font-size:0.85rem; white-space:pre-wrap; word-break:break-all; }
+.fb-actions { display:flex; gap:6px; margin-top:8px; }
+.fb-reply { margin-top:8px; }
+.fb-reply textarea { width:100%; box-sizing:border-box; min-height:70px; }
+.fb-reply > div { display:flex; gap:6px; margin-top:6px; }
 .enemy-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 @media(max-width:600px){ .enemy-form-grid{grid-template-columns:1fr;} }
+@media (max-width:640px) {
+  .st-row { grid-template-columns:minmax(0,1fr); }
+  .st-row-actions { justify-content:flex-start; }
+}
+@media (max-width:420px) {
+  .lb-grid { gap:5px; }
+  .lb-grid label { font-size:0.68rem; }
+  .lb-grid .form-input { padding:6px 2px; font-size:0.85rem; }
+}
 </style>
 </head>
 <body>
@@ -45,88 +119,95 @@
   <div class="tab-content active" id="tab-general">
     <div id="settings-alert" style="margin-bottom:12px"></div>
     <div class="card" style="margin-bottom:16px">
-      <div class="section-title">スコア投稿のAI自動承認</div>
-      <label style="display:flex;align-items:center;gap:12px;cursor:pointer">
-        <input type="checkbox" id="ai-check-toggle" onchange="saveAiCheckSetting()" style="width:18px;height:18px">
-        <span>AIでリザルト画像を読み取り、入力値と一致すれば自動承認する</span>
+      <div class="section-title">スコア投稿の自動承認</div>
+      <label class="st-switch">
+        <span class="st-switch-text">
+          <b>AI自動承認</b>
+          <small>AIでリザルト画像を読み取り、入力値と一致すれば自動承認します。オフにすると常に手動承認になります（GEMINI_API_KEY がないときは動きません）。</small>
+        </span>
+        <input type="checkbox" id="ai-check-toggle" onchange="saveAiCheckSetting()">
+        <span class="sw"></span>
       </label>
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-top:10px">
-        環境変数 <code>GEMINI_API_KEY</code> が設定されている場合のみ機能します。オフにすると常に手動承認になります。
-      </p>
     </div>
 
     <div class="card" style="margin-bottom:16px">
       <div class="section-title">属性の自動判定</div>
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;line-height:1.7">
-        リザルト画像のADM・MVP・編成から属性を推定し、過去の承認済み投稿（お手本）と比べます。上のAI自動承認がオンのときだけ動きます。
-      </p>
-      <div class="attr-mode" role="radiogroup">
-        <label><input type="radio" name="attr-mode" value="off" onchange="saveAttrMode(this.value)"> オフ<small>判定しない</small></label>
-        <label><input type="radio" name="attr-mode" value="record" onchange="saveAttrMode(this.value)"> 記録だけ<small>判定して記録する。承認には使わない（テスト）</small></label>
-        <label><input type="radio" name="attr-mode" value="enforce" onchange="saveAttrMode(this.value)"> 有効<small>属性が食い違う・判定できない投稿は手動確認へ</small></label>
+      <p class="st-desc">リザルト画像のADM・MVP・編成から属性を推定し、過去の承認済み投稿（お手本）と比べます。上のAI自動承認がオンのときだけ動きます。</p>
+      <div class="pill-tabs" id="attr-mode" role="radiogroup">
+        <button type="button" data-v="off" onclick="saveAttrMode('off')">オフ</button>
+        <button type="button" data-v="record" onclick="saveAttrMode('record')">記録だけ</button>
+        <button type="button" data-v="enforce" onclick="saveAttrMode('enforce')">有効</button>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin:14px 0 8px">
-        <div style="font-weight:bold;font-size:0.9rem">集計</div>
-        <select class="form-select" id="attr-stats-days" style="width:auto;padding:2px 8px;font-size:0.8rem" onchange="loadAttrStats()">
-          <option value="7">7日</option><option value="30" selected>30日</option><option value="90">90日</option>
-        </select>
+      <div class="attr-mode-note" id="attr-mode-note"></div>
+      <div class="st-sub">集計
+        <div class="pill-tabs pill-sm" id="attr-stats-days">
+          <button type="button" data-v="7" onclick="setAttrDays(this)">7日</button>
+          <button type="button" data-v="30" class="on" onclick="setAttrDays(this)">30日</button>
+          <button type="button" data-v="90" onclick="setAttrDays(this)">90日</button>
+        </div>
       </div>
       <div id="attr-stats"><div class="loading"><div class="spinner"></div></div></div>
     </div>
 
-    <div class="card" style="margin-bottom:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="section-title" style="margin:0">Cloudinary 使用量（月次）</div>
-        <button class="btn btn-secondary btn-sm" onclick="loadCloudinaryUsage(true)">更新</button>
+    <div class="card">
+      <div class="mk-head">
+        <div class="section-title">Cloudinary 使用量（月次）</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadCloudinaryUsage(true)">最新を取得</button>
       </div>
       <div id="cld-usage-body"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-    <div class="card">
-      <div class="section-title">帯域制限（ユーザー画像アップロード）</div>
-      <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px">
-        帯域幅の使用率がこの値を超えると、ユーザーの画像アップロードを自動停止します。空欄で無効。
-      </div>
-      <div id="cld-limit-alert" style="margin-bottom:10px"></div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <input id="cld-limit-input" type="number" min="1" max="200" step="1" class="form-control" style="width:100px" placeholder="例: 95">
-        <span style="color:var(--text-muted)">%</span>
-        <button class="btn btn-primary btn-sm" onclick="saveCloudinaryLimit()">保存</button>
-        <button class="btn btn-secondary btn-sm" onclick="clearCloudinaryLimit()">制限を解除</button>
+      <div class="mk-box" style="margin:16px 0 0">
+        <div class="mk-box-title">帯域の上限（ユーザーの画像アップロード）</div>
+        <p class="st-desc" style="margin-bottom:10px">帯域の使用率がこの値を超えると、ユーザーの画像アップロードを自動で止めます。空欄なら止めません。</p>
+        <div class="cld-limit">
+          <input id="cld-limit-input" type="number" min="1" max="200" step="1" class="form-input" placeholder="例: 95">
+          <span style="color:var(--text-muted)">%</span>
+          <button class="btn btn-primary btn-sm" onclick="saveCloudinaryLimit()">保存</button>
+          <button class="btn btn-secondary btn-sm" onclick="clearCloudinaryLimit()">上限をなくす</button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ログインボーナスタブ -->
   <div class="tab-content" id="tab-loginbonus">
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title">デイリーバトル 報酬設定（判定スコア→獲得pt）</div>
-      <div id="lb-alert" style="margin-bottom:12px"></div>
-      <div id="lb-score-inputs" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:16px"></div>
-      <button class="btn btn-primary" onclick="saveLBSettings()">保存</button>
+    <div class="card" style="margin-bottom:16px">
+      <div class="section-title">デイリーバトルの報酬</div>
+      <p class="st-desc">判定スコアごとにもらえるpt。</p>
+      <div id="lb-alert"></div>
+      <div id="lb-score-inputs" class="lb-grid"></div>
+      <button class="btn btn-primary btn-sm" onclick="saveLBSettings()">保存</button>
     </div>
 
-    <div class="card" style="margin-bottom:20px">
-      <div class="section-title">デイリーバトル 敵カード設定（複数登録・挑戦のたびにランダム表示）</div>
-      <div id="boss-alert" style="margin-bottom:12px"></div>
-      <form id="boss-add-form" style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px">
-          <label class="form-label">名前</label>
-          <input class="form-input" id="boss-name" placeholder="例: 影纏いし者" required>
+    <div class="card" style="margin-bottom:16px">
+      <div class="mk-head">
+        <div class="section-title">デイリーバトルの敵</div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('boss-new')">＋ 敵を追加</button>
+      </div>
+      <p class="st-desc">挑戦のたびにこの中からランダムに出ます。</p>
+      <form id="boss-new" class="mk-box" hidden>
+        <div class="mk-box-title">敵を追加</div>
+        <div class="enemy-form-grid">
+          <div class="form-group" style="margin-bottom:0"><label class="form-label">名前</label>
+            <input class="form-input" id="boss-name" placeholder="例: 影纏いし者" required></div>
+          <div class="form-group" style="margin-bottom:0"><label class="form-label">画像</label>
+            <input class="form-input" type="file" id="boss-image" accept="image/*" style="padding:8px" required></div>
         </div>
-        <div class="form-group" style="margin-bottom:0;flex:1;min-width:160px">
-          <label class="form-label">画像</label>
-          <input class="form-input" type="file" id="boss-image" accept="image/*" style="padding:8px" required>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button type="submit" class="btn btn-primary btn-sm">追加する</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('boss-new', false)">閉じる</button>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm">追加</button>
       </form>
-      <div id="boss-list" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+      <div id="boss-alert"></div>
+      <div id="boss-list" class="boss-grid"></div>
     </div>
 
     <div class="card">
-      <div class="section-title">特別ログインボーナス</div>
-      <div id="sb-alert" style="margin-bottom:12px"></div>
-      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px">
-        <div style="font-size:0.85rem;font-weight:bold;margin-bottom:12px;color:var(--text-muted)">新規作成</div>
+      <div class="mk-head">
+        <div class="section-title">特別ログインボーナス</div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('sb-new')">＋ 特別ボーナスを作る</button>
+      </div>
+      <div id="sb-new" class="mk-box" hidden>
+        <div class="mk-box-title">特別ボーナスを作る</div>
         <div class="form-group"><label class="form-label">題名</label>
           <input class="form-input" id="sb-title" placeholder="例: GW特別ボーナス"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -134,13 +215,17 @@
             <input class="form-input" id="sb-start" type="date"></div>
           <div class="form-group"><label class="form-label">終了日</label>
             <input class="form-input" id="sb-end" type="date"></div>
-          <div class="form-group"><label class="form-label">獲得可能回数</label>
+          <div class="form-group"><label class="form-label">もらえる回数</label>
             <input class="form-input" id="sb-max" type="number" min="1" value="1"></div>
           <div class="form-group"><label class="form-label">1回のpt</label>
             <input class="form-input" id="sb-pts" type="number" min="1" value="5"></div>
         </div>
-        <button class="btn btn-primary" style="margin-top:4px" onclick="createSpecialBonus()">作成</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" onclick="createSpecialBonus()">作成する</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('sb-new', false)">閉じる</button>
+        </div>
       </div>
+      <div id="sb-alert"></div>
       <div id="sb-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
@@ -148,8 +233,12 @@
   <!-- お便り箱タブ -->
   <div class="tab-content" id="tab-feedback">
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-        <div class="section-title" style="margin:0">お便り箱</div>
+      <div class="fb-tools">
+        <div class="pill-tabs pill-sm" id="fb-filter">
+          <button class="on" data-v="" onclick="setFbFilter('')">すべて</button>
+          <button data-v="unread" onclick="setFbFilter('unread')">未読</button>
+        </div>
+        <span class="fb-count" id="fb-count"></span>
         <button class="btn btn-secondary btn-sm" onclick="loadFeedback()">更新</button>
       </div>
       <div id="feedback-list"><div class="loading"><div class="spinner"></div></div></div>
@@ -158,59 +247,55 @@
 
   <!-- お知らせタブ -->
   <div class="tab-content" id="tab-announcements">
-    <div class="card" style="margin-bottom:24px">
-      <div class="section-title" id="ann-form-title">お知らせを作成</div>
-      <input type="hidden" id="ann-edit-id">
-      <div id="ann-form-alert" style="margin-bottom:12px"></div>
-      <div class="form-group">
-        <label class="form-label">タイトル</label>
-        <input class="form-input" type="text" id="ann-title" placeholder="例: メンテナンスのお知らせ">
-      </div>
-      <div class="form-group">
-        <label class="form-label">本文</label>
-        <textarea class="form-textarea" id="ann-body" rows="16" style="min-height:320px;resize:vertical"></textarea>
-      </div>
-      <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">リンクURL（任意）</label>
-          <input class="form-input" type="url" id="ann-link" placeholder="https://...">
-        </div>
-        <div class="form-group">
-          <label class="form-label">リンクボタンの文言（任意・空欄なら「詳しく見る」）</label>
-          <input class="form-input" type="text" id="ann-link-label" placeholder="例: くわしくはこちら" maxlength="50">
-        </div>
-      </div>
-      <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">画像（任意）</label>
-          <input class="form-input" type="file" id="ann-image" accept="image/*" style="padding:8px">
-        </div>
-      </div>
-      <div class="enemy-form-grid">
-        <div class="form-group">
-          <label class="form-label">モーダル表示開始（任意・空欄なら即時）</label>
-          <input class="form-input" type="datetime-local" id="ann-modal-start">
-        </div>
-        <div class="form-group">
-          <label class="form-label">モーダル表示終了（任意・空欄なら無期限）</label>
-          <input class="form-input" type="datetime-local" id="ann-modal-end">
-        </div>
-      </div>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin:-8px 0 12px">
-        この期間中に初めて訪れたユーザーにだけポップアップ表示されます（一覧ページには期間に関係なく常に表示）。
-      </p>
-      <div class="form-group">
-        <label class="form-label">通知対象：この日時までに登録したユーザーのみ（任意・空欄なら全員）</label>
-        <input class="form-input" type="datetime-local" id="ann-notify-before" style="max-width:280px">
-        <div class="form-hint">対象外のユーザー（これより後に登録した人・ログインしていない人）にはポップアップを出しません。一覧ページには全員に表示されます。</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary" id="ann-submit-btn" onclick="submitAnnouncement()">作成する</button>
-        <button class="btn btn-secondary" id="ann-cancel-btn" onclick="cancelEditAnnouncement()" style="display:none">編集をキャンセル</button>
-      </div>
-    </div>
     <div class="card">
-      <div class="section-title">お知らせ一覧</div>
+      <div class="mk-head">
+        <div class="section-title">お知らせ</div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="openAnnForm()">＋ お知らせを作る</button>
+      </div>
+      <div id="ann-form" class="mk-box" hidden>
+        <div class="mk-box-title" id="ann-form-title">お知らせを作る</div>
+        <input type="hidden" id="ann-edit-id">
+        <div id="ann-form-alert"></div>
+        <div class="form-group">
+          <label class="form-label">タイトル</label>
+          <input class="form-input" type="text" id="ann-title" placeholder="例: メンテナンスのお知らせ">
+        </div>
+        <div class="form-group">
+          <label class="form-label">本文</label>
+          <textarea class="form-textarea" id="ann-body" rows="12" style="min-height:240px;resize:vertical"></textarea>
+        </div>
+        <div class="enemy-form-grid">
+          <div class="form-group">
+            <label class="form-label">リンクURL（任意）</label>
+            <input class="form-input" type="url" id="ann-link" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">リンクボタンの文言（任意・空欄なら「詳しく見る」）</label>
+            <input class="form-input" type="text" id="ann-link-label" placeholder="例: くわしくはこちら" maxlength="50">
+          </div>
+          <div class="form-group">
+            <label class="form-label">画像（任意）</label>
+            <input class="form-input" type="file" id="ann-image" accept="image/*" style="padding:8px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">通知対象：この日時までに登録した人だけ（任意・空欄なら全員）</label>
+            <input class="form-input" type="datetime-local" id="ann-notify-before">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ポップアップ表示開始（任意・空欄なら今すぐ）</label>
+            <input class="form-input" type="datetime-local" id="ann-modal-start">
+          </div>
+          <div class="form-group">
+            <label class="form-label">ポップアップ表示終了（任意・空欄なら無期限）</label>
+            <input class="form-input" type="datetime-local" id="ann-modal-end">
+          </div>
+        </div>
+        <p class="st-desc">期間中に初めて訪れた人（通知対象のみ）にポップアップで出します。お知らせの一覧ページには、期間や対象に関係なく全員に出ます。</p>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary btn-sm" id="ann-submit-btn" onclick="submitAnnouncement()">作成する</button>
+          <button class="btn btn-secondary btn-sm" onclick="cancelEditAnnouncement()">閉じる</button>
+        </div>
+      </div>
       <div id="ann-list"><div class="loading"><div class="spinner"></div></div></div>
     </div>
   </div>
@@ -233,12 +318,18 @@ function switchTab(name) {
   if (name === 'announcements') loadAnnouncements();
 }
 
+function toggleMk(id, open) {
+  const el = document.getElementById(id);
+  el.hidden = open === undefined ? !el.hidden : !open;
+  if (!el.hidden) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 // ===== 一般設定 =====
 async function loadSettings() {
   try {
     const s = await apiFetch('/admin/settings');
     document.getElementById('ai-check-toggle').checked = s.ai_score_check_enabled;
-    document.querySelectorAll('input[name="attr-mode"]').forEach(r => { r.checked = r.value === s.attr_check_mode; });
+    showAttrMode(s.attr_check_mode);
     loadAttrStats();
   } catch (err) {
     showAlert('#settings-alert', err.message);
@@ -252,17 +343,33 @@ const ATTR_REASON_LABEL = {
   mismatch_sure: '確定・不一致', mismatch_single: '参考・不一致', mismatch_dual_other: 'MVP2属性＋他の手がかり・不一致',
   dual_mvp_only: 'MVPが2属性（他の手がかりなし）', dual_out: 'MVPの候補と食い違い', conflict: '手がかりが食い違い', none: '判定なし', error: '処理のエラー',
 };
+const ATTR_MODE_NOTE = {
+  off: '判定しません。',
+  record: '判定して記録します。承認には使いません（テスト）。',
+  enforce: '属性が食い違う投稿・判定できない投稿は手動確認に回します。',
+};
+function showAttrMode(mode) {
+  document.querySelectorAll('#attr-mode > button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
+  document.getElementById('attr-mode-note').textContent = ATTR_MODE_NOTE[mode] || '';
+}
 async function saveAttrMode(mode) {
   try {
     await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ attr_check_mode: mode }) });
+    showAttrMode(mode);
     showToast({ off: '属性の自動判定をオフにしました', record: '属性の自動判定を「記録だけ」にしました', enforce: '属性の自動判定を有効にしました' }[mode]);
   } catch (err) { showToast(err.message, 'error'); }
+}
+let _attrDays = '30';
+function setAttrDays(btn) {
+  _attrDays = btn.dataset.v;
+  document.querySelectorAll('#attr-stats-days > button').forEach(b => b.classList.toggle('on', b === btn));
+  loadAttrStats();
 }
 async function loadAttrStats() {
   const el = document.getElementById('attr-stats');
   try {
-    const st = await apiFetch(`/admin/attr-check/stats?days=${document.getElementById('attr-stats-days').value}`);
-    document.querySelectorAll('input[name="attr-mode"]').forEach(r => { r.checked = r.value === st.mode; });
+    const st = await apiFetch(`/admin/attr-check/stats?days=${_attrDays}`);
+    showAttrMode(st.mode);
     const total = st.judged + st.errors;
     const auto = st.routes.auto || 0, manual = st.routes.manual || 0;
     const pct = (a, b) => (b ? Math.round(a / b * 1000) / 10 + '%' : '-');
@@ -302,8 +409,8 @@ async function saveAiCheckSetting() {
 
 // ===== ログインボーナス（デイリーバトル）設定 =====
 const LB_SCORE_KEYS = [
-  { key: 'm2', label: 'スコア -2' }, { key: 'm1', label: 'スコア -1' }, { key: '0', label: 'スコア 0' },
-  { key: 'p1', label: 'スコア +1' }, { key: 'p2', label: 'スコア +2' },
+  { key: 'm2', label: '−2' }, { key: 'm1', label: '−1' }, { key: '0', label: '±0' },
+  { key: 'p1', label: '+1' }, { key: 'p2', label: '+2' },
 ];
 
 async function loadLBSettings() {
@@ -311,7 +418,7 @@ async function loadLBSettings() {
     const data = await apiFetch('/admin/login-bonus-settings');
     document.getElementById('lb-score-inputs').innerHTML = LB_SCORE_KEYS.map(s => `
       <div>
-        <label class="form-label">${s.label}</label>
+        <label for="lb-${s.key}">スコア ${s.label}</label>
         <input class="form-input" id="lb-${s.key}" type="number" min="0" value="${data[s.key] ?? 0}">
       </div>`).join('');
   } catch (err) { showAlert('#lb-alert', err.message); }
@@ -329,16 +436,18 @@ async function saveLBSettings() {
 async function loadBossEnemies() {
   try {
     const list = await apiFetch('/admin/login-bonus/enemies');
-    document.getElementById('boss-list').innerHTML = list.length ? list.map(e => `
-      <div style="width:110px;text-align:center;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:8px">
-        <img src="${escHtml(thumbUrl(e.image_url))}" loading="lazy" style="width:100%;height:70px;object-fit:contain;border-radius:4px;margin-bottom:6px">
-        <div style="font-size:0.75rem;margin-bottom:6px;word-break:break-all">${escHtml(e.name)}</div>
-        <button class="btn btn-danger btn-sm" onclick="deleteBossEnemy(${e.id})">削除</button>
+    const box = document.getElementById('boss-list');
+    box.style.display = list.length ? '' : 'block';
+    box.innerHTML = list.length ? list.map(e => `
+      <div class="boss-card">
+        <img src="${escHtml(thumbUrl(e.image_url))}" alt="" loading="lazy">
+        <div>${escHtml(e.name)}</div>
+        <button class="boss-del" onclick="deleteBossEnemy(${e.id}, '${escHtml(e.name).replace(/'/g, "\\'")}')" aria-label="削除" title="削除"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>`).join('') : '<div class="empty-state"><p>未登録です</p></div>';
   } catch (err) { showAlert('#boss-alert', err.message); }
 }
 
-document.getElementById('boss-add-form').addEventListener('submit', async e => {
+document.getElementById('boss-new').addEventListener('submit', async e => {
   e.preventDefault();
   const fd = new FormData();
   fd.append('name', document.getElementById('boss-name').value);
@@ -347,13 +456,14 @@ document.getElementById('boss-add-form').addEventListener('submit', async e => {
   try {
     await apiFormFetch('/admin/login-bonus/enemies', fd);
     e.target.reset();
+    toggleMk('boss-new', false);
     showToast('追加しました');
     loadBossEnemies();
   } catch (err) { showToast(err.message, 'error'); }
 });
 
-async function deleteBossEnemy(id) {
-  if (!await showConfirm('削除しますか？', { danger: true })) return;
+async function deleteBossEnemy(id, name) {
+  if (!await showConfirm(`「${name}」を削除しますか？`, { danger: true })) return;
   try {
     await apiFetch(`/admin/login-bonus/enemies/${id}`, { method: 'DELETE' });
     loadBossEnemies();
@@ -361,25 +471,27 @@ async function deleteBossEnemy(id) {
 }
 
 // ===== 特別ログインボーナス =====
+let _sbList = [];
 async function loadSpecialBonuses() {
   const el = document.getElementById('sb-list');
   try {
-    const list = await apiFetch('/admin/special-bonuses');
-    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem">特別ボーナスなし</div>'; return; }
-    el.innerHTML = list.map(b => `
-      <div style="background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
-          <div>
-            <div style="font-weight:bold;margin-bottom:2px">${escHtml(b.title)}</div>
-            <div style="font-size:0.75rem;color:var(--text-muted)">${escHtml(b.start_date.slice(0,10))} 〜 ${escHtml(b.end_date.slice(0,10))} ／ 上限${b.max_claims}回 ／ ${b.points_per_claim}pt</div>
-          </div>
-          <div style="display:flex;gap:6px;align-items:center">
-            <span style="font-size:0.72rem;padding:2px 8px;border-radius:10px;background:${b.is_active ? 'var(--accent-dim)' : 'var(--bg-card)'};color:${b.is_active ? 'var(--accent)' : 'var(--text-muted)'}">${b.is_active ? '有効' : '無効'}</span>
-            <button class="btn btn-secondary btn-sm" onclick="toggleSB(${b.id},${!b.is_active},this)">${b.is_active ? '無効化' : '有効化'}</button>
-            <button class="btn btn-secondary btn-sm" onclick="deleteSB(${b.id},this)" style="color:#f87171">削除</button>
+    _sbList = await apiFetch('/admin/special-bonuses');
+    if (_sbList.length === 0) { el.innerHTML = '<div class="empty-state"><p>特別ボーナスはありません</p></div>'; return; }
+    el.innerHTML = `<div class="st-list">${_sbList.map(b => `
+      <div class="st-row${b.is_active ? '' : ' off'}">
+        <div>
+          <div class="st-row-title">${escHtml(b.title)}<span class="st-tag${b.is_active ? ' on' : ''}">${b.is_active ? '有効' : '無効'}</span></div>
+          <div class="st-row-meta">
+            <span>${escHtml(b.start_date.slice(0, 10))} 〜 ${escHtml(b.end_date.slice(0, 10))}</span>
+            <span>${b.max_claims}回まで</span>
+            <span>1回 ${b.points_per_claim}pt</span>
           </div>
         </div>
-      </div>`).join('');
+        <div class="st-row-actions">
+          <button class="btn btn-secondary btn-sm" onclick="toggleSB(${b.id}, ${!b.is_active}, this)">${b.is_active ? '無効にする' : '有効にする'}</button>
+          <button class="btn btn-sm st-del" onclick="deleteSB(${b.id}, this)">削除</button>
+        </div>
+      </div>`).join('')}</div>`;
   } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
 }
 
@@ -397,6 +509,7 @@ async function createSpecialBonus() {
     ['sb-title','sb-start','sb-end'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('sb-max').value = '1';
     document.getElementById('sb-pts').value = '5';
+    toggleMk('sb-new', false);
     loadSpecialBonuses();
   } catch (err) { showToast(err.message, 'error'); }
 }
@@ -404,20 +517,18 @@ async function createSpecialBonus() {
 async function toggleSB(id, newActive, btn) {
   btn.disabled = true;
   try {
-    const item = btn.closest('div[style*="background"]');
-    const title = item.querySelector('[style*="font-weight:bold"]').textContent;
-    const meta = item.querySelector('[style*="font-size:0.75rem"]').textContent;
-    const parts = meta.match(/(\S+) 〜 (\S+) ／ 上限(\d+)回 ／ (\d+)pt/);
+    const b = _sbList.find(x => x.id === id);
     await apiFetch(`/admin/special-bonuses/${id}`, { method: 'PUT', body: JSON.stringify({
-      title, start_date: parts[1], end_date: parts[2],
-      max_claims: parseInt(parts[3]), points_per_claim: parseInt(parts[4]), is_active: newActive
+      title: b.title, start_date: b.start_date.slice(0, 10), end_date: b.end_date.slice(0, 10),
+      max_claims: b.max_claims, points_per_claim: b.points_per_claim, is_active: newActive
     })});
     loadSpecialBonuses();
   } catch (err) { showToast(err.message, 'error'); btn.disabled = false; }
 }
 
 async function deleteSB(id, btn) {
-  if (!await showConfirm('削除しますか？', { danger: true })) return;
+  const b = _sbList.find(x => x.id === id);
+  if (!await showConfirm(`「${b ? b.title : ''}」を削除しますか？`, { danger: true })) return;
   btn.disabled = true;
   try {
     await apiFetch(`/admin/special-bonuses/${id}`, { method: 'DELETE' });
@@ -428,59 +539,74 @@ async function deleteSB(id, btn) {
 // ===== お便り箱 =====
 const CATEGORY_COLORS = { '機能要望': '#4fc3f7', 'バグ報告': '#ef5350', 'その他': '#9e9e9e' };
 
+let _fbList = [];
+let _fbFilter = '';
 async function loadFeedback() {
   const el = document.getElementById('feedback-list');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const list = await apiFetch('/feedback');
-    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem">まだお便りはありません</div>'; return; }
-    el.innerHTML = list.map(f => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${f.is_read ? '0.6' : '1'}">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:0.72rem;font-weight:bold;padding:2px 8px;border-radius:4px;background:${CATEGORY_COLORS[f.category] || '#9e9e9e'}22;color:${CATEGORY_COLORS[f.category] || '#9e9e9e'}">${escHtml(f.category)}</span>
-            <span style="font-size:0.78rem;color:var(--text-muted)">${escHtml(f.username || '削除済みユーザー')}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(f.created_at).toLocaleString('ja-JP')}</span>
-            ${!f.is_read ? `<button onclick="markFeedbackRead(${f.id},this)" style="font-size:0.72rem;padding:2px 8px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">既読</button>` : '<span style="font-size:0.72rem;color:var(--text-muted)">既読</span>'}
-          </div>
+    _fbList = await apiFetch('/feedback');
+    renderFeedback();
+  } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
+}
+function setFbFilter(v) {
+  _fbFilter = v;
+  document.querySelectorAll('#fb-filter > button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
+  renderFeedback();
+}
+function renderFeedback() {
+  const el = document.getElementById('feedback-list');
+  const unread = _fbList.filter(f => !f.is_read).length;
+  document.getElementById('fb-count').textContent = `全${_fbList.length}件・未読${unread}件`;
+  const list = _fbFilter === 'unread' ? _fbList.filter(f => !f.is_read) : _fbList;
+  if (list.length === 0) { el.innerHTML = `<div class="empty-state"><p>${_fbList.length ? '未読のお便りはありません' : 'まだお便りはありません'}</p></div>`; return; }
+  el.innerHTML = `<div class="st-list">${list.map(f => {
+    const col = CATEGORY_COLORS[f.category] || '#9e9e9e';
+    return `
+    <div class="fb-item${f.is_read ? ' read' : ''}" id="fb-${f.id}">
+      <div class="fb-head">
+        ${f.is_read ? '' : '<span class="fb-dot" title="未読"></span>'}
+        <span class="fb-cat" style="background:${col}22;color:${col}">${escHtml(f.category)}</span>
+        <span>${escHtml(f.username || '削除済みユーザー')}</span>
+        <span class="fb-time">${new Date(f.created_at).toLocaleString('ja-JP')}</span>
+      </div>
+      <div class="fb-text">${escHtml(f.body)}</div>
+      ${(f.messages || []).length ? `<div class="fb-thread">${f.messages.map(m => `
+        <div class="fb-msg${m.is_admin ? ' admin' : ''}">
+          <small>${m.is_admin ? '管理者' : escHtml(f.username || 'ユーザー')} · ${new Date(m.created_at).toLocaleString('ja-JP')}</small>
+          <div>${escHtml(m.body)}</div>
+        </div>`).join('')}</div>` : ''}
+      <div class="fb-reply" id="reply-form-${f.id}" hidden>
+        <textarea class="form-textarea" id="reply-text-${f.id}" rows="3" placeholder="返信を入力（1000文字以内）" maxlength="1000"></textarea>
+        <div>
+          <button class="btn btn-primary btn-sm" onclick="submitReply(${f.id})">送信</button>
+          <button class="btn btn-secondary btn-sm" onclick="closeReplyForm(${f.id})">キャンセル</button>
         </div>
-        <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all">${escHtml(f.body)}</div>
-        ${(f.messages || []).length > 0 ? `
-        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
-          ${f.messages.map(m => `
-          <div style="padding:8px 12px;border-left:3px solid ${m.is_admin ? 'var(--accent)' : 'var(--border)'};background:var(--bg-primary);border-radius:0 6px 6px 0">
-            <div style="font-size:0.7rem;color:${m.is_admin ? 'var(--accent)' : 'var(--text-muted)'};margin-bottom:3px">${m.is_admin ? '管理者' : escHtml(f.username || 'ユーザー')} · ${new Date(m.created_at).toLocaleString('ja-JP')}</div>
-            <div style="font-size:0.85rem;white-space:pre-wrap;word-break:break-all">${escHtml(m.body)}</div>
-          </div>`).join('')}
-        </div>` : ''}
-        <div id="reply-form-${f.id}" style="display:none;margin-top:8px">
-          <textarea id="reply-text-${f.id}" rows="3" style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:7px 10px;font-size:0.85rem;resize:vertical" placeholder="返信を入力（1000文字以内）" maxlength="1000"></textarea>
-          <div style="display:flex;gap:8px;margin-top:6px">
-            <button onclick="submitReply(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">送信</button>
-            <button onclick="closeReplyForm(${f.id})" style="padding:4px 14px;font-size:0.8rem;border-radius:6px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer">キャンセル</button>
-          </div>
-        </div>
-        <button onclick="openReplyForm(${f.id})" style="font-size:0.75rem;margin-top:8px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:none;color:var(--text-muted);cursor:pointer">返信する</button>
-      </div>`).join('');
-  } catch (err) { el.innerHTML = `<div style="color:var(--error)">${escHtml(err.message)}</div>`; }
+      </div>
+      <div class="fb-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openReplyForm(${f.id})">返信する</button>
+        ${f.is_read ? '' : `<button class="btn btn-secondary btn-sm" onclick="markFeedbackRead(${f.id})">既読にする</button>`}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
 }
 
-async function markFeedbackRead(id, btn) {
+async function markFeedbackRead(id) {
   try {
     await apiFetch(`/feedback/${id}/read`, { method: 'PATCH' });
-    btn.closest('div[style]').style.opacity = '0.6';
-    btn.replaceWith(Object.assign(document.createElement('span'), { style: 'font-size:0.72rem;color:var(--text-muted)', textContent: '既読' }));
-  } catch {}
+    const f = _fbList.find(x => x.id === id);
+    if (f) f.is_read = true;
+    renderFeedback();
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 function openReplyForm(id) {
-  document.getElementById(`reply-form-${id}`).style.display = 'block';
+  document.getElementById(`reply-form-${id}`).hidden = false;
+  document.getElementById(`reply-text-${id}`).focus();
 }
 
 function closeReplyForm(id) {
-  document.getElementById(`reply-form-${id}`).style.display = 'none';
+  document.getElementById(`reply-form-${id}`).hidden = true;
 }
 
 async function submitReply(id) {
@@ -488,8 +614,9 @@ async function submitReply(id) {
   if (!reply) return;
   try {
     await apiFetch(`/feedback/${id}/reply`, { method: 'PATCH', body: JSON.stringify({ reply }) });
+    showToast('返信しました');
     loadFeedback();
-  } catch (err) { showMessage(err.message); }
+  } catch (err) { showToast(err.message, 'error'); }
 }
 
 // ===== Cloudinary =====
@@ -566,16 +693,15 @@ async function loadCloudinaryUsage(force) {
       html += cldRow('変換処理', valStr, pct);
     }
 
-    html += `<div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px">
-      ファイル数: ${d.resources ?? '-'} &nbsp;|&nbsp;
-      リクエスト数（月次）: ${d.requests?.toLocaleString() ?? '-'} &nbsp;|&nbsp;
-      プラン: ${d.plan ?? '-'} &nbsp;|&nbsp;
-      最終更新: ${d.last_updated ? new Date(d.last_updated).toLocaleString('ja-JP') : '-'}
-      <span style="margin-left:8px">(${force ? '最新取得' : 'キャッシュ30分'})</span>
+    html += `<div class="cld-meta">
+      <span>ファイル数 ${d.resources ?? '-'}</span>
+      <span>リクエスト数（月次） ${d.requests?.toLocaleString() ?? '-'}</span>
+      <span>プラン ${escHtml(d.plan ?? '-')}</span>
+      <span>最終更新 ${d.last_updated ? new Date(d.last_updated).toLocaleString('ja-JP') : '-'}（${force ? '最新' : '30分ごとに更新'}）</span>
     </div>`;
     el.innerHTML = html;
   } catch (e) {
-    el.innerHTML = `<div style="color:#e05555">取得失敗: ${e.message}</div>`;
+    el.innerHTML = `<div class="alert alert-error">取得できませんでした: ${escHtml(e.message)}</div>`;
   }
 }
 
@@ -602,14 +728,12 @@ async function clearCloudinaryLimit() {
   document.getElementById('cld-limit-input').value = '';
   try {
     await apiFetch('/admin/cloudinary/limit', { method: 'PUT', body: JSON.stringify({ limit: null }) });
-    showCldAlert('制限を解除しました');
+    showCldAlert('上限をなくしました');
   } catch (e) { showCldAlert(e.message, true); }
 }
 
 function showCldAlert(msg, isErr) {
-  const el = document.getElementById('cld-limit-alert');
-  el.innerHTML = `<div class="alert ${isErr ? 'alert-error' : 'alert-success'}" style="padding:6px 12px;font-size:0.85rem">${msg}</div>`;
-  setTimeout(() => { el.innerHTML = ''; }, 3000);
+  showToast(msg, isErr ? 'error' : 'success');
 }
 
 // ===== お知らせ =====
@@ -622,40 +746,51 @@ function toLocalDatetime(iso) {
 function toISO(v) { return v ? new Date(v).toISOString() : null; }
 
 function modalPeriodLabel(a) {
-  if (!a.modal_start && !a.modal_end) return 'モーダル: 無期限';
+  if (!a.modal_start && !a.modal_end) return 'ポップアップ 無期限';
   const s = a.modal_start ? new Date(a.modal_start).toLocaleString('ja-JP') : '（開始未設定）';
   const e = a.modal_end ? new Date(a.modal_end).toLocaleString('ja-JP') : '（終了未設定）';
-  return `モーダル: ${s} 〜 ${e}`;
+  return `ポップアップ ${s} 〜 ${e}`;
 }
 
+let _annList = [];
 async function loadAnnouncements() {
   const el = document.getElementById('ann-list');
   try {
-    const list = await apiFetch('/admin/announcements');
-    if (list.length === 0) { el.innerHTML = '<div style="color:var(--text-muted);font-size:0.9rem">お知らせはまだありません</div>'; return; }
-    el.innerHTML = list.map(a => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:10px;opacity:${a.is_active ? '1' : '0.55'}">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
-          <div style="font-weight:bold">${escHtml(a.title)}</div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:0.72rem;color:var(--text-muted)">${new Date(a.created_at).toLocaleString('ja-JP')}</span>
-            <span class="status-badge ${a.is_active ? 'status-approved' : 'status-rejected'}">${a.is_active ? '公開中' : '非公開'}</span>
+    _annList = await apiFetch('/admin/announcements');
+    if (_annList.length === 0) { el.innerHTML = '<div class="empty-state"><p>お知らせはまだありません</p></div>'; return; }
+    el.innerHTML = `<div class="st-list">${_annList.map(a => `
+      <div class="st-row${a.is_active ? '' : ' off'}">
+        <div>
+          <div class="st-row-title">${escHtml(a.title)}<span class="st-tag${a.is_active ? ' on' : ''}">${a.is_active ? '公開中' : '非公開'}</span></div>
+          <div class="st-row-meta">
+            <span>作成 ${new Date(a.created_at).toLocaleString('ja-JP')}</span>
+            <span>${modalPeriodLabel(a)}</span>
+            ${a.notify_registered_before ? `<span>通知対象 ${new Date(a.notify_registered_before).toLocaleString('ja-JP')} までに登録した人</span>` : ''}
+            ${a.link_url ? `<span>リンク「${escHtml(a.link_label || t('ann.detail'))}」</span>` : ''}
           </div>
         </div>
-        ${a.image_url ? `<img src="${escHtml(a.image_url)}" style="max-width:200px;max-height:120px;border-radius:6px;display:block;margin-bottom:8px">` : ''}
-        <div style="font-size:0.88rem;white-space:pre-wrap;word-break:break-all;color:var(--text-muted)">${escHtml(a.body)}</div>
-        ${a.link_url ? `<div style="font-size:0.8rem;margin-top:6px">「${escHtml(a.link_label || t('ann.detail'))}」→ <a href="${escHtml(a.link_url)}" target="_blank" rel="noopener noreferrer">${escHtml(a.link_url)}</a></div>` : ''}
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">${modalPeriodLabel(a)}${a.notify_registered_before ? ` ／ 通知対象: ${new Date(a.notify_registered_before).toLocaleString('ja-JP')} までに登録したユーザー` : ''}</div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button class="btn btn-secondary btn-sm" onclick='editAnnouncement(${JSON.stringify(a).replace(/'/g, "&#39;")})'>編集</button>
+        <div class="st-row-actions">
+          <button class="btn btn-secondary btn-sm" onclick="editAnnouncement(${a.id})">編集</button>
           <button class="btn btn-secondary btn-sm" onclick="toggleAnnouncementActive(${a.id}, ${!a.is_active})">${a.is_active ? '非公開にする' : '公開する'}</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement(${a.id})">削除</button>
+          <button class="btn btn-sm st-del" onclick="deleteAnnouncement(${a.id})">削除</button>
         </div>
-      </div>`).join('');
+        <div class="an-body">
+          ${a.image_url ? `<img src="${escHtml(thumbUrl(a.image_url))}" alt="" loading="lazy">` : ''}
+          <p>${escHtml(a.body)}</p>
+        </div>
+      </div>`).join('')}</div>`;
   } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
 }
 
-function editAnnouncement(a) {
+function openAnnForm() {
+  if (document.getElementById('ann-edit-id').value) cancelEditAnnouncement();
+  toggleMk('ann-form', true);
+  document.getElementById('ann-title').focus();
+}
+
+function editAnnouncement(id) {
+  const a = _annList.find(x => x.id === id);
+  if (!a) return;
   document.getElementById('ann-edit-id').value = a.id;
   document.getElementById('ann-title').value = a.title;
   document.getElementById('ann-body').value = a.body;
@@ -664,10 +799,11 @@ function editAnnouncement(a) {
   document.getElementById('ann-modal-start').value = toLocalDatetime(a.modal_start);
   document.getElementById('ann-modal-end').value = toLocalDatetime(a.modal_end);
   document.getElementById('ann-notify-before').value = toLocalDatetime(a.notify_registered_before);
-  document.getElementById('ann-form-title').textContent = 'お知らせを編集';
+  document.getElementById('ann-image').value = '';
+  document.getElementById('ann-form-title').textContent = `「${a.title}」を編集`;
   document.getElementById('ann-submit-btn').textContent = '更新する';
-  document.getElementById('ann-cancel-btn').style.display = '';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('ann-form').hidden = false;
+  document.getElementById('ann-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function cancelEditAnnouncement() {
@@ -680,9 +816,9 @@ function cancelEditAnnouncement() {
   document.getElementById('ann-modal-start').value = '';
   document.getElementById('ann-modal-end').value = '';
   document.getElementById('ann-notify-before').value = '';
-  document.getElementById('ann-form-title').textContent = 'お知らせを作成';
+  document.getElementById('ann-form-title').textContent = 'お知らせを作る';
   document.getElementById('ann-submit-btn').textContent = '作成する';
-  document.getElementById('ann-cancel-btn').style.display = 'none';
+  document.getElementById('ann-form').hidden = true;
 }
 
 async function submitAnnouncement() {
@@ -724,7 +860,7 @@ async function submitAnnouncement() {
 
 async function toggleAnnouncementActive(id, newActive) {
   try {
-    const cur = (await apiFetch('/admin/announcements')).find(a => a.id === id);
+    const cur = _annList.find(a => a.id === id);
     if (!cur) return;
     const formData = new FormData();
     formData.append('title', cur.title);
@@ -741,7 +877,8 @@ async function toggleAnnouncementActive(id, newActive) {
 }
 
 async function deleteAnnouncement(id) {
-  if (!await showConfirm('削除しますか？', { danger: true })) return;
+  const a = _annList.find(x => x.id === id);
+  if (!await showConfirm(`「${a ? a.title : ''}」を削除しますか？`, { danger: true })) return;
   try {
     await apiFetch(`/admin/announcements/${id}`, { method: 'DELETE' });
     loadAnnouncements();
