@@ -77,7 +77,7 @@ function pullsLeft() {
   const p = gPools.find(x => x.id === selectedPoolId);
   return p && p.pull_limit != null ? Math.max(0, p.pull_limit - (p.my_pulls || 0)) : Infinity;
 }
-// 参加条件のあるガチャ：満たしていなければ鍵（引くボタンの代わりに条件と、イベントごとの達成状況を出す）
+// 解放条件のあるガチャ：満たしていなければ鍵（引くボタンの代わりに条件と、イベントごとの達成状況を出す）
 const ENTRY_LOCK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const isLocked = p => !!(p && p.entry && !p.entry.met);
@@ -94,19 +94,19 @@ function renderEntryBox(p) {
   const text = escHtml(entryCondText(e));
   if (e.met) {
     el.className = 'gx-entry is-met';
-    el.innerHTML = `<span class="gx-entry-ico">${CHECK_SVG}</span><span>参加条件を達成しています<small>${text}</small></span>`;
+    el.innerHTML = `<span class="gx-entry-ico">${CHECK_SVG}</span><span>解放条件を達成しています<small>${text}</small></span>`;
     return;
   }
   const need = e.min_attrs || 1;
   const total = e.count === 'total';
   el.className = 'gx-entry is-locked';
   el.innerHTML = `
-    <div class="gx-entry-head">${ENTRY_LOCK_SVG}参加条件</div>
+    <div class="gx-entry-head">${ENTRY_LOCK_SVG}解放条件</div>
     <div class="gx-entry-text">${text}</div>
     <ul class="gx-entry-evs">${e.events.map(ev => `
       <li class="${ev.ok ? 'ok' : ''}">
         <span class="gx-entry-mark">${ev.ok ? CHECK_SVG : ''}</span>
-        <span class="gx-entry-ev">第${ev.event_number}回「${escHtml(ev.name || '')}」</span>
+        <span class="gx-entry-ev">${escHtml(ev.name || '')}</span>
         <span class="gx-entry-got">${ev.attrs.length ? `${ev.attrs.map(escHtml).join('・')}${need > 1 && !total ? `（${Math.min(ev.attrs.length, need)}/${need}）` : ''}` : '未投稿'}</span>
       </li>`).join('')}</ul>
     ${total ? `<div class="gx-entry-total">合計 <b>${Math.min(e.total || 0, need)}</b> / ${need}属性分</div>` : ''}
@@ -250,7 +250,7 @@ function poolBannerHTML(p, idx) {
       ${poolTimeChip(p.end_at)}
       <div class="pool-bottom">
         <div style="min-width:0;flex:1">
-          ${isLocked(p) ? `<div class="pool-lock">${ENTRY_LOCK_SVG}参加条件あり</div>` : ''}
+          ${isLocked(p) ? `<div class="pool-lock">${ENTRY_LOCK_SVG}解放条件あり</div>` : ''}
           <div class="pool-name">${escHtml(p.name)}</div>
           <div class="pool-desc">${p.description ? escHtml(p.description) + ' ・ ' : ''}${t('gacha.icons_count', p.icon_count)}</div>
         </div>

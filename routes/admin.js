@@ -1533,7 +1533,7 @@ router.patch('/gacha/pools/:id/rates', async (req, res) => {
   }
 });
 
-// 参加条件（events が空なら条件なし）
+// 解放条件（events が空なら条件なし）
 router.patch('/gacha/pools/:id/entry', async (req, res) => {
   const b = req.body || {};
   const events = [...new Set((Array.isArray(b.events) ? b.events : []).map(Number))].filter(n => Number.isInteger(n) && n > 0);
@@ -1554,7 +1554,7 @@ router.patch('/gacha/pools/:id/entry', async (req, res) => {
     }
     const r = await pool.query('UPDATE gacha_pools SET entry_cond=$1 WHERE id=$2 RETURNING id', [cond, req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: '見つかりません' });
-    res.json({ message: cond ? '参加条件を保存しました' : '参加条件をなくしました', entry_cond: cond });
+    res.json({ message: cond ? '解放条件を保存しました' : '解放条件をなくしました', entry_cond: cond });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

@@ -24,7 +24,7 @@ async function gachaParams(db, poolRow = null) {
 }
 
 // そのガチャで引けるか（引ける種類・1人の回数制限）。引けないときはエラーの文を返す
-// 参加条件の達成状況。イベントごとに、承認済みのスコアがある属性（指定があればその中だけ）を数える。
+// 解放条件の達成状況。イベントごとに、承認済みのスコアがある属性（指定があればその中だけ）を数える。
 // count が per：min_attrs 種類以上あればそのイベントは達成。mode が all なら全イベント、any ならどれか1つで達成
 // count が total：選んだイベントの投稿（イベント×属性）を合わせて min_attrs 以上で達成
 async function entryProgress(db, userId, cond) {
@@ -55,7 +55,7 @@ async function pullBlocked(db, userId, poolRow, type) {
   if (!poolRow) return null;
   if (poolRow.entry_cond) {
     const ep = await entryProgress(db, userId, poolRow.entry_cond);
-    if (ep && !ep.met) return 'このガチャの参加条件を満たしていません';
+    if (ep && !ep.met) return 'このガチャの解放条件を満たしていません';
   }
   if (poolRow.pull_types && poolRow.pull_types !== type) return poolRow.pull_types === 'single' ? 'このガチャは単発のみです' : 'このガチャは10連のみです';
   if (poolRow.pull_limit != null) {
@@ -118,7 +118,7 @@ router.get('/pools', optionalAuth, async (req, res) => {
     }
     // 回数制限まで引いたガチャは、その人には出さない
     const rows = result.rows.filter(r => !(req.user && r.pull_limit != null && (myPulls[r.id] || 0) >= r.pull_limit));
-    // 参加条件のあるガチャは、条件の中身（イベント名つき）と自分の達成状況を付ける。満たしていなければ鍵つきで出す
+    // 解放条件のあるガチャは、条件の中身（イベント名つき）と自分の達成状況を付ける。満たしていなければ鍵つきで出す
     const evIds = [...new Set(rows.flatMap(r => (r.entry_cond && r.entry_cond.events) || []))];
     const evMap = {};
     if (evIds.length) {

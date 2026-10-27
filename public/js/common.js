@@ -2,10 +2,11 @@ const API = '/api';
 
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 
-// ガチャの参加条件を文にする（例：第48回「○○」で火か氷の属性に投稿）。
+// ガチャの解放条件を文にする（例：「○○」で火か氷の属性に投稿）。
 // cond = { events:[{ event_number, name }], mode:'all'|'any', attrs:[属性], min_attrs:n, count:'per'|'total' }
-function entryCondText(cond) {
-  const evs = (cond.events || []).map(e => `第${e.event_number}回「${e.name}」`);
+// 第○回（event_number）は管理画面だけの通し番号なので、withNo のときだけ付ける
+function entryCondText(cond, withNo = false) {
+  const evs = (cond.events || []).map(e => `${withNo ? `第${e.event_number}回` : ''}「${e.name}」`);
   const join = (a, all) => a.length <= 1 ? (a[0] || '') : a.length === 2 ? `${a[0]}${all ? 'と' : 'か'}${a[1]}` : a.join('・');
   const where = evs.length <= 1 ? `${evs[0] || ''}で` : cond.mode === 'any'
     ? `${join(evs, false)}${evs.length > 2 ? 'のどれか' : 'のどちらか'}で`

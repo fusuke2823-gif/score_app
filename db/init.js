@@ -298,7 +298,7 @@ const initDB = async () => {
       -- 引ける種類（空なら両方、'single' 単発のみ、'multi' 10連のみ）と、1人が引ける回数（空なら無制限。10連も1回と数える）
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_types VARCHAR(10);
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_limit INTEGER;
-      -- 参加条件（空なら誰でも引ける）。{ events:[イベントID], mode:'all'|'any', attrs:[属性]（空なら問わない）, min_attrs:1以上, count:'per'|'total' }
+      -- 解放条件（空なら誰でも引ける）。{ events:[イベントID], mode:'all'|'any', attrs:[属性]（空なら問わない）, min_attrs:1以上, count:'per'|'total' }
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS entry_cond JSONB;
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 

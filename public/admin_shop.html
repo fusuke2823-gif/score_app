@@ -171,7 +171,7 @@
       <button id="tab-btn-basic" onclick="switchEditTab('basic')" style="padding:7px 18px;border:none;border-bottom:2px solid #4fc3f7;background:none;color:var(--text);font-size:0.88rem;cursor:pointer;font-weight:bold">基本設定</button>
       <button id="tab-btn-period" onclick="switchEditTab('period')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">期間設定</button>
       <button id="tab-btn-rates" onclick="switchEditTab('rates')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">引き方・確率</button>
-      <button id="tab-btn-entry" onclick="switchEditTab('entry')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">参加条件</button>
+      <button id="tab-btn-entry" onclick="switchEditTab('entry')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">解放条件</button>
       <button id="tab-btn-icons" onclick="switchEditTab('icons')" style="padding:7px 18px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-muted);font-size:0.88rem;cursor:pointer">アイコン設定</button>
     </div>
     <div id="pool-edit-alert" style="margin-bottom:10px"></div>
@@ -295,7 +295,7 @@
       </div>
     </div>
 
-    <!-- 参加条件タブ：選んだイベントに承認済みのスコアがある人だけ引ける（満たしていない人には鍵つきで条件を出す） -->
+    <!-- 解放条件タブ：選んだイベントに承認済みのスコアがある人だけ引ける（満たしていない人には鍵つきで条件を出す） -->
     <div id="tab-content-entry" style="display:none">
       <p class="form-hint" style="margin:0 0 14px">条件を満たした人だけ引けます。満たしていない人には、鍵つきで条件が表示されます。数えるのは承認済みのスコアだけです。</p>
       <div class="mk-box-title">イベント<span id="en-ev-count" style="font-weight:normal;color:var(--text-muted);margin-left:8px"></span></div>
@@ -1034,7 +1034,7 @@ function poolOverrideChips(p) {
   if (p.last_guarantee === 'SS') c.push('最後の1枚SS確定');
   if (p.pull_types) c.push(p.pull_types === 'single' ? '単発のみ' : '10連のみ');
   if (p.pull_limit != null) c.push(`1人${p.pull_limit}回まで`);
-  if (p.entry_cond) c.push('参加条件あり');
+  if (p.entry_cond) c.push('解放条件あり');
   return c.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${c.map(x => `<span style="font-size:0.7rem;font-weight:bold;padding:2px 8px;border-radius:99px;background:rgba(255,77,101,0.14);color:var(--accent-hover)">${escHtml(x)}</span>`).join('')}</div>` : '';
 }
 function formatPeriod(start_at, end_at) {
@@ -1132,7 +1132,7 @@ async function savePoolRates() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 
-// ===== ガチャの参加条件 =====
+// ===== ガチャの解放条件 =====
 let _entryEvents = null; // 全イベント（新しい順）。開いたときに1回だけ読む
 let _entry = { events: new Set(), mode: 'all', attrs: new Set(), min: 1, count: 'per' };
 function fillEntryCond(c) {
@@ -1182,7 +1182,7 @@ function updateEntryPreview() {
   const evs = (_entryEvents || []).filter(e => _entry.events.has(e.id)).sort((a, b) => a.event_number - b.event_number);
   const attrs = ATTRIBUTES.filter(a => _entry.attrs.has(a));
   document.getElementById('en-preview').innerHTML = evs.length
-    ? `<span>引ける条件</span>${escHtml(entryCondText({ events: evs, mode: _entry.mode, attrs, min_attrs: _entry.min, count: _entry.count }))}`
+    ? `<span>引ける条件</span>${escHtml(entryCondText({ events: evs, mode: _entry.mode, attrs, min_attrs: _entry.min, count: _entry.count }, true))}`
     : '<span>引ける条件</span>なし（誰でも引けます）';
 }
 function clearEntryCond() { fillEntryCond(null); }
