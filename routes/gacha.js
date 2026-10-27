@@ -126,9 +126,12 @@ router.get('/pools', optionalAuth, async (req, res) => {
       ev.rows.forEach(e => { evMap[e.id] = e; });
     }
     const entry = {};
+    const hidden = new Set();
     for (const r of rows) {
       const ep = await entryProgress(pool, req.user && req.user.id, r.entry_cond);
       if (!ep) continue;
+      // 満たしていない人には出さない設定なら、鍵つきでも見せない
+      if (!ep.met && r.entry_cond.hide) { hidden.add(r.id); continue; }
       entry[r.id] = {
         mode: r.entry_cond.mode === 'any' ? 'any' : 'all',
         attrs: r.entry_cond.attrs || [],
@@ -140,7 +143,7 @@ router.get('/pools', optionalAuth, async (req, res) => {
       };
     }
     // 確率・コストは上書きのない項目が null（画面で標準の設定と重ねる）
-    res.json(rows.map(({ entry_cond, ...r }) => ({
+    res.json(rows.filter(r => !hidden.has(r.id)).map(({ entry_cond, ...r }) => ({
       ...r,
       entry: entry[r.id] || null,
       my_pulls: r.pull_limit != null ? (myPulls[r.id] || 0) : undefined,

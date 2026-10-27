@@ -295,9 +295,9 @@
       </div>
     </div>
 
-    <!-- 解放条件タブ：選んだイベントに承認済みのスコアがある人だけ引ける（満たしていない人には鍵つきで条件を出す） -->
+    <!-- 解放条件タブ：選んだイベントに承認済みのスコアがある人だけ引ける（満たしていない人には鍵つきで条件を出すか、出さないか選ぶ） -->
     <div id="tab-content-entry" style="display:none">
-      <p class="form-hint" style="margin:0 0 14px">条件を満たした人だけ引けます。満たしていない人には、鍵つきで条件が表示されます。数えるのは承認済みのスコアだけです。</p>
+      <p class="form-hint" style="margin:0 0 14px">条件を満たした人だけ引けます。数えるのは承認済みのスコアだけです。満たしていない人への見せ方は下で選べます。</p>
       <div class="mk-box-title">イベント<span id="en-ev-count" style="font-weight:normal;color:var(--text-muted);margin-left:8px"></span></div>
       <input class="form-input" type="search" id="en-ev-search" placeholder="回数かイベント名で絞り込み" oninput="renderEntryEvents()" style="margin-bottom:8px;padding:7px 12px;font-size:0.85rem">
       <div id="en-ev-list" class="en-ev-list"></div>
@@ -320,6 +320,14 @@
         </div>
         <select class="form-input" id="en-min" style="max-width:160px" onchange="updateEntryPreview()"></select>
         <div class="form-hint" id="en-count-hint"></div>
+      </div>
+      <div class="form-group" id="en-hide-row">
+        <div class="mk-box-title">満たしていない人には</div>
+        <div class="pill-tabs pill-sm" id="en-hide">
+          <button type="button" data-v="show" class="on" onclick="setEntryHide(false)">鍵つきで見せる</button>
+          <button type="button" data-v="hide" onclick="setEntryHide(true)">出さない</button>
+        </div>
+        <div class="form-hint" id="en-hide-hint"></div>
       </div>
       <div class="en-preview" id="en-preview"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
@@ -1034,7 +1042,7 @@ function poolOverrideChips(p) {
   if (p.last_guarantee === 'SS') c.push('最後の1枚SS確定');
   if (p.pull_types) c.push(p.pull_types === 'single' ? '単発のみ' : '10連のみ');
   if (p.pull_limit != null) c.push(`1人${p.pull_limit}回まで`);
-  if (p.entry_cond) c.push('解放条件あり');
+  if (p.entry_cond) c.push(p.entry_cond.hide ? '解放条件あり（未達成には出さない）' : '解放条件あり');
   return c.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${c.map(x => `<span style="font-size:0.7rem;font-weight:bold;padding:2px 8px;border-radius:99px;background:rgba(255,77,101,0.14);color:var(--accent-hover)">${escHtml(x)}</span>`).join('')}</div>` : '';
 }
 function formatPeriod(start_at, end_at) {
@@ -1134,9 +1142,9 @@ async function savePoolRates() {
 
 // ===== ガチャの解放条件 =====
 let _entryEvents = null; // 全イベント（新しい順）。開いたときに1回だけ読む
-let _entry = { events: new Set(), mode: 'all', attrs: new Set(), min: 1, count: 'per' };
+let _entry = { events: new Set(), mode: 'all', attrs: new Set(), min: 1, count: 'per', hide: false };
 function fillEntryCond(c) {
-  _entry = { events: new Set(c ? c.events : []), mode: c && c.mode === 'any' ? 'any' : 'all', attrs: new Set(c ? c.attrs : []), min: c ? c.min_attrs || 1 : 1, count: c && c.count === 'total' ? 'total' : 'per' };
+  _entry = { events: new Set(c ? c.events : []), mode: c && c.mode === 'any' ? 'any' : 'all', attrs: new Set(c ? c.attrs : []), min: c ? c.min_attrs || 1 : 1, count: c && c.count === 'total' ? 'total' : 'per', hide: !!(c && c.hide) };
   document.getElementById('en-ev-search').value = '';
   document.getElementById('en-min').value = '';
   if (!_entryEvents) apiFetch('/admin/events').then(list => { _entryEvents = list; renderEntryEvents(); }).catch(err => showToast(err.message, 'error'));
@@ -1158,12 +1166,18 @@ function renderEntryEvents() {
     <label class="attr-btn attr-${a}${_entry.attrs.has(a) ? ' active' : ''}"><input type="checkbox" ${_entry.attrs.has(a) ? 'checked' : ''} onchange="toggleEntryAttr('${a}', this.checked)">${a}</label>`).join('');
   document.querySelectorAll('#en-mode > button').forEach(b => b.classList.toggle('on', b.dataset.v === _entry.mode));
   document.querySelectorAll('#en-count > button').forEach(b => b.classList.toggle('on', b.dataset.v === _entry.count));
+  document.querySelectorAll('#en-hide > button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'hide') === _entry.hide));
+  document.getElementById('en-hide-row').style.display = _entry.events.size ? '' : 'none';
+  document.getElementById('en-hide-hint').textContent = _entry.hide
+    ? '満たした人にだけガチャが出ます。条件は見えません'
+    : 'ガチャは並び、引くボタンの代わりに条件と達成状況を出します';
   updateEntryPreview();
 }
 function toggleEntryEvent(id, on) { on ? _entry.events.add(id) : _entry.events.delete(id); renderEntryEvents(); }
 function toggleEntryAttr(a, on) { on ? _entry.attrs.add(a) : _entry.attrs.delete(a); renderEntryEvents(); }
 function setEntryMode(m) { _entry.mode = m; renderEntryEvents(); }
 function setEntryCount(c) { _entry.count = c; renderEntryEvents(); }
+function setEntryHide(v) { _entry.hide = v; renderEntryEvents(); }
 // 必要な属性の数は、属性を選んでいればその数まで（選んでいなければ6まで）。合計なら、それにイベントの数を掛けた数まで
 function updateEntryPreview() {
   const sel = document.getElementById('en-min');
@@ -1190,7 +1204,7 @@ async function saveEntryCond() {
   try {
     const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/entry`, {
       method: 'PATCH',
-      body: JSON.stringify({ events: [..._entry.events], mode: _entry.mode, attrs: ATTRIBUTES.filter(a => _entry.attrs.has(a)), min_attrs: _entry.min, count: _entry.count })
+      body: JSON.stringify({ events: [..._entry.events], mode: _entry.mode, attrs: ATTRIBUTES.filter(a => _entry.attrs.has(a)), min_attrs: _entry.min, count: _entry.count, hide: _entry.hide })
     });
     showToast(res.message);
     loadPools();
