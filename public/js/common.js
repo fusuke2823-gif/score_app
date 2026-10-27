@@ -2,6 +2,28 @@ const API = '/api';
 
 const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 
+// ガチャの参加条件を文にする（例：第48回「○○」で火か氷の属性に投稿）。
+// cond = { events:[{ event_number, name }], mode:'all'|'any', attrs:[属性], min_attrs:n, count:'per'|'total' }
+function entryCondText(cond) {
+  const evs = (cond.events || []).map(e => `第${e.event_number}回「${e.name}」`);
+  const join = (a, all) => a.length <= 1 ? (a[0] || '') : a.length === 2 ? `${a[0]}${all ? 'と' : 'か'}${a[1]}` : a.join('・');
+  const where = evs.length <= 1 ? `${evs[0] || ''}で` : cond.mode === 'any'
+    ? `${join(evs, false)}${evs.length > 2 ? 'のどれか' : 'のどちらか'}で`
+    : `${join(evs, true)}${evs.length > 2 ? 'のすべて' : 'の両方'}で`;
+  const attrs = cond.attrs || [], n = Math.max(1, cond.min_attrs || 1);
+  // 合計：イベント×属性の投稿を合わせて数える（例：Aの火・Bの火・Bの闇で3）
+  if (cond.count === 'total') {
+    const place = evs.length <= 1 ? `${evs[0] || ''}で` : `${join(evs, true)}で`;
+    return `${place}${attrs.length ? `${join(attrs, false)}${attrs.length > 2 ? 'のどれか' : ''}の属性に、` : ''}合わせて${n}属性分投稿`;
+  }
+  let what;
+  if (!attrs.length) what = n === 1 ? 'スコアを投稿' : `${n}属性以上に投稿`;
+  else if (n === 1) what = attrs.length === 1 ? `${attrs[0]}属性に投稿` : `${join(attrs, false)}${attrs.length > 2 ? 'のどれか' : ''}の属性に投稿`;
+  else if (n >= attrs.length) what = `${attrs.join('・')}の${attrs.length}属性すべてに投稿`;
+  else what = `${attrs.join('・')}のうち${n}属性以上に投稿`;
+  return where + what;
+}
+
 // ===== 国際化 (i18n) =====
 const _i18n = {
   ja: {

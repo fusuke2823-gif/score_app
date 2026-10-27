@@ -1466,7 +1466,7 @@ router.get('/gacha/pools', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.is_active, gp.order_index, gp.created_at,
-              gp.start_at, gp.end_at, gp.side, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee, gp.pull_types, gp.pull_limit,
+              gp.start_at, gp.end_at, gp.side, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee, gp.pull_types, gp.pull_limit, gp.entry_cond,
               COUNT(gpi.icon_id)::int AS icon_count
        FROM gacha_pools gp
        LEFT JOIN gacha_pool_icons gpi ON gp.id = gpi.pool_id
@@ -1527,6 +1527,34 @@ router.patch('/gacha/pools/:id/rates', async (req, res) => {
     const r = await pool.query('UPDATE gacha_pools SET ss_rate=$1, s_rate=$2, single_cost=$3, multi_cost=$4, last_guarantee=$5, pull_types=$6, pull_limit=$7 WHERE id=$8 RETURNING *', [ss, s, single, multi, guarantee, types, limit, req.params.id]);
     if (!r.rows.length) return res.status(404).json({ error: '見つかりません' });
     res.json({ message: '引き方・確率・コストを保存しました', pool: r.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 参加条件（events が空なら条件なし）
+router.patch('/gacha/pools/:id/entry', async (req, res) => {
+  const b = req.body || {};
+  const events = [...new Set((Array.isArray(b.events) ? b.events : []).map(Number))].filter(n => Number.isInteger(n) && n > 0);
+  let cond = null;
+  if (events.length) {
+    const attrs = [...new Set(Array.isArray(b.attrs) ? b.attrs : [])].filter(a => ATTRIBUTES.includes(a));
+    const count = b.count === 'total' ? 'total' : 'per';
+    const min = Number(b.min_attrs || 1);
+    // 1つのイベントで投稿できるのは属性の数まで。合計ならそれにイベントの数を掛けた数まで
+    const max = (attrs.length || ATTRIBUTES.length) * (count === 'total' ? events.length : 1);
+    if (!Number.isInteger(min) || min < 1 || min > max) return res.status(400).json({ error: `必要な数は1〜${max}で入力してください` });
+    cond = { events, mode: b.mode === 'any' ? 'any' : 'all', attrs, min_attrs: min, count };
+  }
+  try {
+    if (cond) {
+      const ev = await pool.query('SELECT COUNT(*)::int AS n FROM events WHERE id = ANY($1::int[])', [cond.events]);
+      if (ev.rows[0].n !== cond.events.length) return res.status(400).json({ error: '見つからないイベントが含まれています' });
+    }
+    const r = await pool.query('UPDATE gacha_pools SET entry_cond=$1 WHERE id=$2 RETURNING id', [cond, req.params.id]);
+    if (!r.rows.length) return res.status(404).json({ error: '見つかりません' });
+    res.json({ message: cond ? '参加条件を保存しました' : '参加条件をなくしました', entry_cond: cond });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

@@ -24,8 +24,39 @@ async function gachaParams(db, poolRow = null) {
 }
 
 // そのガチャで引けるか（引ける種類・1人の回数制限）。引けないときはエラーの文を返す
+// 参加条件の達成状況。イベントごとに、承認済みのスコアがある属性（指定があればその中だけ）を数える。
+// count が per：min_attrs 種類以上あればそのイベントは達成。mode が all なら全イベント、any ならどれか1つで達成
+// count が total：選んだイベントの投稿（イベント×属性）を合わせて min_attrs 以上で達成
+async function entryProgress(db, userId, cond) {
+  if (!cond || !Array.isArray(cond.events) || !cond.events.length) return null;
+  const got = {};
+  if (userId) {
+    const r = await db.query(
+      `SELECT event_id, array_agg(DISTINCT attribute) AS attrs FROM scores
+       WHERE user_id=$1 AND event_id = ANY($2::int[]) AND approved_score IS NOT NULL GROUP BY event_id`,
+      [userId, cond.events]
+    );
+    r.rows.forEach(x => { got[x.event_id] = x.attrs; });
+  }
+  const need = Math.max(1, cond.min_attrs || 1);
+  const attrs = Array.isArray(cond.attrs) ? cond.attrs : [];
+  const per = cond.events.map(id => {
+    const a = (got[id] || []).filter(x => !attrs.length || attrs.includes(x));
+    return { event_id: id, attrs: a, ok: a.length >= need };
+  });
+  if (cond.count === 'total') {
+    const total = per.reduce((n, x) => n + x.attrs.length, 0);
+    return { met: total >= need, per: per.map(x => ({ ...x, ok: x.attrs.length > 0 })), total };
+  }
+  return { met: cond.mode === 'any' ? per.some(x => x.ok) : per.every(x => x.ok), per };
+}
+
 async function pullBlocked(db, userId, poolRow, type) {
   if (!poolRow) return null;
+  if (poolRow.entry_cond) {
+    const ep = await entryProgress(db, userId, poolRow.entry_cond);
+    if (ep && !ep.met) return 'このガチャの参加条件を満たしていません';
+  }
   if (poolRow.pull_types && poolRow.pull_types !== type) return poolRow.pull_types === 'single' ? 'このガチャは単発のみです' : 'このガチャは10連のみです';
   if (poolRow.pull_limit != null) {
     const r = await db.query('SELECT COUNT(*)::int AS n FROM gacha_pull_logs WHERE user_id=$1 AND pool_id=$2', [userId, poolRow.id]);
@@ -62,7 +93,7 @@ router.get('/pools', optionalAuth, async (req, res) => {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
               gp.start_at, gp.end_at, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
-              gp.pull_types, gp.pull_limit,
+              gp.pull_types, gp.pull_limit, gp.entry_cond,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
                 (SELECT json_agg(jsonb_build_object('id', gi.id, 'name', gi.name, 'image_url', gi.image_url) ORDER BY gi.id)
@@ -87,9 +118,31 @@ router.get('/pools', optionalAuth, async (req, res) => {
     }
     // 回数制限まで引いたガチャは、その人には出さない
     const rows = result.rows.filter(r => !(req.user && r.pull_limit != null && (myPulls[r.id] || 0) >= r.pull_limit));
+    // 参加条件のあるガチャは、条件の中身（イベント名つき）と自分の達成状況を付ける。満たしていなければ鍵つきで出す
+    const evIds = [...new Set(rows.flatMap(r => (r.entry_cond && r.entry_cond.events) || []))];
+    const evMap = {};
+    if (evIds.length) {
+      const ev = await pool.query('SELECT id, event_number, name FROM events WHERE id = ANY($1::int[])', [evIds]);
+      ev.rows.forEach(e => { evMap[e.id] = e; });
+    }
+    const entry = {};
+    for (const r of rows) {
+      const ep = await entryProgress(pool, req.user && req.user.id, r.entry_cond);
+      if (!ep) continue;
+      entry[r.id] = {
+        mode: r.entry_cond.mode === 'any' ? 'any' : 'all',
+        attrs: r.entry_cond.attrs || [],
+        min_attrs: Math.max(1, r.entry_cond.min_attrs || 1),
+        count: r.entry_cond.count === 'total' ? 'total' : 'per',
+        total: ep.total,
+        met: ep.met,
+        events: ep.per.map(x => ({ ...x, event_number: evMap[x.event_id]?.event_number, name: evMap[x.event_id]?.name })),
+      };
+    }
     // 確率・コストは上書きのない項目が null（画面で標準の設定と重ねる）
-    res.json(rows.map(r => ({
+    res.json(rows.map(({ entry_cond, ...r }) => ({
       ...r,
+      entry: entry[r.id] || null,
       my_pulls: r.pull_limit != null ? (myPulls[r.id] || 0) : undefined,
       image_url: optimizeUrl(r.image_url),
       pickup_icons: (r.pickup_icons || []).map(p => ({ ...p, image_url: optimizeUrl(p.image_url) }))
@@ -272,7 +325,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     // pool_id 指定時はプールが存在・有効か確認
     let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit, entry_cond FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
       poolRow = pr.rows[0];
     }
@@ -324,7 +377,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     // pool_id 指定時はプールが存在・有効か確認
     let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit, entry_cond FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
       poolRow = pr.rows[0];
     }
