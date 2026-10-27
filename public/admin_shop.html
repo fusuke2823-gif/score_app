@@ -329,6 +329,14 @@
         </div>
         <div class="form-hint" id="en-hide-hint"></div>
       </div>
+      <div class="form-group" id="en-admin-row">
+        <div class="mk-box-title">管理者が満たしていないとき</div>
+        <div class="pill-tabs pill-sm" id="en-admin">
+          <button type="button" data-v="no" class="on" onclick="setEntryAdmin(false)">引けない</button>
+          <button type="button" data-v="yes" onclick="setEntryAdmin(true)">条件なしで引ける</button>
+        </div>
+        <div class="form-hint">管理者には、どちらでもガチャがいつも表示されます</div>
+      </div>
       <div class="en-preview" id="en-preview"></div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
         <button class="btn btn-secondary" onclick="clearEntryCond()">条件をなくす</button>
@@ -1142,9 +1150,9 @@ async function savePoolRates() {
 
 // ===== ガチャの解放条件 =====
 let _entryEvents = null; // 全イベント（新しい順）。開いたときに1回だけ読む
-let _entry = { events: new Set(), mode: 'all', attrs: new Set(), min: 1, count: 'per', hide: false };
+let _entry = { events: new Set(), mode: 'all', attrs: new Set(), min: 1, count: 'per', hide: false, adminPull: false };
 function fillEntryCond(c) {
-  _entry = { events: new Set(c ? c.events : []), mode: c && c.mode === 'any' ? 'any' : 'all', attrs: new Set(c ? c.attrs : []), min: c ? c.min_attrs || 1 : 1, count: c && c.count === 'total' ? 'total' : 'per', hide: !!(c && c.hide) };
+  _entry = { events: new Set(c ? c.events : []), mode: c && c.mode === 'any' ? 'any' : 'all', attrs: new Set(c ? c.attrs : []), min: c ? c.min_attrs || 1 : 1, count: c && c.count === 'total' ? 'total' : 'per', hide: !!(c && c.hide), adminPull: !!(c && c.admin_pull) };
   document.getElementById('en-ev-search').value = '';
   document.getElementById('en-min').value = '';
   if (!_entryEvents) apiFetch('/admin/events').then(list => { _entryEvents = list; renderEntryEvents(); }).catch(err => showToast(err.message, 'error'));
@@ -1168,6 +1176,8 @@ function renderEntryEvents() {
   document.querySelectorAll('#en-count > button').forEach(b => b.classList.toggle('on', b.dataset.v === _entry.count));
   document.querySelectorAll('#en-hide > button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'hide') === _entry.hide));
   document.getElementById('en-hide-row').style.display = _entry.events.size ? '' : 'none';
+  document.querySelectorAll('#en-admin > button').forEach(b => b.classList.toggle('on', (b.dataset.v === 'yes') === _entry.adminPull));
+  document.getElementById('en-admin-row').style.display = _entry.events.size ? '' : 'none';
   document.getElementById('en-hide-hint').textContent = _entry.hide
     ? '満たした人にだけガチャが出ます。条件は見えません'
     : 'ガチャは並び、引くボタンの代わりに条件と達成状況を出します';
@@ -1178,6 +1188,7 @@ function toggleEntryAttr(a, on) { on ? _entry.attrs.add(a) : _entry.attrs.delete
 function setEntryMode(m) { _entry.mode = m; renderEntryEvents(); }
 function setEntryCount(c) { _entry.count = c; renderEntryEvents(); }
 function setEntryHide(v) { _entry.hide = v; renderEntryEvents(); }
+function setEntryAdmin(v) { _entry.adminPull = v; renderEntryEvents(); }
 // 必要な属性の数は、属性を選んでいればその数まで（選んでいなければ6まで）。合計なら、それにイベントの数を掛けた数まで
 function updateEntryPreview() {
   const sel = document.getElementById('en-min');
@@ -1204,7 +1215,7 @@ async function saveEntryCond() {
   try {
     const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/entry`, {
       method: 'PATCH',
-      body: JSON.stringify({ events: [..._entry.events], mode: _entry.mode, attrs: ATTRIBUTES.filter(a => _entry.attrs.has(a)), min_attrs: _entry.min, count: _entry.count, hide: _entry.hide })
+      body: JSON.stringify({ events: [..._entry.events], mode: _entry.mode, attrs: ATTRIBUTES.filter(a => _entry.attrs.has(a)), min_attrs: _entry.min, count: _entry.count, hide: _entry.hide, admin_pull: _entry.adminPull })
     });
     showToast(res.message);
     loadPools();

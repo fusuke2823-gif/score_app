@@ -1545,7 +1545,7 @@ router.patch('/gacha/pools/:id/entry', async (req, res) => {
     // 1つのイベントで投稿できるのは属性の数まで。合計ならそれにイベントの数を掛けた数まで
     const max = (attrs.length || ATTRIBUTES.length) * (count === 'total' ? events.length : 1);
     if (!Number.isInteger(min) || min < 1 || min > max) return res.status(400).json({ error: `必要な数は1〜${max}で入力してください` });
-    cond = { events, mode: b.mode === 'any' ? 'any' : 'all', attrs, min_attrs: min, count, hide: b.hide === true };
+    cond = { events, mode: b.mode === 'any' ? 'any' : 'all', attrs, min_attrs: min, count, hide: b.hide === true, admin_pull: b.admin_pull === true };
   }
   try {
     if (cond) {

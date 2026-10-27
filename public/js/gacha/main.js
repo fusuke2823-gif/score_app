@@ -80,7 +80,7 @@ function pullsLeft() {
 // 解放条件のあるガチャ：満たしていなければ鍵（引くボタンの代わりに条件と、イベントごとの達成状況を出す）
 const ENTRY_LOCK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
-const isLocked = p => !!(p && p.entry && !p.entry.met);
+const isLocked = p => !!(p && p.entry && !p.entry.met && !p.entry.admin_pass);
 function renderEntryBox(p) {
   let el = document.getElementById('gx-entry');
   if (!el) {
@@ -92,9 +92,9 @@ function renderEntryBox(p) {
   if (el.hidden) return;
   const e = p.entry;
   const text = escHtml(entryCondText(e));
-  if (e.met) {
+  if (e.met || e.admin_pass) {
     el.className = 'gx-entry is-met';
-    el.innerHTML = `<span class="gx-entry-ico">${CHECK_SVG}</span><span>解放条件を達成しています<small>${text}</small></span>`;
+    el.innerHTML = `<span class="gx-entry-ico">${CHECK_SVG}</span><span>${e.met ? '解放条件を達成しています' : '管理者なので条件を満たしていなくても引けます'}<small>${text}</small></span>`;
     return;
   }
   const need = e.min_attrs || 1;

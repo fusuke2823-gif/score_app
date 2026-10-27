@@ -51,9 +51,11 @@ async function entryProgress(db, userId, cond) {
   return { met: cond.mode === 'any' ? per.some(x => x.ok) : per.every(x => x.ok), per };
 }
 
-async function pullBlocked(db, userId, poolRow, type) {
+async function pullBlocked(db, user, poolRow, type) {
   if (!poolRow) return null;
-  if (poolRow.entry_cond) {
+  const userId = user.id;
+  // 管理者は、そのガチャで許していれば条件を満たしていなくても引ける
+  if (poolRow.entry_cond && !(user.role === 'admin' && poolRow.entry_cond.admin_pull)) {
     const ep = await entryProgress(db, userId, poolRow.entry_cond);
     if (ep && !ep.met) return 'このガチャの解放条件を満たしていません';
   }
@@ -127,11 +129,12 @@ router.get('/pools', optionalAuth, async (req, res) => {
     }
     const entry = {};
     const hidden = new Set();
+    const isAdmin = !!(req.user && req.user.role === 'admin');
     for (const r of rows) {
       const ep = await entryProgress(pool, req.user && req.user.id, r.entry_cond);
       if (!ep) continue;
-      // 満たしていない人には出さない設定なら、鍵つきでも見せない
-      if (!ep.met && r.entry_cond.hide) { hidden.add(r.id); continue; }
+      // 満たしていない人には出さない設定なら、鍵つきでも見せない（管理者にはいつも見せる）
+      if (!ep.met && r.entry_cond.hide && !isAdmin) { hidden.add(r.id); continue; }
       entry[r.id] = {
         mode: r.entry_cond.mode === 'any' ? 'any' : 'all',
         attrs: r.entry_cond.attrs || [],
@@ -139,6 +142,8 @@ router.get('/pools', optionalAuth, async (req, res) => {
         count: r.entry_cond.count === 'total' ? 'total' : 'per',
         total: ep.total,
         met: ep.met,
+        // 管理者で、このガチャは条件なしで引ける
+        admin_pass: !ep.met && isAdmin && !!r.entry_cond.admin_pull,
         events: ep.per.map(x => ({ ...x, event_number: evMap[x.event_id]?.event_number, name: evMap[x.event_id]?.name })),
       };
     }
@@ -339,7 +344,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     // 引ける種類・回数制限（ユーザーの行を押さえてから数えるので、同時に引いても超えない）
-    const blocked = await pullBlocked(client, req.user.id, poolRow, 'single');
+    const blocked = await pullBlocked(client, req.user, poolRow, 'single');
     if (blocked) { await client.query('ROLLBACK'); return res.status(400).json({ error: blocked }); }
     if (userResult.rows[0].points < cost) {
       await client.query('ROLLBACK');
@@ -391,7 +396,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
 
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     // 引ける種類・回数制限（ユーザーの行を押さえてから数えるので、同時に引いても超えない）
-    const blocked = await pullBlocked(client, req.user.id, poolRow, 'multi');
+    const blocked = await pullBlocked(client, req.user, poolRow, 'multi');
     if (blocked) { await client.query('ROLLBACK'); return res.status(400).json({ error: blocked }); }
     if (userResult.rows[0].points < cost) {
       await client.query('ROLLBACK');
