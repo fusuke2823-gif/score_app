@@ -364,8 +364,11 @@ let exchangeState = { pulls: 0, required: 100, cost: 200 };
 async function loadExchangeList() {
   const box = document.getElementById('gx-exchange');
   const container = document.getElementById('exchange-ss-list');
+  const p = (gPools || []).find(x => x.id === selectedPoolId);
+  // GP交換なしのガチャでは欄ごと隠す
+  box.hidden = !!(p && p.no_gp_exchange);
+  if (box.hidden) return;
   try {
-    const p = (gPools || []).find(x => x.id === selectedPoolId);
     const pickupIds = p && p.pickup_icons && p.pickup_icons.length ? new Set(p.pickup_icons.map(pu => pu.id)) : null;
     const iconUrl = selectedPoolId ? `/gacha/pools/${selectedPoolId}/icons` : '/gacha/icons';
     const [icons, myData, status] = await Promise.all([

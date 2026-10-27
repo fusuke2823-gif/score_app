@@ -259,6 +259,9 @@
           <div class="form-hint">上限まで引いた人には、このガチャが出なくなります</div>
         </div>
       </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:-4px 0 14px;font-size:0.9rem">
+        <input type="checkbox" id="edit-no-gp-exchange" style="width:18px;height:18px">GP交換なし<span class="form-hint" style="margin:0">（このガチャを何回引いてもGPで交換できない）</span>
+      </label>
       <div class="mk-box-title" style="margin-top:6px">確率・コスト</div>
       <p class="form-hint" style="margin:0 0 14px">空欄の項目は、ガチャ設定（標準）の値を使います。変えたい項目だけ入れてください。重複補償は標準のままです。</p>
       <div class="enemy-form-grid">
@@ -1050,6 +1053,7 @@ function poolOverrideChips(p) {
   if (p.last_guarantee === 'SS') c.push('最後の1枚SS確定');
   if (p.pull_types) c.push(p.pull_types === 'single' ? '単発のみ' : '10連のみ');
   if (p.pull_limit != null) c.push(`1人${p.pull_limit}回まで`);
+  if (p.no_gp_exchange) c.push('GP交換なし');
   if (p.entry_cond) c.push(p.entry_cond.hide ? '解放条件あり（未達成には出さない）' : '解放条件あり');
   return c.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px">${c.map(x => `<span style="font-size:0.7rem;font-weight:bold;padding:2px 8px;border-radius:99px;background:rgba(255,77,101,0.14);color:var(--accent-hover)">${escHtml(x)}</span>`).join('')}</div>` : '';
 }
@@ -1121,6 +1125,7 @@ function fillPoolRates(p, base) {
   document.getElementById('edit-last-guarantee').value = p.last_guarantee === 'SS' ? 'SS' : '';
   document.getElementById('edit-pull-types').value = p.pull_types || '';
   document.getElementById('edit-pull-limit').value = p.pull_limit ?? '';
+  document.getElementById('edit-no-gp-exchange').checked = !!p.no_gp_exchange;
   updatePoolRateA();
 }
 // Aの確率は100からSS・Sを引いた残り（空欄は標準の値で計算）
@@ -1134,6 +1139,7 @@ function updatePoolRateA() {
 }
 function clearPoolRates() {
   ['edit-rate-ss', 'edit-rate-s', 'edit-cost-single', 'edit-cost-multi', 'edit-last-guarantee', 'edit-pull-types', 'edit-pull-limit'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('edit-no-gp-exchange').checked = false;
   updatePoolRateA();
 }
 async function savePoolRates() {
@@ -1141,7 +1147,7 @@ async function savePoolRates() {
   try {
     const res = await apiFetch(`/admin/gacha/pools/${_editPoolId}/rates`, {
       method: 'PATCH',
-      body: JSON.stringify({ ss_rate: v('edit-rate-ss'), s_rate: v('edit-rate-s'), single_cost: v('edit-cost-single'), multi_cost: v('edit-cost-multi'), last_guarantee: v('edit-last-guarantee'), pull_types: v('edit-pull-types'), pull_limit: v('edit-pull-limit') })
+      body: JSON.stringify({ ss_rate: v('edit-rate-ss'), s_rate: v('edit-rate-s'), single_cost: v('edit-cost-single'), multi_cost: v('edit-cost-multi'), last_guarantee: v('edit-last-guarantee'), pull_types: v('edit-pull-types'), pull_limit: v('edit-pull-limit'), no_gp_exchange: document.getElementById('edit-no-gp-exchange').checked })
     });
     showToast(res.message);
     loadPools();

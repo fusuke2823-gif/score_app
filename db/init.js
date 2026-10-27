@@ -300,6 +300,8 @@ const initDB = async () => {
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_limit INTEGER;
       -- 解放条件（空なら誰でも引ける）。{ events:[イベントID], mode:'all'|'any', attrs:[属性]（空なら問わない）, min_attrs:1以上, count:'per'|'total', hide:満たしていない人に出さないなら true, admin_pull:管理者は満たしていなくても引けるなら true }
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS entry_cond JSONB;
+      -- true ならこのガチャではGP交換をしない
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS no_gp_exchange BOOLEAN NOT NULL DEFAULT FALSE;
       ALTER TABLE scores ADD COLUMN IF NOT EXISTS is_anonymous BOOLEAN DEFAULT FALSE;
 
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_internal BOOLEAN NOT NULL DEFAULT FALSE;

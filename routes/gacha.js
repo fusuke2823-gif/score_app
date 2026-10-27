@@ -95,7 +95,7 @@ router.get('/pools', optionalAuth, async (req, res) => {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
               gp.start_at, gp.end_at, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
-              gp.pull_types, gp.pull_limit, gp.entry_cond,
+              gp.pull_types, gp.pull_limit, gp.entry_cond, gp.no_gp_exchange,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
                 (SELECT json_agg(jsonb_build_object('id', gi.id, 'name', gi.name, 'image_url', gi.image_url) ORDER BY gi.id)
@@ -491,6 +491,10 @@ router.post('/exchange', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: `GPが不足しています（必要: ${GP_COST}GP）` });
     }
 
+    if (poolId) {
+      const pr = await client.query('SELECT no_gp_exchange FROM gacha_pools WHERE id=$1', [poolId]);
+      if (pr.rows[0]?.no_gp_exchange) { await client.query('ROLLBACK'); return res.status(400).json({ error: 'このガチャではGP交換はできません' }); }
+    }
     const pulls = await poolPullCount(client, req.user.id, poolId);
     if (pulls < EXCHANGE_PULLS_REQUIRED) {
       await client.query('ROLLBACK');
