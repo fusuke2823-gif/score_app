@@ -282,10 +282,11 @@ function renderPoolSelector(pools) {
   // 開いたら一番上のガチャを選んだ状態にして、引く画面の上の帯で切り替える
   const tabs = document.getElementById('gx-pooltabs');
   tabs.hidden = pools.length < 2;
+  // 札はバナー画像があればそれを、なければピックアップを縦に切って並べる
   tabs.innerHTML = pools.map((p, i) => {
     const bg = p.image_url ? `url('${escHtml(thumbUrl(p.image_url))}')` : POOL_FALLBACK_BG[i % POOL_FALLBACK_BG.length];
     return `<button type="button" class="gx-ptab" role="tab" data-pool="${p.id}" onclick="selectPool(${p.id})">
-      <span class="gx-ptab-thumb" style="background-image:${bg}">${(p.pickup_icons || []).length
+      <span class="gx-ptab-thumb" style="background-image:${bg}">${!p.image_url && (p.pickup_icons || []).length
         ? `<span class="gx-ptab-icons">${ptabSlicesHTML(p.pickup_icons.slice(0, 3))}${p.pickup_icons.length > 3 ? `<em>+${p.pickup_icons.length - 3}</em>` : ''}</span>`
         : !p.image_url ? `<span class="gx-ptab-mark">${uiIcon('sparkle', 22)}</span>` : ''}</span>
       <span class="gx-ptab-name">${isLocked(p) ? `<i class="gx-ptab-lock">${ENTRY_LOCK_SVG}</i>` : ''}${escHtml(p.name)}</span>
