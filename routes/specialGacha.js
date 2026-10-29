@@ -287,7 +287,7 @@ function playTen(progress, gimmick, maxHp, reset) {
     pendingGauge.push({ token: r.gauge_token, base: r.gauge_base });
   }
 
-  // 巻き戻し：10連のあと、連続回数×15%で敵がこの連続で与えたダメージを全部回復する。100%以上なら回復なしでリセット
+  // 巻き戻し：10連のあと、連続回数×pStep（10%）で敵がこの連続で与えたダメージを全部回復する。100%以上なら回復なしでリセット
   let rewind = null;
   // 画面の判定演出用：今回の確率と結果（safe / rewind / forced）。確率0%のときは判定なし
   let rewindCheck = null;

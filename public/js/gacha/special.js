@@ -289,9 +289,9 @@ function renderSgShield(shield, animate = false) {
 let sgRewind = null; // { dmg_step, p_step }（巻き戻しの敵のときだけ）
 let sgRwMultNow = 1; // 今引いている10連の倍率（カードに×Nを添える）
 const sgSleep = ms => new Promise(r => setTimeout(r, ms));
-// 確率が100%に届く連続回数（+15%ずつなら7）
+// 確率が100%に届く連続回数（+10%ずつなら10）
 const sgRwMax = () => Math.ceil(1 / sgRewind.p_step - 1e-9);
-// 連続 k のとき、次の10連はダメージ (1+k) 倍、終わったあと k×15% で巻き戻し（100%以上なら回復なしでリセット）
+// 連続 k のとき、次の10連はダメージ (1+k) 倍、10連後 k×10% で巻き戻し（100%以上なら回復なしでリセット）
 function renderSgRewind(progress) {
   const el = document.getElementById('sg-rewind');
   const btn = document.getElementById('sg-reset-btn');
