@@ -2,8 +2,8 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const pool = require('../db/index');
-const { authenticateToken } = require('../middleware/auth');
-const { getGimmick, gimmickSummary } = require('../utils/specialGachaGimmicks');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { GIMMICKS, getGimmick, gimmickSummary } = require('../utils/specialGachaGimmicks');
 
 // ログインユーザーなら誰でも挑戦できる（2026-10-01 一般公開）
 router.use(authenticateToken);
@@ -59,7 +59,13 @@ function tablesFor(gimmick) {
     return { ...t, amount, label: `破壊率上昇+${amount}%`, sub: `破壊率+${amount.toFixed(1)}%` };
   });
   const heal = { ...HEAL_AMOUNT, ...gimmick.healAmount };
-  const unfavorable = UNFAVORABLE.map(t => (heal[t.key] ? { ...t, sub: `敵HP+${heal[t.key]}` } : t));
+  let unfavorable = UNFAVORABLE.map(t => (heal[t.key] ? { ...t, sub: `敵HP+${heal[t.key]}` } : t));
+  // 回復カードなし：不利アイテムは防御UPだけ（小・大の比率はそのまま）
+  if (gimmick.noHeal) {
+    const rest = unfavorable.filter(t => !HEAL_AMOUNT[t.key]);
+    const sum = rest.reduce((n, t) => n + t.p, 0);
+    unfavorable = rest.map(t => ({ ...t, p: t.p / sum }));
+  }
   return { cat, damage, destruction, heal, unfavorable, destructionMax: gimmick.destructionMax || DESTRUCTION_MAX };
 }
 
@@ -84,7 +90,7 @@ function rollOne(state, gimmick, tables = tablesFor(gimmick)) {
     // ゲージアクション：ダメージカードの一部がゲージ攻撃（10連の最後に発動）に置き換わる。
     // 基本ダメージは引いた時点の倍率で確定し、発動時にタイミングの倍率を掛ける
     if (gimmick.gauge && Math.random() < gimmick.gauge.p) {
-      const mult0 = (1 + allyBonus0) * (1 + debuffBonus0) * Math.max(0, 1 - enemyPenalty0) * (state.destruction_rate / 100);
+      const mult0 = (1 + allyBonus0) * (1 + debuffBonus0) * Math.max(0, 1 - enemyPenalty0) * (state.destruction_rate / 100) * (state.rewind_mult || 1);
       decrementAll(state);
       return { category: 'gauge', key: 'gauge_attack', label: 'ゲージ攻撃', dmg: 0, gauge_base: Math.max(1, Math.round(gimmick.gauge.base * mult0)) };
     }
@@ -104,7 +110,8 @@ function rollOne(state, gimmick, tables = tablesFor(gimmick)) {
     const allyBonus = (state.ally_small > 0 ? 0.5 : 0) + (state.ally_large > 0 ? 2.0 : 0);
     const debuffBonus = (state.debuff_small > 0 ? 0.5 : 0) + (state.debuff_large > 0 ? 2.0 : 0);
     const enemyPenalty = (state.enemybuff_small > 0 ? 0.2 : 0) + (state.enemybuff_large > 0 ? 0.5 : 0);
-    const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100);
+    // rewind_mult：巻き戻しギミックの連続による倍率（ほかのギミックでは無し）
+    const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100) * (state.rewind_mult || 1);
     const dmg = Math.round(roll.dmg * mult);
     decrementAll(state);
     // シールド中はダメージの代わりにシールドを1削る（防がれたダメージ量は演出用に返す）
@@ -169,7 +176,9 @@ async function getActiveEnemy() {
 router.get('/rates', async (req, res) => {
   try {
     const enemy = await getActiveEnemy();
-    const gimmick = getGimmick(enemy && enemy.gimmick);
+    // 管理者のテストでは、テストしているギミックの表を見られる
+    const key = req.user.role === 'admin' && GIMMICKS[req.query.gimmick] ? req.query.gimmick : enemy && enemy.gimmick;
+    const gimmick = getGimmick(key);
     const tables = tablesFor(gimmick);
     const [catDamage, catFavorable, catUnfavorable, catDestruction] = tables.cat;
     const unfavorableItems = tables.unfavorable.map(t => {
@@ -199,7 +208,7 @@ router.get('/rates', async (req, res) => {
         items: [{ label: 'ゲージ攻撃', p: 1, detail: `10連の最後に発動。${gimmick.gauge.tiers.map(t => `${t.name}×${t.mult}`).join(' / ')}（基本${gimmick.gauge.base}ダメージ）` }],
       });
     }
-    res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(enemy && enemy.gimmick), categories });
+    res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(key), categories });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -239,6 +248,85 @@ router.get('/current', async (req, res) => {
   }
 });
 
+// 10連1回分の抽選。progress（DBの行か、テスト用の同じ形のオブジェクト）は書き換えず、結果と次の状態を返す。
+// 本番の /pull と管理者のテスト（/test/pull）で同じものを使う
+function playTen(progress, gimmick, maxHp, reset) {
+  // 前回発動しないまま残ったゲージ攻撃は、MISS（1倍）で先に発動させる
+  const leftoverDmg = (progress.pending_gauge || []).reduce((s, g) => s + g.base, 0);
+  const state = {};
+  for (const k of COUNTER_KEYS) state[k] = progress[k] || 0;
+  state.destruction_rate = parseFloat(progress.destruction_rate);
+  state.shield = progress.shield || 0;
+  const tables = tablesFor(gimmick);
+  let hp = Math.max(0, progress.current_hp - leftoverDmg);
+
+  // 巻き戻しギミック：連続回数で倍率を決める。リセットを選んだら連続を0から
+  const rw = gimmick.rewind;
+  let streak = progress.rewind_streak || 0, streakDmg = progress.rewind_dmg || 0;
+  if (rw && reset) { streak = 0; streakDmg = 0; }
+  if (rw) state.rewind_mult = 1 + rw.dmgStep * streak;
+  const hpStart = hp;
+
+  const results = [];
+  // 途中で倒しても10枚すべて抽選する（カード枚数で討伐が先に分からないように）。
+  // 倒した後の分はオーバーキル扱いで、HPは0のまま・進行状況（バフやシールド）にも反映しない
+  for (let i = 0; i < PULLS_PER_TRY; i++) {
+    const overkill = hp <= 0;
+    const r = rollOne(overkill ? { ...state } : state, gimmick, tables);
+    if (overkill) r.overkill = true;
+    else hp = Math.max(0, Math.min(maxHp, hp - r.dmg));
+    r.state_after = { ...state };
+    results.push({ ...r, hp_after: hp });
+  }
+
+  // 倒す前に引いたゲージ攻撃は発動待ちとして記録（倒した後の分はオーバーキルなので発動しない）
+  const pendingGauge = [];
+  for (const r of results) {
+    if (r.category !== 'gauge' || r.overkill) continue;
+    r.gauge_token = crypto.randomBytes(8).toString('hex');
+    pendingGauge.push({ token: r.gauge_token, base: r.gauge_base });
+  }
+
+  // 巻き戻し：10連のあと、連続回数×15%で敵がこの連続で与えたダメージを全部回復する。100%以上なら回復なしでリセット
+  let rewind = null;
+  // 画面の判定演出用：今回の確率と結果（safe / rewind / forced）。確率0%のときは判定なし
+  let rewindCheck = null;
+  if (rw && hp > 0) {
+    streakDmg += hpStart - hp;
+    const p = rw.pStep * streak;
+    if (p >= 1 - 1e-9) {
+      rewind = { type: 'forced', streak: streak + 1 };
+      streak = 0; streakDmg = 0;
+    } else if (Math.random() < p) {
+      const amount = Math.min(maxHp - hp, streakDmg);
+      rewind = { type: 'rewind', amount, chance: Math.round(p * 100) / 100, streak: streak + 1, hp_before: hp };
+      hp += amount;
+      streak = 0; streakDmg = 0;
+    } else {
+      streak++;
+    }
+    if (p > 0) rewindCheck = { chance: Math.min(1, Math.round(p * 100) / 100), result: rewind ? rewind.type : 'safe' };
+  }
+
+  return {
+    results, hp, state, leftoverDmg, rewind, rewindCheck,
+    next: { ...state, rewind_mult: undefined, current_hp: hp, pending_gauge: pendingGauge, rewind_streak: streak, rewind_dmg: Math.round(streakDmg) },
+  };
+}
+
+// 発動待ちのゲージ攻撃を1つ確定する。精度は画面側の申告なので、段階に丸めて上限3倍とする
+function resolveGauge(pending, token, accuracy, gimmick) {
+  const idx = pending.findIndex(g => g.token === token);
+  if (!gimmick.gauge || idx === -1) return null;
+  const tier = gimmick.gauge.tiers.find(t => accuracy >= t.min);
+  const dmg = Math.round(pending[idx].base * tier.mult);
+  return { dmg, tier, pending: pending.filter((_, i) => i !== idx) };
+}
+function gaugeAccuracy(body) {
+  const a = Number(body && body.accuracy);
+  return Number.isFinite(a) ? Math.min(1, Math.max(0, a)) : 0;
+}
+
 router.post('/pull', async (req, res) => {
   const client = await pool.connect();
   try {
@@ -262,8 +350,7 @@ router.post('/pull', async (req, res) => {
       return res.status(400).json({ error: '既に討伐済みです' });
     }
 
-    // 前回発動しないまま残ったゲージ攻撃は、MISS（1倍）で先に発動させる。
-    // それだけで倒せる場合はポイントを使わずに討伐として返す
+    // 前回発動しないまま残ったゲージ攻撃だけで倒せる場合は、ポイントを使わずに討伐として返す
     const leftoverDmg = (progress.pending_gauge || []).reduce((s, g) => s + g.base, 0);
     if (leftoverDmg > 0 && progress.current_hp - leftoverDmg <= 0) {
       await client.query(
@@ -291,34 +378,8 @@ router.post('/pull', async (req, res) => {
     await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [PULL_COST, req.user.id]);
     await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -PULL_COST, '討伐ガチャ（10連）']);
 
-    const state = {};
-    for (const k of COUNTER_KEYS) state[k] = progress[k];
-    state.destruction_rate = parseFloat(progress.destruction_rate);
-    state.shield = progress.shield;
-    const gimmick = getGimmick(enemy.gimmick);
-    const tables = tablesFor(gimmick);
-    let hp = progress.current_hp;
-    hp = Math.max(0, hp - leftoverDmg);
-
-    const results = [];
-    // 途中で倒しても10枚すべて抽選する（カード枚数で討伐が先に分からないように）。
-    // 倒した後の分はオーバーキル扱いで、HPは0のまま・進行状況（バフやシールド）にも反映しない
-    for (let i = 0; i < PULLS_PER_TRY; i++) {
-      const overkill = hp <= 0;
-      const r = rollOne(overkill ? { ...state } : state, gimmick, tables);
-      if (overkill) r.overkill = true;
-      else hp = Math.max(0, Math.min(enemy.max_hp, hp - r.dmg));
-      r.state_after = { ...state };
-      results.push({ ...r, hp_after: hp });
-    }
-
-    // 倒す前に引いたゲージ攻撃は発動待ちとして記録（倒した後の分はオーバーキルなので発動しない）
-    const pendingGauge = [];
-    for (const r of results) {
-      if (r.category !== 'gauge' || r.overkill) continue;
-      r.gauge_token = crypto.randomBytes(8).toString('hex');
-      pendingGauge.push({ token: r.gauge_token, base: r.gauge_base });
-    }
+    const play = playTen(progress, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true);
+    const { results, hp, state, rewind } = play;
 
     let defeated = false;
     let awardedIcon = null;
@@ -335,12 +396,13 @@ router.post('/pull', async (req, res) => {
       `UPDATE user_special_gacha_progress SET
          current_hp=$3, ally_small=$4, ally_large=$5, debuff_small=$6, debuff_large=$7,
          enemybuff_small=$8, enemybuff_large=$9, critup_small=$10, critup_large=$11, destruction_rate=$12,
-         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14, pull_count=pull_count+1, pending_gauge=$15::jsonb
+         defeated_at = CASE WHEN $13 THEN NOW() ELSE defeated_at END, shield=$14, pull_count=pull_count+1, pending_gauge=$15::jsonb,
+         rewind_streak=$16, rewind_dmg=$17
        WHERE user_id=$1 AND enemy_id=$2
        RETURNING *`,
       [req.user.id, enemy.id, hp, state.ally_small, state.ally_large, state.debuff_small, state.debuff_large,
        state.enemybuff_small, state.enemybuff_large, state.critup_small, state.critup_large, state.destruction_rate, defeated, state.shield,
-       JSON.stringify(pendingGauge)]
+       JSON.stringify(play.next.pending_gauge), play.next.rewind_streak, play.next.rewind_dmg]
     );
 
     await client.query('COMMIT');
@@ -350,7 +412,9 @@ router.post('/pull', async (req, res) => {
       new_points: userResult.rows[0].points - PULL_COST,
       defeated,
       awarded_icon: awardedIcon,
-      leftover_gauge_damage: leftoverDmg,
+      leftover_gauge_damage: play.leftoverDmg,
+      rewind,
+      rewind_check: play.rewindCheck,
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -365,9 +429,7 @@ router.post('/pull', async (req, res) => {
 // 精度は画面側の申告だが、発動待ちのトークン1つにつき1回だけ受け付け、倍率は段階に丸めて上限3倍とする
 router.post('/gauge', async (req, res) => {
   const { token } = req.body || {};
-  let accuracy = Number(req.body && req.body.accuracy);
-  if (!Number.isFinite(accuracy)) accuracy = 0;
-  accuracy = Math.min(1, Math.max(0, accuracy));
+  const accuracy = gaugeAccuracy(req.body);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -378,13 +440,10 @@ router.post('/gauge', async (req, res) => {
       'SELECT * FROM user_special_gacha_progress WHERE user_id=$1 AND enemy_id=$2 FOR UPDATE',
       [req.user.id, enemy.id]
     )).rows[0];
-    const pending = progress ? (progress.pending_gauge || []) : [];
-    const idx = pending.findIndex(g => g.token === token);
-    if (!gimmick.gauge || idx === -1) { await client.query('ROLLBACK'); return res.status(400).json({ error: '発動できるゲージ攻撃がありません' }); }
+    const g = resolveGauge(progress ? (progress.pending_gauge || []) : [], token, accuracy, gimmick);
+    if (!g) { await client.query('ROLLBACK'); return res.status(400).json({ error: '発動できるゲージ攻撃がありません' }); }
 
-    const tier = gimmick.gauge.tiers.find(t => accuracy >= t.min);
-    const dmg = Math.round(pending[idx].base * tier.mult);
-    pending.splice(idx, 1);
+    const { dmg, tier } = g;
     const alreadyDefeated = !!progress.defeated_at;
     const hp = Math.max(0, progress.current_hp - dmg);
     const defeated = !alreadyDefeated && hp <= 0;
@@ -400,7 +459,7 @@ router.post('/gauge', async (req, res) => {
       `UPDATE user_special_gacha_progress SET current_hp=$3, pending_gauge=$4::jsonb,
          defeated_at = CASE WHEN $5 THEN NOW() ELSE defeated_at END
        WHERE user_id=$1 AND enemy_id=$2 RETURNING *`,
-      [req.user.id, enemy.id, hp, JSON.stringify(pending), defeated]
+      [req.user.id, enemy.id, hp, JSON.stringify(g.pending), defeated]
     );
     await client.query('COMMIT');
     res.json({ dmg, tier: tier.name, mult: tier.mult, overkill: alreadyDefeated, defeated, awarded_icon: awardedIcon, progress: updated.rows[0] });
@@ -412,6 +471,106 @@ router.post('/gauge', async (req, res) => {
     client.release();
   }
 });
+
+// ===== 管理者のテスト =====
+// 好きなギミックの敵と、ポイントを使わずに戦える。本番の進み具合とは別に保存し、討伐してもアイコンはもらえない
+const testRouter = express.Router();
+testRouter.use(requireAdmin);
+
+function newTestProgress(gimmickKey) {
+  const g = getGimmick(gimmickKey);
+  const p = { current_hp: g.max_hp, destruction_rate: 100.0, shield: g.shield || 0, pending_gauge: [], rewind_streak: 0, rewind_dmg: 0, pull_count: 0, defeated_at: null };
+  for (const k of COUNTER_KEYS) p[k] = 0;
+  return p;
+}
+// 画面に返す形（本番の /current と同じ）。敵の見た目は今の本番の敵を借りる
+async function testView(row) {
+  const enemy = await getActiveEnemy();
+  const g = getGimmick(row.gimmick);
+  return {
+    enemy: { id: 0, name: `テスト：${g.label}`, image_url: enemy ? enemy.image_url : null, max_hp: g.max_hp, ssr_icon_name: 'テスト（アイコンはもらえません）', ssr_icon_image_url: enemy ? enemy.ssr_icon_image_url : null },
+    gimmick: gimmickSummary(row.gimmick),
+    progress: row.progress,
+  };
+}
+
+testRouter.get('/', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT gimmick, progress FROM special_gacha_tests WHERE user_id=$1', [req.user.id]);
+    const points = (await pool.query('SELECT points FROM users WHERE id=$1', [req.user.id])).rows[0].points;
+    res.json({ gimmicks: Object.keys(GIMMICKS).map(gimmickSummary), test: r.rows[0] ? await testView(r.rows[0]) : null, points, pull_cost: 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ギミックを選んで最初から
+testRouter.post('/start', async (req, res) => {
+  const gimmick = req.body && req.body.gimmick;
+  if (!GIMMICKS[gimmick]) return res.status(400).json({ error: 'ギミックを選んでください' });
+  try {
+    const row = { gimmick, progress: newTestProgress(gimmick) };
+    await pool.query(
+      `INSERT INTO special_gacha_tests (user_id, gimmick, progress, updated_at) VALUES ($1,$2,$3,NOW())
+       ON CONFLICT (user_id) DO UPDATE SET gimmick=EXCLUDED.gimmick, progress=EXCLUDED.progress, updated_at=NOW()`,
+      [req.user.id, gimmick, row.progress]
+    );
+    res.json(await testView(row));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+testRouter.post('/pull', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const r = (await client.query('SELECT gimmick, progress FROM special_gacha_tests WHERE user_id=$1 FOR UPDATE', [req.user.id])).rows[0];
+    if (!r) { await client.query('ROLLBACK'); return res.status(400).json({ error: '先にギミックを選んで始めてください' }); }
+    if (r.progress.defeated_at) { await client.query('ROLLBACK'); return res.status(400).json({ error: '討伐済みです。「最初から」で始め直してください' }); }
+    const g = getGimmick(r.gimmick);
+    const play = playTen(r.progress, g, g.max_hp, req.body && req.body.reset === true);
+    const defeated = play.hp <= 0;
+    const progress = { ...r.progress, ...play.next, pull_count: (r.progress.pull_count || 0) + 1, defeated_at: defeated ? new Date().toISOString() : null };
+    await client.query('UPDATE special_gacha_tests SET progress=$2, updated_at=NOW() WHERE user_id=$1', [req.user.id, progress]);
+    const points = (await client.query('SELECT points FROM users WHERE id=$1', [req.user.id])).rows[0].points;
+    await client.query('COMMIT');
+    res.json({ results: play.results, progress, new_points: points, defeated, awarded_icon: null, leftover_gauge_damage: play.leftoverDmg, rewind: play.rewind, rewind_check: play.rewindCheck });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+testRouter.post('/gauge', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const r = (await client.query('SELECT gimmick, progress FROM special_gacha_tests WHERE user_id=$1 FOR UPDATE', [req.user.id])).rows[0];
+    const g = r && resolveGauge(r.progress.pending_gauge || [], req.body && req.body.token, gaugeAccuracy(req.body), getGimmick(r.gimmick));
+    if (!g) { await client.query('ROLLBACK'); return res.status(400).json({ error: '発動できるゲージ攻撃がありません' }); }
+    const alreadyDefeated = !!r.progress.defeated_at;
+    const hp = Math.max(0, r.progress.current_hp - g.dmg);
+    const defeated = !alreadyDefeated && hp <= 0;
+    const progress = { ...r.progress, current_hp: hp, pending_gauge: g.pending, defeated_at: defeated ? new Date().toISOString() : r.progress.defeated_at };
+    await client.query('UPDATE special_gacha_tests SET progress=$2, updated_at=NOW() WHERE user_id=$1', [req.user.id, progress]);
+    await client.query('COMMIT');
+    res.json({ dmg: g.dmg, tier: g.tier.name, mult: g.tier.mult, overkill: alreadyDefeated, defeated, awarded_icon: null, progress });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+router.use('/test', testRouter);
 
 module.exports = router;
 module.exports.PULL_COST = PULL_COST;

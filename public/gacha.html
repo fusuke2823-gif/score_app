@@ -108,6 +108,18 @@
 
   <!-- ③討伐ガチャ画面 -->
   <div id="special-gacha-screen" style="display:none">
+    <!-- 管理者だけ：ポイントを使わずに好きなギミックの敵を試す -->
+    <div class="sg-test-bar" id="sg-test-bar" hidden>
+      <div class="pill-tabs pill-sm" id="sg-mode">
+        <button type="button" data-v="live" class="on" onclick="setSgMode('live')">本番</button>
+        <button type="button" data-v="test" onclick="setSgMode('test')">テスト</button>
+      </div>
+      <div class="sg-test-ctrl" id="sg-test-ctrl" hidden>
+        <select class="form-input" id="sg-test-gimmick" aria-label="ギミック"></select>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="startSgTest()">最初から</button>
+      </div>
+      <div class="sg-test-note" id="sg-test-note" hidden>テスト中：ポイントは使わず、本番の進み具合とは別です。討伐してもアイコンはもらえません</div>
+    </div>
     <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます　※GPは入手できません</div>
     <div class="card sg-boss-card">
       <div class="sg-reward-preview">
@@ -121,7 +133,7 @@
       </div>
       <div class="sg-boss-title">
         <span class="sg-boss-name" id="sg-boss-name">-</span>
-        <span class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span></span>
+        <span class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span><button type="button" class="sg-tut-open" onclick="openSgTutorial()">遊び方</button></span>
       </div>
       <div class="sg-boss-bars">
         <div class="sg-shield-row" id="sg-shield-row" hidden>
@@ -132,17 +144,36 @@
           <span class="sg-hp-label">HP</span>
           <span class="sg-destruction"><span class="sg-destruction-label">破壊率</span><span class="sg-destruction-rate" id="sg-destruction-rate">-</span></span>
         </div>
-        <div class="sg-hp-bar-outer"><div class="sg-hp-bar-ghost" id="sg-hp-ghost" style="width:100%"></div><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div></div>
+        <div class="sg-hp-bar-outer"><div class="sg-hp-bar-ghost" id="sg-hp-ghost" style="width:100%"></div><div class="sg-hp-bar-inner" id="sg-hp-bar" style="width:100%"></div><div class="sg-hp-bar-rewind" id="sg-hp-rewind" hidden></div></div>
       </div>
       <div class="sg-effects-row" id="sg-effects-row"></div>
+      <!-- 巻き戻しギミック：連続の状態（次の10連の倍率・巻き戻しの確率・巻き戻されたときのHP） -->
+      <div class="sg-rewind" id="sg-rewind" hidden></div>
     </div>
 
     <div class="gacha-pull-btns sg-collapsible" id="sg-pull-wrap">
       <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" disabled>
         <img src="/img/gacha_battle.png" alt="討伐ガチャ 10連 100pt">
+        <span class="sg-chain-badge" id="sg-chain-badge" hidden></span>
+      </button>
+      <button type="button" class="sg-reset-btn" id="sg-reset-btn" onclick="doSpecialPull(true)" hidden>
+        <span class="sg-reset-inner">
+          <svg class="sg-reset-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>
+          <b>リセットして引く</b>
+          <small>100pt</small>
+        </span>
       </button>
     </div>
 
+    <!-- 演出の速さ（選んだものは覚えておく） -->
+    <div class="sg-speed-row">
+      <span>演出</span>
+      <div class="pill-tabs pill-sm" id="sg-speed">
+        <button type="button" data-v="normal" onclick="setSgSpeed('normal')">ふつう</button>
+        <button type="button" data-v="fast" onclick="setSgSpeed('fast')">2倍速</button>
+        <button type="button" data-v="instant" onclick="setSgSpeed('instant')">結果だけ</button>
+      </div>
+    </div>
     <div class="gacha-stage" id="sg-stage">
       <div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">討伐ガチャを引いてください</div>
     </div>
@@ -166,10 +197,39 @@
     </div>
   </div>
 
+  <!-- ギミックの遊び方（敵の登場のあと、ギミックごとに最初の1回だけ） -->
+  <div id="sg-tut" class="sg-tut" hidden>
+    <div class="sg-tut-box" role="dialog" aria-labelledby="sg-tut-title">
+      <div class="sg-tut-eyebrow">HOW TO PLAY</div>
+      <div class="sg-tut-title" id="sg-tut-title"></div>
+      <div class="sg-tut-body" id="sg-tut-body"></div>
+      <button type="button" class="btn btn-primary" onclick="closeSgTutorial()">わかった</button>
+    </div>
+  </div>
+  <!-- 巻き戻しギミック：10連のあとの判定（光が止まったマスが赤なら巻き戻し） -->
+  <div id="sg-rwc" class="sg-rwc" hidden>
+    <div class="sg-rwc-box" role="dialog" aria-label="巻き戻しの判定">
+      <div class="sg-rwc-title">REWIND CHECK</div>
+      <div class="sg-rwc-chance" id="sg-rwc-chance"></div>
+      <div class="sg-rwc-strip" id="sg-rwc-strip"></div>
+      <div class="sg-rwc-result" id="sg-rwc-result"></div>
+      <div class="sg-rwc-hint" id="sg-rwc-hint">タップでスキップ</div>
+    </div>
+  </div>
+  <!-- 巻き戻されたときの画面効果（ビデオの巻き戻し風） -->
+  <div id="sg-vhs" class="sg-vhs" hidden aria-hidden="true">
+    <div class="sg-vhs-tag"><svg width="34" height="18" viewBox="0 0 34 18" fill="currentColor"><path d="M17 0v18L0 9zM34 0v18L17 9z"/></svg>REWIND</div>
+  </div>
+
   <div id="sg-defeat-overlay" class="sg-overlay">
     <div class="sg-defeat-card">
+      <div class="sg-pillar" aria-hidden="true"></div>
       <div class="sg-defeat-title">討伐完了</div>
-      <img class="sg-ssr-icon" id="sg-ssr-icon-img" alt="">
+      <!-- 報酬のカードは伏せた状態からめくる -->
+      <div class="sg-ssr-flip" id="sg-ssr-flip">
+        <div class="sg-ssr-face sg-ssr-back"><img src="/img/logo.png" alt=""></div>
+        <div class="sg-ssr-face sg-ssr-front"><img class="sg-ssr-icon" id="sg-ssr-icon-img" alt=""></div>
+      </div>
       <div class="sg-ssr-tag">SSR</div>
       <div class="sg-ssr-name" id="sg-ssr-name"></div>
       <button class="btn btn-secondary" onclick="document.getElementById('sg-defeat-overlay').classList.remove('show')">閉じる</button>

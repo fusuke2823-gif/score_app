@@ -58,6 +58,17 @@ const GIMMICKS = {
       autoAccuracy: 0.45, // タップしなかったときはGOOD扱い
     },
   },
+  rewind: {
+    label: '巻き戻し',
+    description: '敵の回復カードはない。10連を続けるたびに与えるダメージが上がる（+100%ずつ）が、10連のあとに敵が「巻き戻し」をして、その連続で与えたダメージを全部回復することがある。巻き戻しの確率は続けるほど上がり（+15%ずつ）、100%に届くと回復なしで連続がリセット。10連の前に自分でリセットすると、倍率と確率が元に戻る',
+    // 連続3回ほどでリセットする遊び方で通常と平均回数（約22回）が揃う値。毎回リセットだと約27回、リセットしないと約36回
+    max_hp: 40000,
+    noHeal: true, // 敵の回復カードをなくし、不利アイテムは防御UPだけにする
+    rewind: {
+      dmgStep: 1.0, // 連続1回ごとの与ダメ上昇（連続k回目の10連は 1+k 倍）
+      pStep: 0.15,  // 連続1回ごとの巻き戻しの確率（連続k回目の10連のあと k×15%、100%以上なら回復なしでリセット）
+    },
+  },
 };
 
 function getGimmick(key) {
@@ -72,6 +83,7 @@ function gimmickSummary(key) {
     max_shield: g.shield || 0, max_destruction: g.destructionMax || 999.0,
     // ゲージの判定幅は画面の描画にも使う（判定そのものはサーバーで行う）
     gauge: g.gauge ? { tiers: g.gauge.tiers, auto_accuracy: g.gauge.autoAccuracy } : null,
+    rewind: g.rewind ? { dmg_step: g.rewind.dmgStep, p_step: g.rewind.pStep } : null,
   };
 }
 

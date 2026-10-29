@@ -593,6 +593,16 @@ const initDB = async () => {
       ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS pull_count INTEGER NOT NULL DEFAULT 0;
       -- ゲージアクション：発動待ちのゲージ攻撃 [{ token, base }]
       ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS pending_gauge JSONB NOT NULL DEFAULT '[]'::jsonb;
+      -- 巻き戻しギミック：今の連続回数と、その連続で与えたダメージ（巻き戻されると戻る量）
+      ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS rewind_streak INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE user_special_gacha_progress ADD COLUMN IF NOT EXISTS rewind_dmg INTEGER NOT NULL DEFAULT 0;
+      -- 管理者のテスト（好きなギミックの敵とポイントなしで戦う）。progress は user_special_gacha_progress の行と同じ形
+      CREATE TABLE IF NOT EXISTS special_gacha_tests (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        gimmick VARCHAR(20) NOT NULL,
+        progress JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `);
 
     // 結果シェア画像
