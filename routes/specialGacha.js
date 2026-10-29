@@ -268,7 +268,7 @@ function playTen(progress, gimmick, maxHp, reset) {
   const rw = gimmick.rewind;
   let streak = progress.rewind_streak || 0, streakDmg = progress.rewind_dmg || 0;
   if (rw && reset) { streak = 0; streakDmg = 0; }
-  if (rw) state.rewind_mult = 1 + rw.dmgStep * streak;
+  if (rw) state.rewind_mult = rw.multAt(streak);
   const hpStart = hp;
 
   const results = [];
@@ -297,7 +297,8 @@ function playTen(progress, gimmick, maxHp, reset) {
   let rewind = null;
   // 画面の判定演出用：今回の確率と結果（safe / rewind / forced）、赤いコマの位置と止まるコマ。確率0%のときは判定なし
   let rewindCheck = null;
-  if (rw && hp > 0) {
+  // とどめを刺した10連でも判定する（赤なら、倒したはずの敵がこの連続で削った分を戻して復活する）
+  if (rw) {
     streakDmg += hpStart - hp;
     const p = rw.pStep * streak;
     let cells = null, stop = null, hit = false;

@@ -174,11 +174,11 @@ function sgTutorialHtml(g) {
   const step = (n, title, text, visual) => `
     <div class="sg-tut-step"><div class="sg-tut-num">${n}</div><div class="sg-tut-main"><b>${title}</b><p>${text}</p>${visual}</div></div>`;
   return [
-    step(1, '続けるほどダメージが上がる', '10連を続けて引くたびに、与えるダメージが上がります。',
-      '<div class="sg-tut-vis"><span class="sg-tut-chip">×1</span><i>→</i><span class="sg-tut-chip">×2</span><i>→</i><span class="sg-tut-chip">×3</span><i>→</i><span class="sg-tut-chip">…</span></div>'),
+    step(1, '続けるほどダメージが上がる', '10連を続けて引くたびに、与えるダメージがどんどん上がります。',
+      `<div class="sg-tut-vis">${(g.rewind.mults || []).slice(0, 5).map(m => `<span class="sg-tut-chip">×${m}</span>`).join('<i>→</i>')}<i>→</i><span class="sg-tut-chip">…</span></div>`),
     step(2, '10連後に巻き戻されることがある', `10連のあと、敵が巻き戻しをすることがあります。確率は続けるほど上がります（0% → ${Math.round(g.rewind.p_step * 100)}% → ${Math.round(g.rewind.p_step * 200)}% …）。`,
       '<div class="sg-tut-vis"><span class="sg-tut-bar"><i class="hp"></i><i class="rw"></i></span></div><p class="sg-tut-note">巻き戻されると、HPバーの緑の斜線（この連続で削った分）が全部戻ります</p>'),
-    step(3, '100%に届くとリセット', '巻き戻し確率が100%に届いたときは、回復なしで連続だけが0に戻ります。', ''),
+    step(3, 'とどめを刺しても油断しない', 'HPを0にした10連でも巻き戻しの判定があります。赤に止まると、敵が復活します。巻き戻し確率が100%に届いたときは、回復なしで連続だけが0に戻ります。', ''),
     step(4, '自分でリセットもできる', '「リセットして引く」を押すと、ダメージ×1・巻き戻し確率0%から始め直せます。攻めるか守るか、選びどころです。',
       '<div class="sg-tut-vis"><span class="sg-tut-reset">リセットして引く</span></div>'),
   ].join('');
@@ -298,7 +298,8 @@ function renderSgShield(shield, animate = false) {
 }
 
 // ===== 巻き戻しギミック =====
-let sgRewind = null; // { dmg_step, p_step }（巻き戻しの敵のときだけ）
+let sgRewind = null; // { p_step, mults }（巻き戻しの敵のときだけ。mults[k]：連続k回目の10連の倍率）
+const sgRwMult = k => (sgRewind.mults && sgRewind.mults[Math.min(k, sgRewind.mults.length - 1)]) || 1;
 let sgRwMultNow = 1; // 今引いている10連の倍率（カードに×Nを添える）
 const sgSleep = ms => new Promise(r => setTimeout(r, ms));
 // 確率が100%に届く連続回数（+10%ずつなら10）
@@ -317,7 +318,7 @@ function renderSgRewind(progress) {
   // 続けるほど敵のカードが熱くなる（0〜4段階）
   for (let i = 0; i <= 4; i++) card.classList.toggle(`sg-chain-${i}`, on && Math.min(4, k) === i);
   if (!on) return;
-  const mult = 1 + sgRewind.dmg_step * k;
+  const mult = sgRwMult(k);
   const p = Math.min(100, Math.round(sgRewind.p_step * k * 100));
   const max = sgRwMax();
   const dmg = progress.rewind_dmg || 0;
@@ -413,7 +414,7 @@ async function sgPlayRewind(rw, check, progress) {
   if (!check) return;
   if (check.result === 'safe') {
     _sePlay('/sounds/s_sound.mp3');
-    sgRwPop(`CHAIN ${progress.rewind_streak}!`, `次の10連 ×${1 + sgRewind.dmg_step * progress.rewind_streak}`, 'is-safe');
+    sgRwPop(`CHAIN ${progress.rewind_streak}!`, `次の10連 ×${sgRwMult(progress.rewind_streak)}`, 'is-safe');
     await sgSleep(sgT(900));
     return;
   }
@@ -439,7 +440,7 @@ async function sgPlayRewind(rw, check, progress) {
   }
   sgRwTop = null;
   renderSgRewindBar(to, max);
-  sgRwPop('REWIND', 'この連続で削った分が戻った', 'is-rewind');
+  sgRwPop(rw.hp_before <= 0 ? 'REVIVE' : 'REWIND', rw.hp_before <= 0 ? '倒したはずの敵が巻き戻した' : 'この連続で削った分が戻った', 'is-rewind');
   await sgSleep(reduced ? 300 : sgT(900));
   document.body.classList.remove('sg-vhs-on');
   vhs.hidden = true;
@@ -945,7 +946,7 @@ async function doSpecialPull(reset = false) {
   setSgPullCollapsed(true);
   // 巻き戻し：この10連の倍率（カードに添える）。自分でリセットしたら CHAIN RELEASE を見せてから引く
   const k = sgRewind && sgLastProgress && !reset ? sgLastProgress.rewind_streak || 0 : 0;
-  sgRwMultNow = sgRewind ? 1 + sgRewind.dmg_step * k : 1;
+  sgRwMultNow = sgRewind ? sgRwMult(k) : 1;
   if (sgRewind && reset) {
     sgRwPop('CHAIN RELEASE', 'ダメージ×1・巻き戻し確率0%', 'is-release');
     renderSgRewind({ ...sgLastProgress, rewind_streak: 0, rewind_dmg: 0 });
