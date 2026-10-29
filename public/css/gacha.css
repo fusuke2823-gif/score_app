@@ -1072,6 +1072,8 @@ body.sg-vhs-on #special-gacha-screen { filter:saturate(0.55) hue-rotate(-12deg) 
 
 /* ===== 討伐ガチャの演出 ===== */
 /* 演出の速さ */
+/* 引く前はカードの場所を空けない */
+#sg-stage:empty { min-height:0; margin-bottom:0; }
 .sg-speed-row { display:flex; align-items:center; justify-content:center; gap:8px; margin:6px 0 4px; font-size:0.72rem; color:rgba(232,232,240,0.6); }
 /* 画面の揺れ */
 .sg-boss-card.sg-shake { animation:sgShake 0.28s ease-out; }

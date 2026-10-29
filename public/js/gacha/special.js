@@ -461,7 +461,7 @@ function setSgMode(mode) {
   sgRatesLoaded = false;
   document.getElementById('sg-rates-panel').hidden = true;
   document.getElementById('sg-rates-panel').classList.remove('open');
-  document.getElementById('sg-stage').innerHTML = '<div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">討伐ガチャを引いてください</div>';
+  document.getElementById('sg-stage').innerHTML = '';
   document.getElementById('sg-battle-log').textContent = '10連ガチャを引くと、ここに結果が表示されます';
   loadSpecialGacha();
 }
@@ -469,7 +469,7 @@ async function startSgTest() {
   try {
     const data = await apiFetch('/special-gacha/test/start', { method: 'POST', body: JSON.stringify({ gimmick: document.getElementById('sg-test-gimmick').value }) });
     sgRatesLoaded = false;
-    document.getElementById('sg-stage').innerHTML = '<div style="text-align:center;color:rgba(232,232,240,0.75);font-size:0.9rem">討伐ガチャを引いてください</div>';
+    document.getElementById('sg-stage').innerHTML = '';
     document.getElementById('sg-battle-log').textContent = `テスト「${data.gimmick.label}」を最初から始めました`;
     applySgData({ ...data, points: currentPoints });
   } catch (err) { showToast(err.message, 'error'); }
