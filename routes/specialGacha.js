@@ -11,6 +11,7 @@ router.use(authenticateToken);
 const PULL_COST = 100;
 const PULLS_PER_TRY = 10;
 const DUR_SMALL = 15, DUR_LARGE = 8;
+const REWIND_CELLS = 50; // 巻き戻しの判定のコマの数
 const DESTRUCTION_MAX = 999.0;
 const DESTRUCTION_INC = { destruction_25: 25.0, destruction_50: 50.0, destruction_100: 100.0 };
 const HEAL_AMOUNT = { heal_small: 300, heal_large: 800 };
@@ -287,17 +288,27 @@ function playTen(progress, gimmick, maxHp, reset) {
     pendingGauge.push({ token: r.gauge_token, base: r.gauge_base });
   }
 
-  // 巻き戻し：10連のあと、連続回数×pStep（10%）で敵がこの連続で与えたダメージを全部回復する。100%以上なら回復なしでリセット
+  // 巻き戻し：10連のあと、連続回数×pStep（10%）で敵がこの連続で与えたダメージを全部回復する。100%以上なら回復なしでリセット。
+  // 抽選は画面のルーレットと同じ形で行う：50コマのうち確率の分だけ赤にするコマをランダムに選び、止まるコマも50コマからランダムに1つ選ぶ。
+  // 止まったコマが赤なら巻き戻し（赤の数／50 ＝ 確率。確率は10%刻みなので割り切れる）
   let rewind = null;
-  // 画面の判定演出用：今回の確率と結果（safe / rewind / forced）。確率0%のときは判定なし
+  // 画面の判定演出用：今回の確率と結果（safe / rewind / forced）、赤いコマの位置と止まるコマ。確率0%のときは判定なし
   let rewindCheck = null;
   if (rw && hp > 0) {
     streakDmg += hpStart - hp;
     const p = rw.pStep * streak;
+    let cells = null, stop = null, hit = false;
+    if (p > 0 && p < 1 - 1e-9) {
+      const idx = Array.from({ length: REWIND_CELLS }, (_, i) => i);
+      for (let i = idx.length - 1; i > 0; i--) { const j = crypto.randomInt(i + 1); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+      cells = idx.slice(0, Math.round(p * REWIND_CELLS)).sort((x, y) => x - y);
+      stop = crypto.randomInt(REWIND_CELLS);
+      hit = cells.includes(stop);
+    }
     if (p >= 1 - 1e-9) {
       rewind = { type: 'forced', streak: streak + 1 };
       streak = 0; streakDmg = 0;
-    } else if (Math.random() < p) {
+    } else if (hit) {
       const amount = Math.min(maxHp - hp, streakDmg);
       rewind = { type: 'rewind', amount, chance: Math.round(p * 100) / 100, streak: streak + 1, hp_before: hp };
       hp += amount;
@@ -305,7 +316,7 @@ function playTen(progress, gimmick, maxHp, reset) {
     } else {
       streak++;
     }
-    if (p > 0) rewindCheck = { chance: Math.min(1, Math.round(p * 100) / 100), result: rewind ? rewind.type : 'safe' };
+    if (p > 0) rewindCheck = { chance: Math.min(1, Math.round(p * 100) / 100), result: rewind ? rewind.type : 'safe', cells, stop };
   }
 
   return {

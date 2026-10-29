@@ -199,6 +199,8 @@ function sgMaybeTutorial(g) {
   showSgTutorial(g);
 }
 
+// 斬撃の形：両端が細く真ん中が太い三日月（色はCSSの --c1・--c2）
+const SG_SLASH_SVG = '<svg viewBox="0 0 200 100" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="sgSlashG" x1="0" x2="1"><stop offset="0" style="stop-color:var(--c2);stop-opacity:0"/><stop offset="0.35" style="stop-color:var(--c2)"/><stop offset="0.6" style="stop-color:var(--c1)"/><stop offset="1" style="stop-color:var(--c1);stop-opacity:0"/></linearGradient></defs><path d="M4 78 Q100 -6 196 30 Q104 18 4 78 Z" fill="url(#sgSlashG)"/><path d="M30 64 Q100 8 170 30 Q104 24 30 64 Z" fill="#fff" opacity="0.9"/></svg>';
 // カードがめくれたときの攻撃の演出：斬撃・クリティカル・シールドの波紋・効果の文字
 function sgAttackFx(r, cardEl) {
   if (sgSpeed === 'instant' || r.overkill) return;
@@ -213,11 +215,20 @@ function sgAttackFx(r, cardEl) {
   };
   if (r.category === 'damage' && r.blocked) { add('sg-ripple', 700); return; }
   if (r.category === 'damage' && r.dmg > 0) {
-    const n = r.key === 'ultra' ? 3 : r.key === 'crit' ? 2 : 1;
-    for (let i = 0; i < n; i++) {
-      setTimeout(() => add('sg-slash' + (r.key === 'ultra' ? ' is-ultra' : ''), 500, { '--a': `${-35 + Math.random() * 70 + i * 50}deg` }), sgT(i * 70));
-    }
-    if (r.key === 'ultra') { sgShake(true); sgRwPop('CRITICAL!', '', 'is-crit'); }
+    // 三日月形の斬撃。大ダメージは2本、クリティカルは十字に2本＋太い1本
+    const ultra = r.key === 'ultra';
+    const base = -40 + Math.random() * 30;
+    const angles = ultra ? [base, base + 90, base + 45] : r.key === 'crit' ? [base, base + 70] : [base];
+    angles.forEach((a, i) => setTimeout(() => {
+      const el = add('sg-slash' + (ultra ? ' is-ultra' : '') + (ultra && i === 2 ? ' is-big' : ''), 560, { '--a': `${a}deg` });
+      el.innerHTML = SG_SLASH_SVG;
+      add('sg-impact', 420);
+      for (let k = 0; k < (ultra ? 10 : 5); k++) {
+        const ang = Math.random() * Math.PI * 2, d = 30 + Math.random() * (ultra ? 60 : 35);
+        add('sg-spark', 480, { '--dx': `${Math.cos(ang) * d}px`, '--dy': `${Math.sin(ang) * d}px`, '--r': `${ang}rad` });
+      }
+    }, sgT(i * 90)));
+    if (ultra) { sgShake(true); sgRwPop('CRITICAL!', '', 'is-crit'); }
     else if (r.key === 'crit') sgShake(false);
     return;
   }
@@ -335,7 +346,7 @@ function sgRwPop(main, sub, cls) {
   setTimeout(() => pop.remove(), 1900);
 }
 
-// 10連のあとの判定：50コマの帯の上を光が回り、だんだん遅くなって止まる。止まる先はサーバーの結果に合わせる
+// 10連のあとの判定：50コマの帯の上を光が回り、だんだん遅くなって止まる。赤いコマの並びと止まるコマはサーバーの抽選のとおり
 function sgRewindCheck(check) {
   if (!check) return Promise.resolve();
   return new Promise(resolve => {
@@ -343,14 +354,12 @@ function sgRewindCheck(check) {
     const strip = document.getElementById('sg-rwc-strip');
     const result = document.getElementById('sg-rwc-result');
     const hint = document.getElementById('sg-rwc-hint');
-    const N = 50; // 確率10%ごとに赤いコマが5つ
+    // 赤いコマの位置と止まるコマはサーバーが抽選したもの（止まったコマが赤なら巻き戻し）
+    const N = 50;
     const forced = check.result === 'forced';
-    const red = forced ? N : Math.max(1, Math.round(check.chance * N));
-    // 赤いマスは帯全体にばらして置く
-    const isRed = Array.from({ length: N }, () => false);
-    for (let i = 0; i < red; i++) isRed[Math.floor((i + 0.5) * N / red)] = true;
-    const candidates = isRed.map((r, i) => i).filter(i => isRed[i] === (check.result !== 'safe'));
-    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    const redSet = new Set(check.cells || []);
+    const isRed = Array.from({ length: N }, (_, i) => forced || redSet.has(i));
+    const target = forced ? Math.floor(N / 2) : check.stop;
     strip.innerHTML = isRed.map(r => `<i class="${r ? 'red' : 'safe'}"></i>`).join('');
     const cells = strip.children;
     document.getElementById('sg-rwc-chance').innerHTML = forced ? '<b>100%</b> OVERHEAT' : `巻き戻し <b>${Math.round(check.chance * 100)}%</b>`;
