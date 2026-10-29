@@ -10,6 +10,8 @@ router.use(authenticateToken);
 
 const PULL_COST = 100;
 const PULLS_PER_TRY = 10;
+const FREE_PULLS = 2; // 敵ごとに最初の10連2回（20連）は無料
+const freeLeft = progress => Math.max(0, FREE_PULLS - (progress.pull_count || 0));
 const DUR_SMALL = 15, DUR_LARGE = 8;
 const REWIND_CELLS = 50; // 巻き戻しの判定のコマの数
 const DESTRUCTION_MAX = 999.0;
@@ -242,6 +244,7 @@ router.get('/current', async (req, res) => {
       progress,
       points: userResult.rows[0].points,
       pull_cost: PULL_COST,
+      free_left: freeLeft(progress),
     });
   } catch (err) {
     console.error(err);
@@ -381,13 +384,17 @@ router.post('/pull', async (req, res) => {
       });
     }
 
+    // 最初の2回は無料（進み具合の行を押さえてから数えるので、同時に引いても超えない）
+    const cost = freeLeft(progress) > 0 ? 0 : PULL_COST;
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
-    if (userResult.rows[0].points < PULL_COST) {
+    if (userResult.rows[0].points < cost) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: `ポイントが不足しています（必要: ${PULL_COST}pt）` });
+      return res.status(400).json({ error: `ポイントが不足しています（必要: ${cost}pt）` });
     }
-    await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [PULL_COST, req.user.id]);
-    await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -PULL_COST, '討伐ガチャ（10連）']);
+    if (cost > 0) {
+      await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [cost, req.user.id]);
+      await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -cost, '討伐ガチャ（10連）']);
+    }
 
     const play = playTen(progress, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true);
     const { results, hp, state, rewind } = play;
@@ -420,7 +427,8 @@ router.post('/pull', async (req, res) => {
     res.json({
       results,
       progress: updated.rows[0],
-      new_points: userResult.rows[0].points - PULL_COST,
+      new_points: userResult.rows[0].points - cost,
+      free_left: freeLeft(updated.rows[0]),
       defeated,
       awarded_icon: awardedIcon,
       leftover_gauge_damage: play.leftoverDmg,

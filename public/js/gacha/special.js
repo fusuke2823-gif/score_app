@@ -498,11 +498,19 @@ async function startSgPlay() {
   } catch (err) { showToast(err.message, 'error'); }
 }
 // 10連1回のコスト（本番100pt・遊びモード10pt・テストは0pt）をボタンに文字で出す
-function renderSgCost(cost) {
+// 本番は敵ごとに最初の2回が無料（free_left：残りの無料回数）
+let sgFreeLeft = 0;
+function renderSgCost(cost, freeLeft) {
+  if (freeLeft !== undefined) sgFreeLeft = freeLeft;
+  const free = sgMode === 'live' && sgFreeLeft > 0;
   const c = sgMode === 'test' ? 0 : sgMode === 'play' ? 10 : cost ?? 100;
-  document.getElementById('sg-pull-cost').textContent = `${c}pt`;
-  document.getElementById('sg-reset-cost').textContent = `${c}pt`;
-  document.querySelector('#sg-pull-btn img').alt = `討伐ガチャ 10連 ${c}pt`;
+  const text = free ? '無料' : `${c}pt`;
+  document.getElementById('sg-pull-cost').textContent = text;
+  document.getElementById('sg-reset-cost').textContent = text;
+  document.querySelector('#sg-pull-btn img').alt = `討伐ガチャ 10連 ${text}`;
+  const badge = document.getElementById('sg-free-badge');
+  badge.hidden = !free;
+  badge.textContent = `無料あと${sgFreeLeft}回`;
 }
 // 討伐完了の画面を閉じたら、そのまま遊びモードへ
 function closeSgDefeat() {
@@ -569,7 +577,7 @@ function applySgData(data) {
   currentPoints = data.points;
   document.getElementById('sg-pull-btn').disabled = !!data.progress.defeated_at;
   sgLastProgress = data.progress;
-  renderSgCost(data.pull_cost);
+  renderSgCost(data.pull_cost, data.free_left || 0);
   if (data.progress.defeated_at) {
     document.getElementById('sg-battle-log').textContent = sgMode === 'live' ? 'この敵は既に討伐済みです' : '討伐済みです。「最初から」で始め直せます';
   } else if ((data.progress.pending_gauge || []).length) {
@@ -970,6 +978,7 @@ async function doSpecialPull(reset = false) {
     document.getElementById('sg-battle-log').innerHTML = `今回の10連で <b>${(totalDmg + gauge.total).toLocaleString('ja-JP')}</b> ダメージ` + (notes.length ? `（${notes.join('・')}）` : '');
     currentPoints = data.new_points;
     updatePointsDisplay(currentPoints);
+    if (data.free_left !== undefined) renderSgCost(undefined, data.free_left);
     await finishSgTurn(progress, defeated, awardedIcon);
   } catch (err) {
     showToast(err.message, 'error');

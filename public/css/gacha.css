@@ -1185,3 +1185,6 @@ body.sg-vhs-on #special-gacha-screen { filter:saturate(0.55) hue-rotate(-12deg) 
 .sg-play-note { font-size:0.76rem; color:rgba(200,255,235,0.85); }
 /* 遊びモードは報酬がないので、討伐報酬の表示を出さない */
 #special-gacha-screen.is-play .sg-reward-preview { display:none; }
+/* 最初の2回無料の札（10連ボタンの左上） */
+.sg-free-badge { position:absolute; top:6px; left:6px; z-index:2; padding:2px 8px; border-radius:99px; font-size:calc(var(--bw) * 0.07); font-weight:900; color:#fff; background:linear-gradient(135deg, #ff4d65, #a03070); box-shadow:0 0 10px rgba(255,77,101,0.8); white-space:nowrap; }
+.sg-free-badge[hidden] { display:none; }
