@@ -335,7 +335,7 @@ function sgRwPop(main, sub, cls) {
   setTimeout(() => pop.remove(), 1900);
 }
 
-// 10連のあとの判定：20マスの帯の上を光が回り、だんだん遅くなって止まる。止まる先はサーバーの結果に合わせる
+// 10連のあとの判定：50コマの帯の上を光が回り、だんだん遅くなって止まる。止まる先はサーバーの結果に合わせる
 function sgRewindCheck(check) {
   if (!check) return Promise.resolve();
   return new Promise(resolve => {
@@ -343,7 +343,7 @@ function sgRewindCheck(check) {
     const strip = document.getElementById('sg-rwc-strip');
     const result = document.getElementById('sg-rwc-result');
     const hint = document.getElementById('sg-rwc-hint');
-    const N = 20;
+    const N = 50; // 確率10%ごとに赤いコマが5つ
     const forced = check.result === 'forced';
     const red = forced ? N : Math.max(1, Math.round(check.chance * N));
     // 赤いマスは帯全体にばらして置く
@@ -386,11 +386,12 @@ function sgRewindCheck(check) {
     const tick = () => {
       if (done) return;
       light(i % N);
-      if (i % 2 === 0) _sePlay('/sounds/putcard.mp3');
+      if (i % 4 === 0) _sePlay('/sounds/putcard.mp3');
       if (i >= steps) return finish();
       const left = steps - i;
       i++;
-      timer = setTimeout(tick, sgT(left > 14 ? 38 : 38 + (14 - left) * 24));
+      // コマが細かいぶん速く回し、最後の16コマでだんだん遅くする
+      timer = setTimeout(tick, sgT(left > 16 ? 15 : 15 + (16 - left) * 13));
     };
     setTimeout(() => { if (!done) overlay.addEventListener('pointerdown', finish); }, 250);
     if (forced) setTimeout(finish, sgT(700)); else tick();

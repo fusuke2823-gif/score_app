@@ -860,11 +860,11 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .sg-rwc-box { width:100%; max-width:420px; padding:18px 16px 14px; border-radius:16px; text-align:center; background:linear-gradient(180deg, rgba(40,14,30,0.96), rgba(12,10,26,0.97)); border:1px solid rgba(255,84,112,0.5); box-shadow:0 0 40px rgba(255,51,85,0.3); }
 .sg-rwc-title { font-size:0.72rem; font-weight:900; letter-spacing:0.3em; color:rgba(232,232,240,0.6); }
 .sg-rwc-chance { margin-top:4px; font-size:0.95rem; color:#ff8a8a; } .sg-rwc-chance b { font-size:1.6rem; font-weight:900; }
-.sg-rwc-strip { display:grid; grid-template-columns:repeat(20, 1fr); gap:3px; margin:14px 0 10px; }
-.sg-rwc-strip i { aspect-ratio:1 / 2.2; border-radius:4px; transition:transform 0.08s, box-shadow 0.08s, filter 0.08s; }
-.sg-rwc-strip i.safe { background:rgba(46,204,113,0.28); border:1px solid rgba(93,222,142,0.35); }
-.sg-rwc-strip i.red { background:rgba(255,51,85,0.4); border:1px solid rgba(255,107,128,0.6); }
-.sg-rwc-strip i.lit { transform:scaleY(1.18); filter:brightness(2.2); box-shadow:0 0 12px #fff; }
+.sg-rwc-strip { display:grid; grid-template-columns:repeat(50, 1fr); gap:2px; margin:14px 0 10px; }
+.sg-rwc-strip i { height:34px; border-radius:2px; transition:transform 0.08s, box-shadow 0.08s, filter 0.08s; }
+.sg-rwc-strip i.safe { background:rgba(46,204,113,0.4); }
+.sg-rwc-strip i.red { background:rgba(255,51,85,0.7); }
+.sg-rwc-strip i.lit { transform:scaleY(1.25); filter:brightness(2.4); box-shadow:0 0 10px #fff; }
 .sg-rwc-strip i.hit { animation:sgRwcHit 0.5s ease-out 2; }
 @keyframes sgRwcHit { 50% { transform:scale(1.4); } }
 .sg-rwc-result { min-height:2.4rem; font-size:2rem; font-weight:900; letter-spacing:0.14em; }
@@ -875,7 +875,7 @@ body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s
 .sg-rwc-result.is-forced { color:#a9b4ff; text-shadow:0 0 16px rgba(169,180,255,0.9); }
 .sg-rwc.end-bad .sg-rwc-box { animation:sgRwcShake 0.4s; }
 @keyframes sgRwcShake { 20% { transform:translateX(-8px); } 40% { transform:translateX(7px); } 60% { transform:translateX(-5px); } 80% { transform:translateX(3px); } }
-.sg-rwc.is-forced .sg-rwc-strip i.red { background:rgba(123,140,255,0.45); border-color:rgba(169,180,255,0.7); }
+.sg-rwc.is-forced .sg-rwc-strip i.red { background:rgba(123,140,255,0.65); }
 .sg-rwc-hint { font-size:0.7rem; color:rgba(232,232,240,0.5); min-height:1em; }
 /* ビデオの巻き戻し風の画面効果 */
 .sg-vhs { position:fixed; inset:0; z-index:3050; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 2px, transparent 2px 4px), linear-gradient(180deg, rgba(73,214,168,0.08), rgba(80,120,255,0.1)); animation:sgVhsRoll 0.35s linear infinite; }
