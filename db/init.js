@@ -603,6 +603,14 @@ const initDB = async () => {
         progress JSONB NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+      -- 遊びモード（本番の敵を倒した人が報酬なしでもう一度戦う）。progress は user_special_gacha_progress の行と同じ形
+      CREATE TABLE IF NOT EXISTS special_gacha_plays (
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        enemy_id INTEGER REFERENCES special_gacha_enemies(id) ON DELETE CASCADE,
+        progress JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, enemy_id)
+      );
     `);
 
     // 結果シェア画像

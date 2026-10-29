@@ -121,6 +121,12 @@
       <div class="sg-test-note" id="sg-test-note" hidden>テスト中：ポイントは使わず、本番の進み具合とは別です。討伐してもアイコンはもらえません</div>
     </div>
     <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます　※GPは入手できません</div>
+    <!-- 遊びモード中の帯 -->
+    <div class="sg-play-bar" id="sg-play-bar" hidden>
+      <span class="sg-play-tag">遊びモード</span>
+      <span class="sg-play-note">10連 10pt・報酬なし</span>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="startSgPlay()">最初から</button>
+    </div>
     <div class="card sg-boss-card">
       <div class="sg-reward-preview">
         <div class="sg-reward-caption">討伐報酬</div>
@@ -153,14 +159,15 @@
 
     <div class="gacha-pull-btns sg-collapsible" id="sg-pull-wrap">
       <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" disabled>
-        <img src="/img/gacha_battle.png" alt="討伐ガチャ 10連 100pt">
+        <img src="/img/gacha_btn_multi.webp" alt="討伐ガチャ 10連">
+        <span class="gbtn-cost" id="sg-pull-cost">100pt</span>
         <span class="sg-chain-badge" id="sg-chain-badge" hidden></span>
       </button>
       <button type="button" class="sg-reset-btn" id="sg-reset-btn" onclick="doSpecialPull(true)" hidden>
         <span class="sg-reset-inner">
           <svg class="sg-reset-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>
           <b>リセットして引く</b>
-          <small>100pt</small>
+          <small id="sg-reset-cost">100pt</small>
         </span>
       </button>
     </div>
@@ -230,7 +237,7 @@
       </div>
       <div class="sg-ssr-tag">SSR</div>
       <div class="sg-ssr-name" id="sg-ssr-name"></div>
-      <button class="btn btn-secondary" onclick="document.getElementById('sg-defeat-overlay').classList.remove('show')">閉じる</button>
+      <button class="btn btn-secondary" onclick="closeSgDefeat()">閉じる</button>
     </div>
   </div>
 

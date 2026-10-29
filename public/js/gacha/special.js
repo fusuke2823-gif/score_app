@@ -11,7 +11,8 @@ function setSgSpeed(v) {
 }
 // 管理者のテスト中は API の行き先を /special-gacha/test に切り替える
 let sgMode = 'live';
-const sgApi = path => (sgMode === 'test' ? '/special-gacha/test' : '/special-gacha') + path;
+// 遊びモード（本番の敵を倒したあと、報酬なし・10連10ptでもう一度戦う）は /special-gacha/play
+const sgApi = path => (sgMode === 'test' ? '/special-gacha/test' : sgMode === 'play' ? '/special-gacha/play' : '/special-gacha') + path;
 let sgTestGimmick = null;
 
 function switchGachaType(type) {
@@ -465,9 +466,11 @@ function initSgTestBar() {
 }
 function setSgMode(mode) {
   sgMode = mode;
-  document.querySelectorAll('#sg-mode > button').forEach(b => b.classList.toggle('on', b.dataset.v === mode));
+  document.querySelectorAll('#sg-mode > button').forEach(b => b.classList.toggle('on', b.dataset.v === (mode === 'play' ? 'live' : mode)));
   document.getElementById('sg-test-ctrl').hidden = mode !== 'test';
   document.getElementById('sg-test-note').hidden = mode !== 'test';
+  document.getElementById('sg-play-bar').hidden = mode !== 'play';
+  document.getElementById('special-gacha-screen').classList.toggle('is-play', mode === 'play');
   sgRatesLoaded = false;
   document.getElementById('sg-rates-panel').hidden = true;
   document.getElementById('sg-rates-panel').classList.remove('open');
@@ -483,6 +486,28 @@ async function startSgTest() {
     document.getElementById('sg-battle-log').textContent = `テスト「${data.gimmick.label}」を最初から始めました`;
     applySgData({ ...data, points: currentPoints });
   } catch (err) { showToast(err.message, 'error'); }
+}
+
+// ===== 遊びモード =====
+async function startSgPlay() {
+  try {
+    const data = await apiFetch('/special-gacha/play/start', { method: 'POST' });
+    document.getElementById('sg-stage').innerHTML = '';
+    document.getElementById('sg-battle-log').textContent = '遊びモードを最初から始めました';
+    applySgData({ ...data, points: currentPoints });
+  } catch (err) { showToast(err.message, 'error'); }
+}
+// 10連1回のコスト（本番100pt・遊びモード10pt・テストは0pt）をボタンに文字で出す
+function renderSgCost(cost) {
+  const c = sgMode === 'test' ? 0 : sgMode === 'play' ? 10 : cost ?? 100;
+  document.getElementById('sg-pull-cost').textContent = `${c}pt`;
+  document.getElementById('sg-reset-cost').textContent = `${c}pt`;
+  document.querySelector('#sg-pull-btn img').alt = `討伐ガチャ 10連 ${c}pt`;
+}
+// 討伐完了の画面を閉じたら、そのまま遊びモードへ
+function closeSgDefeat() {
+  document.getElementById('sg-defeat-overlay').classList.remove('show');
+  if (sgMode === 'live' && sgLastProgress && sgLastProgress.defeated_at) setSgMode('play');
 }
 
 async function loadSpecialGacha() {
@@ -505,8 +530,12 @@ async function loadSpecialGacha() {
         return;
       }
       data = { ...t.test, points: t.points };
+    } else if (sgMode === 'play') {
+      data = await apiFetch('/special-gacha/play');
     } else {
       data = await apiFetch('/special-gacha/current');
+      // 本番の敵を倒したあとは、遊びモードで始める
+      if (data.enemy && data.progress.defeated_at) return setSgMode('play');
     }
     applySgData(data);
   } catch (err) {
@@ -540,8 +569,9 @@ function applySgData(data) {
   currentPoints = data.points;
   document.getElementById('sg-pull-btn').disabled = !!data.progress.defeated_at;
   sgLastProgress = data.progress;
+  renderSgCost(data.pull_cost);
   if (data.progress.defeated_at) {
-    document.getElementById('sg-battle-log').textContent = sgMode === 'test' ? '討伐済みです。「最初から」で始め直せます' : 'この敵は既に討伐済みです';
+    document.getElementById('sg-battle-log').textContent = sgMode === 'live' ? 'この敵は既に討伐済みです' : '討伐済みです。「最初から」で始め直せます';
   } else if ((data.progress.pending_gauge || []).length) {
     document.getElementById('sg-battle-log').innerHTML = `発動していないゲージ攻撃が ${data.progress.pending_gauge.length} 回分あります<button class="btn btn-primary btn-sm sg-gauge-resume" onclick="resumeSgGauges()">発動する</button>`;
   }
@@ -674,6 +704,7 @@ async function finishSgTurn(progress, defeated, awardedIcon) {
   document.getElementById('sg-reset-btn').disabled = !!progress.defeated_at;
   if (!progress.defeated_at) setSgPullCollapsed(false);
   if (defeated && !awardedIcon && sgMode === 'test') document.getElementById('sg-battle-log').innerHTML += '<br>テストの敵を討伐しました（アイコンはもらえません）';
+  if (defeated && sgMode === 'play') document.getElementById('sg-battle-log').innerHTML += '<br>遊びモードで討伐しました。「最初から」でもう一度遊べます';
   if (defeated && awardedIcon) {
     document.getElementById('sg-ssr-icon-img').src = awardedIcon.image_url;
     document.getElementById('sg-ssr-name').textContent = `限定アイコン「${awardedIcon.name}」を獲得！`;

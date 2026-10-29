@@ -583,5 +583,119 @@ testRouter.post('/gauge', async (req, res) => {
 
 router.use('/test', testRouter);
 
+// ===== 遊びモード =====
+// 本番の敵を倒した人が、同じ敵ともう一度戦える。10連1回 PLAY_COST pt、報酬なし。進み具合は本番とは別（special_gacha_plays）
+const PLAY_COST = 10;
+const playRouter = express.Router();
+
+function newPlayProgress(enemy) {
+  const p = newTestProgress(enemy.gimmick);
+  p.current_hp = enemy.max_hp;
+  return p;
+}
+function playView(enemy, progress) {
+  return {
+    enemy: { id: enemy.id, name: enemy.name, image_url: enemy.image_url, max_hp: enemy.max_hp, ssr_icon_name: '遊びモード（報酬なし）', ssr_icon_image_url: enemy.ssr_icon_image_url },
+    gimmick: gimmickSummary(enemy.gimmick),
+    progress,
+  };
+}
+// 本番で倒しているか確かめて、今の敵を返す（倒していなければ null）
+async function playableEnemy(db, userId) {
+  const enemy = await getActiveEnemy();
+  if (!enemy) return null;
+  const r = await db.query('SELECT defeated_at FROM user_special_gacha_progress WHERE user_id=$1 AND enemy_id=$2', [userId, enemy.id]);
+  return r.rows[0] && r.rows[0].defeated_at ? enemy : null;
+}
+
+playRouter.get('/', async (req, res) => {
+  try {
+    const enemy = await playableEnemy(pool, req.user.id);
+    if (!enemy) return res.status(400).json({ error: '本番の敵を倒すと遊べます' });
+    const r = await pool.query('SELECT progress FROM special_gacha_plays WHERE user_id=$1 AND enemy_id=$2', [req.user.id, enemy.id]);
+    const points = (await pool.query('SELECT points FROM users WHERE id=$1', [req.user.id])).rows[0].points;
+    res.json({ ...playView(enemy, r.rows[0] ? r.rows[0].progress : newPlayProgress(enemy)), points, pull_cost: PLAY_COST });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 最初から（HP満タンに戻す）
+playRouter.post('/start', async (req, res) => {
+  try {
+    const enemy = await playableEnemy(pool, req.user.id);
+    if (!enemy) return res.status(400).json({ error: '本番の敵を倒すと遊べます' });
+    const progress = newPlayProgress(enemy);
+    await pool.query(
+      `INSERT INTO special_gacha_plays (user_id, enemy_id, progress, updated_at) VALUES ($1,$2,$3,NOW())
+       ON CONFLICT (user_id, enemy_id) DO UPDATE SET progress=EXCLUDED.progress, updated_at=NOW()`,
+      [req.user.id, enemy.id, progress]
+    );
+    res.json(playView(enemy, progress));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+playRouter.post('/pull', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const enemy = await playableEnemy(client, req.user.id);
+    if (!enemy) { await client.query('ROLLBACK'); return res.status(400).json({ error: '本番の敵を倒すと遊べます' }); }
+    const row = (await client.query('SELECT progress FROM special_gacha_plays WHERE user_id=$1 AND enemy_id=$2 FOR UPDATE', [req.user.id, enemy.id])).rows[0];
+    const cur = row ? row.progress : newPlayProgress(enemy);
+    if (cur.defeated_at) { await client.query('ROLLBACK'); return res.status(400).json({ error: '討伐済みです。「最初から」で始め直してください' }); }
+    const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
+    if (userResult.rows[0].points < PLAY_COST) { await client.query('ROLLBACK'); return res.status(400).json({ error: `ポイントが不足しています（必要: ${PLAY_COST}pt）` }); }
+    await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [PLAY_COST, req.user.id]);
+    await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -PLAY_COST, '討伐ガチャ（遊びモード）']);
+    const play = playTen(cur, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true);
+    const defeated = play.hp <= 0;
+    const progress = { ...cur, ...play.next, pull_count: (cur.pull_count || 0) + 1, defeated_at: defeated ? new Date().toISOString() : null };
+    await client.query(
+      `INSERT INTO special_gacha_plays (user_id, enemy_id, progress, updated_at) VALUES ($1,$2,$3,NOW())
+       ON CONFLICT (user_id, enemy_id) DO UPDATE SET progress=EXCLUDED.progress, updated_at=NOW()`,
+      [req.user.id, enemy.id, progress]
+    );
+    await client.query('COMMIT');
+    res.json({ results: play.results, progress, new_points: userResult.rows[0].points - PLAY_COST, defeated, awarded_icon: null, leftover_gauge_damage: play.leftoverDmg, rewind: play.rewind, rewind_check: play.rewindCheck });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+playRouter.post('/gauge', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const enemy = await playableEnemy(client, req.user.id);
+    const row = enemy && (await client.query('SELECT progress FROM special_gacha_plays WHERE user_id=$1 AND enemy_id=$2 FOR UPDATE', [req.user.id, enemy.id])).rows[0];
+    const g = row && resolveGauge(row.progress.pending_gauge || [], req.body && req.body.token, gaugeAccuracy(req.body), getGimmick(enemy.gimmick));
+    if (!g) { await client.query('ROLLBACK'); return res.status(400).json({ error: '発動できるゲージ攻撃がありません' }); }
+    const alreadyDefeated = !!row.progress.defeated_at;
+    const hp = Math.max(0, row.progress.current_hp - g.dmg);
+    const defeated = !alreadyDefeated && hp <= 0;
+    const progress = { ...row.progress, current_hp: hp, pending_gauge: g.pending, defeated_at: defeated ? new Date().toISOString() : row.progress.defeated_at };
+    await client.query('UPDATE special_gacha_plays SET progress=$3, updated_at=NOW() WHERE user_id=$1 AND enemy_id=$2', [req.user.id, enemy.id, progress]);
+    await client.query('COMMIT');
+    res.json({ dmg: g.dmg, tier: g.tier.name, mult: g.tier.mult, overkill: alreadyDefeated, defeated, awarded_icon: null, progress });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+router.use('/play', playRouter);
+
 module.exports = router;
 module.exports.PULL_COST = PULL_COST;
