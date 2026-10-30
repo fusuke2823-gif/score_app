@@ -181,6 +181,16 @@
 .section-toggle-btn[aria-expanded="true"] .toggle-arrow { transform:rotate(90deg); }
 .back-link { color: rgba(232,232,240,0.75); font-size:0.85rem; margin-bottom:16px; display:inline-block; }
 .back-link:hover { color: var(--text-primary); }
+/* 前後の回へ */
+.rk-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:16px; }
+.rk-top .back-link { margin-bottom:0; white-space:nowrap; }
+.rk-nav { margin-left:auto; display:flex; gap:6px; }
+.rk-nav a, .rk-nav span { --tc:#ff6b80; display:inline-flex; align-items:center; gap:3px; height:28px; white-space:nowrap; padding:0 10px 0 8px; border-radius:99px; font-size:0.8rem; font-weight:bold; color:var(--text-primary); text-decoration:none; background:color-mix(in srgb, var(--tc) 12%, rgba(255,255,255,0.03)); border:1px solid color-mix(in srgb, var(--tc) 45%, transparent); font-variant-numeric:tabular-nums; transition:background 0.15s, border-color 0.15s, box-shadow 0.15s; }
+.rk-nav .t-ex { --tc:#b46cff; } .rk-nav .t-seraph { --tc:#4fc3f7; }
+.rk-nav a.next, .rk-nav span.next { padding:0 8px 0 10px; }
+.rk-nav a:hover { background:color-mix(in srgb, var(--tc) 26%, transparent); border-color:var(--tc); box-shadow:0 0 10px color-mix(in srgb, var(--tc) 35%, transparent); }
+.rk-nav span { --tc:#ffffff; opacity:0.3; }
+.rk-nav svg { width:14px; height:14px; color:var(--tc); }
 .result-thumb { width:40px; height:28px; object-fit:cover; border-radius:3px; cursor:pointer; border:1px solid var(--border); vertical-align:middle; }
 .result-thumb.has-yt { border:2px solid #ff4444; }
 
@@ -347,9 +357,13 @@ async function loadEvent() {
     document.title = `${event.name} - HBR`;
 
     document.getElementById('event-header').innerHTML = `
-      <a class="back-link" href="/index.html">${t('event.back')}</a>
+      <div class="rk-top">
+        <a class="back-link" href="/index.html">${t('event.back')}</a>
+        <div class="rk-nav" id="rk-nav"></div>
+      </div>
       ${renderEventHead(event)}
     `;
+    renderEventNav(event);
 
     renderCoop(event);
 
@@ -414,6 +428,31 @@ async function loadEvent() {
   } catch (err) {
     showAlert('#alert', err.message);
   }
+}
+
+// 前後の回へのボタン（トップと同じ並び＝回の番号順、動画だけの回は除く）。左が前の回、右が次の回
+const NAV_PREV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+const NAV_NEXT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+async function renderEventNav(event) {
+  let list;
+  try { list = (await apiFetch('/events')).filter(e => e.event_type !== 'media_only'); } catch { return; }
+  list.sort((a, b) => (a.event_number ?? 0) - (b.event_number ?? 0));
+  const i = list.findIndex(e => String(e.id) === String(event.id));
+  if (i < 0) return;
+  // 札は「SA#104」「SA#104EX」「遭遇戦#7」、色はその回の種類の色（番号はイベント名の #◯ から取る）
+  const label = e => {
+    const n = (e.name.match(/#\s*(\d+)/) || [])[1];
+    if (!n) return '';
+    return e.event_type === 'seraph' ? `遭遇戦#${n}` : e.event_type === 'score_attack_ex' ? `SA#${n}EX` : `SA#${n}`;
+  };
+  const btn = (e, cls, svg, fallback) => {
+    if (!e) return `<span class="${cls}" aria-hidden="true">${cls === 'prev' ? svg : ''}${fallback}${cls === 'next' ? svg : ''}</span>`;
+    const txt = escHtml(label(e) || fallback);
+    const tc = e.event_type === 'score_attack_ex' ? 'ex' : e.event_type === 'seraph' ? 'seraph' : 'score';
+    return `<a class="${cls} t-${tc}" href="/ranking.html?id=${encodeURIComponent(e.id)}" title="${escHtml(e.name)}">${cls === 'prev' ? svg : ''}${txt}${cls === 'next' ? svg : ''}</a>`;
+  };
+  document.getElementById('rk-nav').innerHTML =
+    btn(list[i - 1], 'prev', NAV_PREV_SVG, '前の回') + btn(list[i + 1], 'next', NAV_NEXT_SVG, '次の回');
 }
 
 // イベントのヘッダー：トップのカードと同じ見た目（種類の色・英字の札・状態・敵画像）
