@@ -875,6 +875,10 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .nm-label { font-size: 0.72rem; font-weight: bold; white-space: nowrap; }
 .nb i { position: absolute; top: -5px; right: -7px; min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; border-radius: 8px;
   background: #ef5350; color: #fff; font-style: normal; font-size: 0.62rem; font-weight: bold; text-align: center; box-shadow: 0 0 0 2px #14122a; }
+.nav-mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef5350; margin-left: 5px; vertical-align: 2px; font-style: normal; box-shadow: 0 0 6px rgba(239,83,80,0.7); }
+.nb .nav-mark { position: absolute; top: -3px; right: -3px; margin: 0; width: 10px; height: 10px; min-width: 0; padding: 0; box-shadow: 0 0 0 2px #14122a; }
+.nav-hamburger { position: relative; }
+.nav-hamburger.has-mark::after { content: ''; position: absolute; top: 3px; right: 1px; width: 8px; height: 8px; border-radius: 50%; background: #ef5350; box-shadow: 0 0 0 2px #14122a; }
 .nav-links .nb i { position: static; display: inline-block; margin-left: 4px; vertical-align: middle; box-shadow: none; }
 .nm-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
 .nm-logout { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid rgba(255,138,154,0.35); border-radius: 99px;

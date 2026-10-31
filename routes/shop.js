@@ -53,6 +53,29 @@ router.get('/frames', optionalAuth, async (req, res) => {
   }
 });
 
+// 条件を満たして買えるようになったフレームの id（ナビの印用。持っているもの・条件のないものは除く。シーズンのフレームは1位の人だけ）
+router.get('/frames/available', authenticateToken, async (req, res) => {
+  try {
+    const frames = (await pool.query(
+      'SELECT id, css_class FROM frames WHERE is_active = TRUE AND id NOT IN (SELECT frame_id FROM user_frames WHERE user_id = $1)',
+      [req.user.id])).rows;
+    const winners = new Map((await pool.query('SELECT season_key, winner_user_id FROM seasons_done')).rows.map(r => [r.season_key, r.winner_user_id]));
+    let stats = null;
+    const ids = [];
+    for (const f of frames) {
+      const def = frameByClass(f.css_class);
+      if (def?.season) { if (winners.get(def.season) === req.user.id) ids.push(f.id); continue; }
+      if (!def?.conds?.length) continue;
+      stats = stats || await getFrameStats(pool, req.user.id);
+      if (condProgress(def.conds, stats).met) ids.push(f.id);
+    }
+    res.json({ ids });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 自分のポイント・所持称号・装備中称号
 router.get('/my', authenticateToken, async (req, res) => {
   try {

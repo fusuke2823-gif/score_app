@@ -886,7 +886,7 @@ renderNav = function() {
   _origRenderNav();
   if (!document.getElementById('login-bonus-modal')) initLoginBonus();
   if (!document.getElementById('interim-dist-modal')) initInterimDistributionNotice();
-  updateGachaNav();
+  updateGachaNav().then(updateNavMarks);
   updateFeedbackBadge();
   updateAdminFeedbackBadge();
   checkGoogleLink();
@@ -1114,6 +1114,42 @@ async function updateGachaNav() {
     if (d) d.innerHTML = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${t('nav.gacha')}</a>`;
     if (m) m.innerHTML = nmTile('/gacha.html', 'gacha', t('nav.gacha'), isActive);
   } catch {}
+}
+
+// 解放条件を満たしたガチャ・条件を満たして買えるフレームがあれば、ナビのガチャ・ショップに印を付ける。
+// そのページを開いたら見た扱いにして消す（新しく増えたらまた付く）。問い合わせは5分ごと
+async function updateNavMarks() {
+  const user = getUser();
+  if (!user) return;
+  const key = `hbr_nav_marks:${user.id}`, seenKey = `hbr_nav_marks_seen:${user.id}`;
+  const read = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
+  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  let marks = read(key);
+  if (!marks || Date.now() - (marks.at || 0) > 5 * 60 * 1000) {
+    try {
+      const [g, f] = await Promise.all([apiFetch('/gacha/unlocked').catch(() => null), apiFetch('/shop/frames/available').catch(() => null)]);
+      marks = { at: Date.now(), gacha: g?.ids || [], frames: f?.ids || [] };
+      write(key, marks);
+    } catch { return; }
+  }
+  const seen = read(seenKey) || { gacha: [], frames: [] };
+  const path = location.pathname;
+  if (path === '/gacha.html') seen.gacha = [...new Set([...seen.gacha, ...marks.gacha])];
+  if (path === '/shop.html' && !location.search.includes('tab=equip')) seen.frames = [...new Set([...seen.frames, ...marks.frames])];
+  write(seenKey, seen);
+  const fresh = (ids, s) => ids.some(id => !s.includes(id));
+  const on = { '/gacha.html': fresh(marks.gacha, seen.gacha), '/shop.html': fresh(marks.frames, seen.frames) };
+  let any = false; // ナビに出ていないリンク（ガチャを隠している時など）の分は、メニューのボタンにも付けない
+  for (const [href, show] of Object.entries(on)) {
+    document.querySelectorAll(`#nav a[href="${href}"]`).forEach(a => {
+      a.querySelector('.nav-mark')?.remove();
+      if (!show) return;
+      any = true;
+      const nb = a.querySelector('.nb');
+      (nb || a).insertAdjacentHTML('beforeend', '<i class="nav-mark" aria-label="新着"></i>');
+    });
+  }
+  document.getElementById('nav-hamburger')?.classList.toggle('has-mark', any);
 }
 
 function logout() {

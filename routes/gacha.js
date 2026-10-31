@@ -163,6 +163,29 @@ router.get('/pools', optionalAuth, async (req, res) => {
 });
 
 // プール内のアイコン一覧（公開）
+// 解放条件を満たして引けるガチャの id（ナビの印用。期間外・回数制限まで引いたものは除く）
+router.get('/unlocked', authenticateToken, async (req, res) => {
+  try {
+    const r = await pool.query(
+      `SELECT id, entry_cond, pull_limit FROM gacha_pools
+       WHERE is_active = TRUE AND entry_cond IS NOT NULL
+         AND (start_at IS NULL OR start_at <= NOW()) AND (end_at IS NULL OR end_at > NOW())`);
+    const ids = [];
+    for (const p of r.rows) {
+      if (p.pull_limit != null) {
+        const c = await pool.query('SELECT COUNT(*)::int AS n FROM gacha_pull_logs WHERE user_id=$1 AND pool_id=$2', [req.user.id, p.id]);
+        if (c.rows[0].n >= p.pull_limit) continue;
+      }
+      const ep = await entryProgress(pool, req.user.id, p.entry_cond);
+      if (ep && ep.met) ids.push(p.id);
+    }
+    res.json({ ids });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.get('/pools/:id/icons', async (req, res) => {
   try {
     const result = await pool.query(
