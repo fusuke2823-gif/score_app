@@ -295,6 +295,8 @@ const initDB = async () => {
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS multi_cost INTEGER;
       -- 10連の最後の1枚：空・'S' なら S以上確定、'SS' なら SS確定
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS last_guarantee VARCHAR(3);
+      -- 10連の最後の1枚を、引く人がまだ持っていないアイコンから出す（確定のレア度の中に未所持がなければ通常どおり）
+      ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS last_unowned BOOLEAN NOT NULL DEFAULT FALSE;
       -- 引ける種類（空なら両方、'single' 単発のみ、'multi' 10連のみ）と、1人が引ける回数（空なら無制限。10連も1回と数える）
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_types VARCHAR(10);
       ALTER TABLE gacha_pools ADD COLUMN IF NOT EXISTS pull_limit INTEGER;

@@ -19,6 +19,7 @@ async function gachaParams(db, poolRow = null) {
     single_cost: pick(poolRow?.single_cost, parseInt(sm.gacha_single_cost || '50')),
     multi_cost: pick(poolRow?.multi_cost, parseInt(sm.gacha_multi_cost || '450')),
     last_guarantee: poolRow?.last_guarantee === 'SS' ? 'SS' : 'S', // 10連の最後の1枚
+    last_unowned: !!poolRow?.last_unowned, // 最後の1枚は未所持から
     dupMap: { SS: parseInt(sm.gacha_dup_ss_pts || '30'), S: parseInt(sm.gacha_dup_s_pts || '10'), A: parseInt(sm.gacha_dup_a_pts || '3') },
   };
 }
@@ -94,7 +95,7 @@ router.get('/pools', optionalAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT gp.id, gp.name, gp.description, gp.image_url, gp.order_index,
-              gp.start_at, gp.end_at, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee,
+              gp.start_at, gp.end_at, gp.ss_rate::float AS ss_rate, gp.s_rate::float AS s_rate, gp.single_cost, gp.multi_cost, gp.last_guarantee, gp.last_unowned,
               gp.pull_types, gp.pull_limit, gp.entry_cond, gp.no_gp_exchange,
               COUNT(DISTINCT gpi.icon_id)::int AS icon_count,
               COALESCE(
@@ -234,8 +235,11 @@ function pickRarity(ss_rate, s_rate, forceAtLeastS = false) {
 // SS かつ poolId ありの場合、ピックアップアイコンは各 PICKUP_RATE % の確率で当選
 const PICKUP_RATE_PER_ICON = 0.75;
 
-async function pickIcon(client, rarity, poolId, ssRate) {
-  const fallback = rarity === 'SS' ? ['SS', 'S', 'A'] : rarity === 'S' ? ['S', 'A'] : ['A'];
+// opts.unownedBy：そのユーザーが持っていないアイコンだけから選ぶ。opts.only：下のレア度へ落とさない
+async function pickIcon(client, rarity, poolId, ssRate, opts = {}) {
+  const fallback = opts.only ? [rarity] : rarity === 'SS' ? ['SS', 'S', 'A'] : rarity === 'S' ? ['S', 'A'] : ['A'];
+  const uid = opts.unownedBy ? parseInt(opts.unownedBy, 10) : null;
+  const notOwned = uid ? ` AND NOT EXISTS (SELECT 1 FROM user_icons ui WHERE ui.user_id=${uid} AND ui.icon_id=gi.id)` : '';
   for (const r of fallback) {
     // SS + poolId の場合はピックアップ重み付き抽選
     if (r === 'SS' && poolId && ssRate !== undefined) {
@@ -245,7 +249,7 @@ async function pickIcon(client, rarity, poolId, ssRate) {
          FROM gacha_icons gi
          JOIN gacha_pool_icons gpi ON gi.id = gpi.icon_id
          LEFT JOIN gacha_pool_pickups gpp ON gi.id = gpp.icon_id AND gpp.pool_id = $1
-         WHERE gi.is_active=TRUE AND gi.rarity='SS' AND gpi.pool_id=$1`,
+         WHERE gi.is_active=TRUE AND gi.rarity='SS' AND gpi.pool_id=$1${notOwned}`,
         [poolId]
       );
       if (res.rows.length === 0) continue; // SSアイコンなし → S/Aへフォールバック
@@ -289,12 +293,12 @@ async function pickIcon(client, rarity, poolId, ssRate) {
         `SELECT gi.id, gi.name, gi.rarity, gi.image_url
          FROM gacha_icons gi
          JOIN gacha_pool_icons gpi ON gi.id = gpi.icon_id
-         WHERE gi.is_active=TRUE AND gi.rarity=$1 AND gpi.pool_id=$2`,
+         WHERE gi.is_active=TRUE AND gi.rarity=$1 AND gpi.pool_id=$2${notOwned}`,
         [r, poolId]
       );
     } else {
       result = await client.query(
-        'SELECT id, name, rarity, image_url FROM gacha_icons WHERE is_active=TRUE AND rarity=$1',
+        `SELECT gi.id, gi.name, gi.rarity, gi.image_url FROM gacha_icons gi WHERE gi.is_active=TRUE AND gi.rarity=$1${notOwned}`,
         [r]
       );
     }
@@ -333,7 +337,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
     // pool_id 指定時はプールが存在・有効か確認
     let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit, entry_cond FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, last_unowned, pull_types, pull_limit, entry_cond FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
       poolRow = pr.rows[0];
     }
@@ -375,7 +379,7 @@ router.post('/pull/single', authenticateToken, async (req, res) => {
   }
 });
 
-// 10連ガチャ（最後の1枚はSレア以上確定。ガチャによってはSS確定）
+// 10連ガチャ（最後の1枚はSレア以上確定。ガチャによってはSS確定、未所持確定）
 router.post('/pull/multi', authenticateToken, async (req, res) => {
   const { pool_id } = req.body;
   const client = await pool.connect();
@@ -385,7 +389,7 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     // pool_id 指定時はプールが存在・有効か確認
     let poolRow = null;
     if (pool_id) {
-      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, pull_types, pull_limit, entry_cond FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
+      const pr = await client.query('SELECT id, ss_rate, s_rate, single_cost, multi_cost, last_guarantee, last_unowned, pull_types, pull_limit, entry_cond FROM gacha_pools WHERE id=$1 AND is_active=TRUE', [pool_id]);
       if (pr.rows.length === 0) { await client.query('ROLLBACK'); return res.status(400).json({ error: '指定されたガチャが存在しません' }); }
       poolRow = pr.rows[0];
     }
@@ -411,7 +415,16 @@ router.post('/pull/multi', authenticateToken, async (req, res) => {
     for (let i = 0; i < 10; i++) {
       const isLast = (i === 9);
       const rarity = isLast && gp.last_guarantee === 'SS' ? 'SS' : pickRarity(ss_rate, s_rate, isLast);
-      const icon = await pickIcon(client, rarity, pool_id || null, ss_rate);
+      let icon = null;
+      // 最後の1枚を未所持から：出たレア度→確定の範囲のもう一方（S以上確定ならSとSS）の順に、持っていないものを探す（この10連で出たものも持っている扱い）
+      if (isLast && gp.last_unowned) {
+        const tries = gp.last_guarantee === 'SS' ? ['SS'] : [rarity, rarity === 'SS' ? 'S' : 'SS'];
+        for (const r of tries) {
+          icon = await pickIcon(client, r, pool_id || null, ss_rate, { unownedBy: req.user.id, only: true });
+          if (icon) break;
+        }
+      }
+      if (!icon) icon = await pickIcon(client, rarity, pool_id || null, ss_rate);
       if (!icon) { await client.query('ROLLBACK'); return res.status(400).json({ error: '排出可能なアイコンがありません' }); }
       const result = await acquireIcon(client, req.user.id, icon, dupMap);
       results.push(result);

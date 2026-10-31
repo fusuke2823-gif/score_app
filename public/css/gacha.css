@@ -88,11 +88,17 @@
 .gx-entry-evs li.ok .gx-entry-got { color:#5dde8e; }
 .gx-entry-total { margin-top:8px; text-align:right; font-size:0.8rem; color:var(--text-secondary); }
 .gx-entry-total b { font-size:1rem; color:#ffd24a; }
+.gx-entry-after { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,0.12); }
+.gx-entry-after-lb { font-size:0.72rem; font-weight:bold; color:var(--text-muted); margin-right:2px; }
+.gx-entry-chip { display:inline-flex; align-items:baseline; gap:3px; padding:3px 8px; border-radius:99px; font-size:0.74rem; color:var(--text-secondary); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
+.gx-entry-chip b { font-size:0.8rem; color:#fff; font-variant-numeric:tabular-nums; }
 .gx-entry-note { margin-top:10px; font-size:0.74rem; color:var(--text-muted); }
 .gx-entry.is-met { display:flex; align-items:center; justify-content:center; gap:8px; font-size:0.8rem; font-weight:bold; color:#5dde8e; text-align:left; }
 .gx-entry.is-met small { display:block; font-weight:normal; font-size:0.72rem; color:var(--text-muted); }
 .gx-entry-ico { flex-shrink:0; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(46,204,113,0.18); }
-.pool-lock { display:inline-flex; align-items:center; gap:4px; margin-bottom:4px; padding:2px 9px; border-radius:99px; font-size:0.7rem; font-weight:bold; background:rgba(0,0,0,0.6); border:1px solid rgba(255,107,128,0.6); color:#ffb3bf; }
+.pool-tags { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px; }
+.pool-unowned { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:99px; font-size:0.7rem; font-weight:bold; background:rgba(0,0,0,0.6); border:1px solid rgba(255,210,74,0.65); color:#ffe08a; }
+.pool-lock { display:inline-flex; align-items:center; gap:4px; padding:2px 9px; border-radius:99px; font-size:0.7rem; font-weight:bold; background:rgba(0,0,0,0.6); border:1px solid rgba(255,107,128,0.6); color:#ffb3bf; }
 .gx-ptab-lock { display:inline-flex; vertical-align:-2px; margin-right:3px; color:#ffb3bf; font-style:normal; }
 .gx-ptab-lock svg { width:11px; height:11px; }
 .gx-pull-limit b { color:#ffd24a; }

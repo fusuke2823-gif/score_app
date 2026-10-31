@@ -18,7 +18,7 @@ function poolSettings(p) {
   const ss = v(p.ss_rate, +b.ss_rate), s = v(p.s_rate, +b.s_rate);
   const rateChanged = p.ss_rate != null || p.s_rate != null;
   return { ...b, ss_rate: ss, s_rate: s, a_rate: rateChanged ? Math.max(0, +(100 - ss - s).toFixed(3)) : b.a_rate,
-    single_cost: v(p.single_cost, b.single_cost), multi_cost: v(p.multi_cost, b.multi_cost), last_guarantee: p.last_guarantee === 'SS' ? 'SS' : 'S' };
+    single_cost: v(p.single_cost, b.single_cost), multi_cost: v(p.multi_cost, b.multi_cost), last_guarantee: p.last_guarantee === 'SS' ? 'SS' : 'S', last_unowned: !!p.last_unowned };
 }
 let isPulling = false;
 let currentPoints = 0;
@@ -80,6 +80,8 @@ function pullsLeft() {
 // 解放条件のあるガチャ：満たしていなければ鍵（引くボタンの代わりに条件と、イベントごとの達成状況を出す）
 const ENTRY_LOCK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
 const CHECK_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+// 10連の最後の1枚が未所持確定のガチャに付ける札のしるし（新しいものの印のきらめき）
+const UNOWNED_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.2 6.3L20.5 10l-6.3 2.2L12 18.5l-2.2-6.3L3.5 10l6.3-1.7z"/><path d="M19 15l.9 2.3 2.3.9-2.3.9L19 21.4l-.9-2.3-2.3-.9 2.3-.9z"/></svg>';
 const isLocked = p => !!(p && p.entry && !p.entry.met && !p.entry.admin_pass);
 function renderEntryBox(p) {
   let el = document.getElementById('gx-entry');
@@ -110,7 +112,16 @@ function renderEntryBox(p) {
         <span class="gx-entry-got">${ev.attrs.length ? `${ev.attrs.map(escHtml).join('・')}${need > 1 && !total ? `（${Math.min(ev.attrs.length, need)}/${need}）` : ''}` : '未投稿'}</span>
       </li>`).join('')}</ul>
     ${total ? `<div class="gx-entry-total">合計 <b>${Math.min(e.total || 0, need)}</b> / ${need}属性分</div>` : ''}
+    ${entryAfterHtml(p)}
     <div class="gx-entry-note">スコアが承認されると引けるようになります</div>`;
+}
+// 鍵のあいだは引くボタンと回数の表示を隠すので、解放後に引けるもの（値段と回数制限）を条件の箱に出す
+function entryAfterHtml(p) {
+  const st = poolSettings(p);
+  const types = [['single', '単発'], ['multi', '10連']].filter(([t]) => !p.pull_types || p.pull_types === t);
+  const items = types.map(([t, l]) => `<span class="gx-entry-chip">${l}<b>${st[t + '_cost']}pt</b></span>`);
+  if (p.pull_limit != null) items.push(`<span class="gx-entry-chip">1人<b>${p.pull_limit}回</b>まで</span>`);
+  return `<div class="gx-entry-after"><span class="gx-entry-after-lb">解放後</span>${items.join('')}</div>`;
 }
 // ボタンの押せる・押せないと、回数制限の表示（引ける種類以外のボタンは隠す）
 function refreshPullButtons() {
@@ -163,10 +174,10 @@ function updateRateInfo(settings, pickupIcons) {
         <div class="gx-rate-pu-rest"><span>${zh ? '通常SS（均等）' : '通常SS（均等）'}</span><span>${normalRate.toFixed(2)}%</span></div>
       </div>`;
   }
-  const ssLast = settings.last_guarantee === 'SS';
+  const ssLast = settings.last_guarantee === 'SS', unownedLast = !!settings.last_unowned;
   const rateNote = zh
-    ? `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}稀度內機率均等。${ssLast ? '十連最後1枚SS保底。' : '十連最後1枚A→S保底。'}`
-    : `${puCount > 0 ? 'PickUpのSSは各0.75%。' : ''}レアリティ内の確率は均等。${ssLast ? '10連の最後の1枚はSS確定です。' : '10連の最後の1枚はAがSに変わります。'}`;
+    ? `${puCount > 0 ? 'PickUpSSは各0.75%。' : ''}稀度內機率均等。${ssLast ? '十連最後1枚SS保底。' : '十連最後1枚A→S保底。'}${unownedLast ? '最後1枚從未持有的頭像中抽出（全部持有時照常）。' : ''}`
+    : `${puCount > 0 ? 'PickUpのSSは各0.75%。' : ''}レアリティ内の確率は均等。${ssLast ? '10連の最後の1枚はSS確定です。' : '10連の最後の1枚はAがSに変わります。'}${unownedLast ? `最後の1枚は、まだ持っていないアイコンから出ます（${ssLast ? 'SS' : 'SとSS'}を全部持っているときは通常どおり）。` : ''}`;
   document.getElementById('rate-info').innerHTML = `
     <div class="gx-rate-bar">${bar}</div>
     ${row('SS', puCount > 0 ? 'PickUp含む' : '', ssRate)}
@@ -250,9 +261,9 @@ function poolBannerHTML(p, idx) {
       ${poolTimeChip(p.end_at)}
       <div class="pool-bottom">
         <div style="min-width:0;flex:1">
-          ${isLocked(p) ? `<div class="pool-lock">${ENTRY_LOCK_SVG}解放条件あり</div>` : ''}
+          ${isLocked(p) || p.last_unowned ? `<div class="pool-tags">${isLocked(p) ? `<span class="pool-lock">${ENTRY_LOCK_SVG}解放条件あり</span>` : ''}${p.last_unowned ? `<span class="pool-unowned">${UNOWNED_SVG}未所持確定</span>` : ''}</div>` : ''}
           <div class="pool-name">${escHtml(p.name)}</div>
-          <div class="pool-desc">${p.description ? escHtml(p.description) + ' ・ ' : ''}${t('gacha.icons_count', p.icon_count)}</div>
+          ${p.description ? `<div class="pool-desc">${escHtml(p.description)}</div>` : ''}
         </div>
         ${puStack}
       </div>
