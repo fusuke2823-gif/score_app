@@ -153,7 +153,7 @@
     <div class="top-title-line"></div>
     <div class="top-meta">
       <span id="app-version" class="top-ver" onclick="openVersionModal()"></span>
-      <span data-i18n="index.subtitle">制作:つんつく</span>
+      <span><span data-i18n="index.credit">制作:</span><a id="top-credit" class="top-credit" target="_blank" rel="noopener noreferrer">つんつく</a></span>
     </div>
 
     <!-- ドキュメントメニュー -->
@@ -430,6 +430,10 @@
 <script>
 renderNav();
 applyI18n();
+// 制作者の名前をXへのリンクに（管理画面の連絡先を使う。未設定なら文字だけ）
+fetch('/api/auth/support-contact').then(r => r.json()).then(({ x_username }) => {
+  if (x_username) document.getElementById('top-credit').href = `https://x.com/${encodeURIComponent(x_username)}`;
+}).catch(() => {});
 
 // ユーザーIDコピーボタン表示
 (function() {

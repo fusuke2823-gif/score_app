@@ -131,8 +131,8 @@
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="section-title">パスワードを忘れた人の連絡先</div>
-      <p class="st-desc">ログイン画面に「パスワードを忘れた方は」の案内とXへのリンクを出します。空欄にすると案内を出しません。</p>
+      <div class="section-title">運営のXアカウント</div>
+      <p class="st-desc">ログイン画面の「パスワードを忘れた方は」の案内と、TOPの「制作:つんつく」のリンク先になります。空欄にすると、案内もリンクも出しません。</p>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="color:var(--text-muted)">@</span>
         <input class="form-input" id="support-x-input" type="text" maxlength="16" placeholder="X ID" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:160px;max-width:280px">
@@ -411,7 +411,7 @@ async function saveSupportContact() {
   try {
     await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ support_x_username: name }) });
     input.value = name;
-    showToast(name ? '連絡先を保存しました' : '連絡先を消しました（案内は出しません）');
+    showToast(name ? 'Xアカウントを保存しました' : 'Xアカウントを消しました（案内もリンクも出しません）');
   } catch (err) {
     showToast(err.message, 'error');
   }

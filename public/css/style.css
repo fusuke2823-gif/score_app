@@ -875,6 +875,9 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
 .nm-label { font-size: 0.72rem; font-weight: bold; white-space: nowrap; }
 .nb i { position: absolute; top: -5px; right: -7px; min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; border-radius: 8px;
   background: #ef5350; color: #fff; font-style: normal; font-size: 0.62rem; font-weight: bold; text-align: center; box-shadow: 0 0 0 2px #14122a; }
+.top-credit, .top-credit:hover { color: inherit; }
+.top-credit[href] { text-decoration: underline; text-underline-offset: 2px; }
+.top-credit[href]:hover { color: var(--accent-hover); }
 .nav-mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef5350; margin-left: 5px; vertical-align: 2px; font-style: normal; box-shadow: 0 0 6px rgba(239,83,80,0.7); }
 .nb .nav-mark { position: absolute; top: -3px; right: -3px; margin: 0; width: 10px; height: 10px; min-width: 0; padding: 0; box-shadow: 0 0 0 2px #14122a; }
 .nav-hamburger { position: relative; }
