@@ -1,0 +1,72 @@
+/* ログイン・新規登録 */
+.auth-wrap { padding:32px 16px 48px; align-items:flex-start; }
+.auth-card { position:relative; max-width:420px; margin-top:4vh; padding:24px 24px 22px; border-radius:16px; overflow:hidden; }
+.auth-card::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:var(--accent-grad); }
+.auth-sr { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.auth-lead { margin:14px 0 18px; font-size:0.85rem; line-height:1.6; color:var(--text-secondary); text-align:center; }
+.auth-badge { display:table; margin:14px auto -6px; padding:3px 12px; border-radius:99px; background:var(--accent-dim); border:1px solid rgba(255,77,101,0.5); color:var(--accent-hover); font-size:0.75rem; font-weight:bold; }
+
+.auth-badge[hidden] { display:none; }
+
+/* ログインと新規登録の切り替え */
+.auth-switch { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); }
+.auth-switch a { display:flex; align-items:center; justify-content:center; min-height:40px; border-radius:9px; font-size:0.9rem; font-weight:bold; color:var(--text-secondary); text-decoration:none; transition:color 0.15s, background 0.15s; }
+.auth-switch a:hover { color:var(--text-primary); text-decoration:none; }
+.auth-switch a[aria-current] { color:#fff; background:var(--accent-grad); box-shadow:0 2px 10px rgba(255,77,101,0.35); }
+
+/* Google */
+.auth-google[hidden] { display:none; }
+.auth-google-btn { display:flex; justify-content:center; min-height:44px; }
+.auth-google-note { margin:8px 0 0; font-size:0.75rem; color:var(--text-muted); text-align:center; }
+.auth-inapp { padding:12px; border-radius:10px; background:rgba(255,255,255,0.05); border:1px solid var(--border); font-size:0.8rem; line-height:1.6; color:var(--text-secondary); text-align:center; }
+.auth-inapp .btn { margin-top:8px; }
+.auth-or { display:flex; align-items:center; gap:10px; margin:16px 0; font-size:0.75rem; color:var(--text-muted); }
+.auth-or::before, .auth-or::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* 入力欄 */
+.auth-card .form-group { margin-bottom:16px; }
+.auth-card .form-label { display:flex; justify-content:space-between; align-items:baseline; gap:8px; color:var(--text-primary); font-weight:bold; }
+.auth-card .form-label small { font-size:0.75rem; font-weight:normal; color:var(--text-muted); }
+.auth-card .form-input { min-height:46px; font-size:16px; } /* 16px未満だとiPhoneで入力時に画面が拡大される */
+.auth-card .form-input.is-invalid { border-color:var(--danger); }
+.auth-card .pw-toggle { right:4px; display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:8px; }
+.auth-card .pw-toggle:hover { color:var(--text-primary); }
+.auth-card .form-input:focus-visible, .auth-card .pw-toggle:focus-visible, .auth-switch a:focus-visible { outline:2px solid var(--accent-hover); outline-offset:1px; }
+.auth-rule { display:flex; align-items:center; gap:5px; margin:6px 0 0; font-size:0.75rem; color:var(--text-muted); }
+.auth-rule svg { flex-shrink:0; width:13px; height:13px; }
+.auth-rule.ok { color:#5dde8e; }
+.auth-rule.ng { color:#ff8a8a; }
+.auth-err { margin:6px 0 0; font-size:0.78rem; color:#ff8a8a; }
+.auth-terms { margin:12px 0 0; font-size:0.75rem; line-height:1.6; color:var(--text-muted); text-align:center; }
+.auth-nb { display:inline-block; } /* 文の区切りで折り返す */
+.auth-terms a { color:var(--text-secondary); text-decoration:underline; }
+.auth-submit { display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; }
+.auth-spin { width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.35); border-top-color:#fff; animation:auth-spin 0.7s linear infinite; }
+@keyframes auth-spin { to { transform:rotate(360deg); } }
+
+/* 登録の段階 */
+.auth-steps { display:flex; align-items:center; justify-content:center; gap:8px; margin:0 0 16px; padding:0; list-style:none; font-size:0.75rem; color:var(--text-muted); }
+.auth-steps li { display:flex; align-items:center; gap:6px; }
+.auth-steps li + li::before { content:''; width:24px; height:1px; margin-right:2px; background:var(--border-light); }
+.auth-steps i { display:flex; align-items:center; justify-content:center; width:20px; height:20px; border-radius:50%; border:1px solid var(--border-light); font-style:normal; font-weight:bold; }
+.auth-steps i svg { width:12px; height:12px; }
+.auth-steps .done i { color:#5dde8e; border-color:#5dde8e; background:rgba(46,204,113,0.15); }
+.auth-steps .now { color:var(--text-primary); font-weight:bold; }
+.auth-steps .now i { color:#fff; border-color:transparent; background:var(--accent-grad); }
+.auth-setup-title { margin:0 0 4px; font-size:1.15rem; text-align:center; }
+.auth-setup-desc { margin:0 0 16px; font-size:0.82rem; line-height:1.6; color:var(--text-secondary); text-align:center; }
+.auth-idbox { margin-bottom:16px; padding:10px 12px; border-radius:10px; background:var(--bg-card2); border:1px solid var(--border); font-size:0.78rem; line-height:1.55; color:var(--text-secondary); }
+.auth-idbox-row { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+.auth-idbox b { min-width:0; overflow-wrap:anywhere; font-size:0.95rem; color:#fff; }
+.auth-idbox .btn { flex-shrink:0; }
+.auth-sns { margin-bottom:16px; border:1px solid var(--border); border-radius:10px; }
+.auth-sns summary { display:flex; align-items:center; justify-content:space-between; min-height:44px; padding:0 12px; font-size:0.85rem; font-weight:bold; cursor:pointer; list-style:none; }
+.auth-sns summary::-webkit-details-marker { display:none; }
+.auth-sns summary svg { width:16px; height:16px; color:var(--text-muted); transition:transform 0.2s; }
+.auth-sns[open] summary svg { transform:rotate(180deg); }
+.auth-sns-body { padding:0 12px 12px; }
+.auth-sns-note { margin:0 0 10px; font-size:0.75rem; line-height:1.6; color:var(--text-muted); }
+.auth-handle { display:flex; align-items:center; gap:6px; }
+.auth-handle > span { color:var(--text-muted); }
+.auth-sns .form-group:last-child { margin-bottom:0; }
+@media (prefers-reduced-motion: reduce) { .auth-spin { animation-duration:2s; } .auth-sns summary svg, .auth-switch a { transition:none; } }

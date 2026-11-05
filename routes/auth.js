@@ -49,6 +49,17 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// パスワードを忘れた人の連絡先（管理画面で設定。ログイン前の画面で使う）
+router.get('/support-contact', async (req, res) => {
+  try {
+    const r = await pool.query("SELECT value FROM settings WHERE key = 'support_x_username'");
+    res.json({ x_username: r.rows[0]?.value || '' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -136,19 +147,19 @@ router.put('/me', authenticateToken, async (req, res) => {
     if (new_password) {
       const hash = await bcrypt.hash(new_password, 10);
       result = await pool.query(
-        'UPDATE users SET username=COALESCE($1,username), user_code=COALESCE($2,user_code), oshi_character=$3, password_hash=$4, twitter_username=$5, youtube_channel=$6 WHERE id=$7 RETURNING id, username, role, oshi_character, user_code',
+        'UPDATE users SET username=COALESCE($1,username), user_code=COALESCE($2,user_code), oshi_character=$3, password_hash=$4, twitter_username=$5, youtube_channel=$6 WHERE id=$7 RETURNING id, username, role, oshi_character, user_code, is_internal',
         [username || null, newCode, oshi_character ?? null, hash, twName, ytCh, req.user.id]
       );
     } else {
       result = await pool.query(
-        'UPDATE users SET username=COALESCE($1,username), user_code=COALESCE($2,user_code), oshi_character=$3, twitter_username=$4, youtube_channel=$5 WHERE id=$6 RETURNING id, username, role, oshi_character, user_code',
+        'UPDATE users SET username=COALESCE($1,username), user_code=COALESCE($2,user_code), oshi_character=$3, twitter_username=$4, youtube_channel=$5 WHERE id=$6 RETURNING id, username, role, oshi_character, user_code, is_internal',
         [username || null, newCode, oshi_character ?? null, twName, ytCh, req.user.id]
       );
     }
 
     const updated = result.rows[0];
     const token = require('jsonwebtoken').sign(
-      { id: updated.id, username: updated.username, role: updated.role },
+      { id: updated.id, username: updated.username, role: updated.role, is_internal: updated.is_internal },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );

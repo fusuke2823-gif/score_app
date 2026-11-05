@@ -531,12 +531,13 @@ router.delete('/enemies/:id', async (req, res) => {
 // 一般設定取得
 router.get('/settings', async (req, res) => {
   try {
-    const result = await pool.query("SELECT key, value FROM settings WHERE key = 'ai_score_check_enabled'");
+    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('ai_score_check_enabled', 'support_x_username')");
     const map = {};
     result.rows.forEach(r => { map[r.key] = r.value; });
     res.json({
       ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false',
       attr_check_mode: await getAttrCheckMode(),
+      support_x_username: map['support_x_username'] || '',
     });
   } catch (err) {
     console.error(err);
@@ -546,8 +547,13 @@ router.get('/settings', async (req, res) => {
 
 // 一般設定更新
 router.put('/settings', async (req, res) => {
-  const { ai_score_check_enabled, attr_check_mode } = req.body;
+  const { ai_score_check_enabled, attr_check_mode, support_x_username } = req.body;
   try {
+    if (support_x_username !== undefined) {
+      const name = String(support_x_username).trim().replace(/^@/, '');
+      if (name && !/^[A-Za-z0-9_]{1,15}$/.test(name)) return res.status(400).json({ error: 'X IDは英数字・アンダースコア15文字以内で入力してください' });
+      await pool.query("INSERT INTO settings (key, value) VALUES ('support_x_username', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [name]);
+    }
     if (attr_check_mode !== undefined) {
       if (!['off', 'record', 'enforce'].includes(attr_check_mode)) return res.status(400).json({ error: '無効なモードです' });
       await pool.query("INSERT INTO settings (key, value) VALUES ('attr_check_mode', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [attr_check_mode]);

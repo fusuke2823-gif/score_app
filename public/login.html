@@ -9,172 +9,53 @@
 <meta name="apple-mobile-web-app-title" content="ヘブバンランクボード">
 <title>ログイン - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/auth.css">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <nav id="nav"></nav>
 <div class="auth-wrap">
   <div class="auth-card card">
-    <h1 class="auth-title" data-i18n="login.title">ログイン</h1>
-    <div id="alert"></div>
-    <form id="login-form">
-      <div class="form-group">
-        <label class="form-label" data-i18n="login.username">ユーザー名またはログインID</label>
-        <input class="form-input" type="text" id="username" required autofocus>
+    <div id="auth-entry">
+      <div class="auth-switch" role="navigation" aria-label="ログインと新規登録">
+        <a href="/login.html" aria-current="page" data-i18n="login.title">ログイン</a>
+        <a href="/register.html" data-i18n="register.title">新規登録</a>
       </div>
-      <div class="form-group">
-        <label class="form-label" data-i18n="login.password">パスワード</label>
-        <div class="pw-wrap">
-          <input class="form-input" type="password" id="password" required>
-          <button type="button" class="pw-toggle" onclick="togglePw('password')" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <h1 class="auth-sr" data-i18n="login.title">ログイン</h1>
+      <p class="auth-lead" data-i18n="auth.login_lead">スコアの投稿やガチャを楽しむにはログインしてください</p>
+      <div id="alert" aria-live="polite"></div>
+      <div class="auth-google" id="auth-google" hidden>
+        <div class="auth-google-btn" id="google-btn-wrap"></div>
+        <div class="auth-or" data-i18n="auth.or_id">またはIDとパスワードで</div>
+      </div>
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label class="form-label" for="username" data-i18n="login.username">ユーザー名またはログインID</label>
+          <input class="form-input" type="text" id="username" required autocomplete="username" autocapitalize="off" spellcheck="false">
         </div>
-      </div>
-      <button type="submit" class="btn btn-primary btn-wide" id="submit-btn" data-i18n="login.btn">ログイン</button>
-    </form>
-    <div style="display:flex;align-items:center;gap:8px;margin:16px 0">
-      <div style="flex:1;height:1px;background:var(--border)"></div>
-      <span style="font-size:0.8rem;color:var(--text-muted)">または</span>
-      <div style="flex:1;height:1px;background:var(--border)"></div>
+        <div class="form-group">
+          <label class="form-label" for="password" data-i18n="login.password">パスワード</label>
+          <div class="pw-wrap">
+            <input class="form-input" type="password" id="password" required autocomplete="current-password">
+            <button type="button" class="pw-toggle"></button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-wide auth-submit" id="submit-btn" data-i18n="login.btn">ログイン</button>
+      </form>
+      <p class="auth-terms" id="auth-forgot" hidden><span class="auth-nb" data-i18n="auth.forgot_pre">パスワードを忘れた方は</span><span class="auth-nb"><span data-i18n="auth.forgot_x">Xの</span><a id="auth-forgot-link" target="_blank" rel="noopener noreferrer"></a><span data-i18n="auth.forgot_post">へご連絡ください</span></span></p>
     </div>
-    <div id="google-btn-wrap" style="display:flex;justify-content:center"></div>
-    <div id="google-client-id" data-client-id=""></div>
-    <p style="text-align:center;margin-top:16px;font-size:0.85rem;color:var(--text-secondary)">
-      <span data-i18n="login.no_account">アカウントがない方は</span> <a href="/register.html" data-i18n="login.register_link">新規登録</a>
-    </p>
-  </div>
-</div>
-
-<!-- Googleユーザー名設定モーダル -->
-<div id="google-username-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:3000;align-items:center;justify-content:center">
-  <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:28px 24px;max-width:360px;width:90%">
-    <h2 style="margin:0 0 6px;font-size:1.1rem">ユーザー名を設定</h2>
-    <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:18px">Googleアカウントで初めてログインしました。このアプリで使うユーザー名を設定してください。</p>
-    <div id="google-modal-alert" style="margin-bottom:10px"></div>
-    <input class="form-input" id="google-username-input" type="text" placeholder="ユーザー名（1〜12文字）" maxlength="12" style="margin-bottom:10px">
-    <select class="form-input" id="google-oshi-input" style="margin-bottom:10px">
-      <option value="">推しキャラクター（任意）</option>
-    </select>
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
-      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
-      <input class="form-input" id="google-twitter-input" type="text" placeholder="X (Twitter) ID（任意）" maxlength="15" autocomplete="off" style="flex:1">
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:16px">
-      <span style="color:var(--text-muted);font-size:0.9rem;flex-shrink:0">@</span>
-      <input class="form-input" id="google-youtube-input" type="text" placeholder="YouTubeハンドル（任意）" maxlength="30" autocomplete="off" style="flex:1">
-    </div>
-    <button class="btn btn-primary btn-wide" onclick="submitGoogleUsername()">登録してログイン</button>
+    <div id="auth-setup" hidden></div>
   </div>
 </div>
 <script src="/js/common.js"></script>
+<script src="/js/auth-flow.js"></script>
 <script>
-renderNav();
-applyI18n();
-if (getToken()) location.href = '/index.html';
-if (new URLSearchParams(location.search).get('expired')) {
-  showAlert('#alert', t('login.expired'));
+if (getToken()) location.replace(authBackTo());
+else {
+  renderNav();
+  applyI18n();
+  initAuthPage('login');
 }
-
-let _pendingGoogleId = null;
-
-fetch('/api/charts/game-data').then(r => r.json()).then(({ characters }) => {
-  const opts = characters.map(c => `<option value="${escHtml(c.name)}">${escHtml(c.name)}</option>`).join('');
-  document.getElementById('google-oshi-input').innerHTML += opts;
-}).catch(() => {});
-
-// アプリ内ブラウザ検出（LINE・X等ではGoogle OAuthがブロックされる）
-function isInAppBrowser() {
-  return /Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\b|Twitter|TwitterAndroid/i.test(navigator.userAgent);
-}
-
-// クライアントID取得 → Google SDK初期化
-fetch('/api/auth/google/client-id')
-  .then(r => r.json())
-  .then(({ client_id }) => {
-    if (!client_id) return;
-    const wrap = document.getElementById('google-btn-wrap');
-    if (isInAppBrowser()) {
-      wrap.innerHTML = `<div style="font-size:0.8rem;color:var(--text-muted);text-align:center;padding:8px 0">X・LINEなどのアプリ内ブラウザではGoogleログインをご利用いただけません。<br>ブラウザアプリで開いてからお試しください。</div>`;
-      return;
-    }
-    document.getElementById('google-client-id').dataset.clientId = client_id;
-    const script = document.querySelector('script[src*="accounts.google.com"]');
-    const init = () => {
-      if (!window.google) return;
-      google.accounts.id.initialize({ client_id, callback: handleGoogleCredential });
-      google.accounts.id.renderButton(
-        wrap,
-        { theme: 'outline', size: 'large', width: 280, text: 'signin_with', locale: 'ja' }
-      );
-    };
-    if (window.google) init();
-    else script?.addEventListener('load', init);
-  })
-  .catch(() => {});
-
-async function handleGoogleCredential(response) {
-  try {
-    const data = await apiFetch('/auth/google/verify', {
-      method: 'POST',
-      body: JSON.stringify({ credential: response.credential })
-    });
-    if (data.token) {
-      setAuth(data.token, data.user);
-      const redirect = new URLSearchParams(location.search).get('redirect');
-      location.href = redirect || '/index.html';
-    } else if (data.needs_username) {
-      _pendingGoogleId = data.google_token;
-      document.getElementById('google-username-modal').style.display = 'flex';
-      lockBodyScroll();
-      document.getElementById('google-username-input').focus();
-    }
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
-
-async function submitGoogleUsername() {
-  const username = document.getElementById('google-username-input').value.trim();
-  if (!username) return;
-  const oshi_character = document.getElementById('google-oshi-input').value.trim() || undefined;
-  const twitter_username = document.getElementById('google-twitter-input').value.trim() || undefined;
-  const youtube_channel = document.getElementById('google-youtube-input').value.trim() || undefined;
-  try {
-    const data = await apiFetch('/auth/google/register', {
-      method: 'POST',
-      body: JSON.stringify({ google_token: _pendingGoogleId, username, oshi_character, twitter_username, youtube_channel })
-    });
-    setAuth(data.token, data.user);
-    const redirect = new URLSearchParams(location.search).get('redirect');
-    location.href = redirect || '/index.html';
-  } catch (err) {
-    document.getElementById('google-modal-alert').innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`;
-  }
-}
-
-document.getElementById('login-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  clearAlert('#alert');
-  const btn = document.getElementById('submit-btn');
-  btn.disabled = true;
-  btn.textContent = t('login.btn_loading');
-
-  try {
-    const data = await apiFetch('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({
-        username: document.getElementById('username').value,
-        password: document.getElementById('password').value
-      })
-    });
-    setAuth(data.token, data.user);
-    const redirect = new URLSearchParams(location.search).get('redirect');
-    location.href = redirect || '/index.html';
-  } catch (err) {
-    showToast(err.message, 'error');
-    btn.disabled = false;
-    btn.textContent = t('login.btn');
-  }
-});
 </script>
 </body>
 </html>

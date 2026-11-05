@@ -85,6 +85,7 @@ const _i18n = {
     'login.btn':'ログイン','login.btn_loading':'ログイン中...',
     'login.no_account':'アカウントがない方は','login.register_link':'新規登録',
     'login.expired':'セッションの有効期限が切れました。再度ログインしてください。',
+    'auth.login_lead':'スコアの投稿やガチャを楽しむにはログインしてください','auth.register_lead':'スコアを投稿してランキングに参加しましょう','auth.or_id':'またはIDとパスワードで','auth.google_note':'Googleならパスワードを覚えなくても始められます','auth.rule_id':'英数字と _ で4〜20文字（あとから変更できます）','auth.next':'次へ','auth.terms_pre':'登録すると','auth.terms':'利用規約','auth.terms_and':'と','auth.privacy':'プライバシーポリシー','auth.terms_post':'に','auth.terms_end':'同意したものとみなします','auth.forgot_pre':'パスワードを忘れた方は','auth.forgot_x':'Xの','auth.forgot_post':'へご連絡ください','auth.network':'通信できませんでした。接続を確かめてもう一度お試しください','auth.pw_show':'パスワードを表示','auth.pw_hide':'パスワードを隠す','auth.copied':'コピーしました','auth.inapp':'アプリ内ブラウザではGoogleログインを使えません。SafariやChromeで開いてください。','auth.copy_url':'URLをコピー','auth.step_account':'アカウント','auth.step_profile':'プロフィール','auth.setup_desc':'ランキングに表示される名前です。あとからプロフィールで変更できます。','auth.copy':'コピー','auth.keep_id':'次回のログインに使います。パスワードと一緒に忘れないよう保管してください。','auth.display_name':'表示名','auth.oshi':'推しキャラクター','auth.optional':'任意','auth.not_set':'選ばない','auth.sns_title':'XとYouTubeを登録する（任意）','auth.sns_note':'ご自身のアカウントで、ヘブバンのコンテンツが含まれるものに限ります。','auth.yt_handle':'YouTubeハンドル','auth.start':'はじめる','auth.saving':'保存中...','auth.name_required':'表示名を入力してください','auth.x_invalid':'X IDは英数字と _ で15文字以内です','auth.yt_invalid':'YouTubeハンドルは英数字と . - _ で3〜30文字です','auth.id_required':'ユーザー名またはログインIDを入力してください','auth.pw_required':'パスワードを入力してください','auth.id_taken':'このIDは使われています。別のIDを入力してください',
     'register.title':'新規登録','register.username':'ユーザー名','register.password':'パスワード',
     'register.login_id':'ログインID','register.login_id_hint':'英数字・_で4〜20文字',
     'register.login_id_desc':'ログイン時に使用するIDです。後からプロフィールで変更できます。',
@@ -265,6 +266,7 @@ const _i18n = {
     'login.btn':'登入','login.btn_loading':'登入中...',
     'login.no_account':'沒有帳戶嗎？','login.register_link':'新增帳戶',
     'login.expired':'連線已逾時，請重新登入。',
+    'auth.login_lead':'請登入以投稿分數或遊玩轉蛋','auth.register_lead':'投稿分數，加入排行榜吧','auth.or_id':'或使用ID與密碼','auth.google_note':'使用Google不必記密碼即可開始','auth.rule_id':'英數字與 _，4～20個字元（之後可變更）','auth.next':'下一步','auth.terms_pre':'註冊即表示您同意','auth.terms':'使用條款','auth.terms_and':'與','auth.privacy':'隱私權政策','auth.terms_post':'','auth.terms_end':'','auth.forgot_pre':'忘記密碼時，','auth.forgot_x':'請透過X聯絡','auth.forgot_post':'','auth.network':'無法連線，請確認網路後再試一次','auth.pw_show':'顯示密碼','auth.pw_hide':'隱藏密碼','auth.copied':'已複製','auth.inapp':'應用程式內瀏覽器無法使用Google登入，請以Safari或Chrome開啟。','auth.copy_url':'複製網址','auth.step_account':'帳戶','auth.step_profile':'個人資料','auth.setup_desc':'這是顯示在排行榜上的名稱，之後可於個人資料變更。','auth.copy':'複製','auth.keep_id':'下次登入時使用，請與密碼一併妥善保管。','auth.display_name':'顯示名稱','auth.oshi':'最愛角色','auth.optional':'選填','auth.not_set':'不選擇','auth.sns_title':'登錄X與YouTube（選填）','auth.sns_note':'僅限您本人且含有HBR內容的帳戶。','auth.yt_handle':'YouTube帳號代碼','auth.start':'開始使用','auth.saving':'儲存中...','auth.name_required':'請輸入顯示名稱','auth.x_invalid':'X ID為英數字與 _，15個字元以內','auth.yt_invalid':'YouTube帳號代碼為英數字與 . - _，3～30個字元','auth.id_required':'請輸入使用者名稱或登入ID','auth.pw_required':'請輸入密碼','auth.id_taken':'此ID已被使用，請輸入其他ID',
     'register.title':'新增帳戶','register.username':'使用者名稱','register.password':'密碼',
     'register.login_id':'登入ID','register.login_id_hint':'英數字・_，4～20個字元',
     'register.login_id_desc':'用於登入的ID，可於個人頁面變更。',
@@ -447,7 +449,7 @@ function authHeaders() {
 function _handleAuthError(res, data) {
   if ((res.status === 401 || res.status === 403) && getToken()) {
     clearAuth();
-    location.href = '/login.html?expired=1';
+    location.href = `/login.html?expired=1&redirect=${encodeURIComponent(location.pathname + location.search)}`;
     return true;
   }
   return false;
@@ -2605,7 +2607,7 @@ async function checkGoogleLink() {
     // バナー挿入
     const banner = document.createElement('div');
     banner.id = 'google-link-banner';
-    banner.style.cssText = 'position:sticky;top:56px;z-index:49;background:#1a237e;color:#fff;font-size:0.82rem;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+    banner.style.cssText = 'position:sticky;top:56px;z-index:49;background:var(--bg-modal);border-bottom:1px solid rgba(255,77,101,0.45);color:#fff;font-size:0.82rem;padding:8px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap';
     banner.innerHTML = `
       <span style="flex:1;min-width:180px">Googleアカウントと連携するとパスワード不要でログインできます</span>
       <div id="google-link-btn-wrap"></div>

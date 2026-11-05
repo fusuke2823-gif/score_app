@@ -131,6 +131,16 @@
     </div>
 
     <div class="card" style="margin-bottom:16px">
+      <div class="section-title">パスワードを忘れた人の連絡先</div>
+      <p class="st-desc">ログイン画面に「パスワードを忘れた方は」の案内とXへのリンクを出します。空欄にすると案内を出しません。</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="color:var(--text-muted)">@</span>
+        <input class="form-input" id="support-x-input" type="text" maxlength="16" placeholder="X ID" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;min-width:160px;max-width:280px">
+        <button class="btn btn-primary btn-sm" onclick="saveSupportContact()">保存</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
       <div class="section-title">属性の自動判定</div>
       <p class="st-desc">リザルト画像のADM・MVP・編成から属性を推定し、過去の承認済み投稿（お手本）と比べます。上のAI自動承認がオンのときだけ動きます。</p>
       <div class="pill-tabs" id="attr-mode" role="radiogroup">
@@ -329,6 +339,7 @@ async function loadSettings() {
   try {
     const s = await apiFetch('/admin/settings');
     document.getElementById('ai-check-toggle').checked = s.ai_score_check_enabled;
+    document.getElementById('support-x-input').value = s.support_x_username || '';
     showAttrMode(s.attr_check_mode);
     loadAttrStats();
   } catch (err) {
@@ -394,6 +405,17 @@ async function loadAttrStats() {
   } catch (err) { el.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div>`; }
 }
 
+async function saveSupportContact() {
+  const input = document.getElementById('support-x-input');
+  const name = input.value.trim().replace(/^@/, '');
+  try {
+    await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ support_x_username: name }) });
+    input.value = name;
+    showToast(name ? '連絡先を保存しました' : '連絡先を消しました（案内は出しません）');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
 async function saveAiCheckSetting() {
   const enabled = document.getElementById('ai-check-toggle').checked;
   try {
