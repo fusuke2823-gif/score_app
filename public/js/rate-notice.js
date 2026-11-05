@@ -212,6 +212,7 @@ function rnStyle() {
   .rn-step.on { opacity:1; transform:none; }
   .rn-step.now { border-color:color-mix(in srgb, var(--pc) 55%, transparent); background:color-mix(in srgb, var(--pc) 10%, transparent); }
   .rn-step .nm { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:bold; }
+  .rn-step .nm small { margin-left:6px; font-size:0.72em; font-weight:normal; color:var(--text-muted); }
   .rn-step .ba { color:var(--text-muted); font-variant-numeric:tabular-nums; white-space:nowrap; font-size:0.74rem; }
   .rn-step .ba b { color:#fff; }
   .rn-step .dl { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.72rem; min-width:44px; text-align:right; white-space:nowrap; }
@@ -354,7 +355,7 @@ function openRateModal(data, mode, from, onClose) {
       ${points.length > 1 ? `<div class="rn-sec"><span>${escHtml(t('rn.trend'))}</span></div><div class="rn-chart">${rnChart(points, from)}</div>` : ''}
       ${shown.length ? `<div class="rn-sec"><span>${escHtml(t(mode === 'update' ? 'rn.updates' : 'rn.season_events'))}</span><span>${shown.length}</span></div>
       <div class="rn-steps">${shown.map((s, i) => { const d = deltaOf(s); return `<div class="rn-step" data-i="${i}">
-        <span class="nm">${escHtml(s.name)}</span>
+        <span class="nm">${escHtml(s.name)}${s.absent ? `<small>${escHtml(t('rn.absent'))}</small>` : ''}</span>
         <span class="ba">${s.before.rate} → <b>${s.after.rate}</b></span>
         <span class="dl ${d.cls}">${d.txt}</span></div>`; }).join('')}</div>` : ''}
       ${data.position ? `<div class="rn-pos"><span>${escHtml(t('rn.season_pos'))}</span><b>${escHtml(t('rate.position', data.position, data.participants))}</b></div>` : ''}

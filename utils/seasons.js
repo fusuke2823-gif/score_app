@@ -16,7 +16,10 @@ const LEGEND_TOP_N = 10;
 // EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX・遭遇戦の換算は通常との順位の割合に合わせたもの（rankUtils）。
 // k は 0.5：1シーズン（10回）でレート2000以上が16〜20人ほど（倍率を入れた本番の公開ランキングで試算）
 // seraphDown：遭遇戦の回の下がり幅の上限（上位の点数が詰まっていて下がりやすいので、ほかの回の半分）
-const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, slowUp: 200 };
+// absentDown：シーズン初参加のあとに通常・遭遇戦を休むと、Xレート1500以上の人はレート −20（水準で −80。1500より下には下げない。EX は下がらない回なので対象外）
+// 苦手な回を休んで高いレートを守れないようにする。セラフ遭遇戦演習#8（10/30 開始）の回から数える（それより前の回はさかのぼらない）
+const ABSENT_DOWN_FROM = new Date('2026-10-30T00:00:00+09:00');
+const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, slowUp: 200, absentDown: 80 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
@@ -93,6 +96,12 @@ function step(L, P, p, first = false, eventType = null) {
   return Math.max(-(eventType === 'seraph' ? (p.seraphDown ?? p.down) : p.down), raw);
 }
 
+// 休んだ回の変化（0 か負の数）
+function absentStep(L, p, e) {
+  if (e.event_type === 'score_attack_ex' || new Date(e.opened_at) < ABSENT_DOWN_FROM || L < LEVEL_OF.Ex) return 0;
+  return -Math.min(p.absentDown, L - LEVEL_OF.Ex);
+}
+
 // シーズンの最初のランク（初めて計算するときに全員分を記録する。前のシーズンの最後のランク、最初のシーズンは今のランクから）
 async function ensureStartRanks(client, season, prev) {
   const has = await client.query('SELECT 1 FROM season_start_ranks WHERE season_key = $1 LIMIT 1', [season.key]);
@@ -120,7 +129,7 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
   const starts = new Map((await client.query('SELECT user_id, start_rank FROM season_start_ranks WHERE season_key = $1', [season.key])).rows.map(r => [r.user_id, r.start_rank]));
 
   const events = (await client.query(
-    `SELECT id, event_type, COALESCE(score_multiplier, 1.0)::float AS mult FROM events
+    `SELECT id, event_type, COALESCE(score_multiplier, 1.0)::float AS mult, COALESCE(submission_start, submission_end) AS opened_at FROM events
      WHERE is_active = TRUE AND points_distributed_external = TRUE
        AND event_type IN ('score_attack', 'seraph', 'score_attack_ex')
        AND ${IN_SEASON}
@@ -150,6 +159,8 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
       x.n++;
       x.total += P;
     }
+    const joined = new Set(rows.map(r => r.user_id));
+    for (const [id, x] of st) if (x.n > 0 && !joined.has(id)) x.L += absentStep(x.L, season.params, e);
   }
 
   // Legend：Xレート 2000 以上の上位10人
@@ -251,7 +262,7 @@ async function userProgress(client, userId, now = new Date()) {
   const floor = LEVEL_OF[tierOf(L)];
   const start = view(L);
   const events = (await client.query(
-    `SELECT id, name, event_type, COALESCE(score_multiplier, 1.0)::float AS mult FROM events
+    `SELECT id, name, event_type, COALESCE(score_multiplier, 1.0)::float AS mult, COALESCE(submission_start, submission_end) AS opened_at FROM events
      WHERE is_active = TRUE AND points_distributed_external = TRUE
        AND event_type IN ('score_attack', 'seraph', 'score_attack_ex')
        AND ${IN_SEASON}
@@ -268,7 +279,15 @@ async function userProgress(client, userId, now = new Date()) {
 
   const steps = [];
   for (const e of events) {
-    if (!best.has(e.id)) continue;
+    if (!best.has(e.id)) {
+      const down = steps.length ? absentStep(L, season.params, e) : 0;
+      if (down) {
+        const before = view(L);
+        L += down;
+        steps.push({ event_id: e.id, name: e.name, event_type: e.event_type, absent: true, before, after: view(L) });
+      }
+      continue;
+    }
     const before = view(L);
     L = Math.max(floor, L + step(L, ptForEventType(e.event_type, best.get(e.id) * e.mult), season.params, steps.length === 0, e.event_type));
     steps.push({ event_id: e.id, name: e.name, event_type: e.event_type, before, after: view(L) });
