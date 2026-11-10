@@ -2058,14 +2058,6 @@ async function initLoginBonus() {
     .lb-mote { left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:#fff; box-shadow:0 0 10px 3px var(--el); opacity:0; transform:rotate(var(--a)) translateY(calc(var(--d) * -1)); animation:lbMote .56s ease-in var(--t) forwards; }
     @keyframes lbMote { 0%{opacity:0;} 25%{opacity:1;} 100%{opacity:1; transform:rotate(var(--a)) translateY(0) scale(.3);} }
 
-    /* 剣のぶつかり合い */
-    .lb-sword { top:calc(50% - 16px); width:48%; height:32px; opacity:0; filter:drop-shadow(0 0 6px var(--el)) drop-shadow(0 3px 5px rgba(0,0,0,.7)); }
-    .lb-sword svg { width:100%; height:100%; display:block; }
-    .lb-sword.l { left:0; animation:lbSwordL .3s cubic-bezier(.2,.8,.3,1) forwards; }
-    .lb-sword.r { right:0; animation:lbSwordR .3s cubic-bezier(.2,.8,.3,1) forwards; }
-    @keyframes lbSwordL { 0%{opacity:0; transform:translateX(-100%) rotate(-24deg);} 45%{opacity:1;} 72%{opacity:1; transform:translateX(5%) rotate(-7deg);} 100%{opacity:0; transform:translateX(-46%) rotate(-32deg);} }
-    @keyframes lbSwordR { 0%{opacity:0; transform:translateX(100%) rotate(24deg);} 45%{opacity:1;} 72%{opacity:1; transform:translateX(-5%) rotate(7deg);} 100%{opacity:0; transform:translateX(46%) rotate(32deg);} }
-
     /* 攻撃の形 */
     .lb-slash { left:-8%; top:8%; width:116%; height:84%; color:var(--el); opacity:0; transform:rotate(var(--r, 0deg)) scaleX(var(--f, 1)); filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 14px var(--el)); animation:lbSlash .24s ease-out forwards; }
     .lb-slash svg { width:100%; height:100%; display:block; }
@@ -2544,7 +2536,6 @@ function lbPreviewResult(weapon, element) {
   };
 }
 
-const LB_SWORD_SVG = dir => `<svg viewBox="0 0 90 20" preserveAspectRatio="none" aria-hidden="true"${dir === 'r' ? ' style="transform:scaleX(-1)"' : ''}><rect x="0" y="7" width="16" height="6" rx="2" fill="#5a4326"/><rect x="15" y="3" width="4" height="14" rx="1" fill="#d4af6a"/><polygon points="19,8.5 82,9.3 90,10 82,10.7 19,11.5" fill="#eef0f5"/></svg>`;
 const LB_BLOW_SVG = '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M50 0l9 27 22-17-9 26 28 2-23 16 19 21-28-5 2 28-20-20-20 20 2-28-28 5 19-21L0 38l28-2-9-26 22 17z"/><path d="M50 26l5 15 13-9-5 14 15 1-13 9 10 11-15-3 1 15-11-11-11 11 1-15-15 3 10-11-13-9 15-1-5-14 13 9z" fill="#fff"/></svg>';
 const LB_BOLT_SVG = '<svg viewBox="0 0 40 200" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M26 0L10 56l18-6L8 116l20-8-16 92"/></svg>';
 // 結果の文字色
@@ -2705,18 +2696,9 @@ function playLbBattle(res) {
     await wait(220);
     if (done) return;
 
-    // 溜め → 剣のぶつかり合い
+    // 溜め
     lbChargeFx(fx);
     await wait(mega ? 500 : 400);
-    if (done) return;
-    fx.innerHTML = '';
-    lbFxAdd(fx, `<i class="lb-sword l">${LB_SWORD_SVG('l')}</i><i class="lb-sword r">${LB_SWORD_SVG('r')}</i>`);
-    await wait(215);
-    if (done) return;
-    lbImpactFx(fx, 8);
-    lbScreenFlash('#fff', .22, 200);
-    lbRestartClass(box, 'lb-shake');
-    await wait(mega ? 240 : 180);
     if (done) return;
 
     // 連撃（1発ごとに、斬撃 → 少し止めて着弾）
