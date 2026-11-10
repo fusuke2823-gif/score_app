@@ -1997,142 +1997,169 @@ async function initLoginBonus() {
 
   const style = document.createElement('style');
   style.textContent = `
-    #login-bonus-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
+    #login-bonus-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.72); z-index:2000; align-items:flex-start; justify-content:center; padding:clamp(12px, 7dvh, 64px) 12px 12px; } /* 上寄せ：結果で枠が伸びても敵の画像の位置を動かさない */
     #login-bonus-modal.open { display:flex; }
-    #login-bonus-box { background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); border-radius:14px; padding:28px 24px; max-width:400px; width:90%; text-align:center; max-height:90vh; overflow-y:auto; position:relative; }
-    #login-bonus-box h3 { margin:0 0 6px; font-size:1.15rem; }
-    #login-bonus-box .bonus-sub { font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; }
+    #login-bonus-box { position:relative; width:100%; max-width:400px; max-height:calc(100dvh - clamp(12px, 7dvh, 64px) - 12px); overflow-y:auto; overscroll-behavior:contain; background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid rgba(212,175,106,0.42); border-radius:16px; box-shadow:0 18px 50px rgba(0,0,0,0.6); animation:lbBoxIn .32s cubic-bezier(.2,.9,.3,1.15) both; }
+    @keyframes lbBoxIn { from{opacity:0; transform:translateY(14px) scale(.97);} to{opacity:1; transform:none;} }
+    .lb-head { display:flex; align-items:baseline; justify-content:center; gap:10px; padding:14px 16px 10px; }
+    .lb-eyebrow { font-family:"Orbitron",sans-serif; font-size:0.62rem; font-weight:800; letter-spacing:0.2em; color:#d4af6a; }
+    .lb-head h3 { margin:0; font-size:1.02rem; }
 
-    .lb-day-track { position:relative; margin-bottom:20px; padding:0 3px; }
-    .lb-day-track-line { position:absolute; left:19px; right:19px; top:19px; height:2px; background:rgba(255,255,255,0.08); border-radius:2px; overflow:hidden; }
-    .lb-day-track-fill { height:100%; width:0%; background:linear-gradient(90deg,#d4af6a,rgba(212,175,106,0.35)); transition:width .4s ease; }
+    .lb-day-track { position:relative; margin:0 16px 12px; }
+    .lb-day-track-line { position:absolute; left:15px; right:15px; top:14px; height:2px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
+    .lb-day-track-fill { height:100%; width:0%; background:linear-gradient(90deg,#d4af6a,#f0d08a); transition:width .5s ease; }
     .lb-day-medals { position:relative; z-index:1; display:flex; justify-content:space-between; }
-    .lb-day-medal { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; background:radial-gradient(circle at 35% 30%, rgba(60,48,80,0.9), rgba(15,12,25,0.9)); border:1.5px solid rgba(255,255,255,0.15); font-size:0.9rem; color:var(--text-muted); }
-    .lb-day-medal.done { border-color:rgba(212,175,106,0.5); color:#d4af6a; opacity:0.8; }
-    .lb-day-medal.today { border-color:#d4af6a; color:#d4af6a; box-shadow:0 0 0 1px #d4af6a, 0 0 14px rgba(212,175,106,0.55); }
-    .lb-day-medal.day7 { border-color:rgba(255,122,140,0.5); color:#ff7a8c; }
-    .lb-day-medal.day7.today { border-color:#ff7a8c; color:#ff7a8c; box-shadow:0 0 0 1px #ff7a8c, 0 0 16px rgba(255,122,140,0.6); }
-    .lb-day-medal.day7::after { content:'★'; position:absolute; top:-8px; right:-5px; font-size:0.55rem; color:#ff7a8c; text-shadow:0 0 6px rgba(255,122,140,0.8); }
+    .lb-day-medal { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; position:relative; font-size:0.78rem; font-weight:bold; font-variant-numeric:tabular-nums; color:var(--text-muted); background:#17142a; border:1px solid rgba(255,255,255,0.16); }
+    .lb-day-medal.done { border-color:rgba(212,175,106,0.55); color:#d4af6a; background:#2a2234; }
+    .lb-day-medal.today { border-color:#d4af6a; color:#fff; background:#5a4726; box-shadow:0 0 0 1px #d4af6a, 0 0 12px rgba(212,175,106,0.55); }
+    .lb-day-medal.day7 { border-color:rgba(255,122,140,0.55); color:#ff7a8c; }
+    .lb-day-medal.day7.today { border-color:#ff7a8c; color:#fff; background:#7a3044; box-shadow:0 0 0 1px #ff7a8c, 0 0 14px rgba(255,122,140,0.6); }
+    .lb-day-medal.day7 svg { position:absolute; top:-5px; right:-4px; width:11px; height:11px; }
+    .lb-day-medal.just { animation:lbMedalJust .5s cubic-bezier(.2,.9,.3,1.5) both; }
+    @keyframes lbMedalJust { 0%{transform:scale(.6);} 60%{transform:scale(1.25);} 100%{transform:scale(1);} }
 
-    .lb-enemy-card { margin-bottom:18px; }
-    .lb-enemy-name { font-size:1.05rem; font-weight:bold; margin-bottom:10px; text-align:center; }
-    .lb-enemy-art-wrap { display:flex; justify-content:center; }
-    .lb-enemy-art-wrap img, .lb-enemy-art-wrap svg { width:100%; max-width:280px; height:auto; object-fit:contain; }
-    .lb-hearts { display:flex; gap:3px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
-    .lb-heart { position:relative; width:15px; height:15px; font-size:15px; line-height:1; }
-    .lb-heart-track, .lb-heart-red, .lb-heart-blue { position:absolute; inset:0; overflow:hidden; white-space:nowrap; }
+    /* 敵の舞台：画像の上に攻撃の演出を重ねる */
+    .lb-arena { position:relative; height:clamp(150px, 27dvh, 220px); overflow:hidden; background:#0b0916; isolation:isolate; border-block:1px solid rgba(212,175,106,0.28); }
+    .lb-arena-art { position:absolute; inset:0; animation:lbIdle 3.6s ease-in-out infinite; }
+    .lb-arena-art img { width:100%; height:100%; object-fit:cover; display:block; }
+    .lb-arena-art svg { width:100%; height:100%; }
+    @keyframes lbIdle { 0%,100%{transform:scale(1.03) translateY(0);} 50%{transform:scale(1.05) translateY(-3px);} }
+    .lb-arena-name { position:absolute; left:0; right:0; bottom:0; z-index:2; padding:22px 14px 8px; font-size:0.98rem; font-weight:bold; color:#fff; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,0.9); background:linear-gradient(transparent, rgba(8,6,18,0.85)); }
+    .lb-arena.hit .lb-arena-art { animation:lbHit .34s ease both; }
+    .lb-arena.hit-big .lb-arena-art { animation:lbHitBig .5s ease both; }
+    @keyframes lbHit { 0%{filter:brightness(2.6); transform:scale(1.03) translateX(-7px);} 30%{transform:scale(1.03) translateX(6px);} 60%{transform:scale(1.03) translateX(-3px);} 100%{filter:none; transform:scale(1.03);} }
+    @keyframes lbHitBig { 0%{filter:brightness(3.4) saturate(.4); transform:scale(1.1) translate(-12px,4px);} 20%{transform:scale(1.09) translate(11px,-5px);} 45%{transform:scale(1.07) translate(-7px,3px);} 70%{transform:scale(1.05) translate(4px,-2px);} 100%{filter:none; transform:scale(1.03);} }
+    .lb-arena.defeated .lb-arena-art { animation:lbDefeat .9s ease forwards; }
+    @keyframes lbDefeat { 0%{filter:brightness(1);} 25%{filter:brightness(3.4);} 100%{filter:brightness(.32) grayscale(.8); transform:scale(1.08);} }
+    .lb-arena.defeated-still .lb-arena-art { animation:none; filter:brightness(.32) grayscale(.8); transform:scale(1.08); }
+
+    .lb-fx { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; --el:#fff; }
+    .lb-fx > * { position:absolute; }
+    .lb-slash { left:-4%; top:14%; width:108%; height:70%; color:var(--el); opacity:0; filter:drop-shadow(0 0 8px var(--el)); animation:lbSlash .3s ease-out forwards; }
+    .lb-slash.two { transform:scaleX(-1); animation-delay:.11s; }
+    .lb-slash svg { width:100%; height:100%; display:block; }
+    @keyframes lbSlash { 0%{opacity:0; clip-path:inset(0 100% 0 0);} 25%{opacity:1;} 70%{opacity:1; clip-path:inset(0 0 0 0);} 100%{opacity:0; clip-path:inset(0 0 0 0);} }
+    .lb-thrust { left:0; top:calc(50% - 7px); width:58%; height:14px; border-radius:0 99px 99px 0; background:linear-gradient(90deg, transparent, var(--el) 62%, #fff); filter:drop-shadow(0 0 8px var(--el)); transform-origin:left center; animation:lbThrust .24s cubic-bezier(.3,0,.2,1) forwards; }
+    .lb-thrust.two { top:calc(50% - 26px); animation-delay:.1s; opacity:0; }
+    @keyframes lbThrust { 0%{opacity:1; transform:scaleX(0);} 70%{opacity:1; transform:scaleX(1);} 100%{opacity:0; transform:scaleX(1.15);} }
+    .lb-ring { left:50%; top:50%; width:70px; height:70px; margin:-35px 0 0 -35px; border-radius:50%; border:5px solid var(--el); box-shadow:0 0 16px var(--el); opacity:0; animation:lbRing .4s ease-out forwards; }
+    .lb-ring.two { animation-delay:.1s; }
+    @keyframes lbRing { 0%{opacity:1; transform:scale(.2);} 100%{opacity:0; transform:scale(3.2);} }
+    .lb-impact { left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:radial-gradient(circle, #fff, var(--el) 45%, transparent 72%); animation:lbImpact .34s ease-out forwards; }
+    @keyframes lbImpact { 0%{opacity:0; transform:scale(.2);} 25%{opacity:1;} 100%{opacity:0; transform:scale(6);} }
+    .lb-spark { left:50%; top:50%; width:3px; height:15px; margin:-7px 0 0 -1px; border-radius:2px; background:linear-gradient(#fff, var(--el)); transform:rotate(var(--a)); animation:lbSpark .46s ease-out forwards; }
+    @keyframes lbSpark { 0%{opacity:1; transform:rotate(var(--a)) translateY(0);} 100%{opacity:0; transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) scaleY(.4);} }
+    .lb-dmg { left:0; right:0; top:26%; text-align:center; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3.2rem; line-height:1; color:#fff; -webkit-text-stroke:1px rgba(0,0,0,0.5); text-shadow:0 0 14px var(--el), 0 3px 6px rgba(0,0,0,0.8); animation:lbDmg .75s cubic-bezier(.2,.9,.3,1.3) forwards; }
+    .lb-dmg.big { font-size:4.4rem; color:#ffe9a8; }
+    .lb-dmg.none { font-size:1.9rem; top:36%; color:#c3c3d6; letter-spacing:0.08em; text-shadow:0 2px 6px rgba(0,0,0,0.9); }
+    @keyframes lbDmg { 0%{opacity:0; transform:scale(.4);} 22%{opacity:1; transform:scale(1.2);} 38%{transform:scale(1);} 78%{opacity:1;} 100%{opacity:0; transform:translateY(-16px);} }
+    .lb-wash { inset:0; background:radial-gradient(circle at 50% 50%, rgba(255,226,150,0.75), transparent 75%); animation:lbWash .6s ease-out forwards; }
+    @keyframes lbWash { 0%{opacity:0;} 25%{opacity:1;} 100%{opacity:0;} }
+    .lb-rays { left:50%; top:50%; width:200%; aspect-ratio:1; transform:translate(-50%,-50%); background:repeating-conic-gradient(rgba(255,226,150,0.42) 0 10deg, transparent 10deg 26deg); -webkit-mask-image:radial-gradient(circle, #000 18%, transparent 62%); mask-image:radial-gradient(circle, #000 18%, transparent 62%); animation:lbRays .9s ease-out forwards; }
+    @keyframes lbRays { 0%{opacity:0; transform:translate(-50%,-50%) rotate(0) scale(.5);} 30%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-50%) rotate(35deg) scale(1.1);} }
+    .lb-defeat-stamp { left:0; right:0; top:calc(50% - 26px); text-align:center; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3rem; line-height:1; letter-spacing:0.1em; color:#ffd24a; text-shadow:0 0 16px rgba(255,210,74,0.8), 0 3px 6px rgba(0,0,0,0.9); animation:lbStamp .42s cubic-bezier(.2,.9,.3,1.3) both; }
+    @keyframes lbStamp { 0%{opacity:0; transform:scale(2);} 100%{opacity:1; transform:scale(1);} }
+
+    .lb-hearts-wrap { display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; padding:6px 12px; }
+    .lb-hearts { display:flex; gap:3px; }
+    .lb-hearts.bump { animation:lbHeartsBump .16s ease; }
+    @keyframes lbHeartsBump { 50%{transform:scale(1.05);} }
+    .lb-heart { position:relative; width:16px; height:16px; }
+    .lb-heart-track, .lb-heart-red, .lb-heart-blue { position:absolute; inset:0; overflow:hidden; }
+    .lb-heart svg { display:block; width:16px; height:16px; fill:currentColor; }
     .lb-heart-track { color:rgba(255,255,255,0.15); width:100%; }
     .lb-heart-red { color:#e0607a; }
     .lb-heart-blue { color:#5fd0e6; }
-    .lb-damage-note { text-align:center; font-size:0.78rem; color:#ff6b6b; font-weight:bold; margin-top:6px; }
-    .lb-defeat-banner { text-align:center; font-size:0.82rem; font-weight:bold; color:#ffd700; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); border-radius:7px; padding:9px 12px; margin-bottom:14px; }
+    .lb-damage-note { flex-shrink:0; font-size:0.76rem; color:#ff8a8a; font-weight:bold; font-variant-numeric:tabular-nums; }
 
-    .lb-group { margin-bottom:16px; text-align:left; }
-    .lb-group-label { font-size:0.78rem; color:var(--text-secondary); margin-bottom:8px; font-weight:500; }
-    .lb-pick-row { display:flex; flex-wrap:wrap; gap:8px; padding-left:6px; }
+    .lb-lower { position:relative; padding:4px 16px 16px; }
+    .lb-group { margin-bottom:10px; }
+    .lb-group-label { font-size:0.76rem; color:var(--text-secondary); margin-bottom:6px; font-weight:bold; }
+    .lb-pick-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+    #lb-element-row { grid-template-columns:repeat(6, 1fr); }
+    .lb-pick.attr-btn { width:100%; height:42px; padding:0; margin:0; font-size:1rem; font-weight:bold; border-radius:9px; opacity:.88; transition:transform .12s, background .12s, opacity .12s; }
+    .lb-pick.attr-btn:hover { opacity:1; }
+    .lb-pick.attr-btn:active { transform:scale(.94); }
+    .lb-pick.attr-btn.active { opacity:1; transform:translateY(-1px); background:color-mix(in srgb, currentColor 24%, transparent); box-shadow:0 0 0 2px currentColor, 0 0 12px color-mix(in srgb, currentColor 50%, transparent); }
     .attr-btn.attr-斬 { border-color:#b899e8; color:#b899e8; }
-    .attr-btn.attr-斬.active, .attr-btn.attr-斬:hover { background:rgba(184,153,232,0.15); }
+    .attr-btn.attr-斬:hover { background:rgba(184,153,232,0.15); }
     .attr-btn.attr-突 { border-color:#f7b733; color:#f7b733; }
-    .attr-btn.attr-突.active, .attr-btn.attr-突:hover { background:rgba(247,183,51,0.15); }
+    .attr-btn.attr-突:hover { background:rgba(247,183,51,0.15); }
     .attr-btn.attr-打 { border-color:#8fc93f; color:#8fc93f; }
-    .attr-btn.attr-打.active, .attr-btn.attr-打:hover { background:rgba(143,201,63,0.15); }
+    .attr-btn.attr-打:hover { background:rgba(143,201,63,0.15); }
 
-    .lb-day7-tip { text-align:left; font-size:0.76rem; padding:9px 12px; border-radius:7px; margin-bottom:16px; background:rgba(255,122,140,0.12); border:1px solid rgba(255,122,140,0.45); color:#ff7a8c; line-height:1.6; }
-
-    .lb-cta { width:100%; padding:14px; border-radius:10px; cursor:pointer; font-family:inherit; font-weight:700; font-size:1.02rem; letter-spacing:0.03em; color:#d4af6a; background:linear-gradient(180deg, rgba(64,50,34,0.85), rgba(18,14,10,0.92)); border:1.5px solid #d4af6a; box-shadow:inset 0 1px 0 rgba(255,255,255,0.1), 0 10px 24px -12px rgba(212,175,106,0.6); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:10px; transition:box-shadow .2s ease, transform .2s ease, opacity .2s ease; }
-    .lb-cta::before { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(120deg, transparent, rgba(255,255,255,0.16), transparent); transform:skewX(-20deg); animation:lbCtaShimmer 3.4s ease-in-out infinite; }
+    .lb-day7-tip { font-size:0.74rem; padding:7px 10px; border-radius:8px; margin-bottom:10px; background:rgba(255,122,140,0.12); border:1px solid rgba(255,122,140,0.45); color:#ff9aa8; line-height:1.55; }
+    .lb-day7-tip[hidden], .lb-helper[hidden] { display:none; }
+    .lb-cta { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:800; font-size:1.02rem; letter-spacing:0.08em; color:#2a1d08; background:linear-gradient(180deg,#f3d98f,#c9a052); border:1px solid #f6e3ad; box-shadow:0 8px 22px -10px rgba(212,175,106,0.85); transition:transform .12s, opacity .15s, filter .15s; }
+    .lb-cta::before { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent); transform:skewX(-20deg); animation:lbCtaShimmer 3s infinite; }
     @keyframes lbCtaShimmer { 0%{left:-60%;} 55%{left:120%;} 100%{left:120%;} }
-    .lb-cta:hover:not(:disabled) { box-shadow:inset 0 1px 0 rgba(255,255,255,0.14), 0 12px 28px -10px rgba(212,175,106,0.75); transform:translateY(-1px); }
-    .lb-cta:active:not(:disabled) { transform:translateY(0); }
-    .lb-cta:disabled { opacity:0.4; cursor:not-allowed; }
+    .lb-cta:hover:not(:disabled) { filter:brightness(1.07); }
+    .lb-cta:active:not(:disabled) { transform:scale(.98); }
+    .lb-cta:disabled { cursor:not-allowed; color:rgba(232,232,240,0.55); background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); box-shadow:none; }
     .lb-cta:disabled::before { display:none; }
-    .lb-cta span { font-size:0.7rem; opacity:0.75; }
-    .lb-cta span:nth-child(2) { font-size:1.02rem; opacity:1; }
-    .lb-helper { text-align:center; font-size:0.74rem; color:var(--text-muted); margin-top:8px; }
+    .lb-cta:focus-visible, .lb-pick.attr-btn:focus-visible, #lb-close-btn:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+    .lb-spin { width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; animation:lbSpin .7s linear infinite; }
+    @keyframes lbSpin { to { transform:rotate(360deg); } }
+    .lb-helper { text-align:center; font-size:0.74rem; color:var(--text-muted); margin-top:7px; }
 
-    #lb-stage { position:relative; }
     #lb-stage .lb-screen[hidden] { display:none; }
-    #lb-stage .lb-screen:not([hidden]) { animation:lbScreenIn .32s ease both; }
+    #lb-screen-picker:not([hidden]) { animation:lbScreenIn .3s ease both; }
     @keyframes lbScreenIn { from{opacity:0; transform:translateY(5px);} to{opacity:1; transform:none;} }
 
-    .lb-battle-overlay { position:absolute; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; background:radial-gradient(60% 60% at 50% 50%, #161331, #0b0916); border-radius:10px; overflow:hidden; isolation:isolate; }
-    .lb-battle-overlay[hidden] { display:none; }
-    .lb-sword { position:absolute; top:50%; left:50%; width:64px; height:14px; margin-left:-32px; margin-top:-7px; opacity:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-    .lb-sword svg { width:100%; height:100%; display:block; }
-    .lb-battle-overlay.playing .lb-sword-left { animation:lbSwordInLeft .38s cubic-bezier(.2,.8,.3,1) forwards; }
-    .lb-battle-overlay.playing .lb-sword-right { animation:lbSwordInRight .38s cubic-bezier(.2,.8,.3,1) forwards; }
-    @keyframes lbSwordInLeft { from{transform:translateX(-140px) rotate(-16deg); opacity:0;} 80%{opacity:1;} to{transform:translateX(-14px) rotate(-8deg); opacity:1;} }
-    @keyframes lbSwordInRight { from{transform:translateX(140px) rotate(16deg); opacity:0;} 80%{opacity:1;} to{transform:translateX(14px) rotate(8deg); opacity:1;} }
-    .lb-battle-overlay.clash .lb-sword-left { animation:lbSwordOutLeft .34s ease forwards; }
-    .lb-battle-overlay.clash .lb-sword-right { animation:lbSwordOutRight .34s ease forwards; }
-    @keyframes lbSwordOutLeft { from{transform:translateX(-14px) rotate(-8deg); opacity:1;} to{transform:translateX(-200px) rotate(-34deg); opacity:0;} }
-    @keyframes lbSwordOutRight { from{transform:translateX(14px) rotate(8deg); opacity:1;} to{transform:translateX(200px) rotate(34deg); opacity:0;} }
+    /* 判定：武器と属性の札をめくる */
+    .lb-judges { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; perspective:500px; }
+    .lb-judge { position:relative; height:54px; transform-style:preserve-3d; transition:transform .34s cubic-bezier(.3,.9,.4,1.2); }
+    .lb-judge.open { transform:rotateX(180deg); }
+    .lb-judge-face { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:9px; border-radius:10px; backface-visibility:hidden; -webkit-backface-visibility:hidden; border:1px solid var(--border-light); background:var(--bg-card2); font-weight:bold; }
+    .lb-judge-face.back { font-size:1.1rem; color:var(--text-muted); animation:lbJudgeWait .75s ease-in-out infinite; }
+    .lb-judge-face.front { transform:rotateX(180deg); visibility:hidden; } /* めくるまでは中身を確実に隠す（裏返しの非表示が効かないブラウザ対策） */
+    .lb-judge.open .lb-judge-face.front { visibility:visible; transition:visibility 0s .15s; }
+    .lb-judge.open .lb-judge-face.back { visibility:hidden; animation:none; transition:visibility 0s .15s; }
+    @keyframes lbJudgeWait { 50%{border-color:rgba(212,175,106,0.75); color:#f0d08a; background:rgba(212,175,106,0.1);} }
+    .lb-judge-key { opacity:1; pointer-events:none; display:flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:7px; font-size:1rem; }
+    .lb-judge-val { font-size:0.95rem; }
+    .lb-judge.weak .front { border-color:rgba(46,204,113,0.65); background:rgba(46,204,113,0.16); } .lb-judge.weak .lb-judge-val { color:#5dde8e; }
+    .lb-judge.resist .front { border-color:rgba(231,76,60,0.65); background:rgba(231,76,60,0.15); } .lb-judge.resist .lb-judge-val { color:#ff8a8a; }
+    .lb-judge.neutral .lb-judge-val { color:var(--text-secondary); }
+    .lb-judge .lb-judge-face.back .lb-judge-val { color:inherit; } /* めくる前は判定の色を出さない */
+    .lb-judge.void .front { border-color:rgba(153,153,187,0.7); background:rgba(153,153,187,0.14); } .lb-judge.void .lb-judge-val { color:#c9c9de; }
 
-    .lb-clash-flash { position:absolute; top:50%; left:50%; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:radial-gradient(circle, rgba(255,255,255,0.95), rgba(212,175,106,0.65) 42%, transparent 72%); opacity:0; transform:scale(0); }
-    .lb-battle-overlay.clash .lb-clash-flash { animation:lbFlashBurst .36s ease-out forwards; }
-    @keyframes lbFlashBurst { 0%{opacity:0; transform:scale(0);} 18%{opacity:1;} 100%{opacity:0; transform:scale(10);} }
+    /* 演出の順に出す部分 */
+    .lb-reveal { opacity:0; visibility:hidden; transform:translateY(6px); transition:opacity .28s, transform .28s; }
+    .lb-reveal.on { opacity:1; visibility:visible; transform:none; }
 
-    .lb-sparks { position:absolute; inset:0; pointer-events:none; }
-    .lb-spark-wrap { position:absolute; top:50%; left:50%; width:0; height:0; }
-    .lb-spark { position:absolute; top:0; left:-1px; width:2px; height:0; background:linear-gradient(#d4af6a, transparent); opacity:0; }
-    .lb-battle-overlay.clash .lb-spark { animation:lbSparkOut .34s ease-out forwards; }
-    @keyframes lbSparkOut { 0%{height:0; opacity:1; top:0;} 100%{height:30px; opacity:0; top:-30px;} }
-
-    #login-bonus-box.lb-shake { animation:lbBoxShake .3s ease; }
-    @keyframes lbBoxShake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-5px);} 40%{transform:translateX(4px);} 60%{transform:translateX(-3px);} 80%{transform:translateX(2px);} }
-
-    .lb-battle-overlay.mega .lb-clash-flash { animation:lbFlashBurstMega .5s ease-out forwards; }
-    @keyframes lbFlashBurstMega { 0%{opacity:0; transform:scale(0);} 15%{opacity:1;} 100%{opacity:0; transform:scale(16);} }
-    .lb-battle-overlay.mega.clash::after { content:''; position:absolute; inset:0; background:radial-gradient(circle at 50% 50%, rgba(232,200,116,0.55), transparent 70%); animation:lbGoldWash .5s ease-out forwards; }
-    @keyframes lbGoldWash { 0%{opacity:0;} 30%{opacity:1;} 100%{opacity:0;} }
-    .lb-battle-overlay.mega.clash .lb-spark { animation:lbSparkOutBig .42s ease-out forwards; }
-    @keyframes lbSparkOutBig { 0%{height:0; opacity:1; top:0;} 100%{height:42px; opacity:0; top:-42px;} }
-    #login-bonus-box.lb-shake-big { animation:lbBoxShakeBig .4s ease; }
-    @keyframes lbBoxShakeBig { 0%,100%{transform:translateX(0) rotate(0);} 15%{transform:translateX(-8px) rotate(-0.5deg);} 30%{transform:translateX(7px) rotate(0.5deg);} 45%{transform:translateX(-6px) rotate(0);} 60%{transform:translateX(5px);} 75%{transform:translateX(-3px);} 90%{transform:translateX(2px);} }
-
-    .lb-verdict { padding:16px 14px; border-radius:8px; margin-bottom:14px; border:1px solid var(--border); position:relative; overflow:hidden; }
-    .lb-verdict .lb-tier { font-size:1.02rem; font-weight:bold; margin-top:4px; }
-    .lb-verdict .lb-flavor { font-size:0.78rem; color:var(--text-secondary); margin-top:8px; }
-    .lb-verdict.tone-danger { background:rgba(231,76,60,0.14); border-color:var(--danger); }
-    .lb-verdict.tone-danger .lb-tier { color:#ff6b6b; }
-    .lb-verdict.tone-warning { background:rgba(243,156,18,0.14); border-color:var(--warning); }
-    .lb-verdict.tone-warning .lb-tier { color:#f5b041; }
-    .lb-verdict.tone-neutral { background:var(--bg-card2); border-color:var(--border); }
-    .lb-verdict.tone-neutral .lb-tier { color:var(--text-secondary); }
-    .lb-verdict.tone-success { background:rgba(46,204,113,0.14); border-color:var(--success); }
-    .lb-verdict.tone-success .lb-tier { color:#5dde8e; }
-    .lb-verdict.tone-jackpot { background:linear-gradient(180deg, rgba(255,215,0,0.16), rgba(255,215,0,0.05)); border-color:#ffd700; animation:lbJackpotGlow 1.6s ease-in-out infinite, lbJackpotPop .5s cubic-bezier(.2,.9,.3,1.4) both; }
-    .lb-verdict.tone-jackpot .lb-tier { color:#ffd700; }
-
-    .lb-pt-standalone { text-align:center; margin-bottom:14px; }
-    .lb-pt-standalone .lb-pt-label { display:block; font-size:0.72rem; color:var(--text-muted); margin-bottom:2px; }
-    .lb-pt-standalone .lb-pt-value { font-size:1.7rem; font-weight:bold; color:#d4af6a; font-variant-numeric:tabular-nums; }
+    .lb-verdict { padding:10px 14px; text-align:center; border-radius:11px; margin-bottom:10px; border:1px solid var(--border); position:relative; overflow:hidden; }
+    .lb-tier { font-family:"Orbitron",sans-serif; font-size:1.05rem; font-weight:800; letter-spacing:0.08em; }
+    .lb-flavor { font-size:0.72rem; line-height:1.45; color:var(--text-secondary); margin-top:3px; }
+    .lb-flavor span { display:inline-block; } /* 読点の区切りで折り返す */
+    .lb-pt { display:flex; align-items:baseline; justify-content:center; gap:10px; margin-bottom:10px; }
+    .lb-pt-label { font-size:0.74rem; color:var(--text-muted); }
+    .lb-pt-value { font-size:1.5rem; line-height:1.15; font-weight:bold; color:#f0d08a; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .lb-verdict.tone-danger { background:rgba(231,76,60,0.14); border-color:var(--danger); } .tone-danger .lb-tier { color:#ff8a8a; }
+    .lb-verdict.tone-warning { background:rgba(243,156,18,0.14); border-color:var(--warning); } .tone-warning .lb-tier { color:#f5b041; }
+    .lb-verdict.tone-neutral { background:var(--bg-card2); } .tone-neutral .lb-tier { color:#d6d6e6; }
+    .lb-verdict.tone-success { background:rgba(46,204,113,0.14); border-color:var(--success); } .tone-success .lb-tier { color:#5dde8e; }
+    .lb-verdict.tone-jackpot { background:linear-gradient(180deg, rgba(255,215,0,0.2), rgba(255,215,0,0.06)); border-color:#ffd700; } .tone-jackpot .lb-tier { color:#ffd700; }
+    .lb-verdict.tone-jackpot.on { animation:lbJackpotGlow 1.6s ease-in-out infinite; }
     @keyframes lbJackpotGlow { 0%,100%{box-shadow:0 0 10px 1px rgba(255,215,0,0.25);} 50%{box-shadow:0 0 22px 4px rgba(255,215,0,0.55);} }
-    @keyframes lbJackpotPop { 0%{transform:scale(0.82); opacity:0;} 60%{transform:scale(1.04); opacity:1;} 100%{transform:scale(1);} }
-    .lb-verdict.tone-jackpot::before { content:''; position:absolute; top:50%; left:50%; width:140%; padding-top:140%; transform:translate(-50%,-50%) scale(0); background:repeating-conic-gradient(from 0deg, rgba(232,200,116,0.35) 0deg 4deg, transparent 4deg 20deg); border-radius:50%; pointer-events:none; animation:lbRayBurst .6s ease-out both; z-index:0; }
-    .lb-verdict.tone-jackpot > * { position:relative; z-index:1; }
-    @keyframes lbRayBurst { 0%{opacity:0.9; transform:translate(-50%,-50%) scale(0);} 100%{opacity:0; transform:translate(-50%,-50%) scale(1);} }
 
-    .lb-forced-note { font-size:0.76rem; color:var(--none); background:var(--none-bg); border:1px solid var(--none); border-radius:7px; padding:8px 10px; margin-bottom:14px; text-align:left; }
-
-    .lb-chart { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-    .lb-group-line { display:flex; align-items:baseline; gap:10px; padding:8px 10px; border-radius:7px; text-align:left; background:var(--bg-primary); border:1px solid transparent; }
-    .lb-group-line .lb-gl-label { flex-shrink:0; font-size:0.7rem; font-weight:bold; padding:3px 8px; border-radius:4px; white-space:nowrap; }
-    .lb-group-line.weak { border-color:rgba(46,204,113,0.3); }
-    .lb-group-line.weak .lb-gl-label { background:rgba(46,204,113,0.2); color:var(--success); }
-    .lb-group-line.resist { border-color:rgba(231,76,60,0.3); }
-    .lb-group-line.resist .lb-gl-label { background:rgba(231,76,60,0.2); color:var(--danger); }
+    .lb-defeat-banner { font-size:0.8rem; font-weight:bold; color:#ffd700; text-align:center; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.4); border-radius:9px; padding:8px 10px; margin-bottom:10px; }
+    .lb-forced-note { font-size:0.74rem; color:#c9c9de; background:var(--none-bg); border:1px solid var(--none); border-radius:8px; padding:7px 10px; margin-bottom:10px; }
+    .lb-chart { display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
+    .lb-group-line { display:flex; align-items:center; gap:10px; padding:5px 10px; border-radius:8px; background:var(--bg-primary); border:1px solid transparent; }
+    .lb-gl-label { flex-shrink:0; font-size:0.68rem; font-weight:bold; padding:2px 8px; border-radius:4px; white-space:nowrap; }
+    .lb-group-line.weak { border-color:rgba(46,204,113,0.3); } .lb-group-line.weak .lb-gl-label { background:rgba(46,204,113,0.2); color:#5dde8e; }
+    .lb-group-line.resist { border-color:rgba(231,76,60,0.3); } .lb-group-line.resist .lb-gl-label { background:rgba(231,76,60,0.2); color:#ff8a8a; }
     .lb-group-line.neutral .lb-gl-label { background:rgba(255,255,255,0.08); color:var(--text-secondary); }
-    .lb-gl-items { flex:1; font-size:0.88rem; line-height:1.7; }
+    .lb-gl-items { flex:1; font-size:0.86rem; }
     .lb-gi { color:var(--text-secondary); }
-    .lb-gi.picked { color:var(--text-primary); font-weight:bold; background:var(--bg-card2); border:1px solid var(--border-light); border-radius:5px; padding:1px 6px; }
-    .lb-gi-sep { color:var(--text-muted); margin:0 1px; }
-
+    .lb-gi.picked { color:#fff; font-weight:bold; background:var(--bg-card2); border:1px solid var(--border-light); border-radius:5px; padding:1px 6px; }
+    .lb-gi-sep { color:var(--text-muted); margin:0 2px; }
+    .lb-skip-hint { position:absolute; left:0; right:0; bottom:18px; text-align:center; font-size:0.7rem; color:var(--text-muted); }
 
     @media (prefers-reduced-motion:reduce) {
-      #lb-stage .lb-screen, .lb-sword, .lb-clash-flash, .lb-spark, #login-bonus-box.lb-shake, #login-bonus-box.lb-shake-big, .lb-battle-overlay, .lb-battle-overlay.mega.clash::after, .lb-verdict.tone-jackpot, .lb-verdict.tone-jackpot::before, .lb-cta, .lb-cta::before {
-        animation:none !important; transition:none !important;
-      }
+      #login-bonus-box, .lb-arena-art, #lb-screen-picker, .lb-judge-face.back, .lb-verdict.tone-jackpot.on, .lb-cta::before, .lb-day-medal.just { animation:none !important; }
+      .lb-reveal, .lb-judge, .lb-day-track-fill, .lb-pick.attr-btn { transition:none !important; }
     }
   `;
   document.head.appendChild(style);
@@ -2141,46 +2168,27 @@ async function initLoginBonus() {
   modal.id = 'login-bonus-modal';
   modal.innerHTML = `
     <div id="login-bonus-box">
-      <h3>デイリーバトル</h3>
-      <div class="bonus-sub" id="lb-sub">本日の敵の弱点を見抜いて、ポイントを稼ごう</div>
+      <div class="lb-head"><span class="lb-eyebrow">DAILY BATTLE</span><h3>デイリーバトル</h3></div>
       <div class="lb-day-track">
         <div class="lb-day-track-line"><div class="lb-day-track-fill" id="lb-day-track-fill"></div></div>
         <div class="lb-day-medals" id="lb-day-medals"></div>
       </div>
       <div id="lb-stage">
-        <div class="lb-screen" id="lb-screen-picker">
-          <div class="lb-enemy-card" id="lb-enemy-card"></div>
-          <div class="lb-group"><div class="lb-group-label">武器属性</div><div class="lb-pick-row" id="lb-weapon-row"></div></div>
-          <div class="lb-group"><div class="lb-group-label">元素属性</div><div class="lb-pick-row" id="lb-element-row"></div></div>
-          <div class="lb-day7-tip" id="lb-day7-tip" hidden>★ 7日目は耐性のない特別な敵。無属性で安定を取るより、通常属性を狙う方が有利かも。</div>
-          <button type="button" class="lb-cta" id="lb-challenge-btn" disabled><span>✦</span><span>挑戦する</span><span>✦</span></button>
-          <div class="lb-helper" id="lb-helper">武器と属性をひとつずつ選んでください</div>
+        <div class="lb-arena" id="lb-arena">
+          <div class="lb-arena-art" id="lb-arena-art"></div>
+          <div class="lb-arena-name" id="lb-arena-name"></div>
+          <div class="lb-fx" id="lb-fx"></div>
         </div>
-        <div class="lb-screen" id="lb-screen-result" hidden></div>
-        <div class="lb-battle-overlay" id="lb-battle-overlay" hidden>
-          <div class="lb-sword lb-sword-left">
-            <svg viewBox="0 0 90 20" aria-hidden="true">
-              <rect x="0" y="7" width="16" height="6" rx="2" fill="#5a4326"/>
-              <rect x="15" y="3" width="4" height="14" rx="1" fill="#d4af6a"/>
-              <polygon points="19,8.5 82,9.3 90,10 82,10.7 19,11.5" fill="#eef0f5"/>
-            </svg>
+        <div class="lb-hearts-wrap" id="lb-hearts-wrap"></div>
+        <div class="lb-lower" id="lb-lower">
+          <div class="lb-screen" id="lb-screen-picker">
+            <div class="lb-group"><div class="lb-group-label">武器属性</div><div class="lb-pick-row" id="lb-weapon-row"></div></div>
+            <div class="lb-group"><div class="lb-group-label">元素属性</div><div class="lb-pick-row" id="lb-element-row"></div></div>
+            <div class="lb-day7-tip" id="lb-day7-tip" hidden>7日目は耐性のない特別な敵。無属性で安定を取るより、通常属性を狙う方が有利かも。</div>
+            <button type="button" class="lb-cta" id="lb-challenge-btn" disabled>挑戦する</button>
+            <div class="lb-helper" id="lb-helper">武器と属性をひとつずつ選んでください</div>
           </div>
-          <div class="lb-clash-flash"></div>
-          <div class="lb-sparks">
-            <span class="lb-spark-wrap" style="transform:rotate(0deg)"><span class="lb-spark"></span></span>
-            <span class="lb-spark-wrap" style="transform:rotate(60deg)"><span class="lb-spark"></span></span>
-            <span class="lb-spark-wrap" style="transform:rotate(120deg)"><span class="lb-spark"></span></span>
-            <span class="lb-spark-wrap" style="transform:rotate(180deg)"><span class="lb-spark"></span></span>
-            <span class="lb-spark-wrap" style="transform:rotate(240deg)"><span class="lb-spark"></span></span>
-            <span class="lb-spark-wrap" style="transform:rotate(300deg)"><span class="lb-spark"></span></span>
-          </div>
-          <div class="lb-sword lb-sword-right">
-            <svg viewBox="0 0 90 20" aria-hidden="true">
-              <rect x="74" y="7" width="16" height="6" rx="2" fill="#5a4326"/>
-              <rect x="71" y="3" width="4" height="14" rx="1" fill="#d4af6a"/>
-              <polygon points="71,8.5 8,9.3 0,10 8,10.7 71,11.5" fill="#eef0f5"/>
-            </svg>
-          </div>
+          <div class="lb-screen" id="lb-screen-result" aria-live="polite" hidden></div>
         </div>
       </div>
     </div>`;
@@ -2210,7 +2218,6 @@ async function initLoginBonus() {
       document.getElementById('lb-challenge-btn').addEventListener('click', lbChallenge);
     } else {
       renderLbDayTrack(status.streak, status.streak === 7);
-      document.getElementById('lb-sub').textContent = t('bonus.claimed');
       document.getElementById('lb-screen-picker').hidden = true;
     }
 
@@ -2244,6 +2251,7 @@ function lbEnemyPlaceholderSvg() {
 // 常に両方表示し、左側から順番に空になっていく。
 // 1行10個。HP21〜40の間は「青→赤」、HP1〜20の間は「赤→空」の2段階で、
 // 左のハートほど最後まで残り、右のハートから先に色が変わっていく。
+const LB_HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-10-9.3C.4 8.3 2.4 4 6.3 4 8.7 4 10.7 5.3 12 7.3 13.3 5.3 15.3 4 17.7 4c3.9 0 5.9 4.3 4.3 7.7C19.5 16.4 12 21 12 21z"/></svg>';
 function lbHeartsHTML(hp, maxHp = 40) {
   if (hp == null) return '';
   const totalHearts = 10;
@@ -2258,31 +2266,24 @@ function lbHeartsHTML(hp, maxHp = 40) {
     const redWidth = inUpperPhase ? 100 : pct;
     const blueWidth = inUpperPhase ? pct : 0;
     html += `<span class="lb-heart">
-      <span class="lb-heart-track">♥</span>
-      <span class="lb-heart-red" style="width:${redWidth}%">♥</span>
-      <span class="lb-heart-blue" style="width:${blueWidth}%">♥</span>
+      <span class="lb-heart-track">${LB_HEART}</span>
+      <span class="lb-heart-red" style="width:${redWidth}%">${LB_HEART}</span>
+      <span class="lb-heart-blue" style="width:${blueWidth}%">${LB_HEART}</span>
     </span>`;
   }
-  return `<div class="lb-hearts">${html}</div>`;
-}
-
-function lbEnemyCardHTML(boss, hp, maxHp) {
-  // 表示は最大280px幅なので、元画像ではなく幅640px・画質自動の変換版を使う（毎ログイン表示されるため帯域節約）
-  const art = boss.image_url
-    ? `<img src="${escHtml(mediumUrl(boss.image_url))}" alt="${escHtml(boss.name)}">`
-    : lbEnemyPlaceholderSvg();
-  return `
-    <div class="lb-enemy-name">${escHtml(boss.name)}</div>
-    <div class="lb-enemy-art-wrap">${art}</div>
-    ${lbHeartsHTML(hp, maxHp)}
-  `;
+  return `<div class="lb-hearts" role="img" aria-label="残りHP ${hp}/${maxHp}">${html}</div>`;
 }
 
 function renderLbEnemyCard(boss) {
-  document.getElementById('lb-enemy-card').innerHTML = lbEnemyCardHTML(boss, boss.hp, boss.max_hp);
+  // 表示は最大400px幅なので、元画像ではなく幅640px・画質自動の変換版を使う（毎ログイン表示されるため帯域節約）
+  document.getElementById('lb-arena-art').innerHTML = boss.image_url
+    ? `<img src="${escHtml(mediumUrl(boss.image_url))}" alt="${escHtml(boss.name)}">`
+    : lbEnemyPlaceholderSvg();
+  document.getElementById('lb-arena-name').textContent = boss.name;
+  document.getElementById('lb-hearts-wrap').innerHTML = lbHeartsHTML(boss.hp, boss.max_hp);
 }
 
-function renderLbDayTrack(day, isDay7) {
+function renderLbDayTrack(day, isDay7, justCleared = false) {
   const wrap = document.getElementById('lb-day-medals');
   wrap.innerHTML = '';
   for (let i = 1; i <= 7; i++) {
@@ -2291,7 +2292,8 @@ function renderLbDayTrack(day, isDay7) {
     if (i === 7) d.classList.add('day7');
     if (i < day) d.classList.add('done');
     if (i === day) d.classList.add('today');
-    d.textContent = i;
+    if (i === day && justCleared) d.classList.add('just');
+    d.innerHTML = i === 7 ? `7<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3 6.6 7 .8-5.2 4.8 1.4 7L12 17.7 5.8 21.2l1.4-7L2 9.4l7-.8z"/></svg>` : i;
     wrap.appendChild(d);
   }
   document.getElementById('lb-day-track-fill').style.width = ((Math.max(day, 1) - 1) / 6 * 100) + '%';
@@ -2301,9 +2303,9 @@ function renderLbPickers(isDay7) {
   _lbWeaponPick = null;
   _lbElementPick = null;
   const wRow = document.getElementById('lb-weapon-row');
-  wRow.innerHTML = LB_WEAPONS.map(w => `<button type="button" class="attr-btn attr-${w}" data-kind="weapon" data-key="${w}">${w}</button>`).join('');
+  wRow.innerHTML = LB_WEAPONS.map(w => `<button type="button" class="attr-btn lb-pick attr-${w}" data-kind="weapon" data-key="${w}">${w}</button>`).join('');
   const eRow = document.getElementById('lb-element-row');
-  eRow.innerHTML = LB_ELEMENTS.map(e => `<button type="button" class="attr-btn attr-${e}" data-kind="element" data-key="${e}">${e}</button>`).join('');
+  eRow.innerHTML = LB_ELEMENTS.map(e => `<button type="button" class="attr-btn lb-pick attr-${e}" data-kind="element" data-key="${e}">${e}</button>`).join('');
   [...wRow.children, ...eRow.children].forEach(b => b.addEventListener('click', () => lbPick(b)));
   document.getElementById('lb-day7-tip').hidden = !isDay7;
 }
@@ -2318,41 +2320,22 @@ function lbPick(btn) {
   document.getElementById('lb-helper').hidden = !!ready;
 }
 
-function playLbBattle(mega, cb) {
-  if (LB_REDUCE_MOTION) { cb(); return; }
-  const overlay = document.getElementById('lb-battle-overlay');
-  const box = document.getElementById('login-bonus-box');
-  const T_IN = 380, T_CLASH = 150, T_OUT = 320;
-  const shakeClass = mega ? 'lb-shake-big' : 'lb-shake';
-  overlay.hidden = false;
-  overlay.classList.add('playing');
-  if (mega) overlay.classList.add('mega');
-  setTimeout(() => {
-    overlay.classList.add('clash');
-    box.classList.add(shakeClass);
-  }, T_IN);
-  setTimeout(() => {
-    box.classList.remove(shakeClass);
-  }, T_IN + (mega ? 400 : 260));
-  setTimeout(() => {
-    overlay.hidden = true;
-    overlay.classList.remove('playing', 'clash', 'mega');
-    cb();
-  }, T_IN + T_CLASH + T_OUT + (mega ? 150 : 0));
-}
-
 async function lbChallenge() {
   if (!_lbWeaponPick || !_lbElementPick) return;
-  document.getElementById('lb-challenge-btn').disabled = true;
+  const btn = document.getElementById('lb-challenge-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="lb-spin" aria-hidden="true"></span>挑戦中...';
   try {
     const res = await apiFetch('/auth/login-bonus', {
       method: 'POST',
       body: JSON.stringify({ weapon: _lbWeaponPick, element: _lbElementPick })
     });
-    playLbBattle(res.total === 2, () => showLbResult(res));
+    showLbResult(res);
+    playLbBattle(res);
   } catch (err) {
     showMessage(err.message);
-    document.getElementById('lb-challenge-btn').disabled = false;
+    btn.disabled = false;
+    btn.textContent = '挑戦する';
   }
 }
 
@@ -2360,6 +2343,18 @@ function lbJoinItems(items) {
   return items.map(it => `<span class="lb-gi ${it.picked ? 'picked' : ''}">${it.k}</span>`).join('<span class="lb-gi-sep">・</span>');
 }
 
+const LB_JUDGE_LABEL = { weak: '弱点', neutral: '等倍', resist: '耐性', void: '貫通' };
+const LB_ELEMENT_COLOR = { 火: 'var(--fire)', 氷: 'var(--ice)', 雷: 'var(--thunder)', 光: 'var(--light)', 闇: 'var(--dark)', 無: 'var(--none)' };
+const LB_SLASH_SVG = '<svg viewBox="0 0 200 100" preserveAspectRatio="none" fill="currentColor" aria-hidden="true"><path d="M0 96C62 78 134 44 200 4 146 58 74 90 0 96Z"/></svg>';
+
+function lbJudgeHTML(key, status) {
+  return `<div class="lb-judge ${status}">
+    <div class="lb-judge-face back"><span class="attr-btn attr-${key} lb-judge-key">${key}</span><span class="lb-judge-val">?</span></div>
+    <div class="lb-judge-face front"><span class="attr-btn attr-${key} lb-judge-key">${key}</span><span class="lb-judge-val">${LB_JUDGE_LABEL[status]}</span></div>
+  </div>`;
+}
+
+// 結果の中身を先に作り、演出の順に見せていく（途中で飛ばしても最後の状態がそのまま残る）
 function showLbResult(res) {
   const tier = LB_TIERS[String(res.total)];
   const groups = { weak: [], neutral: [], resist: [] };
@@ -2371,36 +2366,30 @@ function showLbResult(res) {
   if (groups.resist.length) rows.push(`<div class="lb-group-line resist"><span class="lb-gl-label">耐性</span><span class="lb-gl-items">${lbJoinItems(groups.resist)}</span></div>`);
   if (groups.neutral.length) rows.push(`<div class="lb-group-line neutral"><span class="lb-gl-label">等倍</span><span class="lb-gl-items">${lbJoinItems(groups.neutral)}</span></div>`);
 
-  const forcedNote = res.forced
-    ? `<div class="lb-forced-note">貫通クリティカルには弱点も耐性も関係なかった。</div>`
-    : '';
-
-  const damage = (res.boss_hp_before != null && res.boss_hp_after != null) ? res.boss_hp_before - res.boss_hp_after : 0;
-  const damageNote = damage > 0 ? `<div class="lb-damage-note">${damage} ダメージ</div>` : '';
-  const defeatBanner = res.boss_defeated
-    ? `<div class="lb-defeat-banner">${uiIconInline('trophy')}「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>`
-    : '';
-  const enemyCardHtml = res.boss_enemy
-    ? `<div class="lb-enemy-card">${lbEnemyCardHTML(res.boss_enemy, res.boss_hp_after, res.boss_max_hp)}${damageNote}</div>`
-    : '';
-
-  document.getElementById('lb-screen-result').innerHTML = `
-    ${enemyCardHtml}
-    <div class="lb-verdict ${tier.tone}">
+  const picker = document.getElementById('lb-screen-picker');
+  const result = document.getElementById('lb-screen-result');
+  // 選ぶ画面と結果で高さが変わって画像が動かないよう、選ぶ画面の高さを残す
+  document.getElementById('lb-lower').style.minHeight = `${document.getElementById('lb-lower').offsetHeight}px`;
+  result.innerHTML = `
+    <div class="lb-judges">
+      ${lbJudgeHTML(res.picked_weapon, res.weapon_map[res.picked_weapon])}
+      ${lbJudgeHTML(res.picked_element, res.element_map[res.picked_element])}
+    </div>
+    <div class="lb-verdict ${tier.tone} lb-reveal" id="lb-verdict">
       <div class="lb-tier">${tier.label}</div>
-      <div class="lb-flavor">${tier.flavor}</div>
+      <div class="lb-flavor">${tier.flavor.split(/(?<=、)/).map(x => `<span>${x}</span>`).join('')}</div>
     </div>
-    <div class="lb-pt-standalone">
-      <span class="lb-pt-label">獲得ポイント</span>
-      <span class="lb-pt-value">+${res.points_earned}pt</span>
+    <div class="lb-pt lb-reveal" id="lb-pt-box"><span class="lb-pt-label">獲得ポイント</span><span class="lb-pt-value">+<span id="lb-pt-num">0</span>pt</span></div>
+    <div class="lb-reveal lb-reveal-last">
+      ${res.forced ? '<div class="lb-forced-note">貫通クリティカルには弱点も耐性も関係なかった。</div>' : ''}
+      ${res.boss_defeated ? `<div class="lb-defeat-banner">${uiIconInline('trophy')}「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>` : ''}
+      <div class="lb-chart">${rows.join('')}</div>
+      <button class="btn btn-primary" style="width:100%" id="lb-close-btn">${t('close')}</button>
     </div>
-    ${forcedNote}
-    ${defeatBanner}
-    <div class="lb-chart">${rows.join('')}</div>
-    <button class="btn btn-primary" style="width:100%" id="lb-close-btn">${t('close')}</button>
+    <div class="lb-skip-hint" id="lb-skip-hint">${t('rn.skip')}</div>
   `;
-  document.getElementById('lb-screen-picker').hidden = true;
-  document.getElementById('lb-screen-result').hidden = false;
+  picker.hidden = true;
+  result.hidden = false;
   document.getElementById('lb-close-btn').addEventListener('click', () => {
     document.getElementById('login-bonus-modal').classList.remove('open');
     unlockBodyScroll();
@@ -2410,8 +2399,123 @@ function showLbResult(res) {
       setTimeout(() => openSpecialBonusModal(specials), 250);
     }
   });
-  renderLbDayTrack(res.streak, res.is_day7);
   window._lbLoginDone = true;
+}
+
+// 武器で形を変える（斬：弧、突：一直線、打：衝撃の輪）。PERFECT は2発
+function lbStrikeFx(fx, weapon, mega) {
+  const n = mega ? 2 : 1;
+  const add = html => fx.insertAdjacentHTML('beforeend', html);
+  for (let i = 0; i < n; i++) {
+    const two = i ? ' two' : '';
+    if (weapon === '斬') add(`<i class="lb-slash${two}">${LB_SLASH_SVG}</i>`);
+    else if (weapon === '突') add(`<i class="lb-thrust${two}"></i>`);
+    else add(`<i class="lb-ring${two}"></i>`);
+  }
+}
+
+function lbImpactFx(fx, damage, mega) {
+  const add = html => fx.insertAdjacentHTML('beforeend', html);
+  add('<i class="lb-impact"></i>');
+  const count = mega ? 18 : 11;
+  for (let i = 0; i < count; i++) {
+    const a = Math.round(i * 360 / count + Math.random() * 18), d = Math.round((mega ? 90 : 60) + Math.random() * 45);
+    add(`<i class="lb-spark" style="--a:${a}deg;--d:${d}px"></i>`);
+  }
+  if (mega) add('<i class="lb-rays"></i><i class="lb-wash"></i>');
+  add(damage > 0 ? `<div class="lb-dmg${mega ? ' big' : ''}">${damage}</div>` : '<div class="lb-dmg none">NO DAMAGE</div>');
+}
+
+function playLbBattle(res) {
+  const box = document.getElementById('login-bonus-box');
+  const arena = document.getElementById('lb-arena');
+  const fx = document.getElementById('lb-fx');
+  const heartsWrap = document.getElementById('lb-hearts-wrap');
+  const judges = [...document.querySelectorAll('#lb-screen-result .lb-judge')];
+  const verdict = document.getElementById('lb-verdict');
+  const ptNum = document.getElementById('lb-pt-num');
+  const before = res.boss_hp_before, after = res.boss_hp_after;
+  const damage = before != null && after != null ? before - after : 0;
+  const mega = res.total === 2;
+  fx.style.setProperty('--el', LB_ELEMENT_COLOR[res.picked_element] || '#fff');
+
+  let done = false, wake = null;
+  // 待っている間にタップされたら、すぐに最後の状態へ
+  const wait = ms => new Promise(r => { if (done) return r(); const t0 = setTimeout(r, ms); wake = () => { clearTimeout(t0); r(); }; });
+
+  function finish() {
+    if (done) return;
+    done = true;
+    if (wake) wake();
+    box.removeEventListener('click', onSkip);
+    fx.innerHTML = '';
+    arena.classList.remove('hit', 'hit-big', 'defeated');
+    if (res.boss_defeated) arena.classList.add('defeated-still');
+    judges.forEach(j => j.classList.add('open'));
+    if (before != null) {
+      heartsWrap.innerHTML = lbHeartsHTML(after, res.boss_max_hp) + (damage > 0 ? `<span class="lb-damage-note">${damage} ダメージ</span>` : '');
+    }
+    ptNum.textContent = res.points_earned;
+    document.querySelectorAll('#lb-screen-result .lb-reveal').forEach(el => el.classList.add('on'));
+    document.getElementById('lb-skip-hint')?.remove();
+    renderLbDayTrack(res.streak, res.is_day7, true);
+  }
+  function onSkip(e) { if (!e.target.closest('#lb-close-btn')) finish(); }
+
+  if (LB_REDUCE_MOTION) { finish(); return; }
+  setTimeout(() => box.addEventListener('click', onSkip), 0);
+
+  (async () => {
+    await wait(750);
+    if (done) return;
+    judges[0].classList.add('open');
+    await wait(520);
+    if (done) return;
+    judges[1].classList.add('open');
+    await wait(560);
+    if (done) return;
+
+    lbStrikeFx(fx, res.picked_weapon, mega);
+    await wait(mega ? 300 : 200);
+    if (done) return;
+
+    lbImpactFx(fx, damage, mega);
+    if (damage > 0) arena.classList.add(mega ? 'hit-big' : 'hit');
+    // ハートを1つずつ減らす（討伐で大きく減るときは最後まで長引かせない）
+    if (before != null && damage > 0) {
+      const steps = Math.min(damage, 6);
+      for (let i = 1; i <= steps; i++) {
+        await wait(95);
+        if (done) return;
+        heartsWrap.innerHTML = lbHeartsHTML(Math.round(before - damage * i / steps), res.boss_max_hp);
+        heartsWrap.firstElementChild?.classList.add('bump');
+      }
+    }
+    await wait(mega ? 620 : 460);
+    if (done) return;
+
+    if (res.boss_defeated) {
+      arena.classList.remove('hit', 'hit-big');
+      arena.classList.add('defeated');
+      fx.innerHTML = '<div class="lb-defeat-stamp">DEFEATED</div>';
+      await wait(950);
+      if (done) return;
+    }
+
+    fx.innerHTML = '';
+    verdict.classList.add('on');
+    document.getElementById('lb-pt-box').classList.add('on');
+    const t0 = performance.now(), D = 480;
+    await new Promise(r => { (function tick(now) {
+      if (done) return r();
+      const k = Math.min(1, (now - t0) / D);
+      ptNum.textContent = Math.round(res.points_earned * (1 - Math.pow(1 - k, 3)));
+      k < 1 ? requestAnimationFrame(tick) : r();
+    })(t0); });
+    if (done) return;
+    await wait(180);
+    finish();
+  })();
 }
 
 // ===== 特別ボーナス（期間限定。デイリーバトルとは別のポップアップ） =====
