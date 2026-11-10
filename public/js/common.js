@@ -2029,40 +2029,102 @@ async function initLoginBonus() {
     .lb-arena-art svg { width:100%; height:100%; }
     @keyframes lbIdle { 0%,100%{transform:scale(1.03) translateY(0);} 50%{transform:scale(1.05) translateY(-3px);} }
     .lb-arena-name { position:absolute; left:0; right:0; bottom:0; z-index:2; padding:22px 14px 8px; font-size:0.98rem; font-weight:bold; color:#fff; text-align:center; text-shadow:0 1px 4px rgba(0,0,0,0.9); background:linear-gradient(transparent, rgba(8,6,18,0.85)); }
-    .lb-arena.hit .lb-arena-art { animation:lbHit .34s ease both; }
-    .lb-arena.hit-big .lb-arena-art { animation:lbHitBig .5s ease both; }
     @keyframes lbHit { 0%{filter:brightness(2.6); transform:scale(1.03) translateX(-7px);} 30%{transform:scale(1.03) translateX(6px);} 60%{transform:scale(1.03) translateX(-3px);} 100%{filter:none; transform:scale(1.03);} }
     @keyframes lbHitBig { 0%{filter:brightness(3.4) saturate(.4); transform:scale(1.1) translate(-12px,4px);} 20%{transform:scale(1.09) translate(11px,-5px);} 45%{transform:scale(1.07) translate(-7px,3px);} 70%{transform:scale(1.05) translate(4px,-2px);} 100%{filter:none; transform:scale(1.03);} }
-    .lb-arena.defeated .lb-arena-art { animation:lbDefeat .9s ease forwards; }
-    @keyframes lbDefeat { 0%{filter:brightness(1);} 25%{filter:brightness(3.4);} 100%{filter:brightness(.32) grayscale(.8); transform:scale(1.08);} }
     .lb-arena.defeated-still .lb-arena-art { animation:none; filter:brightness(.32) grayscale(.8); transform:scale(1.08); }
 
+    /* 戦闘中：上下に黒帯、敵へ寄る */
+    .lb-arena::before, .lb-arena::after { content:''; position:absolute; left:0; right:0; height:0; z-index:4; background:#000; transition:height .28s ease; pointer-events:none; }
+    .lb-arena::before { top:0; } .lb-arena::after { bottom:0; }
+    .lb-arena.battle::before, .lb-arena.battle::after { height:13%; }
+    .lb-arena.battle .lb-arena-name { opacity:0; }
+    .lb-arena-name { transition:opacity .2s; }
+    .lb-arena.battle .lb-arena-art { animation:none; }
+    .lb-arena-art img, .lb-arena-art svg { transition:transform 2.6s ease-out; }
+    .lb-arena.battle .lb-arena-art img, .lb-arena.battle .lb-arena-art svg { transform:scale(1.2); }
+    .lb-arena.battle.hit .lb-arena-art { animation:lbHit .3s ease both; }
+    .lb-arena.battle.hit-big .lb-arena-art { animation:lbHitBig .46s ease both; }
+    .lb-arena.battle.guard .lb-arena-art { animation:lbGuard .3s ease both; }
+    @keyframes lbGuard { 0%,100%{transform:none; filter:none;} 30%{transform:translateX(4px); filter:brightness(.72) sepia(.5) hue-rotate(-30deg) saturate(2);} 65%{transform:translateX(-3px);} }
+    .lb-arena.shattered .lb-arena-art { opacity:0; }
+    .lb-arena-art { transition:opacity .3s; }
+
     .lb-fx { position:absolute; inset:0; z-index:3; pointer-events:none; overflow:hidden; --el:#fff; }
-    .lb-fx > * { position:absolute; }
-    .lb-slash { left:-4%; top:14%; width:108%; height:70%; color:var(--el); opacity:0; filter:drop-shadow(0 0 8px var(--el)); animation:lbSlash .3s ease-out forwards; }
-    .lb-slash.two { transform:scaleX(-1); animation-delay:.11s; }
+    .lb-fx > * { position:absolute; font-style:normal; }
+
+    /* 溜め：光の粒が中心に集まる */
+    .lb-aura { left:50%; top:50%; width:150px; height:150px; margin:-75px 0 0 -75px; border-radius:50%; background:radial-gradient(circle, #fff 2%, var(--el) 26%, transparent 70%); mix-blend-mode:screen; animation:lbAura .62s ease-in forwards; }
+    @keyframes lbAura { 0%{opacity:0; transform:scale(.2);} 85%{opacity:1; transform:scale(1.15);} 100%{opacity:0; transform:scale(.25);} }
+    .lb-mote { left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%; background:#fff; box-shadow:0 0 10px 3px var(--el); opacity:0; transform:rotate(var(--a)) translateY(calc(var(--d) * -1)); animation:lbMote .56s ease-in var(--t) forwards; }
+    @keyframes lbMote { 0%{opacity:0;} 25%{opacity:1;} 100%{opacity:1; transform:rotate(var(--a)) translateY(0) scale(.3);} }
+
+    /* 剣のぶつかり合い */
+    .lb-sword { top:calc(50% - 16px); width:48%; height:32px; opacity:0; filter:drop-shadow(0 0 6px var(--el)) drop-shadow(0 3px 5px rgba(0,0,0,.7)); }
+    .lb-sword svg { width:100%; height:100%; display:block; }
+    .lb-sword.l { left:0; animation:lbSwordL .3s cubic-bezier(.2,.8,.3,1) forwards; }
+    .lb-sword.r { right:0; animation:lbSwordR .3s cubic-bezier(.2,.8,.3,1) forwards; }
+    @keyframes lbSwordL { 0%{opacity:0; transform:translateX(-100%) rotate(-24deg);} 45%{opacity:1;} 72%{opacity:1; transform:translateX(5%) rotate(-7deg);} 100%{opacity:0; transform:translateX(-46%) rotate(-32deg);} }
+    @keyframes lbSwordR { 0%{opacity:0; transform:translateX(100%) rotate(24deg);} 45%{opacity:1;} 72%{opacity:1; transform:translateX(-5%) rotate(7deg);} 100%{opacity:0; transform:translateX(46%) rotate(32deg);} }
+
+    /* 攻撃の形 */
+    .lb-slash { left:-8%; top:8%; width:116%; height:84%; color:var(--el); opacity:0; transform:rotate(var(--r, 0deg)) scaleX(var(--f, 1)); filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 14px var(--el)); animation:lbSlash .24s ease-out forwards; }
     .lb-slash svg { width:100%; height:100%; display:block; }
-    @keyframes lbSlash { 0%{opacity:0; clip-path:inset(0 100% 0 0);} 25%{opacity:1;} 70%{opacity:1; clip-path:inset(0 0 0 0);} 100%{opacity:0; clip-path:inset(0 0 0 0);} }
-    .lb-thrust { left:0; top:calc(50% - 7px); width:58%; height:14px; border-radius:0 99px 99px 0; background:linear-gradient(90deg, transparent, var(--el) 62%, #fff); filter:drop-shadow(0 0 8px var(--el)); transform-origin:left center; animation:lbThrust .24s cubic-bezier(.3,0,.2,1) forwards; }
-    .lb-thrust.two { top:calc(50% - 26px); animation-delay:.1s; opacity:0; }
-    @keyframes lbThrust { 0%{opacity:1; transform:scaleX(0);} 70%{opacity:1; transform:scaleX(1);} 100%{opacity:0; transform:scaleX(1.15);} }
-    .lb-ring { left:50%; top:50%; width:70px; height:70px; margin:-35px 0 0 -35px; border-radius:50%; border:5px solid var(--el); box-shadow:0 0 16px var(--el); opacity:0; animation:lbRing .4s ease-out forwards; }
-    .lb-ring.two { animation-delay:.1s; }
-    @keyframes lbRing { 0%{opacity:1; transform:scale(.2);} 100%{opacity:0; transform:scale(3.2);} }
-    .lb-impact { left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%; background:radial-gradient(circle, #fff, var(--el) 45%, transparent 72%); animation:lbImpact .34s ease-out forwards; }
-    @keyframes lbImpact { 0%{opacity:0; transform:scale(.2);} 25%{opacity:1;} 100%{opacity:0; transform:scale(6);} }
-    .lb-spark { left:50%; top:50%; width:3px; height:15px; margin:-7px 0 0 -1px; border-radius:2px; background:linear-gradient(#fff, var(--el)); transform:rotate(var(--a)); animation:lbSpark .46s ease-out forwards; }
-    @keyframes lbSpark { 0%{opacity:1; transform:rotate(var(--a)) translateY(0);} 100%{opacity:0; transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) scaleY(.4);} }
-    .lb-dmg { left:0; right:0; top:26%; text-align:center; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3.2rem; line-height:1; color:#fff; -webkit-text-stroke:1px rgba(0,0,0,0.5); text-shadow:0 0 14px var(--el), 0 3px 6px rgba(0,0,0,0.8); animation:lbDmg .75s cubic-bezier(.2,.9,.3,1.3) forwards; }
-    .lb-dmg.big { font-size:4.4rem; color:#ffe9a8; }
-    .lb-dmg.none { font-size:1.9rem; top:36%; color:#c3c3d6; letter-spacing:0.08em; text-shadow:0 2px 6px rgba(0,0,0,0.9); }
-    @keyframes lbDmg { 0%{opacity:0; transform:scale(.4);} 22%{opacity:1; transform:scale(1.2);} 38%{transform:scale(1);} 78%{opacity:1;} 100%{opacity:0; transform:translateY(-16px);} }
-    .lb-wash { inset:0; background:radial-gradient(circle at 50% 50%, rgba(255,226,150,0.75), transparent 75%); animation:lbWash .6s ease-out forwards; }
-    @keyframes lbWash { 0%{opacity:0;} 25%{opacity:1;} 100%{opacity:0;} }
-    .lb-rays { left:50%; top:50%; width:200%; aspect-ratio:1; transform:translate(-50%,-50%); background:repeating-conic-gradient(rgba(255,226,150,0.42) 0 10deg, transparent 10deg 26deg); -webkit-mask-image:radial-gradient(circle, #000 18%, transparent 62%); mask-image:radial-gradient(circle, #000 18%, transparent 62%); animation:lbRays .9s ease-out forwards; }
-    @keyframes lbRays { 0%{opacity:0; transform:translate(-50%,-50%) rotate(0) scale(.5);} 30%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-50%) rotate(35deg) scale(1.1);} }
-    .lb-defeat-stamp { left:0; right:0; top:calc(50% - 26px); text-align:center; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3rem; line-height:1; letter-spacing:0.1em; color:#ffd24a; text-shadow:0 0 16px rgba(255,210,74,0.8), 0 3px 6px rgba(0,0,0,0.9); animation:lbStamp .42s cubic-bezier(.2,.9,.3,1.3) both; }
-    @keyframes lbStamp { 0%{opacity:0; transform:scale(2);} 100%{opacity:1; transform:scale(1);} }
+    .lb-slash svg .core { fill:#fff; }
+    .lb-slash.big { top:-6%; height:112%; }
+    @keyframes lbSlash { 0%{opacity:0; clip-path:inset(0 100% 0 0);} 20%{opacity:1;} 62%{opacity:1; clip-path:inset(0 0 0 0);} 100%{opacity:0; clip-path:inset(0 0 0 0);} }
+    .lb-thrust { left:-4%; top:calc(50% - 11px + var(--y, 0px)); width:64%; height:22px; border-radius:0 99px 99px 0; background:linear-gradient(90deg, transparent, var(--el) 55%, #fff); filter:drop-shadow(0 0 12px var(--el)); transform-origin:left center; animation:lbThrust .2s cubic-bezier(.3,0,.2,1) forwards; }
+    .lb-thrust.big { height:40px; top:calc(50% - 20px + var(--y, 0px)); width:78%; }
+    @keyframes lbThrust { 0%{opacity:1; transform:scaleX(0);} 65%{opacity:1; transform:scaleX(1);} 100%{opacity:0; transform:scaleX(1.25);} }
+    .lb-blow { left:50%; top:50%; width:120px; height:120px; margin:-60px 0 0 -60px; color:var(--el); filter:drop-shadow(0 0 12px var(--el)); animation:lbBlow .26s ease-out forwards; }
+    .lb-blow svg { width:100%; height:100%; display:block; }
+    .lb-blow.big { width:190px; height:190px; margin:-95px 0 0 -95px; }
+    @keyframes lbBlow { 0%{opacity:0; transform:scale(.2) rotate(-14deg);} 30%{opacity:1; transform:scale(1.1) rotate(0);} 100%{opacity:0; transform:scale(1.5) rotate(8deg);} }
+
+    /* 着弾 */
+    .lb-ring { left:50%; top:50%; width:70px; height:70px; margin:-35px 0 0 -35px; border-radius:50%; border:5px solid var(--el); box-shadow:0 0 18px var(--el), inset 0 0 12px var(--el); animation:lbRing .4s ease-out forwards; }
+    @keyframes lbRing { 0%{opacity:1; transform:scale(.2);} 100%{opacity:0; transform:scale(4);} }
+    .lb-impact { left:50%; top:50%; width:90px; height:90px; margin:-45px 0 0 -45px; border-radius:50%; background:radial-gradient(circle, #fff 12%, var(--el) 42%, transparent 72%); animation:lbImpact .3s ease-out forwards; }
+    @keyframes lbImpact { 0%{opacity:0; transform:scale(.2);} 22%{opacity:1;} 100%{opacity:0; transform:scale(3.6);} }
+    .lb-spark { left:50%; top:50%; width:4px; height:20px; margin:-10px 0 0 -2px; border-radius:2px; background:linear-gradient(#fff, var(--el)); box-shadow:0 0 6px var(--el); transform:rotate(var(--a)); animation:lbSpark .5s ease-out forwards; }
+    @keyframes lbSpark { 0%{opacity:1; transform:rotate(var(--a)) translateY(0);} 100%{opacity:0; transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) scaleY(.35);} }
+    .lb-dmg { left:calc(50% + var(--x, 0px) - 70px); width:140px; top:calc(22% + var(--y, 0px)); text-align:center; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3.6rem; line-height:1; color:#fff; -webkit-text-stroke:1.5px rgba(0,0,0,.6); text-shadow:0 0 16px var(--el), 0 4px 8px rgba(0,0,0,.85); animation:lbDmg .72s cubic-bezier(.2,.9,.3,1.3) forwards; }
+    .lb-dmg.big { font-size:6rem; color:#ffe9a8; top:12%; }
+    .lb-dmg.none { left:0; width:100%; font-size:2.1rem; top:38%; color:#c3c3d6; letter-spacing:.08em; text-shadow:0 2px 6px rgba(0,0,0,.9); }
+    @keyframes lbDmg { 0%{opacity:0; transform:scale(.3);} 20%{opacity:1; transform:scale(1.3);} 36%{transform:scale(1);} 76%{opacity:1;} 100%{opacity:0; transform:translateY(-18px);} }
+    .lb-wash { inset:0; background:radial-gradient(circle at 50% 50%, rgba(255,226,150,.85), transparent 78%); animation:lbWash .55s ease-out forwards; }
+    @keyframes lbWash { 0%{opacity:0;} 22%{opacity:1;} 100%{opacity:0;} }
+    .lb-rays { left:50%; top:50%; width:220%; aspect-ratio:1; background:repeating-conic-gradient(rgba(255,226,150,.5) 0 9deg, transparent 9deg 24deg); -webkit-mask-image:radial-gradient(circle, #000 15%, transparent 62%); mask-image:radial-gradient(circle, #000 15%, transparent 62%); animation:lbRays 1.1s ease-out forwards; }
+    @keyframes lbRays { 0%{opacity:0; transform:translate(-50%,-50%) rotate(0) scale(.45);} 25%{opacity:1;} 100%{opacity:0; transform:translate(-50%,-50%) rotate(42deg) scale(1.15);} }
+
+    /* 属性の爆発 */
+    .lb-flame { bottom:6%; left:var(--x); width:var(--s); height:calc(var(--s) * 1.7); border-radius:50% 50% 45% 45% / 70% 70% 30% 30%; background:linear-gradient(0deg, #fff3b0, #ffae34 38%, #ff4a1c 72%, transparent); filter:blur(.5px); opacity:0; animation:lbFlame .62s ease-out var(--t) forwards; }
+    @keyframes lbFlame { 0%{opacity:0; transform:translateY(16px) scale(.45);} 22%{opacity:1;} 100%{opacity:0; transform:translateY(calc(var(--h) * -1)) scale(1.15);} }
+    .lb-shard { left:50%; top:50%; width:12px; height:42px; margin:-21px 0 0 -6px; background:linear-gradient(#fff, #9fe2ff 45%, #2f7dff); clip-path:polygon(50% 0, 100% 34%, 72% 100%, 28% 100%, 0 34%); filter:drop-shadow(0 0 5px #8fdcff); animation:lbShard .56s cubic-bezier(.15,.8,.3,1) forwards; }
+    @keyframes lbShard { 0%{opacity:0; transform:rotate(var(--a)) translateY(0) scale(.4);} 14%{opacity:1;} 72%{opacity:1;} 100%{opacity:0; transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) scale(1.05);} }
+    .lb-frost { inset:0; background:radial-gradient(circle at 50% 50%, rgba(200,240,255,.25) 10%, rgba(150,225,255,.8) 88%); animation:lbWash .68s ease-out forwards; }
+    .lb-bolt { top:0; left:var(--x); width:58px; height:100%; color:#fff3a0; filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 12px #ffd900); opacity:0; animation:lbBolt .34s steps(1,end) var(--t) forwards; }
+    .lb-bolt svg { width:100%; height:100%; display:block; }
+    @keyframes lbBolt { 0%{opacity:1;} 30%{opacity:0;} 45%{opacity:1;} 75%,100%{opacity:0;} }
+    .lb-beam { top:-10%; left:var(--x); width:var(--w); height:120%; background:linear-gradient(90deg, transparent, rgba(255,250,210,.95), transparent); filter:blur(1px); transform-origin:top; animation:lbBeam .56s ease-out var(--t) both; }
+    @keyframes lbBeam { 0%{opacity:0; transform:scaleX(.2) scaleY(0);} 30%{opacity:1; transform:scaleX(1) scaleY(1);} 100%{opacity:0; transform:scaleX(1.7) scaleY(1);} }
+    .lb-void { left:50%; top:50%; width:150px; height:150px; margin:-75px 0 0 -75px; border-radius:50%; background:radial-gradient(circle, #000 42%, #5b1fa8 64%, transparent 74%); box-shadow:0 0 28px #a855ff; animation:lbVoid .58s cubic-bezier(.4,0,.2,1) forwards; }
+    @keyframes lbVoid { 0%{opacity:0; transform:scale(.1) rotate(0);} 42%{opacity:1; transform:scale(1.5) rotate(120deg);} 100%{opacity:0; transform:scale(.05) rotate(320deg);} }
+
+    /* 結果の文字と討伐 */
+    .lb-tier-slam { left:0; right:0; top:calc(50% - .55em); text-align:center; font-family:"Orbitron",sans-serif; font-weight:900; font-size:2.5rem; line-height:1.1; letter-spacing:.06em; color:#fff; -webkit-text-stroke:1px rgba(0,0,0,.45); text-shadow:0 0 18px var(--tc), 0 4px 8px rgba(0,0,0,.9); animation:lbSlam .8s cubic-bezier(.2,.9,.25,1.2) forwards; }
+    @keyframes lbSlam { 0%{opacity:0; transform:scale(3.2);} 26%{opacity:1; transform:scale(.92);} 36%{transform:scale(1);} 82%{opacity:1; transform:scale(1.04);} 100%{opacity:0; transform:scale(1.12);} }
+    .lb-defeat-stamp { left:0; right:0; top:calc(50% - .55em); text-align:center; font-family:"Bebas Neue","Zen Kaku Gothic New",sans-serif; font-size:3.6rem; line-height:1.1; letter-spacing:.12em; color:#ffd24a; text-shadow:0 0 18px rgba(255,210,74,.9), 0 4px 8px rgba(0,0,0,.9); animation:lbStamp .4s cubic-bezier(.2,.9,.3,1.3) both; }
+    @keyframes lbStamp { 0%{opacity:0; transform:scale(2.6);} 100%{opacity:1; transform:scale(1);} }
+    .lb-piece { inset:0; overflow:hidden; clip-path:var(--clip); animation:lbPiece .86s cubic-bezier(.2,.65,.4,1) forwards; }
+    .lb-piece img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scale(1.2); }
+    @keyframes lbPiece { 0%{opacity:1; transform:none; filter:brightness(2.4);} 22%{filter:brightness(1.2);} 100%{opacity:0; transform:translate(var(--dx), var(--dy)) rotate(var(--rot));} }
+
+    .lb-screen-flash { position:fixed; inset:0; z-index:1; pointer-events:none; background:var(--c, #fff); animation:lbScreenFlash var(--ms, 260ms) ease-out forwards; }
+    @keyframes lbScreenFlash { 0%{opacity:0;} 22%{opacity:var(--o, .4);} 100%{opacity:0;} }
+    #login-bonus-box.lb-shake { animation:lbBoxShake .26s ease; }
+    @keyframes lbBoxShake { 0%,100%{transform:translate(0,0);} 22%{transform:translate(-6px,3px);} 45%{transform:translate(5px,-3px);} 70%{transform:translate(-3px,2px);} }
+    #login-bonus-box.lb-shake-big { animation:lbBoxShakeBig .48s ease; }
+    @keyframes lbBoxShakeBig { 0%,100%{transform:translate(0,0) rotate(0);} 12%{transform:translate(-13px,7px) rotate(-1deg);} 28%{transform:translate(12px,-8px) rotate(1deg);} 44%{transform:translate(-9px,5px) rotate(-.6deg);} 62%{transform:translate(6px,-4px) rotate(.4deg);} 80%{transform:translate(-3px,2px);} }
 
     .lb-hearts-wrap { display:flex; align-items:center; justify-content:center; gap:8px; min-height:30px; padding:6px 12px; }
     .lb-hearts { display:flex; gap:3px; }
@@ -2115,6 +2177,10 @@ async function initLoginBonus() {
     .lb-judges { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; perspective:500px; }
     .lb-judge { position:relative; height:54px; transform-style:preserve-3d; transition:transform .34s cubic-bezier(.3,.9,.4,1.2); }
     .lb-judge.open { transform:rotateX(180deg); }
+    .lb-judge.pop { animation:lbJudgePop .34s cubic-bezier(.2,.9,.3,1.5); }
+    @keyframes lbJudgePop { 0%{scale:1;} 45%{scale:1.1;} 100%{scale:1;} }
+    .lb-judge.pop.weak .front { box-shadow:0 0 18px rgba(46,204,113,.75); }
+    .lb-judge.pop.resist .front { box-shadow:0 0 18px rgba(231,76,60,.7); }
     .lb-judge-face { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:9px; border-radius:10px; backface-visibility:hidden; -webkit-backface-visibility:hidden; border:1px solid var(--border-light); background:var(--bg-card2); font-weight:bold; }
     .lb-judge-face.back { font-size:1.1rem; color:var(--text-muted); animation:lbJudgeWait .75s ease-in-out infinite; }
     .lb-judge-face.front { transform:rotateX(180deg); visibility:hidden; } /* めくるまでは中身を確実に隠す（裏返しの非表示が効かないブラウザ対策） */
@@ -2139,6 +2205,8 @@ async function initLoginBonus() {
     .lb-flavor span { display:inline-block; } /* 読点の区切りで折り返す */
     .lb-pt { display:flex; align-items:baseline; justify-content:center; gap:10px; margin-bottom:10px; }
     .lb-pt-label { font-size:0.74rem; color:var(--text-muted); }
+    .lb-pt.go .lb-pt-value { animation:lbPtPop .4s cubic-bezier(.2,.9,.3,1.5); display:inline-block; }
+    @keyframes lbPtPop { 50%{transform:scale(1.28);} }
     .lb-pt-value { font-size:1.5rem; line-height:1.15; font-weight:bold; color:#f0d08a; font-variant-numeric:tabular-nums; white-space:nowrap; }
     .lb-verdict.tone-danger { background:rgba(231,76,60,0.14); border-color:var(--danger); } .tone-danger .lb-tier { color:#ff8a8a; }
     .lb-verdict.tone-warning { background:rgba(243,156,18,0.14); border-color:var(--warning); } .tone-warning .lb-tier { color:#f5b041; }
@@ -2163,7 +2231,7 @@ async function initLoginBonus() {
     .lb-skip-hint { position:absolute; left:0; right:0; bottom:18px; text-align:center; font-size:0.7rem; color:var(--text-muted); }
 
     @media (prefers-reduced-motion:reduce) {
-      #login-bonus-box, .lb-arena-art, #lb-screen-picker, .lb-judge-face.back, .lb-verdict.tone-jackpot.on, .lb-cta::before, .lb-day-medal.just { animation:none !important; }
+      #login-bonus-box, .lb-arena-art, #lb-screen-picker, .lb-judge-face.back, .lb-judge.pop, .lb-verdict.tone-jackpot.on, .lb-cta::before, .lb-day-medal.just { animation:none !important; }
       .lb-reveal, .lb-judge, .lb-day-track-fill, .lb-pick.attr-btn { transition:none !important; }
     }
   `;
@@ -2353,7 +2421,6 @@ function lbJoinItems(items) {
 
 const LB_JUDGE_LABEL = { weak: '弱点', neutral: '等倍', resist: '耐性', void: '貫通' };
 const LB_ELEMENT_COLOR = { 火: 'var(--fire)', 氷: 'var(--ice)', 雷: 'var(--thunder)', 光: 'var(--light)', 闇: 'var(--dark)', 無: 'var(--none)' };
-const LB_SLASH_SVG = '<svg viewBox="0 0 200 100" preserveAspectRatio="none" fill="currentColor" aria-hidden="true"><path d="M0 96C62 78 134 44 200 4 146 58 74 90 0 96Z"/></svg>';
 
 function lbJudgeHTML(key, status) {
   return `<div class="lb-judge ${status}">
@@ -2477,42 +2544,121 @@ function lbPreviewResult(weapon, element) {
   };
 }
 
-// 武器で形を変える（斬：弧、突：一直線、打：衝撃の輪）。PERFECT は2発
-function lbStrikeFx(fx, weapon, mega) {
-  const n = mega ? 2 : 1;
-  const add = html => fx.insertAdjacentHTML('beforeend', html);
-  for (let i = 0; i < n; i++) {
-    const two = i ? ' two' : '';
-    if (weapon === '斬') add(`<i class="lb-slash${two}">${LB_SLASH_SVG}</i>`);
-    else if (weapon === '突') add(`<i class="lb-thrust${two}"></i>`);
-    else add(`<i class="lb-ring${two}"></i>`);
+const LB_SWORD_SVG = dir => `<svg viewBox="0 0 90 20" preserveAspectRatio="none" aria-hidden="true"${dir === 'r' ? ' style="transform:scaleX(-1)"' : ''}><rect x="0" y="7" width="16" height="6" rx="2" fill="#5a4326"/><rect x="15" y="3" width="4" height="14" rx="1" fill="#d4af6a"/><polygon points="19,8.5 82,9.3 90,10 82,10.7 19,11.5" fill="#eef0f5"/></svg>`;
+const LB_BLOW_SVG = '<svg viewBox="0 0 100 100" fill="currentColor" aria-hidden="true"><path d="M50 0l9 27 22-17-9 26 28 2-23 16 19 21-28-5 2 28-20-20-20 20 2-28-28 5 19-21L0 38l28-2-9-26 22 17z"/><path d="M50 26l5 15 13-9-5 14 15 1-13 9 10 11-15-3 1 15-11-11-11 11 1-15-15 3 10-11-13-9 15-1-5-14 13 9z" fill="#fff"/></svg>';
+const LB_BOLT_SVG = '<svg viewBox="0 0 40 200" preserveAspectRatio="none" fill="none" stroke="currentColor" stroke-width="5" stroke-linejoin="round" aria-hidden="true"><path d="M26 0L10 56l18-6L8 116l20-8-16 92"/></svg>';
+// 結果の文字色
+const LB_SLAM_COLOR = { '-2': '#ff5a5a', '-1': '#ff9f3a', 0: '#a9b8ff', 1: '#3fdc85', 2: '#ffd24a' };
+// 手数と1発ごとのダメージ（合計が実際のダメージになるよう、最後の1発に残りを乗せる）
+function lbHitPlan(total, damage) {
+  const n = { '2': 3, '1': 2 }[String(total)] || 1;
+  if (damage <= 0) return [0];
+  const hits = Math.min(n, damage), plan = Array(hits).fill(1);
+  plan[hits - 1] = damage - (hits - 1);
+  return plan;
+}
+
+function lbFxAdd(fx, html) { fx.insertAdjacentHTML('beforeend', html); }
+function lbRnd(a, b) { return a + Math.random() * (b - a); }
+
+function lbChargeFx(fx) {
+  let html = '<i class="lb-aura"></i>';
+  for (let i = 0; i < 16; i++) html += `<i class="lb-mote" style="--a:${Math.round(i * 22.5)}deg;--d:${Math.round(lbRnd(90, 150))}px;--t:${Math.round(lbRnd(0, 170))}ms"></i>`;
+  lbFxAdd(fx, html);
+}
+
+// 武器で形を変える（斬：弧、突：一直線、打：星形の衝撃）。last は最後の1発
+function lbStrikeFx(fx, weapon, i, last, mega) {
+  const big = last && mega ? ' big' : '';
+  if (weapon === '斬') {
+    const pose = [['-4deg', 1], ['8deg', -1], ['-14deg', 1]][i % 3];
+    const one = (r, f) => `<i class="lb-slash${big}" style="--r:${r};--f:${f}"><svg viewBox="0 0 200 100" preserveAspectRatio="none" fill="currentColor" aria-hidden="true"><path d="M0 98C62 80 134 42 200 2 146 60 74 92 0 98Z"/><path class="core" d="M20 92C74 76 136 44 186 12 140 56 78 86 20 92Z"/></svg></i>`;
+    lbFxAdd(fx, one(pose[0], pose[1]));
+    if (big) lbFxAdd(fx, one('10deg', -1)); // PERFECT の締めは十字
+  } else if (weapon === '突') {
+    const y = [0, -24, 22][i % 3];
+    lbFxAdd(fx, `<i class="lb-thrust${big}" style="--y:${y}px"></i>`);
+  } else {
+    lbFxAdd(fx, `<i class="lb-blow${big}">${LB_BLOW_SVG}</i>`);
   }
 }
 
-function lbImpactFx(fx, damage, mega) {
-  const add = html => fx.insertAdjacentHTML('beforeend', html);
-  add('<i class="lb-impact"></i>');
-  const count = mega ? 18 : 11;
-  for (let i = 0; i < count; i++) {
-    const a = Math.round(i * 360 / count + Math.random() * 18), d = Math.round((mega ? 90 : 60) + Math.random() * 45);
-    add(`<i class="lb-spark" style="--a:${a}deg;--d:${d}px"></i>`);
+// 属性ごとの爆発（big は締めの1発）
+function lbElementFx(fx, element, big) {
+  let html = '';
+  if (element === '火') {
+    const n = big ? 22 : 11;
+    for (let i = 0; i < n; i++) html += `<i class="lb-flame" style="--x:${Math.round(lbRnd(10, 86))}%;--s:${Math.round(lbRnd(18, big ? 46 : 32))}px;--h:${Math.round(lbRnd(80, big ? 210 : 140))}px;--t:${Math.round(lbRnd(0, 130))}ms"></i>`;
+  } else if (element === '氷') {
+    const n = big ? 18 : 10;
+    for (let i = 0; i < n; i++) html += `<i class="lb-shard" style="--a:${Math.round(i * 360 / n + lbRnd(-8, 8))}deg;--d:${Math.round(lbRnd(80, big ? 190 : 130))}px"></i>`;
+    html += '<i class="lb-frost"></i>';
+  } else if (element === '雷') {
+    const n = big ? 5 : 2;
+    for (let i = 0; i < n; i++) html += `<i class="lb-bolt" style="--x:${Math.round(lbRnd(8, 80))}%;--t:${i * 45}ms">${LB_BOLT_SVG}</i>`;
+  } else if (element === '光') {
+    const n = big ? 7 : 3;
+    for (let i = 0; i < n; i++) html += `<i class="lb-beam" style="--x:${Math.round(lbRnd(4, 80))}%;--w:${Math.round(lbRnd(26, big ? 78 : 50))}px;--t:${i * 40}ms"></i>`;
+  } else if (element === '闇') {
+    html = '<i class="lb-void"></i>';
+    if (big) html += '<i class="lb-void" style="animation-delay:.1s;opacity:0"></i>';
+  } else {
+    html = '<i class="lb-ring"></i><i class="lb-ring" style="animation-delay:.08s"></i>';
   }
-  if (mega) add('<i class="lb-rays"></i><i class="lb-wash"></i>');
-  add(damage > 0 ? `<div class="lb-dmg${mega ? ' big' : ''}">${damage}</div>` : '<div class="lb-dmg none">NO DAMAGE</div>');
+  lbFxAdd(fx, html);
+}
+
+function lbImpactFx(fx, n) {
+  let html = '<i class="lb-impact"></i><i class="lb-ring"></i>';
+  for (let i = 0; i < n; i++) html += `<i class="lb-spark" style="--a:${Math.round(i * 360 / n + lbRnd(0, 16))}deg;--d:${Math.round(lbRnd(70, 165))}px"></i>`;
+  lbFxAdd(fx, html);
+}
+
+// 画面全体の閃光（点滅が強くなりすぎないよう、薄めで1回の演出につき数回まで）
+function lbScreenFlash(color, opacity, ms) {
+  const el = document.createElement('div');
+  el.className = 'lb-screen-flash';
+  el.style.cssText = `--c:${color};--o:${opacity};--ms:${ms}ms`;
+  document.getElementById('login-bonus-modal').appendChild(el);
+  setTimeout(() => el.remove(), ms + 40);
+}
+
+function lbRestartClass(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+// 討伐：敵の画像を破片にして飛ばす（画像がない敵は暗くなるだけ）
+function lbShatter(arena, fx) {
+  const img = arena.querySelector('.lb-arena-art img');
+  if (!img) return;
+  arena.classList.add('shattered');
+  const cols = 4, rows = 3;
+  const pt = (c, r) => [c / cols * 100 + (c % cols ? lbRnd(-5, 5) : 0), r / rows * 100 + (r % rows ? lbRnd(-7, 7) : 0)];
+  const grid = [];
+  for (let r = 0; r <= rows; r++) { grid[r] = []; for (let c = 0; c <= cols; c++) grid[r][c] = pt(c, r); }
+  let html = '';
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const p = [grid[r][c], grid[r][c + 1], grid[r + 1][c + 1], grid[r + 1][c]];
+    const cx = (c + .5) / cols - .5, cy = (r + .5) / rows - .5;
+    html += `<i class="lb-piece" style="--clip:polygon(${p.map(q => `${q[0].toFixed(1)}% ${q[1].toFixed(1)}%`).join(',')});--dx:${Math.round(cx * 340 + lbRnd(-30, 30))}px;--dy:${Math.round(cy * 300 + lbRnd(40, 100))}px;--rot:${Math.round(lbRnd(-70, 70))}deg"><img src="${escHtml(img.src)}" alt=""></i>`;
+  }
+  lbFxAdd(fx, html);
 }
 
 function playLbBattle(res) {
   const box = document.getElementById('login-bonus-box');
+  const modal = document.getElementById('login-bonus-modal');
   const arena = document.getElementById('lb-arena');
   const fx = document.getElementById('lb-fx');
   const heartsWrap = document.getElementById('lb-hearts-wrap');
   const judges = [...document.querySelectorAll('#lb-screen-result .lb-judge')];
   const verdict = document.getElementById('lb-verdict');
+  const ptBox = document.getElementById('lb-pt-box');
   const ptNum = document.getElementById('lb-pt-num');
   const before = res.boss_hp_before, after = res.boss_hp_after;
   const damage = before != null && after != null ? before - after : 0;
-  const mega = res.total === 2;
-  fx.style.setProperty('--el', LB_ELEMENT_COLOR[res.picked_element] || '#fff');
+  const total = res.total, mega = total === 2;
+  const tier = LB_TIERS[String(total)];
+  const element = res.picked_element, color = LB_ELEMENT_COLOR[element] || '#fff';
+  fx.style.setProperty('--el', color);
 
   let done = false, wake = null;
   // 待っている間にタップされたら、すぐに最後の状態へ
@@ -2524,9 +2670,11 @@ function playLbBattle(res) {
     if (wake) wake();
     box.removeEventListener('click', onSkip);
     fx.innerHTML = '';
-    arena.classList.remove('hit', 'hit-big', 'defeated');
+    modal.querySelectorAll('.lb-screen-flash').forEach(el => el.remove());
+    box.classList.remove('lb-shake', 'lb-shake-big');
+    arena.classList.remove('battle', 'hit', 'hit-big', 'guard', 'shattered');
     if (res.boss_defeated) arena.classList.add('defeated-still');
-    judges.forEach(j => j.classList.add('open'));
+    judges.forEach(j => { j.classList.add('open'); j.classList.remove('pop'); });
     if (before != null) {
       heartsWrap.innerHTML = lbHeartsHTML(after, res.boss_max_hp) + (damage > 0 ? `<span class="lb-damage-note">${damage} ダメージ</span>` : '');
     }
@@ -2540,47 +2688,99 @@ function playLbBattle(res) {
   if (LB_REDUCE_MOTION) { finish(); return; }
   setTimeout(() => box.addEventListener('click', onSkip), 0);
 
+  const flip = async j => {
+    j.classList.add('open');
+    await wait(170);
+    if (!done) j.classList.add('pop');
+  };
+
   (async () => {
-    await wait(750);
+    arena.classList.add('battle');
+    await wait(380);
     if (done) return;
-    judges[0].classList.add('open');
-    await wait(520);
+    await flip(judges[0]);
+    await wait(200);
     if (done) return;
-    judges[1].classList.add('open');
-    await wait(560);
-    if (done) return;
-
-    lbStrikeFx(fx, res.picked_weapon, mega);
-    await wait(mega ? 300 : 200);
+    await flip(judges[1]);
+    await wait(220);
     if (done) return;
 
-    lbImpactFx(fx, damage, mega);
-    if (damage > 0) arena.classList.add(mega ? 'hit-big' : 'hit');
-    // ハートを1つずつ減らす（討伐で大きく減るときは最後まで長引かせない）
-    if (before != null && damage > 0) {
-      const steps = Math.min(damage, 6);
-      for (let i = 1; i <= steps; i++) {
-        await wait(95);
-        if (done) return;
-        heartsWrap.innerHTML = lbHeartsHTML(Math.round(before - damage * i / steps), res.boss_max_hp);
-        heartsWrap.firstElementChild?.classList.add('bump');
+    // 溜め → 剣のぶつかり合い
+    lbChargeFx(fx);
+    await wait(mega ? 500 : 400);
+    if (done) return;
+    fx.innerHTML = '';
+    lbFxAdd(fx, `<i class="lb-sword l">${LB_SWORD_SVG('l')}</i><i class="lb-sword r">${LB_SWORD_SVG('r')}</i>`);
+    await wait(215);
+    if (done) return;
+    lbImpactFx(fx, 8);
+    lbScreenFlash('#fff', .22, 200);
+    lbRestartClass(box, 'lb-shake');
+    await wait(mega ? 240 : 180);
+    if (done) return;
+
+    // 連撃（1発ごとに、斬撃 → 少し止めて着弾）
+    const plan = lbHitPlan(total, damage);
+    let hp = before;
+    for (let i = 0; i < plan.length; i++) {
+      const last = i === plan.length - 1, hit = plan[i];
+      fx.innerHTML = '';
+      lbStrikeFx(fx, res.picked_weapon, i, last, mega);
+      await wait(last && mega ? 170 : 110);
+      if (done) return;
+
+      if (hit > 0) {
+        lbImpactFx(fx, last && mega ? 26 : 13);
+        lbElementFx(fx, element, last);
+        lbFxAdd(fx, `<div class="lb-dmg${last && mega ? ' big' : ''}" style="--x:${last ? 0 : Math.round(lbRnd(-70, 70))}px;--y:${last ? 0 : Math.round(lbRnd(-6, 26))}px">${hit}</div>`);
+        lbRestartClass(arena, last && mega ? 'hit-big' : 'hit');
+        lbRestartClass(box, last && mega ? 'lb-shake-big' : 'lb-shake');
+        if (last) lbScreenFlash(mega ? '#ffe7a0' : color, mega ? .46 : .24, mega ? 420 : 260);
+        if (last && mega) lbFxAdd(fx, '<i class="lb-rays"></i><i class="lb-wash"></i>');
+        if (hp != null) {
+          hp -= hit;
+          heartsWrap.innerHTML = lbHeartsHTML(hp, res.boss_max_hp);
+          heartsWrap.firstElementChild?.classList.add('bump');
+        }
+      } else {
+        // 弾かれる
+        lbImpactFx(fx, 8);
+        lbFxAdd(fx, '<div class="lb-dmg none">NO DAMAGE</div>');
+        lbRestartClass(arena, 'guard');
+        lbRestartClass(box, 'lb-shake');
       }
+      await wait(last ? (mega ? 620 : 420) : 280);
+      if (done) return;
     }
-    await wait(mega ? 620 : 460);
+
+    // 結果の文字を叩きつける
+    fx.innerHTML = `<div class="lb-tier-slam" style="--tc:${LB_SLAM_COLOR[total]};color:${mega ? '#ffe9a8' : '#fff'}">${tier.label}</div>`;
+    if (total >= 1) lbRestartClass(box, 'lb-shake');
+    await wait(650);
     if (done) return;
 
     if (res.boss_defeated) {
+      fx.innerHTML = '';
       arena.classList.remove('hit', 'hit-big');
-      arena.classList.add('defeated');
-      fx.innerHTML = '<div class="lb-defeat-stamp">DEFEATED</div>';
-      await wait(950);
+      lbScreenFlash('#fff', .5, 380);
+      lbRestartClass(box, 'lb-shake-big');
+      lbShatter(arena, fx);
+      lbFxAdd(fx, '<i class="lb-rays"></i>');
+      await wait(520);
+      if (done) return;
+      // 破片が飛んだあとは、暗くなった姿を残す
+      arena.classList.remove('shattered');
+      arena.classList.add('defeated-still');
+      lbFxAdd(fx, '<div class="lb-defeat-stamp">DEFEATED</div>');
+      await wait(820);
       if (done) return;
     }
 
     fx.innerHTML = '';
+    arena.classList.remove('battle');
     verdict.classList.add('on');
-    document.getElementById('lb-pt-box').classList.add('on');
-    const t0 = performance.now(), D = 480;
+    ptBox.classList.add('on');
+    const t0 = performance.now(), D = 420;
     await new Promise(r => { (function tick(now) {
       if (done) return r();
       const k = Math.min(1, (now - t0) / D);
@@ -2588,6 +2788,7 @@ function playLbBattle(res) {
       k < 1 ? requestAnimationFrame(tick) : r();
     })(t0); });
     if (done) return;
+    ptBox.classList.add('go');
     await wait(180);
     finish();
   })();
