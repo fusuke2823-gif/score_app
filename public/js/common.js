@@ -2072,12 +2072,13 @@ async function initLoginBonus() {
     .lb-heart-blue { color:#5fd0e6; }
     .lb-damage-note { flex-shrink:0; font-size:0.76rem; color:#ff8a8a; font-weight:bold; font-variant-numeric:tabular-nums; }
 
-    .lb-lower { position:relative; padding:4px 16px 16px; }
-    .lb-group { margin-bottom:10px; }
-    .lb-group-label { font-size:0.76rem; color:var(--text-secondary); margin-bottom:6px; font-weight:bold; }
-    .lb-pick-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+    .lb-lower { position:relative; padding:4px 16px 18px; }
+    #lb-screen-picker { padding-top:10px; }
+    .lb-group { margin-bottom:18px; }
+    .lb-group-label { font-size:0.8rem; color:var(--text-secondary); margin-bottom:9px; font-weight:bold; }
+    .lb-pick-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
     #lb-element-row { grid-template-columns:repeat(6, 1fr); }
-    .lb-pick.attr-btn { width:100%; height:42px; padding:0; margin:0; font-size:1rem; font-weight:bold; border-radius:9px; opacity:.88; transition:transform .12s, background .12s, opacity .12s; }
+    .lb-pick.attr-btn { width:100%; height:48px; padding:0; margin:0; font-size:1rem; font-weight:bold; border-radius:9px; opacity:.88; transition:transform .12s, background .12s, opacity .12s; }
     .lb-pick.attr-btn:hover { opacity:1; }
     .lb-pick.attr-btn:active { transform:scale(.94); }
     .lb-pick.attr-btn.active { opacity:1; transform:translateY(-1px); background:color-mix(in srgb, currentColor 24%, transparent); box-shadow:0 0 0 2px currentColor, 0 0 12px color-mix(in srgb, currentColor 50%, transparent); }
@@ -2088,9 +2089,9 @@ async function initLoginBonus() {
     .attr-btn.attr-打 { border-color:#8fc93f; color:#8fc93f; }
     .attr-btn.attr-打:hover { background:rgba(143,201,63,0.15); }
 
-    .lb-day7-tip { font-size:0.74rem; padding:7px 10px; border-radius:8px; margin-bottom:10px; background:rgba(255,122,140,0.12); border:1px solid rgba(255,122,140,0.45); color:#ff9aa8; line-height:1.55; }
+    .lb-day7-tip { font-size:0.74rem; padding:8px 10px; border-radius:8px; margin-bottom:16px; background:rgba(255,122,140,0.12); border:1px solid rgba(255,122,140,0.45); color:#ff9aa8; line-height:1.55; }
     .lb-day7-tip[hidden], .lb-helper[hidden] { display:none; }
-    .lb-cta { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:800; font-size:1.02rem; letter-spacing:0.08em; color:#2a1d08; background:linear-gradient(180deg,#f3d98f,#c9a052); border:1px solid #f6e3ad; box-shadow:0 8px 22px -10px rgba(212,175,106,0.85); transition:transform .12s, opacity .15s, filter .15s; }
+    .lb-cta { position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:52px; margin-top:22px; border-radius:11px; cursor:pointer; font-family:inherit; font-weight:800; font-size:1.02rem; letter-spacing:0.08em; color:#2a1d08; background:linear-gradient(180deg,#f3d98f,#c9a052); border:1px solid #f6e3ad; box-shadow:0 8px 22px -10px rgba(212,175,106,0.85); transition:transform .12s, opacity .15s, filter .15s; }
     .lb-cta::before { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(120deg, transparent, rgba(255,255,255,0.55), transparent); transform:skewX(-20deg); animation:lbCtaShimmer 3s infinite; }
     @keyframes lbCtaShimmer { 0%{left:-60%;} 55%{left:120%;} 100%{left:120%;} }
     .lb-cta:hover:not(:disabled) { filter:brightness(1.07); }
@@ -2100,7 +2101,7 @@ async function initLoginBonus() {
     .lb-cta:focus-visible, .lb-pick.attr-btn:focus-visible, #lb-close-btn:focus-visible { outline:2px solid #fff; outline-offset:2px; }
     .lb-spin { width:16px; height:16px; border-radius:50%; border:2px solid rgba(255,255,255,0.3); border-top-color:#fff; animation:lbSpin .7s linear infinite; }
     @keyframes lbSpin { to { transform:rotate(360deg); } }
-    .lb-helper { text-align:center; font-size:0.74rem; color:var(--text-muted); margin-top:7px; }
+    .lb-helper { text-align:center; font-size:0.74rem; color:var(--text-muted); margin-top:10px; }
 
     #lb-stage .lb-screen[hidden] { display:none; }
     #lb-screen-picker:not([hidden]) { animation:lbScreenIn .3s ease both; }
