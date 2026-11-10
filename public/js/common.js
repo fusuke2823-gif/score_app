@@ -1991,6 +1991,7 @@ const LB_TIERS = {
 };
 const LB_REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let _lbWeaponPick = null, _lbElementPick = null;
+let _lbPreview = null; // 管理画面の確認用のとき、その設定
 
 async function initLoginBonus() {
   if (!getToken()) return;
@@ -2004,6 +2005,9 @@ async function initLoginBonus() {
     .lb-head { display:flex; align-items:baseline; justify-content:center; gap:10px; padding:14px 16px 10px; }
     .lb-eyebrow { font-family:"Orbitron",sans-serif; font-size:0.62rem; font-weight:800; letter-spacing:0.2em; color:#d4af6a; }
     .lb-head h3 { margin:0; font-size:1.02rem; }
+    .lb-preview-tag, .lb-preview-cancel { display:none; }
+    #login-bonus-modal[data-preview] .lb-preview-tag { display:inline-block; padding:1px 8px; border-radius:99px; font-size:0.68rem; font-weight:bold; color:#ffb3bf; border:1px solid rgba(255,107,128,0.6); }
+    #login-bonus-modal[data-preview] .lb-preview-cancel { display:block; width:100%; margin-top:10px; }
 
     .lb-day-track { position:relative; margin:0 16px 12px; }
     .lb-day-track-line { position:absolute; left:15px; right:15px; top:14px; height:2px; background:rgba(255,255,255,0.1); border-radius:2px; overflow:hidden; }
@@ -2169,7 +2173,7 @@ async function initLoginBonus() {
   modal.id = 'login-bonus-modal';
   modal.innerHTML = `
     <div id="login-bonus-box">
-      <div class="lb-head"><span class="lb-eyebrow">DAILY BATTLE</span><h3>デイリーバトル</h3></div>
+      <div class="lb-head"><span class="lb-eyebrow">DAILY BATTLE</span><h3>デイリーバトル</h3><span class="lb-preview-tag">確認用</span></div>
       <div class="lb-day-track">
         <div class="lb-day-track-line"><div class="lb-day-track-fill" id="lb-day-track-fill"></div></div>
         <div class="lb-day-medals" id="lb-day-medals"></div>
@@ -2188,12 +2192,15 @@ async function initLoginBonus() {
             <div class="lb-day7-tip" id="lb-day7-tip" hidden>7日目は耐性のない特別な敵。無属性で安定を取るより、通常属性を狙う方が有利かも。</div>
             <button type="button" class="lb-cta" id="lb-challenge-btn" disabled>挑戦する</button>
             <div class="lb-helper" id="lb-helper">武器と属性をひとつずつ選んでください</div>
+            <button type="button" class="btn btn-secondary lb-preview-cancel" id="lb-preview-cancel">閉じる</button>
           </div>
           <div class="lb-screen" id="lb-screen-result" aria-live="polite" hidden></div>
         </div>
       </div>
     </div>`;
   document.body.appendChild(modal);
+  document.getElementById('lb-challenge-btn').addEventListener('click', lbChallenge);
+  document.getElementById('lb-preview-cancel').addEventListener('click', lbEndPreview);
 
   try {
     const [status, specials] = await Promise.all([
@@ -2216,7 +2223,6 @@ async function initLoginBonus() {
     if (!status.already_claimed) {
       renderLbDayTrack(status.next_streak, status.is_day7);
       renderLbPickers(status.is_day7);
-      document.getElementById('lb-challenge-btn').addEventListener('click', lbChallenge);
     } else {
       renderLbDayTrack(status.streak, status.streak === 7);
       document.getElementById('lb-screen-picker').hidden = true;
@@ -2327,7 +2333,8 @@ async function lbChallenge() {
   btn.disabled = true;
   btn.innerHTML = '<span class="lb-spin" aria-hidden="true"></span>挑戦中...';
   try {
-    const res = await apiFetch('/auth/login-bonus', {
+    // 確認用はサーバーに送らない（ポイントも連続日数も変わらない）
+    const res = _lbPreview ? lbPreviewResult(_lbWeaponPick, _lbElementPick) : await apiFetch('/auth/login-bonus', {
       method: 'POST',
       body: JSON.stringify({ weapon: _lbWeaponPick, element: _lbElementPick })
     });
@@ -2392,6 +2399,7 @@ function showLbResult(res) {
   picker.hidden = true;
   result.hidden = false;
   document.getElementById('lb-close-btn').addEventListener('click', () => {
+    if (_lbPreview) { lbEndPreview(); return; }
     document.getElementById('login-bonus-modal').classList.remove('open');
     unlockBodyScroll();
     if (window._lbPendingSpecials) {
@@ -2400,7 +2408,73 @@ function showLbResult(res) {
       setTimeout(() => openSpecialBonusModal(specials), 250);
     }
   });
-  window._lbLoginDone = true;
+  if (!_lbPreview) window._lbLoginDone = true;
+}
+
+// ===== 管理画面の確認用：本物と同じ画面を、サーバーに送らずに動かす =====
+// opts: { boss: { name, image_url }, total: -2〜2, defeat, day: 1〜7, points: { '-2': pt, ... } }
+function openLbPreview(opts) {
+  const modal = document.getElementById('login-bonus-modal');
+  if (!modal) return;
+  // 討伐の確認はHPを1にして、当たれば倒れるようにする
+  _lbPreview = { ...opts, hp: opts.defeat ? 1 : 33 };
+  modal.dataset.preview = '1';
+  const arena = document.getElementById('lb-arena');
+  arena.classList.remove('hit', 'hit-big', 'defeated', 'defeated-still');
+  document.getElementById('lb-fx').innerHTML = '';
+  document.getElementById('lb-lower').style.minHeight = '';
+  const result = document.getElementById('lb-screen-result');
+  result.hidden = true;
+  result.innerHTML = '';
+  const picker = document.getElementById('lb-screen-picker');
+  picker.hidden = false;
+  const btn = document.getElementById('lb-challenge-btn');
+  btn.disabled = true;
+  btn.textContent = '挑戦する';
+  document.getElementById('lb-helper').hidden = false;
+  renderLbEnemyCard({ ...opts.boss, hp: _lbPreview.hp, max_hp: 40 });
+  renderLbDayTrack(opts.day, opts.day === 7);
+  renderLbPickers(opts.day === 7);
+  modal.classList.add('open');
+  lockBodyScroll();
+}
+
+function lbEndPreview() {
+  const modal = document.getElementById('login-bonus-modal');
+  modal.classList.remove('open');
+  delete modal.dataset.preview;
+  _lbPreview = null;
+  unlockBodyScroll();
+}
+
+// 選んだ武器・属性が、指定の判定になるように相性表を作る（本物と同じ形の結果を返す）
+function lbPreviewResult(weapon, element) {
+  const p = _lbPreview;
+  const forced = element === '無';
+  const total = forced ? 0 : p.total;
+  const [wPick, ePick] = { 2: ['weak', 'weak'], 1: ['weak', 'neutral'], 0: ['neutral', 'neutral'], '-1': ['neutral', 'resist'], '-2': ['resist', 'resist'] }[total];
+  const shuffle = a => a.map(v => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+  const fill = (keys, picked, status, slots) => {
+    const i = slots.indexOf(status);
+    if (i >= 0) slots.splice(i, 1); else slots.pop();
+    const rest = shuffle(slots), map = {};
+    keys.forEach(k => { map[k] = k === picked ? status : rest.pop(); });
+    return map;
+  };
+  const day7 = p.day === 7;
+  const weapon_map = fill(LB_WEAPONS, weapon, wPick, day7 ? ['weak', 'neutral', 'neutral'] : ['weak', 'neutral', 'resist']);
+  const elementKeys = LB_ELEMENTS.filter(e => e !== '無');
+  const element_map = fill(elementKeys, forced ? elementKeys[0] : element, forced ? 'neutral' : ePick, day7 ? ['weak', 'weak', 'neutral', 'neutral', 'neutral'] : ['weak', 'weak', 'neutral', 'resist', 'resist']);
+  element_map.無 = 'void';
+  const damage = { '-2': 0, '-1': 1, 0: 2, 1: 3, 2: 5 }[total];
+  const after = Math.max(0, p.hp - damage);
+  const defeated = after === 0;
+  return {
+    streak: p.day, is_day7: day7, points_earned: p.points[String(total)] ?? 0, total, forced,
+    picked_weapon: weapon, picked_element: element, weapon_map, element_map, boss_enemy: p.boss,
+    boss_hp_before: p.hp, boss_hp_after: after, boss_max_hp: 40, boss_defeated: defeated,
+    awarded_title: defeated ? `${p.boss.name}討伐` : null,
+  };
 }
 
 // 武器で形を変える（斬：弧、突：一直線、打：衝撃の輪）。PERFECT は2発

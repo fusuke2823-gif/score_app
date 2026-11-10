@@ -189,6 +189,37 @@
     </div>
 
     <div class="card" style="margin-bottom:16px">
+      <div class="section-title">画面の確認</div>
+      <p class="st-desc">ユーザーと同じ画面と演出を試せます。ポイントや連続日数、討伐の記録は変わりません。</p>
+      <div class="lb-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div>
+          <label for="lb-prev-total">結果</label>
+          <select class="form-input" id="lb-prev-total">
+            <option value="2">PERFECT</option>
+            <option value="1">GREAT</option>
+            <option value="0">GOOD</option>
+            <option value="-1">BAD</option>
+            <option value="-2">MISS</option>
+          </select>
+        </div>
+        <div>
+          <label for="lb-prev-enemy">敵</label>
+          <select class="form-input" id="lb-prev-enemy"></select>
+        </div>
+        <div>
+          <label for="lb-prev-day">連続日数</label>
+          <select class="form-input" id="lb-prev-day">
+            <option>1</option><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option value="7">7（特別な敵）</option>
+          </select>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin:12px 0;font-size:0.85rem;cursor:pointer">
+        <input type="checkbox" id="lb-prev-defeat" style="width:18px;height:18px">討伐する（MISS はダメージ0なので討伐しません）
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="previewDailyBattle()">確認する</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
       <div class="mk-head">
         <div class="section-title">デイリーバトルの敵</div>
         <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMk('boss-new')">＋ 敵を追加</button>
@@ -446,6 +477,20 @@ async function loadLBSettings() {
   } catch (err) { showAlert('#lb-alert', err.message); }
 }
 
+// 確認用：入力中の報酬の値をそのまま使う（保存していなくても見られる）
+let _lbPrevEnemies = [];
+function previewDailyBattle() {
+  const enemy = _lbPrevEnemies[document.getElementById('lb-prev-enemy').value];
+  const pt = k => parseInt(document.getElementById(`lb-${k}`)?.value, 10) || 0;
+  openLbPreview({
+    boss: enemy ? { name: enemy.name, image_url: enemy.image_url } : { name: '謎の魔物', image_url: null },
+    total: Number(document.getElementById('lb-prev-total').value),
+    defeat: document.getElementById('lb-prev-defeat').checked,
+    day: Number(document.getElementById('lb-prev-day').value),
+    points: { '-2': pt('m2'), '-1': pt('m1'), 0: pt('0'), 1: pt('p1'), 2: pt('p2') },
+  });
+}
+
 async function saveLBSettings() {
   const body = {};
   for (const s of LB_SCORE_KEYS) body[s.key] = document.getElementById(`lb-${s.key}`)?.value;
@@ -458,6 +503,10 @@ async function saveLBSettings() {
 async function loadBossEnemies() {
   try {
     const list = await apiFetch('/admin/login-bonus/enemies');
+    _lbPrevEnemies = list;
+    document.getElementById('lb-prev-enemy').innerHTML = list.length
+      ? list.map((e, i) => `<option value="${i}">${escHtml(e.name)}</option>`).join('')
+      : '<option value="">未登録（見本）</option>';
     const box = document.getElementById('boss-list');
     box.style.display = list.length ? '' : 'block';
     box.innerHTML = list.length ? list.map(e => `
