@@ -215,11 +215,11 @@ const parseCoopTarget = v => {
 
 // イベント作成
 router.post('/events', async (req, res) => {
-  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target } = req.body;
+  const { event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target, point_multiplier } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
-      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, display_type || null, !!exclude_from_history, parseCoopTarget(coop_target)]
+      'INSERT INTO events (event_number, name, description, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target, point_multiplier) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+      [event_number, name, description || null, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, display_type || null, !!exclude_from_history, parseCoopTarget(coop_target), Number(point_multiplier) === 2 ? 2 : 1]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -232,18 +232,19 @@ router.post('/events', async (req, res) => {
 
 // イベント更新
 router.put('/events/:id', async (req, res) => {
-  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target } = req.body;
+  const { name, description, is_active, submission_start, submission_end, event_type, score_multiplier, display_type, exclude_from_history, coop_target, point_multiplier } = req.body;
   try {
     // display_type / exclude_from_history / coop_target は送られてこなければ現在の値を保つ
     const result = await pool.query(
       `UPDATE events SET name=$1, description=$2, is_active=$3, submission_start=$4, submission_end=$5, event_type=$6, score_multiplier=$7,
          display_type = CASE WHEN $9 THEN $10 ELSE display_type END,
          exclude_from_history = COALESCE($11, exclude_from_history),
-         coop_target = CASE WHEN $12 THEN $13 ELSE coop_target END
+         coop_target = CASE WHEN $12 THEN $13 ELSE coop_target END,
+         point_multiplier = COALESCE($14, point_multiplier)
        WHERE id=$8 RETURNING *`,
       [name, description || null, is_active !== false, submission_start || null, submission_end || null, event_type || 'score_attack', score_multiplier != null ? parseFloat(score_multiplier) : 1.0, req.params.id,
        display_type !== undefined, display_type || null, exclude_from_history === undefined ? null : !!exclude_from_history,
-       coop_target !== undefined, parseCoopTarget(coop_target)]
+       coop_target !== undefined, parseCoopTarget(coop_target), point_multiplier === undefined ? null : (Number(point_multiplier) === 2 ? 2 : 1)]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -743,13 +744,13 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
       await client.query('UPDATE users SET points = points + $1, rank_points = rank_points + $2 WHERE id = $3', [row.total, row.best_pt, row.user_id]);
       await client.query(
         'INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)',
-        [row.user_id, row.total, `第${event.event_number}回 ${event.name} ${row.rank}位`]
+        [row.user_id, row.total, `第${event.event_number}回 ${event.name} ${row.rank}位${dist.multiplier > 1 ? `（ポイント${dist.multiplier}倍）` : ''}`]
       );
       // 配布通知で本人に内訳を見せるために保存
       await client.query(
         `INSERT INTO ext_distribution_details (event_id, user_id, rank, total, breakdown) VALUES ($1, $2, $3, $4, $5::jsonb)
          ON CONFLICT (event_id, user_id) DO UPDATE SET rank=$3, total=$4, breakdown=$5::jsonb`,
-        [event.id, row.user_id, row.rank, row.total, JSON.stringify({ parts: row.parts, attrs: row.attrs.map(a => ({ attribute: a.attribute, rank: a.rank, n: a.n, rank_bonus: a.rank_bonus, score_bonus: a.score_bonus })), participants: dist.participants, coop: dist.coop && dist.coop.bonus > 0 ? { pct: dist.coop.reachedPct, pts: dist.coop.bonus } : null })]
+        [event.id, row.user_id, row.rank, row.total, JSON.stringify({ parts: row.parts, attrs: row.attrs.map(a => ({ attribute: a.attribute, rank: a.rank, n: a.n, rank_bonus: a.rank_bonus, score_bonus: a.score_bonus })), multiplier: dist.multiplier, participants: dist.participants, coop: dist.coop && dist.coop.bonus > 0 ? { pct: dist.coop.reachedPct, pts: dist.coop.bonus } : null })]
       );
       rankUpdateUserIdsExt.push(row.user_id);
       distributed++;
@@ -1168,7 +1169,7 @@ router.get('/events/:id/distribution-preview', async (req, res) => {
     if (!ev.rows.length) return res.status(404).json({ error: 'イベントが見つかりません' });
     const dist = await computeExternalDistribution(pool, ev.rows[0]);
     res.json({
-      bonus: dist.bonus, participants: dist.participants,
+      bonus: dist.bonus, multiplier: dist.multiplier, participants: dist.participants,
       coop: dist.coop && { progress: dist.coop.progress, bonus: dist.coop.bonus },
       total: dist.rows.reduce((s, r) => s + r.total, 0),
       rows: dist.rows.map(({ best_pt, ...r }) => r), // pt換算値は管理画面にも出さない

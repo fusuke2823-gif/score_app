@@ -1274,6 +1274,7 @@ function renderDistNoticeModal(idx) {
     <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:100%" onclick="const x=document.getElementById('rank-pts-detail-ext');x.style.display=x.style.display==='none'?'block':'none'">配布量の内訳を見る</button>
     <div id="rank-pts-detail-ext" style="display:none;margin-top:8px">
       <table class="rank-pts-table">
+        ${b.multiplier > 1 ? `<tr class="sub"><td>この回はポイント${b.multiplier}倍</td><td></td></tr>` : ''}
         <tr><td>参加ボーナス</td><td>+${b.parts.participation}pt</td></tr>
         <tr><td>総合順位ボーナス（${d.user_rank}位/${b.participants}人）</td><td>+${b.parts.overall_rank}pt</td></tr>
         <tr><td>総合スコアボーナス</td><td>+${b.parts.overall_score}pt</td></tr>

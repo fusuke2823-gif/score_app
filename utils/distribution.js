@@ -3,7 +3,8 @@
 // 配布量 = ① 参加 + ② 総合順位 + ③ 総合スコア + ④ 属性順位（出した属性ごと） + ⑤ 属性スコア（出した属性ごと）
 //   順位ボーナス = 最大値 × (参加人数 - 順位) / (参加人数 - 1)   … 1位で満額、最下位で0（1人だけなら満額）
 //   スコアボーナス = 最大値 × 自分のpt / 1位のpt                 … スコアをpt換算した値の比
-// 共闘目標を達成した回は、届いた段階の額を「共闘目標ボーナス」として全員に一律で足す
+// events.point_multiplier が 2 の回は ①〜⑤ の最大値を2倍にする（EX と同時開催でない回用）
+// 共闘目標を達成した回は、届いた段階の額を「共闘目標ボーナス」として全員に一律で足す（ランキング画面に出している額のままなので倍率はかけない）
 // ユーザーに見せるのは各ボーナスの額だけで、pt換算の値そのものは出さない。
 const { ptForEventType } = require('../routes/rankUtils');
 const { getCoopStatus } = require('./coop');
@@ -43,7 +44,9 @@ function rankMap(entries) {
 
 // event: events の行（id, event_type, score_multiplier, coop_target）
 async function computeExternalDistribution(db, event) {
-  const [bonus, coop] = await Promise.all([getDistBonusSettings(db), getCoopStatus(db, event)]);
+  const [base, coop] = await Promise.all([getDistBonusSettings(db), getCoopStatus(db, event)]);
+  const multiplier = Number(event.point_multiplier) === 2 ? 2 : 1;
+  const bonus = Object.fromEntries(Object.entries(base).map(([k, v]) => [k, v * multiplier]));
   const coopBonus = coop ? coop.bonus : 0;
   const mult = parseFloat(event.score_multiplier) || 1.0;
   const toPt = score => ptForEventType(event.event_type, score * mult);
@@ -99,7 +102,7 @@ async function computeExternalDistribution(db, event) {
     return { user_id: u.user_id, username: u.username, rank, best_score: best, best_pt: toPt(best), parts, total, attrs };
   }).sort((a, b) => a.rank - b.rank || b.total - a.total);
 
-  return { bonus, participants: n, rows, coop };
+  return { bonus, multiplier, participants: n, rows, coop };
 }
 
 module.exports = { DIST_BONUS_KEYS, DIST_BONUS_DEFAULTS, getDistBonusSettings, computeExternalDistribution };

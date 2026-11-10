@@ -20,6 +20,7 @@
 /* 最終配布の各イベント */
 .dt-row { display:flex; flex-direction:column; gap:8px; padding:14px 16px; margin-bottom:10px; border-radius:12px; border:1px solid rgba(255,255,255,0.07); background:rgba(255,255,255,0.02); }
 .dt-head { display:flex; align-items:baseline; gap:8px; }
+.dt-x2 { font-size:0.72rem; font-weight:bold; padding:1px 8px; border-radius:99px; color:#ffe08a; border:1px solid rgba(255,210,74,0.6); background:rgba(255,210,74,0.1); }
 .dt-no { font-size:0.82rem; font-weight:bold; color:var(--accent-hover); }
 .dt-label { font-size:0.74rem; font-weight:bold; color:var(--text-muted); margin-top:4px; }
 .dt-chips { display:flex; flex-wrap:wrap; gap:6px; }
@@ -283,6 +284,7 @@ async function loadExtDistributable() {
         <div class="dt-head">
           <span class="dt-no">第${e.event_number}回</span>
           <strong>${escHtml(e.name)}</strong>
+          ${Number(e.point_multiplier) === 2 ? '<span class="dt-x2">ポイント2倍</span>' : ''}
         </div>
         <div class="dt-label">総合の称号（任意）</div>
         <div class="dt-chips">
@@ -333,7 +335,7 @@ async function previewDistribution(id) {
     if (!p.rows.length) { el.innerHTML = '<div class="form-hint">対象のスコアがありません</div>'; return; }
     const n = v => Number(v).toLocaleString('ja-JP');
     el.innerHTML = `
-      <div style="font-size:0.82rem;margin:4px 0 6px">参加 ${p.participants}人 ／ 配布合計 <b>${n(p.total)}pt</b> ／ 1人平均 ${n(Math.round(p.total / p.participants))}pt
+      <div style="font-size:0.82rem;margin:4px 0 6px">参加 ${p.participants}人 ／ ${p.multiplier > 1 ? `<b style="color:#ffe08a">ポイント${p.multiplier}倍</b> ／ ` : ''}配布合計 <b>${n(p.total)}pt</b> ／ 1人平均 ${n(Math.round(p.total / p.participants))}pt
         ／ 共闘目標 ${p.coop ? `達成率 ${p.coop.progress.toFixed(1)}%（全員に＋${p.coop.bonus}pt）` : 'なし'}</div>
       <div style="overflow-x:auto;max-height:420px;overflow-y:auto">
         <table class="table dist-preview-table">

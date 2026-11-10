@@ -753,6 +753,8 @@ const initDB = async () => {
     await client.query(`
       -- scripts/add-score-multiplier.js
       ALTER TABLE events ADD COLUMN IF NOT EXISTS score_multiplier NUMERIC(6,4) DEFAULT 1.0;
+      -- 最終配布のポイントの倍率（1 か 2）。EX と同時開催でない回は 2 倍にして、2週間で配る量をそろえられる
+      ALTER TABLE events ADD COLUMN IF NOT EXISTS point_multiplier INTEGER NOT NULL DEFAULT 1;
       -- 戦績グラフ用：表示上の種類（計算用の event_type とは別。NULL なら event_type と同じ）と、グラフから外すフラグ
       ALTER TABLE events ADD COLUMN IF NOT EXISTS display_type VARCHAR(20);
       ALTER TABLE events ADD COLUMN IF NOT EXISTS exclude_from_history BOOLEAN NOT NULL DEFAULT FALSE;
