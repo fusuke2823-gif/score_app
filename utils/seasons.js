@@ -16,13 +16,14 @@ const LEGEND_TOP_N = 10;
 // EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX・遭遇戦の換算は通常との順位の割合に合わせたもの（rankUtils）。
 // k は 0.5：1シーズン（10回）でレート2000以上が16〜20人ほど（倍率を入れた本番の公開ランキングで試算）
 // down / seraphDown：通常・遭遇戦の回の下がり幅の上限（#8 より前の回だけ。遭遇戦は上位の点数が詰まっていて下がりやすいので半分）
-// newDown：セラフ遭遇戦演習#8（10/30 開始）の回からの下がり幅の上限。Xレート1500以上で通常 −50（水準200）、遭遇戦は下がらない（EX と同じ）。
-// absentDown：#8 からの休んだ回の下げ。Xレート1500以上で通常 −50（水準200）、遭遇戦 −20（水準80）。EX は休んでも下がらない。
-//   参加して振るわなかった人が、休んだ人より下がることはない。それより前の回はさかのぼらない
+// newDown：セラフ遭遇戦演習#8（10/30 開始）の回からの下がり幅の上限。Xレート1500以上で通常 −50（水準200）、遭遇戦 −25（水準100）。EX は下がらない。
+// downK：#8 からの下がるときだけの重み（上がるときは k のまま）。遭遇戦は上位の点数が詰まっていて少しの差で大きく下がるので 0.075
+// absentDown：#8 からの休んだ回の下げ。Xレート1500以上で通常 −50（水準200）、遭遇戦 −25（水準100）。EX は休んでも下がらない。
+//   参加して下がるときの上限と休みを同じにして、振るわなかった人が休んだ人より下がらないように。それより前の回はさかのぼらない
 // 休んだ回：シーズン初参加のあとに通常・遭遇戦を休むと、Xレート1500以上の人はその種類の absentDown だけ下がる（1500より下には下げない）
 // 苦手な回を休んで高いレートを守れないようにする。セラフ遭遇戦演習#8（10/30 開始）の回から数える（それより前の回はさかのぼらない）
 const ABSENT_DOWN_FROM = new Date('2026-10-30T00:00:00+09:00');
-const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, newDown: { score_attack: 200, seraph: 0 }, absentDown: { score_attack: 200, seraph: 80 }, slowUp: 200 };
+const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, newDown: { score_attack: 200, seraph: 100 }, downK: { seraph: 0.075 }, absentDown: { score_attack: 200, seraph: 100 }, slowUp: 200 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
@@ -97,7 +98,8 @@ function step(L, P, p, first = false, eventType = null, openedAt = null) {
   if (raw >= 0) return slow ? Math.min(cap, raw) : softCap(raw, cap);
   if (eventType === 'score_attack_ex') return 0;
   const newRule = p.newDown != null && openedAt && new Date(openedAt) >= ABSENT_DOWN_FROM;
-  return Math.max(-(newRule ? p.newDown[eventType] ?? p.down : eventType === 'seraph' ? (p.seraphDown ?? p.down) : p.down), raw) || 0;
+  const down = newRule && p.downK?.[eventType] != null ? p.downK[eventType] * (P - L) : raw;
+  return Math.max(-(newRule ? p.newDown[eventType] ?? p.down : eventType === 'seraph' ? (p.seraphDown ?? p.down) : p.down), down) || 0;
 }
 
 // 休んだ回の変化（0 か負の数）
