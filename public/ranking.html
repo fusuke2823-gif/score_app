@@ -107,6 +107,8 @@
 #ranking-content tr.rk-gap.fgap td { height:6px; }
 /* 自分の行 */
 #ranking-content tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(255,77,101,0.14); }
+/* フレームのある行は前と同じ高さを保つ：並べ方は前のまま（文字の基準線）にして、バッジだけ下にずらして中央にそろえる */
+#ranking-content .ranking-table tr.has-frame td.col-rank > span { vertical-align:baseline !important; position:relative; top:4px; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
 </head>
@@ -672,9 +674,9 @@ function renderCompRank(rank, sRate, xRate, exRank, legendRank) {
   const rateStr = rate != null ? `<span style="font-size:0.8rem;font-weight:bold;margin-left:4px;vertical-align:middle">${Math.floor(rate)}</span>` : '';
   if (rank === 'Ex') {
     const exStr = exRank != null ? `<span style="font-size:0.8rem;font-weight:bold;color:#a855f7;margin-left:2px;vertical-align:middle">${exRank}位</span>` : '';
-    return `<span style="display:inline-flex;align-items:center;white-space:nowrap">${img}${exStr}${rateStr}</span>`;
+    return `<span style="display:inline-flex;align-items:center;white-space:nowrap;vertical-align:middle">${img}${exStr}${rateStr}</span>`;
   }
-  return `<span style="display:inline-flex;align-items:center;white-space:nowrap">${img}${rateStr}</span>`;
+  return `<span style="display:inline-flex;align-items:center;white-space:nowrap;vertical-align:middle">${img}${rateStr}</span>`;
 }
 
 function openModal(url, ytUrl, ytScore) {

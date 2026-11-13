@@ -127,6 +127,8 @@
 #rr-trend .d { min-width:52px; text-align:right; font-weight:bold; font-variant-numeric:tabular-nums; }
 #rr-trend .d.up { color:#6ee7a0; } #rr-trend .d.down { color:#ff6b81; } #rr-trend .d.flat { color:var(--text-muted); }
 #rr-trend .now { margin:12px 0 14px; font-size:0.82rem; color:var(--text-secondary); }
+/* フレームのある行は前と同じ高さを保つ：並べ方は前のまま（文字の基準線）にして、バッジだけ下にずらして中央にそろえる */
+#rate-ranking-content .ranking-table tr.has-frame .rr-rank-label { vertical-align:baseline; position:relative; top:4px; }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
 </head>
