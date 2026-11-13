@@ -99,7 +99,8 @@
 #rate-ranking-content tr.rank-2 td { background:rgba(210,210,225,0.045); }
 #rate-ranking-content tr.rank-3 td { background:rgba(205,127,50,0.055); }
 #rate-ranking-content tr.is-me:not(.rank-1):not(.rank-2):not(.rank-3) td { background:rgba(255,77,101,0.14); }
-.rr-rank-label { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+/* 文字の基準線ではなく行の上下中央にそろえる（inline のままだと下に文字の余白が入って数px上にずれる） */
+.rr-rank-label { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; vertical-align:middle; }
 .rr-rank-label img { height:28px; width:auto; object-fit:contain; }
 .rr-exn { font-weight:700; font-size:0.86rem; color:#a855f7; }
 @media (max-width:480px) {
