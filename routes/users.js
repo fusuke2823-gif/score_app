@@ -83,6 +83,9 @@ router.get('/season', async (req, res) => {
 // 自分のレートのシーズン内の推移（TOPのレート更新の通知用）
 router.get('/me/rate-progress', authenticateToken, async (req, res) => {
   try {
+    // 管理画面でお知らせを止めている間は返さない（TOP は何も出さず、見た回の記録も進めない）
+    const sw = await pool.query("SELECT value FROM settings WHERE key = 'rate_notice_enabled'");
+    if (sw.rows[0]?.value !== 'true') return res.json(null);
     res.json(await userProgress(pool, req.user.id));
   } catch (err) {
     console.error(err);

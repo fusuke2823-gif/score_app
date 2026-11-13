@@ -131,6 +131,18 @@
     </div>
 
     <div class="card" style="margin-bottom:16px">
+      <div class="section-title">レート更新のお知らせ</div>
+      <label class="st-switch">
+        <span class="st-switch-text">
+          <b>TOPでレートの増減を知らせる</b>
+          <small>最終配布のあと、TOPを開いた人にレートの増減と推移、シーズンの開幕・終了を出します。オフの間は出さず、オンに戻すと、まだ見ていない回の分がまとめて出ます。レートランキングの表示は変わりません。</small>
+        </span>
+        <input type="checkbox" id="rate-notice-toggle" onchange="saveRateNoticeSetting()">
+        <span class="sw"></span>
+      </label>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
       <div class="section-title">運営のXアカウント</div>
       <p class="st-desc">ログイン画面の「パスワードを忘れた方は」の案内と、TOPの「制作:つんつく」のリンク先になります。空欄にすると、案内もリンクも出しません。</p>
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
@@ -371,6 +383,7 @@ async function loadSettings() {
     const s = await apiFetch('/admin/settings');
     document.getElementById('ai-check-toggle').checked = s.ai_score_check_enabled;
     document.getElementById('support-x-input').value = s.support_x_username || '';
+    document.getElementById('rate-notice-toggle').checked = s.rate_notice_enabled;
     showAttrMode(s.attr_check_mode);
     loadAttrStats();
   } catch (err) {
@@ -456,6 +469,17 @@ async function saveAiCheckSetting() {
     });
     showToast(enabled ? 'AI自動承認をオンにしました' : 'AI自動承認をオフにしました');
   } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function saveRateNoticeSetting() {
+  const enabled = document.getElementById('rate-notice-toggle').checked;
+  try {
+    await apiFetch('/admin/settings', { method: 'PUT', body: JSON.stringify({ rate_notice_enabled: enabled }) });
+    showToast(enabled ? 'レート更新のお知らせをオンにしました' : 'レート更新のお知らせをオフにしました');
+  } catch (err) {
+    document.getElementById('rate-notice-toggle').checked = !enabled;
     showToast(err.message, 'error');
   }
 }

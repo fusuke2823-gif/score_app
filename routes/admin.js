@@ -532,13 +532,14 @@ router.delete('/enemies/:id', async (req, res) => {
 // 一般設定取得
 router.get('/settings', async (req, res) => {
   try {
-    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('ai_score_check_enabled', 'support_x_username')");
+    const result = await pool.query("SELECT key, value FROM settings WHERE key IN ('ai_score_check_enabled', 'support_x_username', 'rate_notice_enabled')");
     const map = {};
     result.rows.forEach(r => { map[r.key] = r.value; });
     res.json({
       ai_score_check_enabled: map['ai_score_check_enabled'] !== 'false',
       attr_check_mode: await getAttrCheckMode(),
       support_x_username: map['support_x_username'] || '',
+      rate_notice_enabled: map['rate_notice_enabled'] === 'true',
     });
   } catch (err) {
     console.error(err);
@@ -548,8 +549,11 @@ router.get('/settings', async (req, res) => {
 
 // 一般設定更新
 router.put('/settings', async (req, res) => {
-  const { ai_score_check_enabled, attr_check_mode, support_x_username } = req.body;
+  const { ai_score_check_enabled, attr_check_mode, support_x_username, rate_notice_enabled } = req.body;
   try {
+    if (rate_notice_enabled !== undefined) {
+      await pool.query("INSERT INTO settings (key, value) VALUES ('rate_notice_enabled', $1) ON CONFLICT (key) DO UPDATE SET value = $1", [rate_notice_enabled ? 'true' : 'false']);
+    }
     if (support_x_username !== undefined) {
       const name = String(support_x_username).trim().replace(/^@/, '');
       if (name && !/^[A-Za-z0-9_]{1,15}$/.test(name)) return res.status(400).json({ error: 'X IDは英数字・アンダースコア15文字以内で入力してください' });
