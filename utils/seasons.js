@@ -15,11 +15,13 @@ const LEGEND_TOP_N = 10;
 // firstUp：そのシーズンで初めて参加した回だけの上限（みんなが同じ上限で並ばないように）
 // EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX・遭遇戦の換算は通常との順位の割合に合わせたもの（rankUtils）。
 // k は 0.5：1シーズン（10回）でレート2000以上が16〜20人ほど（倍率を入れた本番の公開ランキングで試算）
-// seraphDown：遭遇戦の回の下がり幅の上限（上位の点数が詰まっていて下がりやすいので、ほかの回の半分）
-// absentDown：シーズン初参加のあとに通常・遭遇戦を休むと、Xレート1500以上の人はレート −20（水準で −80。1500より下には下げない。EX は下がらない回なので対象外）
+// down / seraphDown：通常・遭遇戦の回の下がり幅の上限（#8 より前の回だけ。遭遇戦は上位の点数が詰まっていて下がりやすいので半分）
+// newDown：セラフ遭遇戦演習#8（10/30 開始）の回からの下がり幅の上限。Xレート1500以上で通常 −50（水準200）、遭遇戦 −25（水準100）。
+//   休んだ回はその種類の上限まで下げるので、参加して振るわなかった人が休んだ人より下がることはない。それより前の回はさかのぼらない
+// 休んだ回：シーズン初参加のあとに通常・遭遇戦を休むと、Xレート1500以上の人はその種類の newDown だけ下がる（1500より下には下げない。EX は下がらない回なので対象外）
 // 苦手な回を休んで高いレートを守れないようにする。セラフ遭遇戦演習#8（10/30 開始）の回から数える（それより前の回はさかのぼらない）
 const ABSENT_DOWN_FROM = new Date('2026-10-30T00:00:00+09:00');
-const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, slowUp: 200, absentDown: 80 };
+const REGULAR_PARAMS = { k: 0.5, up: 1000, firstUp: 1500, down: 400, seraphDown: 200, newDown: { score_attack: 200, seraph: 100 }, slowUp: 200 };
 // 前のシーズンのランク → 次のシーズンの最初のランク（A以下は B、S は S0、X 以上は X0。新しく来た人は C）
 const REGULAR_START = { C: 'B', B: 'B', A: 'B', S: 'S', X: 'X', Ex: 'X', Legend: 'X' };
 
@@ -87,19 +89,20 @@ function softCap(raw, cap) {
   const t = cap * 0.8, c = cap * 0.25;
   return raw <= t ? raw : t + c * Math.log(1 + (raw - t) / c);
 }
-function step(L, P, p, first = false, eventType = null) {
+function step(L, P, p, first = false, eventType = null, openedAt = null) {
   const slow = L < LEVEL_OF.X && P < LEVEL_OF.X;
   const cap = slow ? p.slowUp : first ? (p.firstUp ?? p.up) : p.up;
   const raw = p.k * (P - L);
   if (raw >= 0) return slow ? Math.min(cap, raw) : softCap(raw, cap);
   if (eventType === 'score_attack_ex') return 0;
-  return Math.max(-(eventType === 'seraph' ? (p.seraphDown ?? p.down) : p.down), raw);
+  const newRule = p.newDown != null && openedAt && new Date(openedAt) >= ABSENT_DOWN_FROM;
+  return Math.max(-(newRule ? p.newDown[eventType] ?? p.down : eventType === 'seraph' ? (p.seraphDown ?? p.down) : p.down), raw);
 }
 
 // 休んだ回の変化（0 か負の数）
 function absentStep(L, p, e) {
   if (e.event_type === 'score_attack_ex' || new Date(e.opened_at) < ABSENT_DOWN_FROM || L < LEVEL_OF.Ex) return 0;
-  return -Math.min(p.absentDown, L - LEVEL_OF.Ex);
+  return -Math.min(p.newDown[e.event_type] ?? 0, L - LEVEL_OF.Ex);
 }
 
 // シーズンの最初のランク（初めて計算するときに全員分を記録する。前のシーズンの最後のランク、最初のシーズンは今のランクから）
@@ -155,7 +158,7 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
     for (const r of rows) {
       const x = get(r.user_id);
       const P = ptForEventType(e.event_type, r.score * e.mult);
-      x.L = Math.max(x.floor, x.L + step(x.L, P, season.params, x.n === 0, e.event_type));
+      x.L = Math.max(x.floor, x.L + step(x.L, P, season.params, x.n === 0, e.event_type, e.opened_at));
       x.n++;
       x.total += P;
     }
@@ -289,7 +292,7 @@ async function userProgress(client, userId, now = new Date()) {
       continue;
     }
     const before = view(L);
-    L = Math.max(floor, L + step(L, ptForEventType(e.event_type, best.get(e.id) * e.mult), season.params, steps.length === 0, e.event_type));
+    L = Math.max(floor, L + step(L, ptForEventType(e.event_type, best.get(e.id) * e.mult), season.params, steps.length === 0, e.event_type, e.opened_at));
     steps.push({ event_id: e.id, name: e.name, event_type: e.event_type, before, after: view(L) });
   }
 
