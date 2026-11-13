@@ -130,7 +130,8 @@ async function ensureStartRanks(client, season, prev) {
 }
 
 // シーズンを最初から計算し直して、season_states と users のランク・レートに書く
-async function recomputeSeason(client, season, prev, { writeUsers = true } = {}) {
+// シーズンを最初から1回ずつたどる（onEvent があれば、各回のあとにその回と全員の状態を渡す）
+async function replaySeason(client, season, prev, onEvent = null) {
   await ensureStartRanks(client, season, prev);
   const starts = new Map((await client.query('SELECT user_id, start_rank FROM season_start_ranks WHERE season_key = $1', [season.key])).rows.map(r => [r.user_id, r.start_rank]));
 
@@ -167,7 +168,30 @@ async function recomputeSeason(client, season, prev, { writeUsers = true } = {})
     }
     const joined = new Set(rows.map(r => r.user_id));
     for (const [id, x] of st) if (x.n > 0 && !joined.has(id)) x.L += absentStep(x.L, season.params, e);
+    if (onEvent) onEvent(e, st);
   }
+  return { st, events };
+}
+
+// 各回のあとの、その人のレートの順位（管理画面のレート推移用。並びはランキングと同じ：水準 → 合計 → 番号）
+async function placesAfterEvents(client, season, prev, userId) {
+  const places = new Map(); // event_id → { position, participants }
+  await replaySeason(client, season, prev, (e, st) => {
+    const me = st.get(userId);
+    if (!me || me.n === 0) return;
+    let above = 0, n = 0;
+    for (const [id, x] of st) {
+      if (x.n === 0) continue;
+      n++;
+      if (x.L > me.L || (x.L === me.L && (x.total > me.total || (x.total === me.total && id < userId)))) above++;
+    }
+    places.set(e.id, { position: above + 1, participants: n });
+  });
+  return places;
+}
+
+async function recomputeSeason(client, season, prev, { writeUsers = true } = {}) {
+  const { st, events } = await replaySeason(client, season, prev);
 
   // Legend：Xレート 2000 以上の上位10人
   const legend = new Set([...st.entries()]
@@ -330,4 +354,4 @@ async function userProgress(client, userId, now = new Date()) {
 
 const seasonByKey = key => seasonsUntil(new Date('2100-01-01')).find(s => s.key === key) || null;
 
-module.exports = { IN_SEASON, rateAbove, liveSeasonKey, userProgress, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
+module.exports = { IN_SEASON, rateAbove, liveSeasonKey, userProgress, placesAfterEvents, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };

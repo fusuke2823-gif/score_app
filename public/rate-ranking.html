@@ -116,12 +116,14 @@
 #rr-trend .ttl { font-size:1.05rem; font-weight:bold; margin-bottom:2px; overflow-wrap:anywhere; }
 #rr-trend .sub { font-size:0.74rem; color:var(--text-muted); margin-bottom:12px; }
 #rr-trend .chart { width:100%; height:110px; display:block; margin-bottom:12px; border-radius:10px; background:rgba(255,255,255,0.03); }
-#rr-trend .row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:7px 2px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:0.84rem; }
+#rr-trend .row { display:grid; grid-template-columns:minmax(0,1fr) auto auto auto; align-items:center; gap:10px; padding:7px 2px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:0.84rem; }
 #rr-trend .row:last-of-type { border-bottom:none; }
 #rr-trend .nm { font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 #rr-trend .nm small { margin-left:6px; font-size:0.72em; font-weight:normal; color:#ffb347; }
 #rr-trend .val { white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--text-secondary); }
 #rr-trend .val b { color:var(--text-primary); }
+#rr-trend .pl { min-width:40px; text-align:right; font-size:0.78rem; color:var(--text-muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+#rr-trend .pl b { color:var(--text-primary); font-size:1.08em; }
 #rr-trend .d { min-width:52px; text-align:right; font-weight:bold; font-variant-numeric:tabular-nums; }
 #rr-trend .d.up { color:#6ee7a0; } #rr-trend .d.down { color:#ff6b81; } #rr-trend .d.flat { color:var(--text-muted); }
 #rr-trend .now { margin:12px 0 14px; font-size:0.82rem; color:var(--text-secondary); }
@@ -363,13 +365,13 @@ async function openTrend(id) {
     const rows = p.steps.map(s => {
       const d = trendDiff(s.before, s.after);
       return `<div class="row"><span class="nm">${escHtml(trendLabel(s))}${s.absent ? '<small>不参加</small>' : ''}</span>
-        <span class="val">${trendVal(s.after)}</span><span class="d ${d.cls}">${d.txt}</span></div>`;
+        <span class="val">${trendVal(s.after)}</span><span class="pl">${s.position ? `<b>${s.position}</b>位` : ''}</span><span class="d ${d.cls}">${d.txt}</span></div>`;
     }).join('');
     box.innerHTML = `
       <div class="ttl">${escHtml(username)}</div>
       <div class="sub">${escHtml(p.season.name)} のレートの推移</div>
       ${trendChart(pts)}
-      <div class="row"><span class="nm">シーズン開始</span><span class="val">${trendVal(p.start)}</span><span class="d flat"></span></div>
+      <div class="row"><span class="nm">シーズン開始</span><span class="val">${trendVal(p.start)}</span><span class="pl"></span><span class="d flat"></span></div>
       ${rows || '<p style="font-size:0.84rem;color:var(--text-muted)">まだ参加した回がありません。</p>'}
       <div class="now">今：${trendVal(p.now)}${p.position ? `（${p.position}位 / ${p.participants}人）` : ''}</div>
       <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="closeTrend()">閉じる</button>`;

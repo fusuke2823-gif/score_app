@@ -10,7 +10,7 @@ const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
 const { PULL_COST: SPECIAL_GACHA_PULL_COST } = require('./specialGacha');
 const { COOP_TIERS_KEY, getCoopTiers, getCoopStatus } = require('../utils/coop');
-const { syncSeasons, seasonByKey, userProgress } = require('../utils/seasons');
+const { syncSeasons, seasonByKey, userProgress, placesAfterEvents, seasonsUntil } = require('../utils/seasons');
 const { getAttrCheckMode, rejudgeStored, invalidateRefs } = require('../utils/attrJudge');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -853,7 +853,20 @@ router.get('/users/:id/rate-progress', async (req, res) => {
   try {
     const u = (await pool.query('SELECT username FROM users WHERE id = $1', [id])).rows[0];
     if (!u) return res.status(404).json({ error: 'ユーザーが見つかりません' });
-    res.json({ username: u.username, progress: await userProgress(pool, id) });
+    const progress = await userProgress(pool, id);
+    // 各回のあとのレートの順位（シーズンを最初からたどり直して出す）
+    if (progress) {
+      const list = seasonsUntil(new Date());
+      const i = list.findIndex(s => s.key === progress.season.key);
+      const client = await pool.connect();
+      try {
+        const places = await placesAfterEvents(client, seasonByKey(progress.season.key), list[i - 1] || null, id);
+        progress.steps.forEach(s => { const p = places.get(s.event_id); if (p) { s.position = p.position; s.participants = p.participants; } });
+      } finally {
+        client.release();
+      }
+    }
+    res.json({ username: u.username, progress });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
