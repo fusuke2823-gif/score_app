@@ -10,7 +10,7 @@ const { GIMMICKS, gimmickSummary } = require('../utils/specialGachaGimmicks');
 const { DIST_BONUS_KEYS, getDistBonusSettings, computeExternalDistribution } = require('../utils/distribution');
 const { PULL_COST: SPECIAL_GACHA_PULL_COST } = require('./specialGacha');
 const { COOP_TIERS_KEY, getCoopTiers, getCoopStatus } = require('../utils/coop');
-const { syncSeasons, seasonByKey } = require('../utils/seasons');
+const { syncSeasons, seasonByKey, userProgress } = require('../utils/seasons');
 const { getAttrCheckMode, rejudgeStored, invalidateRefs } = require('../utils/attrJudge');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -839,6 +839,20 @@ router.post('/events/:id/distribute-points-external', async (req, res) => {
     res.status(500).json({ error: 'サーバーエラー' });
   } finally {
     client.release();
+  }
+});
+
+// その人の今のシーズンのレート推移（レートランキングから見る用。ランクとレートだけで、pt は返さない）
+router.get('/users/:id/rate-progress', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: '不正なIDです' });
+  try {
+    const u = (await pool.query('SELECT username FROM users WHERE id = $1', [id])).rows[0];
+    if (!u) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+    res.json({ username: u.username, progress: await userProgress(pool, id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
   }
 });
 

@@ -105,6 +105,25 @@
 @media (max-width:480px) {
   .rr-name { font-size:1.2rem; }
 }
+
+/* ===== 管理者：レートの推移 ===== */
+/* 見た目は普通の数字のまま、押せるだけ */
+.rr-trend-btn { display:inline; font:inherit; line-height:inherit; color:inherit; background:none; border:none; padding:0; margin:0; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+#rr-trend { position:fixed; inset:0; z-index:2500; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,0.7); }
+#rr-trend .box { width:100%; max-width:440px; max-height:86vh; overflow-y:auto; padding:20px; border-radius:14px;
+  background:var(--bg-modal); backdrop-filter:blur(20px) saturate(150%); -webkit-backdrop-filter:blur(20px) saturate(150%); border:1px solid var(--border-light); }
+#rr-trend .ttl { font-size:1.05rem; font-weight:bold; margin-bottom:2px; overflow-wrap:anywhere; }
+#rr-trend .sub { font-size:0.74rem; color:var(--text-muted); margin-bottom:12px; }
+#rr-trend .chart { width:100%; height:110px; display:block; margin-bottom:12px; border-radius:10px; background:rgba(255,255,255,0.03); }
+#rr-trend .row { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:7px 2px; border-bottom:1px solid rgba(255,255,255,0.07); font-size:0.84rem; }
+#rr-trend .row:last-of-type { border-bottom:none; }
+#rr-trend .nm { font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#rr-trend .nm small { margin-left:6px; font-size:0.72em; font-weight:normal; color:#ffb347; }
+#rr-trend .val { white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--text-secondary); }
+#rr-trend .val b { color:var(--text-primary); }
+#rr-trend .d { min-width:52px; text-align:right; font-weight:bold; font-variant-numeric:tabular-nums; }
+#rr-trend .d.up { color:#6ee7a0; } #rr-trend .d.down { color:#ff6b81; } #rr-trend .d.flat { color:var(--text-muted); }
+#rr-trend .now { margin:12px 0 14px; font-size:0.82rem; color:var(--text-secondary); }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;800;900&display=swap">
 </head>
@@ -134,6 +153,7 @@ renderNav();
 applyI18n();
 
 const me = getUser();
+const IS_ADMIN = !!(me && me.role === 'admin');
 let showImages = true;
 let seasons = [];       // 新しい順
 let seasonKey = null;   // 見ているシーズン
@@ -282,7 +302,9 @@ function renderTable(list) {
         <td class="col-avatar"><a class="rank-avatar" href="/user.html?id=${r.id}">${avatarInner}</a></td>
         <td style="text-align:center"><a href="/user.html?id=${r.id}" style="color:#fff;text-decoration:none;font-weight:bold">${escHtml(r.username)}</a></td>
         <td style="text-align:center">${rankLabel}</td>
-        <td class="rate-score"><span class="score-val">${rate}</span></td>
+        <td class="rate-score">${IS_ADMIN && viewing()?.current
+          ? `<button type="button" class="rr-trend-btn" onclick="openTrend(${r.id})" title="レートの推移"><span class="score-val">${rate}</span></button>`
+          : `<span class="score-val">${rate}</span>`}</td>
       </tr>`;
   }).join('');
   return `
@@ -299,6 +321,67 @@ function renderTable(list) {
       <tbody><tr class="rr-gap"><td colspan="5"></td></tr>${rowsHtml}</tbody>
     </table>`;
 }
+
+// ===== 管理者：その人の今のシーズンのレート推移 =====
+// SA#104 / SA#104EX / 遭遇戦#8
+function trendLabel(s) {
+  const n = (s.name.match(/#\s*(\d+)/) || [])[1];
+  if (!n) return s.name;
+  return s.event_type === 'seraph' ? `遭遇戦#${n}` : s.event_type === 'score_attack_ex' ? `SA#${n}EX` : `SA#${n}`;
+}
+const trendVal = v => `${escHtml(v.rank)} <b>${v.rate}</b>`;
+// レートの差は同じものさしのときだけ（X 以上どうし、または同じランクの中）
+function trendDiff(a, b) {
+  const xs = ['X', 'Ex', 'Legend'];
+  if (!(xs.includes(a.rank) && xs.includes(b.rank)) && a.rank !== b.rank) return { cls: b.y >= a.y ? 'up' : 'down', txt: b.y >= a.y ? '昇格' : '降格' };
+  const d = b.rate - a.rate;
+  return { cls: d > 0 ? 'up' : d < 0 ? 'down' : 'flat', txt: d > 0 ? `+${d}` : d < 0 ? `−${-d}` : '±0' };
+}
+function trendChart(points) {
+  if (points.length < 2) return '';
+  const W = 400, H = 110, P = 12;
+  const ys = points.map(p => p.y), lo = Math.min(...ys), hi = Math.max(...ys), span = Math.max(hi - lo, 0.05);
+  const xy = points.map((p, i) => [P + i * (W - 2 * P) / (points.length - 1), H - P - (p.y - lo) / span * (H - 2 * P)]);
+  const line = xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const dots = xy.map(([x, y], i) => `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="${points[i].absent ? '#ffb347' : '#ff4d65'}"/>`).join('');
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${line}" fill="none" stroke="#ff4d65" stroke-width="2" vector-effect="non-scaling-stroke" opacity="0.8"/>${dots}</svg>`;
+}
+async function openTrend(id) {
+  closeTrend();
+  const m = document.createElement('div');
+  m.id = 'rr-trend';
+  m.addEventListener('click', e => { if (e.target === m) closeTrend(); });
+  m.innerHTML = `<div class="box"><div class="loading"><div class="spinner"></div><span>${t('loading')}</span></div></div>`;
+  document.body.appendChild(m);
+  lockBodyScroll();
+  const box = m.querySelector('.box');
+  try {
+    const { username, progress: p } = await apiFetch(`/admin/users/${id}/rate-progress`);
+    if (!p) { box.innerHTML = '<p>今のシーズンはまだありません。</p><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="closeTrend()">閉じる</button>'; return; }
+    const pts = [p.start, ...p.steps.map(s => ({ ...s.after, absent: s.absent }))];
+    const rows = p.steps.map(s => {
+      const d = trendDiff(s.before, s.after);
+      return `<div class="row"><span class="nm">${escHtml(trendLabel(s))}${s.absent ? '<small>不参加</small>' : ''}</span>
+        <span class="val">${trendVal(s.after)}</span><span class="d ${d.cls}">${d.txt}</span></div>`;
+    }).join('');
+    box.innerHTML = `
+      <div class="ttl">${escHtml(username)}</div>
+      <div class="sub">${escHtml(p.season.name)} のレートの推移</div>
+      ${trendChart(pts)}
+      <div class="row"><span class="nm">シーズン開始</span><span class="val">${trendVal(p.start)}</span><span class="d flat"></span></div>
+      ${rows || '<p style="font-size:0.84rem;color:var(--text-muted)">まだ参加した回がありません。</p>'}
+      <div class="now">今：${trendVal(p.now)}${p.position ? `（${p.position}位 / ${p.participants}人）` : ''}</div>
+      <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="closeTrend()">閉じる</button>`;
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-error">${escHtml(err.message)}</div><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="closeTrend()">閉じる</button>`;
+  }
+}
+function closeTrend() {
+  if (!document.getElementById('rr-trend')) return;
+  document.getElementById('rr-trend').remove();
+  unlockBodyScroll();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTrend(); });
 
 // 切り替えのバーをナビの下、表の見出しをバーの下に止める
 function updateStickyTop() {
