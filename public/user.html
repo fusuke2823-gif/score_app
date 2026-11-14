@@ -185,7 +185,8 @@
   background-size:40px 40px, 40px 40px, 40px 40px, 40px 40px, 128px 32px, 118px 14px, 26px 44px, 26px 44px;
   background-position:left 0 top 7px, right 0 top 7px, left 0 bottom 7px, right 0 bottom 7px, center top, center bottom 14px, left -5px center, right -5px center;
   filter:drop-shadow(0 0 2px rgba(0,0,0,0.6)); }
-.pf-in { position:absolute; inset:0; padding:6cqw 7cqw 5.4cqw; display:grid; grid-template-rows:auto 1fr auto; gap:2cqw; }
+/* 列は中身に合わせて広げない（登録日・レートが長いときに右にはみ出さないように） */
+.pf-in { position:absolute; inset:0; padding:6cqw 7cqw 5.4cqw; display:grid; grid-template-rows:auto 1fr auto; grid-template-columns:minmax(0, 1fr); gap:2cqw; }
 .pf-top { display:flex; justify-content:space-between; align-items:center; font-family:"Orbitron",sans-serif; font-weight:700; letter-spacing:0.22em; font-size:2.1cqw; }
 .pf-top .brand { color:var(--pc); display:inline-flex; align-items:center; gap:2cqw; }
 /* 編集ボタン（本人だけ） */
@@ -204,7 +205,7 @@
 .pf-title .title-tooltip-wrap { white-space:nowrap; }
 .pf-card .user-oshi { margin-top:1cqw; font-size:2.7cqw; color:rgba(232,232,240,0.7); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .pf-card .user-oshi i { font-style:normal; opacity:0.7; margin-right:0.8cqw; }
-.pf-bot { display:flex; align-items:flex-end; justify-content:space-between; gap:3cqw; }
+.pf-bot { display:flex; align-items:flex-end; justify-content:space-between; gap:2cqw; min-width:0; }
 .pf-meta { display:flex; flex-direction:column; gap:1.4cqw; min-width:0; }
 .pf-k { font-family:"Orbitron",sans-serif; font-weight:700; font-size:1.7cqw; letter-spacing:0.2em; color:rgba(255,255,255,0.45); }
 .pf-since { font-size:2.6cqw; color:rgba(232,232,240,0.8); font-variant-numeric:tabular-nums; white-space:nowrap; }
@@ -212,12 +213,12 @@
 .pf-sns a { width:6.4cqw; height:6.4cqw; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); }
 .pf-sns a svg { width:3cqw; height:3cqw; }
 .pf-sns a.x { color:#fff; } .pf-sns a.yt { color:#ff4e4e; }
-.pf-rank { display:flex; align-items:center; gap:2.4cqw; padding:1.8cqw 2.8cqw; border-radius:2.4cqw; background:rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--pc) 28%, transparent); }
-.pf-rank-badge img { display:block; height:10cqw; width:auto; object-fit:contain; filter:drop-shadow(0 2px 6px color-mix(in srgb, var(--pc) 50%, transparent)); }
+.pf-rank { display:flex; align-items:center; gap:1.8cqw; padding:1.8cqw 2.4cqw; flex-shrink:0; border-radius:2.4cqw; background:rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--pc) 28%, transparent); }
+.pf-rank-badge img { display:block; height:9.4cqw; width:auto; object-fit:contain; filter:drop-shadow(0 2px 6px color-mix(in srgb, var(--pc) 50%, transparent)); }
 .pf-rank-name { font-weight:900; font-size:3.2cqw; color:var(--pc); white-space:nowrap; line-height:1.2; }
 .pf-rank-name small { font-size:2.4cqw; margin-left:0.8cqw; }
-.pf-rate { text-align:right; padding-left:2.4cqw; border-left:1px solid rgba(255,255,255,0.1); }
-.pf-rate-num { font-family:"Orbitron",sans-serif; font-weight:900; font-size:6.4cqw; line-height:1; color:#fff; text-shadow:0 0 14px color-mix(in srgb, var(--pc) 55%, transparent); }
+.pf-rate { text-align:right; padding-left:2cqw; border-left:1px solid rgba(255,255,255,0.1); }
+.pf-rate-num { font-family:"Orbitron",sans-serif; font-weight:900; font-size:5.8cqw; line-height:1; color:#fff; text-shadow:0 0 14px color-mix(in srgb, var(--pc) 55%, transparent); }
 .pf-bar { width:22cqw; }
 .pf-bar-head { display:flex; justify-content:space-between; font-size:2cqw; color:rgba(255,255,255,0.5); margin-bottom:1cqw; }
 .pf-bar-head b { color:var(--pc); }
