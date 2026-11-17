@@ -2137,15 +2137,18 @@ async function initLoginBonus() {
     .lb-pick-row { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
     #lb-element-row { grid-template-columns:repeat(6, 1fr); }
     .lb-pick.attr-btn { width:100%; height:48px; padding:0; margin:0; font-size:1rem; font-weight:bold; border-radius:9px; opacity:.88; transition:transform .12s, background .12s, opacity .12s; }
-    .lb-pick.attr-btn:hover { opacity:1; }
     .lb-pick.attr-btn:active { transform:scale(.94); }
     .lb-pick.attr-btn.active { opacity:1; transform:translateY(-1px); background:color-mix(in srgb, currentColor 24%, transparent); box-shadow:0 0 0 2px currentColor, 0 0 12px color-mix(in srgb, currentColor 50%, transparent); }
     .attr-btn.attr-斬 { border-color:#b899e8; color:#b899e8; }
-    .attr-btn.attr-斬:hover { background:rgba(184,153,232,0.15); }
     .attr-btn.attr-突 { border-color:#f7b733; color:#f7b733; }
-    .attr-btn.attr-突:hover { background:rgba(247,183,51,0.15); }
     .attr-btn.attr-打 { border-color:#8fc93f; color:#8fc93f; }
-    .attr-btn.attr-打:hover { background:rgba(143,201,63,0.15); }
+    /* 重ねたときの見た目はマウスのある端末だけ（iPhone で1回目のタップが「重ねただけ」になって選べないのを防ぐ） */
+    @media (hover:hover) {
+      .lb-pick.attr-btn:hover { opacity:1; }
+      .attr-btn.attr-斬:hover:not(.active) { background:rgba(184,153,232,0.15); }
+      .attr-btn.attr-突:hover:not(.active) { background:rgba(247,183,51,0.15); }
+      .attr-btn.attr-打:hover:not(.active) { background:rgba(143,201,63,0.15); }
+    }
 
     .lb-day7-tip { font-size:0.74rem; padding:8px 10px; border-radius:8px; margin-bottom:16px; background:rgba(255,122,140,0.12); border:1px solid rgba(255,122,140,0.45); color:#ff9aa8; line-height:1.55; }
     .lb-day7-tip[hidden], .lb-helper[hidden] { display:none; }
