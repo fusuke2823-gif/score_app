@@ -579,6 +579,9 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     </button>` : ''}`;
   actions.hidden = false;
   document.body.classList.add('gx-result');
+  // 右上のポイント・GPの帯の幅だけ、左上のガチャ名を短くする（重ならないように）
+  const wal = document.getElementById('gacha-wallet');
+  if (wal) document.body.style.setProperty('--gx-wallet-w', `${Math.ceil(wal.getBoundingClientRect().width)}px`);
   requestAnimationFrame(() => actions.classList.add('show'));
 
   return new Promise(resolve => {

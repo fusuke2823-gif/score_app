@@ -361,6 +361,11 @@ summary.gx-panel-head::-webkit-details-marker { display:none; }
 .gx-overlay.tint-SS { --gx-tint:220,120,255; }
 /* 引き終わって結果が出たら、所持pt・GPを演出の上（右上）に出す */
 body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s ease-out; }
+/* 結果画面ではポイント・GPの帯が右上に出るので、詰めて、左上のガチャ名はその手前で省略する */
+body.gx-result .gacha-wallet .wl-bar { min-width:0; font-size:0.76rem; padding:3px 9px 3px 4px; gap:6px; }
+body.gx-result .gacha-wallet .wl-bar i { width:17px; height:17px; font-size:0.5rem; }
+body.gx-result .gacha-mute { display:none; } /* 効果音の切り替えは引く前の画面で */
+body.gx-result .gx-title { max-width:calc(100% - var(--gx-wallet-w, 250px) - 12px); }
 @keyframes gxWalletIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
 /* 背景：ゆっくり動くオーロラ＋星くず＋周辺減光 */
 .gx-aurora { position:absolute; inset:-20%; pointer-events:none; filter:blur(60px); opacity:0.75; }
