@@ -2,23 +2,16 @@
 /* 所持ポイント・GP（このページだけ右上に固定表示） */
 .gacha-wallet {
   position:fixed; top:66px; right:max(16px, calc((100vw - 1100px) / 2 + 24px)); z-index:90;
-  display:flex; align-items:center; gap:10px; padding:6px 14px; border-radius:99px;
-  background:rgba(18,16,34,0.78); backdrop-filter:blur(14px) saturate(150%); -webkit-backdrop-filter:blur(14px) saturate(150%);
-  border:1px solid var(--border-light); box-shadow:0 4px 16px rgba(0,0,0,0.4);
-  font-size:0.9rem; font-weight:800; font-variant-numeric:tabular-nums;
+  display:flex; align-items:center; gap:6px;
 }
 .gacha-mute {
-  display:flex; align-items:center; justify-content:center; width:24px; height:24px; margin:-2px 0 -2px -6px; padding:0;
-  border:none; border-radius:50%; background:none; color:var(--text-secondary); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; flex-shrink:0;
+  border:1px solid rgba(94,226,255,0.35); border-radius:50%; background:rgba(4,12,22,0.82); color:#cdf6ff; cursor:pointer;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 4px 14px rgba(0,0,0,0.45);
 }
 .gacha-mute:hover { color:var(--text-primary); background:rgba(255,255,255,0.08); }
 .gacha-mute:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 .gacha-mute.is-muted { color:#ff8a80; }
-.gacha-wallet-item { display:flex; align-items:baseline; gap:5px; }
-.gacha-wallet-label { font-size:0.62rem; font-weight:800; letter-spacing:0.1em; color:var(--text-secondary); }
-#my-points { color:#ff6b80; }
-#my-gp { color:#7fd3ff; }
-.gacha-wallet-sep { width:1px; height:14px; background:var(--border-light); }
 .gacha-wallet-dup {
   position:absolute; top:calc(100% + 6px); right:6px; white-space:nowrap;
   font-size:0.78rem; font-weight:bold; color:#4fc3f7; text-shadow:0 1px 6px rgba(0,0,0,0.8);

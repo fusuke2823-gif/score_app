@@ -41,7 +41,7 @@ const _i18n = {
     'chart.edit':'編集','chart.delete':'削除','chart.delete_confirm':'このチャートを削除しますか？',
     'nav.admin':'管理','nav.account':'アカウント','nav.logout':'ログアウト',
     'nav.login':'ログイン','nav.register':'登録','nav.register_full':'新規登録',
-    'nav.admin_badge':'管理者','nav.menu':'メニュー',
+    'nav.admin_badge':'管理者','nav.menu':'メニュー','nav.mypage':'マイページ','nav.top':'TOP','nav.pickup':'ピックアップ開催中','nav.gacha_open':'開催中','nav.rate_ranking':'レートランキング','nav.wip':'開発中',
     'loading':'読み込み中...','error':'エラーが発生しました','close':'閉じる',
     'save':'保存する','cancel':'キャンセル','send':'送信',
     'status.pending':'承認待ち','status.approved':'承認済み','status.rejected':'却下',
@@ -222,7 +222,7 @@ const _i18n = {
     'chart.edit':'編輯','chart.delete':'刪除','chart.delete_confirm':'確定刪除此攻略圖表？',
     'nav.admin':'管理','nav.account':'帳戶','nav.logout':'登出',
     'nav.login':'登入','nav.register':'註冊','nav.register_full':'新增帳戶',
-    'nav.admin_badge':'管理員','nav.menu':'選單',
+    'nav.admin_badge':'管理員','nav.menu':'選單','nav.mypage':'我的頁面','nav.top':'首頁','nav.pickup':'精選轉蛋進行中','nav.gacha_open':'開放中','nav.rate_ranking':'積分排行','nav.wip':'開發中',
     'loading':'載入中...','error':'發生錯誤','close':'關閉',
     'save':'儲存','cancel':'取消','send':'送出',
     'status.pending':'待審核','status.approved':'已核准','status.rejected':'已拒絕',
@@ -687,6 +687,7 @@ function statusBadge(status) {
 
 // ===== ナビアイコン =====
 const NAV_ICONS = {
+  home:     `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>`,
   submit:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 11V4M5 7l3-3 3 3"/><line x1="3" y1="13" x2="13" y2="13"/></svg>`,
   gacha:    `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.5" width="7.5" height="10" rx="1.4" transform="rotate(-12 5.75 8.5)"/><rect x="6.5" y="2.5" width="7.5" height="10" rx="1.4" fill="var(--nm-ico-bg, #1a1734)"/><path d="M10.25 5.6l.6 1.2 1.3.2-.95.9.2 1.3-1.15-.6-1.15.6.2-1.3-.95-.9 1.3-.2z" fill="currentColor" stroke="none"/></svg>`,
   charts:   `<svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="12" height="12" rx="1"/><line x1="2" y1="6" x2="14" y2="6"/><line x1="2" y1="10" x2="14" y2="10"/><line x1="7" y1="2" x2="7" y2="14"/></svg>`,
@@ -800,41 +801,49 @@ function renderNav() {
         }
       </div>
       <button class="nav-hamburger" id="nav-hamburger" onclick="toggleMobileNav()" aria-label="${t('nav.menu')}">
-        <span></span><span></span><span></span>
+        <svg class="mb-ico" viewBox="0 0 20 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="1.5" width="13" height="19" rx="2.5"/><path d="M8 17.5h4"/><path d="M6.5 5h7v8h-7z" stroke-width="1.2"/></svg><b class="mb-txt">${t('nav.menu')}</b>
       </button>
     </div>
     <div class="nav-mobile" id="nav-mobile" aria-hidden="true">
-      <div class="nm-panel">
+      <div class="nm-panel${user ? '' : ' is-guest'}">
         ${user
-          ? `<a class="nm-user" href="/user.html?id=${user.id}">
-               <span class="nm-avatar${user.icon_url ? ' has-img' : ''}" id="nm-avatar">${navAvatarInner(user)}</span>
-               <span class="nm-user-body"><b>${escHtml(user.username)}</b><small>${t('nav.account')}</small></span>
-               ${user.role === 'admin' ? adminBadgeHtml() : ''}
-               <svg class="nm-chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
-             </a>`
+          ? `<div class="nm-top" id="nm-top">
+               <div class="nm-me">
+                 <a class="nm-rank" id="nm-rank" href="/rate-ranking.html" aria-label="${t('nav.rate_ranking')}"><img alt="" hidden><b>-</b></a>
+                 <div class="nm-name">${escHtml(user.username)}</div>
+                 <div class="nm-bar"><i>pt</i><span id="nm-pt">-</span></div>
+                 <div class="nm-bar"><i class="gp">GP</i><span id="nm-gp">-</span></div>
+               </div>
+               <span id="nav-gacha-mobile" style="display:contents"></span>
+             </div>`
           : `<div class="nm-guest">
                <a href="/login.html" class="au-login">${AU_ICON_LOGIN}${t('nav.login')}</a>
                <a href="/register.html" class="au-reg">${AU_ICON_REG}${t('nav.register_full')}</a>
              </div>`}
-        <div class="nm-grid">
+        <div class="nm-ring"><i class="nm-fx" aria-hidden="true"></i>${nmRing(user
+          ? [nmTile(`/user.html?id=${user.id}`, 'account', t('nav.mypage'), currentPath === '/user.html' && new URLSearchParams(location.search).get('id') === String(user.id)),
+             nmTile('/charts.html', 'charts', user.role === 'admin' ? t('nav.charts') : t('nav.wip'), currentPath === '/charts.html' || currentPath.startsWith('/chart-')), // 公開前なので管理者以外には「開発中」
+             nmTile('/videos.html', 'videos', t('nav.my_videos'), currentPath === '/videos.html'),
+             user.role === 'admin' ? nmTile('/admin_index.html', 'admin', t('nav.admin'), currentPath.startsWith('/admin')) : nmTile('/index.html', 'home', t('nav.top'), currentPath === '/' || currentPath === '/index.html'),
+             nmTile('/feedback.html', 'feedback', t('nav.feedback'), currentPath === '/feedback.html')]
+          : [nmTile('/index.html', 'home', t('nav.top'), currentPath === '/' || currentPath === '/index.html'),
+             nmTile('/submit.html', 'submit', t('nav.submit'), currentPath === '/submit.html')])}</div>
+        ${user ? `<div class="nm-dock">
           ${nmTile('/submit.html', 'submit', t('nav.submit'), currentPath === '/submit.html')}
-          <span id="nav-gacha-mobile" style="display:contents"></span>
-          ${user ? nmTile('/charts.html', 'charts', t('nav.charts'), currentPath === '/charts.html' || currentPath.startsWith('/chart-')) : ''}
-          ${user ? nmTile('/videos.html', 'videos', t('nav.my_videos'), currentPath === '/videos.html') : ''}
-          ${user ? nmTile('/shop.html', 'shop', t('nav.shop'), currentPath === '/shop.html' && !location.search.includes('tab=equip')) : ''}
-          ${user ? nmTile('/shop.html?tab=equip', 'equip', t('nav.equip'), currentPath === '/shop.html' && location.search.includes('tab=equip')) : ''}
-          ${user ? nmTile('/feedback.html', 'feedback', t('nav.feedback'), currentPath === '/feedback.html') : ''}
-          ${user && user.role === 'admin' ? nmTile('/admin_index.html', 'admin', t('nav.admin'), currentPath.startsWith('/admin')) : ''}
-        </div>
+          ${nmTile('/shop.html?tab=equip', 'equip', t('nav.equip'), currentPath === '/shop.html' && location.search.includes('tab=equip'))}
+          ${nmTile('/shop.html', 'shop', t('nav.shop'), currentPath === '/shop.html' && !location.search.includes('tab=equip'))}
+          <button type="button" class="nm-tile" onclick="logout()"><span class="nm-ico">${NAV_ICONS.logout}<span class="nb"></span></span><span class="nm-label">${t('nav.logout')}</span></button>
+        </div>` : ''}
         <div class="nm-foot">
           <div class="nm-lang" role="group" aria-label="言語 / Language">
             <button type="button" class="${lang === 'ja' ? 'on' : ''}" onclick="getLang() !== 'ja' && setLang('ja')" aria-pressed="${lang === 'ja'}">日本語</button><button type="button" class="${lang === 'zh' ? 'on' : ''}" onclick="getLang() !== 'zh' && setLang('zh')" aria-pressed="${lang === 'zh'}">繁中</button>
           </div>
-          ${user ? `<button type="button" class="nm-logout" onclick="logout()">${ni('logout')}<span>${t('nav.logout')}</span></button>` : ''}
         </div>
       </div>
     </div>`;
   applyI18n();
+  // メニューのボタンの文字にも丸ゴシックを使うので先に読む
+  loadNavFonts();
 }
 
 // メニューの自分のアイコン：装備中のアイコン（なければ名前の頭文字）
@@ -856,6 +865,58 @@ const AU_ICON_REG = '<svg class="au-ico" viewBox="0 0 24 24" fill="none" stroke=
 function nmTile(href, icon, label, active) {
   return `<a href="${href}" class="nm-tile${active ? ' active' : ''}"><span class="nm-ico">${NAV_ICONS[icon] || ''}<span class="nb"></span></span><span class="nm-label">${label}</span></a>`;
 }
+// 真ん中の丸：3つと2つをずらして並べる（2つだけなら1段で真ん中に）
+function nmRing(tiles) {
+  const pos = tiles.length <= 2 ? ['r2a', 'r2b'] : ['', '', '', 'r2a', 'r2b'];
+  return tiles.map((h, i) => pos[i] ? h.replace('class="nm-tile', `class="nm-tile ${pos[i]}`) : h).join('');
+}
+// メニューの文字（丸ゴシック）と数字（Orbitron）。Google Fonts を1回だけ読む
+function loadNavFonts() {
+  if (document.getElementById('nm-fonts')) return;
+  const l = document.createElement('link');
+  l.id = 'nm-fonts'; l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@800&family=Orbitron:wght@800;900&display=swap';
+  document.head.appendChild(l);
+}
+// メニューを開いたときに、ランク・レート・ポイント・GP とガチャの絵を読む（1分は読み直さない）
+let _nmLoadedAt = 0;
+function loadNavMenu() {
+  const user = getUser();
+  if (!user || Date.now() - _nmLoadedAt < 60 * 1000) return;
+  _nmLoadedAt = Date.now();
+  loadNavFonts();
+  apiFetch('/users/me/menu').then(d => {
+    const rank = d.comp_rank || 'C';
+    const el = document.getElementById('nm-rank');
+    if (el) {
+      const img = el.querySelector('img');
+      img.src = rank === 'Legend' && d.legend_rank ? `/img/legend${d.legend_rank}.png` : `/img/rank_${rank.toLowerCase()}.png`;
+      img.alt = rank;
+      img.classList.toggle('is-legend', rank === 'Legend');
+      img.hidden = false;
+      const rate = ['X', 'Ex', 'Legend'].includes(rank) ? d.x_rate : d.s_rate;
+      el.querySelector('b').textContent = rate != null ? Math.floor(rate) : '-';
+    }
+    const num = n => Number(n || 0).toLocaleString();
+    const pt = document.getElementById('nm-pt'), gp = document.getElementById('nm-gp');
+    if (pt) pt.textContent = num(d.points);
+    if (gp) gp.textContent = num(d.gp);
+  }).catch(() => { _nmLoadedAt = 0; });
+  const art = document.getElementById('nm-gacha-art');
+  if (art && !art.dataset.loaded) {
+    apiFetch('/gacha/pools').then(list => {
+      const pools = Array.isArray(list) ? list : (list.pools || []);
+      const pool = pools.find(p => p.pickup_icons?.length) || null;
+      const icons = (pool?.pickup_icons || []).filter(i => i.image_url).slice(0, 2);
+      if (!icons.length) return;
+      art.dataset.loaded = '1';
+      art.classList.toggle('two', icons.length === 2);
+      art.innerHTML = icons.map(i => `<img src="${escHtml(thumbUrl(i.image_url))}" alt="">`).join('') + (icons.length === 2 ? '<i></i>' : '');
+      const sub = document.getElementById('nm-gacha-sub');
+      if (sub) sub.textContent = t('nav.pickup');
+    }).catch(() => {});
+  }
+}
 
 function toggleMobileNav(force) {
   const m = document.getElementById('nav-mobile');
@@ -864,6 +925,7 @@ function toggleMobileNav(force) {
   const open = typeof force === 'boolean' ? force : !wasOpen;
   if (open === wasOpen) return;
   m.classList.toggle('open', open);
+  if (open) loadNavMenu();
   // 開いている間は後ろのページをスクロールさせない
   if (open) lockBodyScroll(); else unlockBodyScroll();
   m.setAttribute('aria-hidden', !open);
@@ -1114,7 +1176,12 @@ async function updateGachaNav() {
     const d = document.getElementById('nav-gacha-desktop');
     const m = document.getElementById('nav-gacha-mobile');
     if (d) d.innerHTML = `<a href="/gacha.html"${isActive ? ' class="active"' : ''}>${t('nav.gacha')}</a>`;
-    if (m) m.innerHTML = nmTile('/gacha.html', 'gacha', t('nav.gacha'), isActive);
+    if (m) {
+      // メニューでは右上の大きな丸（開いたときにピックアップの絵を入れる）
+      m.innerHTML = `<a href="/gacha.html" class="nm-gacha${isActive ? ' active' : ''}"><span class="art" id="nm-gacha-art">${NAV_ICONS.gacha}</span><b>${t('nav.gacha')}</b><small id="nm-gacha-sub">${t('nav.gacha_open')}</small><span class="nb"></span></a>`;
+      document.getElementById('nm-top')?.classList.add('has-gacha');
+      updateNavMarks();
+    }
   } catch {}
 }
 

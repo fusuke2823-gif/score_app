@@ -80,6 +80,28 @@ router.get('/season', async (req, res) => {
   }
 });
 
+// スマホのメニューに出す自分のランク・レート・ポイント・GP（メニューを開いたときだけ読む）
+router.get('/me/menu', authenticateToken, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.points, u.gp, u.comp_rank, u.s_rate, u.x_rate,
+              CASE WHEN u.comp_rank = 'Ex' THEN
+                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.comp_rank IN ('Ex','Legend') AND ${rateAbove('u2', 'u')})
+              ELSE NULL END AS ex_rank,
+              CASE WHEN u.x_rate >= 2000 THEN
+                (SELECT COUNT(*) + 1 FROM users u2 WHERE u2.x_rate >= 2000 AND ${rateAbove('u2', 'u')})
+              ELSE NULL END AS legend_rank
+       FROM users u WHERE u.id = $1`,
+      [req.user.id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'ユーザーが見つかりません' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
 // 自分のレートのシーズン内の推移（TOPのレート更新の通知用）
 router.get('/me/rate-progress', authenticateToken, async (req, res) => {
   try {

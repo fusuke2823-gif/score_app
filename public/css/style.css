@@ -821,36 +821,12 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   flex-direction: column;
   gap: 5px;
 }
-.nav-hamburger span {
-  display: block;
-  width: 22px;
-  height: 2px;
-  background: var(--text-primary);
-  border-radius: 2px;
-  transition: all 0.2s;
-}
 .nvi { display: flex; align-items: center; }
 /* スマホのメニュー：画面の上から降りてくるパネル。後ろは暗くする */
 /* nav は backdrop-filter を持つので、fixed ではなく nav を基準に絶対配置する */
 .nav-mobile { position: absolute; top: 100%; left: 0; right: 0; height: calc(100vh - 57px); height: calc(100dvh - 57px); z-index: 99; display: flex; flex-direction: column;
   background: rgba(4,4,12,0.55); opacity: 0; visibility: hidden; transition: opacity 0.2s, visibility 0.2s; }
 .nav-mobile.open { opacity: 1; visibility: visible; }
-.nav-mobile, .nm-panel { overscroll-behavior: contain; }
-.nm-panel { margin: 0 10px; padding: 12px; border-radius: 0 0 16px 16px; max-height: calc(100dvh - 72px); overflow-y: auto;
-  background: linear-gradient(180deg, #181530, #0e0c20); border: 1px solid rgba(255,255,255,0.1); border-top: none;
-  box-shadow: 0 18px 40px rgba(0,0,0,0.55); transform: translateY(-12px); transition: transform 0.22s cubic-bezier(.2,.8,.2,1); }
-.nav-mobile.open .nm-panel { transform: none; }
-.nm-user { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--text-primary);
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); margin-bottom: 12px; }
-.nm-user:hover { text-decoration: none; color: var(--text-primary); border-color: rgba(255,77,101,0.5); }
-.nm-avatar { width: 38px; height: 38px; border-radius: 20%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  background: linear-gradient(135deg, #ff4d65, #a03070); color: #fff; font-weight: 900; font-size: 1rem; }
-.nm-avatar.has-img { background: none; }
-.nm-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 20%; display: block; }
-.nm-user-body { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3; }
-.nm-user-body b { font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.nm-user-body small { font-size: 0.72rem; color: var(--text-muted); }
-.nm-chev { color: var(--text-muted); flex-shrink: 0; }
 .nm-guest { display: flex; gap: 8px; margin-bottom: 12px; }
 /* ログイン・新規登録（未ログインのヘッダーとメニュー）：ログインはピンクに光る細い枠、新規登録は赤→マゼンタのグラデ */
 .au-login, .au-reg { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; text-decoration: none;
@@ -871,42 +847,132 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   .nav-user .au-reg .au-short { display: inline; }
   .nav-user .au-login, .nav-user .au-reg { padding: 5px 12px; }
 }
-
-.nm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.nm-grid > span[style*="contents"] { display: contents; }
-.nm-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px 9px; border-radius: 12px; text-decoration: none;
-  color: var(--text-secondary); background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); transition: background 0.15s, border-color 0.15s; }
-.nm-tile:hover { text-decoration: none; color: var(--text-primary); background: rgba(255,255,255,0.07); }
-.nm-tile.active { color: #fff; border-color: rgba(255,77,101,0.6); background: rgba(255,77,101,0.14); }
-.nm-ico { position: relative; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #ff7a8c;
-  background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.1), rgba(20,18,40,0.6) 75%); border: 1px solid rgba(255,255,255,0.1); }
-.nm-ico svg { width: 20px; height: 20px; }
-.nm-tile.active .nm-ico { color: #fff; background: linear-gradient(135deg, #ff4d65, #a03070); border-color: transparent; --nm-ico-bg: #d0436a; }
-.nm-label { font-size: 0.72rem; font-weight: bold; white-space: nowrap; }
-.nb i { position: absolute; top: -5px; right: -7px; min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; border-radius: 8px;
-  background: #ef5350; color: #fff; font-style: normal; font-size: 0.62rem; font-weight: bold; text-align: center; box-shadow: 0 0 0 2px #14122a; }
 .top-credit, .top-credit:hover { color: inherit; }
 .top-credit[href] { text-decoration: underline; text-underline-offset: 2px; }
 .top-credit[href]:hover { color: var(--accent-hover); }
 .nav-mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef5350; margin-left: 5px; vertical-align: 2px; font-style: normal; box-shadow: 0 0 6px rgba(239,83,80,0.7); }
-.nb .nav-mark { position: absolute; top: -3px; right: -3px; margin: 0; width: 10px; height: 10px; min-width: 0; padding: 0; box-shadow: 0 0 0 2px #14122a; }
 .nav-hamburger { position: relative; }
-.nav-hamburger.has-mark::after { content: ''; position: absolute; top: 3px; right: 1px; width: 8px; height: 8px; border-radius: 50%; background: #ef5350; box-shadow: 0 0 0 2px #14122a; }
-.nav-links .nb i { position: static; display: inline-block; margin-left: 4px; vertical-align: middle; box-shadow: none; }
-.nm-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08); }
-.nm-logout { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid rgba(255,138,154,0.35); border-radius: 99px;
-  color: #ff8a9a; font: inherit; font-size: 0.78rem; padding: 6px 12px; cursor: pointer; }
-.nm-logout:hover { background: rgba(255,255,255,0.06); }
-/* 言語の切り替え（トグル） */
-.nm-lang { position: relative; display: inline-flex; padding: 3px; border-radius: 99px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
+
+/* ===== スマホのメニュー：ゲーム内の端末のような画面 =====
+   --nmg は光の色（水色）。真ん中の丸の後ろに放射線と同心円、外側に点の輪（左下だけ空ける） */
+.nav-hamburger { flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px; }
+.nav-hamburger .mb-ico { width: 20px; height: 22px; color: #ff78c8; filter: drop-shadow(0 0 4px rgba(255,120,200,0.9)); }
+.nav-hamburger .mb-txt { font-family: "M PLUS Rounded 1c", sans-serif; font-size: 0.56rem; font-weight: 800; letter-spacing: 0.05em; line-height: 1; color: #fff;
+  text-shadow: 0 0 6px rgba(255,120,200,1), 0 0 2px rgba(255,120,200,1); }
+.nav-hamburger.open .mb-ico { color: #fff; filter: drop-shadow(0 0 6px rgba(255,120,200,1)) drop-shadow(0 0 12px rgba(255,120,200,0.8)); }
+.nav-hamburger.has-mark::after { content: ''; position: absolute; top: 1px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: #ef5350; box-shadow: 0 0 0 2px #14122a; }
+
+.nav-mobile, .nm-panel { overscroll-behavior: contain; }
+.nm-panel { --nmg: 94,226,255; position: relative; isolation: isolate; overflow-x: hidden; overflow-y: auto; box-sizing: border-box;
+  width: min(420px, calc(100% - 24px)); margin: 8px max(12px, calc((100% - 1100px) / 2)) 0 auto; /* PC では右上のボタンの下にそろえる */ padding: 16px 14px 14px; border-radius: 26px; max-height: calc(100dvh - 76px);
+  background:
+    radial-gradient(120% 80% at 50% 55%, transparent 45%, rgba(2,5,12,0.6) 100%),
+    linear-gradient(180deg, #0a1220 0%, #0d1828 50%, #0b1523 100%);
+  border: 1px solid rgba(var(--nmg),0.4);
+  box-shadow: 0 0 0 5px rgba(160,190,210,0.08), 0 0 0 6px rgba(var(--nmg),0.2), 0 0 24px rgba(var(--nmg),0.2), inset 0 0 30px rgba(0,0,0,0.5), 0 18px 40px rgba(0,0,0,0.6);
+  transform: translateY(-12px); transition: transform 0.22s cubic-bezier(.2,.8,.2,1); }
+.nav-mobile.open .nm-panel { transform: none; }
+/* ガラスの映り込み */
+.nm-panel::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255,255,255,0.045) 0 14%, transparent 26%, transparent 76%, rgba(255,255,255,0.025) 86%, transparent 93%); }
+.nm-panel a:hover { text-decoration: none; }
+
+/* 上：ランク・名前・ポイント・GP と、ガチャの大きな丸 */
+.nm-top { display: grid; grid-template-columns: 1fr; gap: 8px; align-items: center; }
+.nm-top.has-gacha { grid-template-columns: 1fr 1.15fr; }
+.nm-me { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.nm-rank { width: 104px; height: 104px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff;
+  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,0.2), rgba(var(--nmg),0.12) 40%, rgba(8,24,40,0.92) 75%); border: 1.5px solid rgba(var(--nmg),0.75);
+  box-shadow: 0 0 0 4px rgba(var(--nmg),0.08), 0 0 16px rgba(var(--nmg),0.45), inset 0 0 14px rgba(var(--nmg),0.3); }
+.nm-rank img { height: 54px; width: auto; margin: 0 0 2px; filter: drop-shadow(0 0 6px rgba(var(--nmg),0.6)); }
+.nm-rank img.is-legend { height: 46px; margin-bottom: 4px; } /* 横に長い絵なので少し小さく */
+.nm-rank img[hidden] { display: none; }
+.nm-rank b { font-family: "Orbitron", sans-serif; font-size: 1.25rem; line-height: 1; text-shadow: 0 0 10px rgba(var(--nmg),0.9); }
+.nm-name { font-family: "M PLUS Rounded 1c", sans-serif; font-weight: 800; font-size: 0.82rem; color: #e8fbff; max-width: 150px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 6px rgba(var(--nmg),0.7); }
+.nm-bar, .wl-bar { display: flex; align-items: center; gap: 6px; width: 150px; max-width: 100%; box-sizing: border-box; padding: 3px 10px 3px 4px; border-radius: 99px;
+  background: rgba(4,12,22,0.75); border: 1px solid rgba(var(--nmg),0.35); font-family: "Orbitron", sans-serif; font-size: 0.78rem; color: #fff; box-shadow: inset 0 0 8px rgba(var(--nmg),0.15); }
+.nm-bar i, .wl-bar i { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-style: normal; font-size: 0.55rem; font-weight: 900;
+  color: #06202c; background: rgba(var(--nmg),0.9); flex-shrink: 0; }
+.nm-bar i.gp, .wl-bar i.gp { background: #ffd76a; }
+.nm-bar span, .wl-bar span { margin-left: auto; }
+/* ガチャ・ショップの所持ポイント・GP（メニューと同じ帯）。--nmg が無いページでも同じ水色にする */
+.wl-bar { --nmg: 94,226,255; width: auto; min-width: 118px; padding: 4px 12px 4px 5px; font-size: 0.86rem; gap: 8px;
+  background: rgba(4,12,22,0.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: inset 0 0 8px rgba(var(--nmg),0.15), 0 4px 14px rgba(0,0,0,0.45); }
+.wl-bar i { width: 20px; height: 20px; font-size: 0.58rem; }
+.nm-gacha { position: relative; justify-self: center; width: 156px; height: 156px; display: block; color: #fff; }
+.nm-gacha .art { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #e6fbff;
+  border: 2px solid rgba(255,255,255,0.85); background: radial-gradient(circle at 35% 28%, rgba(255,255,255,0.18), rgba(var(--nmg),0.15) 45%, #102236 80%);
+  box-shadow: 0 0 0 4px rgba(var(--nmg),0.25), 0 0 22px rgba(var(--nmg),0.6); }
+.nm-gacha .art > svg { width: 56px; height: 56px; margin-bottom: 26px; filter: drop-shadow(0 0 6px rgba(var(--nmg),0.9)); }
+.nm-gacha .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* ピックアップが2つなら少し斜めに割る */
+.nm-gacha .art.two img { width: 70%; }
+.nm-gacha .art.two img:first-child { left: 0; right: auto; clip-path: polygon(0 0, 88.6% 0, 54.3% 100%, 0 100%); }
+.nm-gacha .art.two img:nth-child(2) { left: auto; right: 0; clip-path: polygon(45.7% 0, 100% 0, 100% 100%, 11.4% 100%); }
+.nm-gacha .art.two i { position: absolute; top: -5%; bottom: -5%; left: 50%; width: 2px; background: rgba(255,255,255,0.9); transform: rotate(13.5deg); box-shadow: 0 0 6px rgba(var(--nmg),0.9); z-index: 1; }
+.nm-gacha .art::after { content: ''; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 45%, rgba(0,0,0,0.55)); }
+.nm-gacha b { position: absolute; left: 0; right: 0; bottom: 28px; z-index: 2; text-align: center; font-family: "M PLUS Rounded 1c", sans-serif; font-weight: 800; font-size: 1.35rem;
+  letter-spacing: 0.08em; text-shadow: 0 0 8px rgba(var(--nmg),0.9), 0 2px 4px rgba(0,0,0,0.8); }
+.nm-gacha small { position: absolute; left: 50%; bottom: 2px; z-index: 2; transform: translateX(-50%); white-space: nowrap; font-family: "M PLUS Rounded 1c", sans-serif; font-weight: 800;
+  font-size: 0.62rem; padding: 2px 10px; border-radius: 99px; background: rgba(4,12,22,0.9); border: 1px solid rgba(var(--nmg),0.6); }
+.nm-gacha.active .art { box-shadow: 0 0 0 4px rgba(var(--nmg),0.45), 0 0 30px rgba(var(--nmg),0.9); }
+.nm-gacha > .nb { position: absolute; top: 12px; right: 12px; z-index: 3; }
+
+/* 真ん中：丸いボタンを3つと2つでずらして並べる。後ろに放射線・同心円・点の輪 */
+.nm-ring { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); row-gap: 6px; margin: 22px 4px 18px; }
+.nm-ring .nm-tile { grid-column: span 2; }
+.nm-ring .nm-tile.r2a { grid-column: 2 / span 2; }
+.nm-ring .nm-tile.r2b { grid-column: 4 / span 2; }
+.nm-ring::before, .nm-ring::after, .nm-fx { content: ''; position: absolute; left: 50%; top: 50%; width: 460px; height: 460px; margin: -230px 0 0 -230px; z-index: -1; pointer-events: none; }
+.nm-ring::before { background: repeating-conic-gradient(from 0deg, rgba(110,220,235,0.6) 0 0.7deg, transparent 0.7deg 4.5deg, rgba(110,220,235,0.3) 4.5deg 5deg, transparent 5deg 8deg); filter: blur(0.6px);
+  -webkit-mask: radial-gradient(circle, transparent 0 34px, rgba(0,0,0,0.9) 46px, rgba(0,0,0,0.35) 90px, transparent 128px);
+  mask: radial-gradient(circle, transparent 0 34px, rgba(0,0,0,0.9) 46px, rgba(0,0,0,0.35) 90px, transparent 128px); }
+.nm-fx { background:
+    radial-gradient(circle, transparent 0 64px, rgba(120,190,220,0.13) 64px 65px, transparent 66px 92px, rgba(120,190,220,0.11) 92px 93px, transparent 94px 120px, rgba(120,190,220,0.09) 120px 121px, transparent 122px 146px, rgba(120,190,220,0.07) 146px 147px, transparent 148px),
+    radial-gradient(30% 30% at 50% 50%, rgba(70,200,220,0.16), transparent 100%); }
+.nm-ring::after { background: repeating-conic-gradient(from 0deg, rgba(95,150,190,0.85) 0 0.55deg, transparent 0.55deg 1.7deg); opacity: 0.6;
+  -webkit-mask: radial-gradient(circle, transparent 0 168px, #000 168px 170px, transparent 170px 177px, #000 177px 179px, transparent 179px 186px, #000 186px 188px, transparent 188px 195px, #000 195px 197px, transparent 197px 204px, #000 204px 206px, transparent 206px),
+    conic-gradient(#000 0 200deg, transparent 212deg 268deg, #000 280deg);
+  -webkit-mask-composite: source-in;
+  mask: radial-gradient(circle, transparent 0 168px, #000 168px 170px, transparent 170px 177px, #000 177px 179px, transparent 179px 186px, #000 186px 188px, transparent 188px 195px, #000 195px 197px, transparent 197px 204px, #000 204px 206px, transparent 206px),
+    conic-gradient(#000 0 200deg, transparent 212deg 268deg, #000 280deg);
+  mask-composite: intersect; }
+
+/* ボタン（丸・下の帯）共通 */
+.nm-tile { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 2px 0; background: none; border: none; font: inherit; cursor: pointer; text-decoration: none; color: #e8fbff; }
+.nm-ico { position: relative; display: flex; align-items: center; justify-content: center; color: #e6fbff; }
+.nm-ico svg { filter: drop-shadow(0 0 4px rgba(var(--nmg),0.9)); }
+.nm-label { font-family: "M PLUS Rounded 1c", sans-serif; font-weight: 800; white-space: nowrap; text-shadow: 0 0 6px rgba(var(--nmg),0.8), 0 1px 2px rgba(0,0,0,0.8); }
+.nm-ring .nm-tile { gap: 0; padding: 0; }
+.nm-ring .nm-ico { width: 68px; height: 68px; padding-bottom: 8px; box-sizing: border-box; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,0.22), rgba(var(--nmg),0.10) 38%, rgba(8,24,40,0.92) 72%); border: 1.5px solid rgba(var(--nmg),0.75);
+  box-shadow: 0 0 0 4px rgba(var(--nmg),0.08), 0 0 14px rgba(var(--nmg),0.45), inset 0 0 12px rgba(var(--nmg),0.35); }
+.nm-ring .nm-ico svg { width: 30px; height: 30px; }
+.nm-ring .nm-tile.active .nm-ico { box-shadow: 0 0 0 4px rgba(var(--nmg),0.2), 0 0 24px rgba(var(--nmg),0.85), inset 0 0 14px rgba(255,255,255,0.35); }
+/* 名前は丸の下の縁に重ねる */
+.nm-ring .nm-label { position: relative; z-index: 1; margin-top: -18px; font-size: 0.84rem; letter-spacing: 0.02em; pointer-events: none;
+  text-shadow: 0 0 4px rgba(0,0,0,0.95), 0 0 8px rgba(var(--nmg),0.8), 0 1px 2px rgba(0,0,0,0.9); }
+.nm-dock { display: grid; grid-template-columns: repeat(4, 1fr); padding: 10px 4px 8px; border-radius: 16px;
+  background: rgba(var(--nmg),0.06); border: 1px solid rgba(var(--nmg),0.3); box-shadow: inset 0 0 18px rgba(var(--nmg),0.12); }
+.nm-dock .nm-ico { width: 40px; height: 40px; }
+.nm-dock .nm-ico svg { width: 33px; height: 33px; }
+.nm-dock .nm-label { font-size: 0.72rem; }
+.nm-dock .nm-tile.active .nm-ico svg { filter: drop-shadow(0 0 6px rgba(var(--nmg),1)) drop-shadow(0 0 12px rgba(var(--nmg),0.9)); }
+.nm-dock .nm-tile.active .nm-label { color: rgb(var(--nmg)); }
+/* 未読の数と、新しく買えるものの赤い点 */
+.nb i { position: absolute; top: -1px; right: -1px; min-width: 16px; height: 16px; line-height: 16px; padding: 0 4px; border-radius: 8px; font-style: normal; font-size: 0.62rem; font-weight: bold;
+  text-align: center; color: #fff; background: #ff5c8a; box-shadow: 0 0 0 2px #0b1a2a, 0 0 8px rgba(255,92,138,0.8); }
+.nm-ring .nb i { top: 2px; right: 2px; }
+.nb .nav-mark { position: absolute; top: 1px; right: 1px; margin: 0; width: 11px; height: 11px; min-width: 0; padding: 0; box-shadow: 0 0 0 2px #0b1523, 0 0 8px rgba(239,83,80,0.9); }
+.nm-dock .nb .nav-mark { top: 0; right: 0; }
+.nm-foot { display: flex; justify-content: center; margin-top: 12px; }
+.nm-lang { position: relative; display: inline-flex; padding: 3px; border-radius: 99px; background: rgba(var(--nmg),0.06); border: 1px solid rgba(var(--nmg),0.3); }
 .nm-lang button { position: relative; z-index: 1; background: none; border: none; border-radius: 99px; padding: 5px 12px; font: inherit; font-size: 0.76rem; font-weight: bold;
   color: var(--text-muted); cursor: pointer; transition: color 0.15s, background 0.15s; }
-.nm-lang button.on { color: #fff; background: linear-gradient(135deg, #ff4d65, #a03070); box-shadow: 0 2px 8px rgba(255,77,101,0.4); cursor: default; }
-/* ハンバーガー → × */
-.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.nav-hamburger.open span:nth-child(2) { opacity: 0; }
-.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-@media (max-width: 360px) { .nm-grid { grid-template-columns: repeat(3, 1fr); } }
+.nm-lang button.on { color: #05202c; background: linear-gradient(135deg, rgba(var(--nmg),0.9), rgba(var(--nmg),0.45)); box-shadow: 0 0 10px rgba(var(--nmg),0.6); cursor: default; }
+.nm-panel.is-guest .nm-guest { margin-bottom: 4px; }
+.nav-links .nb i { position: static; display: inline-block; margin-left: 4px; vertical-align: middle; box-shadow: none; }
 
 /* レスポンシブ */
 /* PCでも幅が狭いときはリンクを詰めて1行に収める（管理者はリンクが多い） */
@@ -914,12 +980,9 @@ tr[data-is-self="1"]:not(.rank-1):not(.rank-2):not(.rank-3) .rank-num { color: #
   .nav-links { gap: 0; margin-left: 10px; }
   .nav-links a { padding: 6px 8px; font-size: 0.84rem; }
 }
-@media (max-width: 1024px) {
-  .nav-lang { display: none; }
-  .nav-links { display: none; }
-  .nav-hamburger { display: flex; }
-  .nav-desktop-only { display: none; }
-}
+/* PC もスマホと同じく、上のリンクは出さずに右上の「メニュー」から端末のメニューを開く */
+.nav-lang, .nav-links, .nav-desktop-only { display: none; }
+.nav-hamburger { display: flex; }
 @media (max-width: 640px) {
   main { padding: 20px 16px; }
   nav { padding: 0 16px; }

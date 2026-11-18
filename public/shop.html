@@ -9,18 +9,11 @@
 <meta name="apple-mobile-web-app-title" content="ヘブバンランクボード">
 <title>ショップ - HBR</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@800;900&display=swap">
 <style>
 /* 所持ポイント（ガチャと同じ、右上に固定する丸い表示） */
-.shop-wallet {
-  position: fixed; top: 66px; right: max(16px, calc((100vw - 1100px) / 2 + 24px)); z-index: 90;
-  display: flex; align-items: baseline; gap: 5px; padding: 6px 14px; border-radius: 99px;
-  background: rgba(18,16,34,0.78); backdrop-filter: blur(14px) saturate(150%); -webkit-backdrop-filter: blur(14px) saturate(150%);
-  border: 1px solid var(--border-light); box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  font-size: 0.9rem; font-weight: 800; font-variant-numeric: tabular-nums;
-}
+.shop-wallet { position: fixed; top: 66px; right: max(16px, calc((100vw - 1100px) / 2 + 24px)); z-index: 90; }
 .shop-wallet[hidden] { display: none; }
-.shop-wallet-label { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.1em; color: var(--text-secondary); }
-#my-points { color: #ff6b80; }
 
 .shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px; }
 @media (max-width: 400px) { .shop-list { grid-template-columns: 1fr; } }
@@ -44,9 +37,12 @@
 .shop-item.owned .si-name { color: var(--text-secondary); }
 .si-desc { font-size: 0.74rem; color: var(--text-muted); margin-top: 2px; line-height: 1.4; overflow-wrap: anywhere; }
 .si-side { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.si-price { display: inline-flex; align-items: center; gap: 4px; font-size: 0.86rem; font-weight: bold; color: #ffd24a; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.si-price svg { width: 14px; height: 14px; flex-shrink: 0; }
-.si-price small { font-size: 0.7rem; font-weight: normal; color: var(--text-muted); }
+/* 値段：メニューのポイントの帯と同じ見た目（水色の pt の丸＋数字） */
+.si-price { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 3px; border-radius: 99px; white-space: nowrap; vertical-align: middle;
+  background: rgba(4,12,22,0.75); border: 1px solid rgba(94,226,255,0.35); box-shadow: inset 0 0 8px rgba(94,226,255,0.15);
+  font-family: "Orbitron", sans-serif; font-size: 0.78rem; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+.si-price i { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  font-style: normal; font-size: 0.5rem; font-weight: 900; color: #06202c; background: rgba(94,226,255,0.9); }
 .si-btn {
   padding: 5px 14px; font-size: 0.76rem; font-weight: bold; white-space: nowrap;
   border-radius: 99px; border: none; background: var(--accent-grad); color: #fff; cursor: pointer;
@@ -171,7 +167,7 @@
   <h1 class="page-title" id="page-title" data-i18n="shop.title">ショップ</h1>
   <div id="alert"></div>
 
-  <div class="shop-wallet" id="shop-wallet" hidden><span class="shop-wallet-label">PT</span><span id="my-points">---</span></div>
+  <div class="shop-wallet wl-bar" id="shop-wallet" hidden><i>pt</i><span id="my-points">---</span></div>
 
   <!-- ショップ（称号・推し称号・フレームのサブタブ） -->
   <div class="tab-content active" id="tab-shop">
@@ -242,7 +238,7 @@
     <div style="background:var(--bg-modal);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--border-light);border-radius:14px;padding:24px;max-width:320px;width:100%;text-align:center">
       <div id="buy-modal-name" style="font-size:0.95rem;font-weight:bold;color:var(--text-primary);margin-bottom:4px"></div>
       <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:20px">
-        <span id="buy-modal-cost" style="color:var(--accent);font-weight:bold"></span> <span data-i18n="shop.buy_confirm">で購入しますか？</span>
+        <span id="buy-modal-cost"></span> <span data-i18n="shop.buy_confirm">で購入しますか？</span>
       </div>
       <div style="display:flex;gap:10px">
         <button class="btn btn-secondary" style="flex:1" onclick="closeBuyModal()" data-i18n="cancel">キャンセル</button>
@@ -325,13 +321,12 @@ function _titleScopeForInternal(scope) {
 }
 
 // 商品の箱（称号・推し称号・フレームで共通）
-const SI_COIN = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5" fill="#ffd24a" stroke="#b8860b" stroke-width="1"/><circle cx="8" cy="8" r="4" fill="none" stroke="#b8860b" stroke-width="0.9" opacity="0.7"/></svg>';
 const SI_CROWN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
 const SI_CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // 値段（所持・装備中のものには出さない）
 function shopItemPrice({ cost, owned, equippedLabel }) {
-  return owned || equippedLabel ? '' : `<span class="si-price">${SI_COIN}${cost.toLocaleString()}<small>pt</small></span>`;
+  return owned || equippedLabel ? '' : `<span class="si-price"><i>pt</i>${cost.toLocaleString()}</span>`;
 }
 
 // 購入ボタン（または所持済み・装備中）。lockedText があれば押せないボタンにする
@@ -425,7 +420,7 @@ let _pendingBuy = null;
 function askBuy(kind, id, name, cost) {
   _pendingBuy = { kind, id };
   document.getElementById('buy-modal-name').textContent = name;
-  document.getElementById('buy-modal-cost').textContent = `${cost}pt`;
+  document.getElementById('buy-modal-cost').innerHTML = `<span class="si-price"><i>pt</i>${Number(cost).toLocaleString()}</span>`;
   const modal = document.getElementById('buy-confirm-modal');
   if (modal.style.display !== 'flex') lockBodyScroll();
   modal.style.display = 'flex';
