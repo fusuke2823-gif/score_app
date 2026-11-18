@@ -360,12 +360,12 @@ summary.gx-panel-head::-webkit-details-marker { display:none; }
 .gx-overlay.tint-S { --gx-tint:255,200,80; }
 .gx-overlay.tint-SS { --gx-tint:220,120,255; }
 /* 引き終わって結果が出たら、所持pt・GPを演出の上（右上）に出す */
-body.gx-result .gacha-wallet { z-index:2600; top:12px; animation:gxWalletIn 0.3s ease-out; }
-/* 結果画面ではポイント・GPの帯が右上に出るので、詰めて、左上のガチャ名はその手前で省略する */
+body.gx-result .gacha-wallet { z-index:2600; top:50px; animation:gxWalletIn 0.3s ease-out; }
+/* 結果画面ではポイント・GPの帯を、左上のガチャ名の段より下に出す（重ならないように）。帯は少し詰める */
 body.gx-result .gacha-wallet .wl-bar { min-width:0; font-size:0.76rem; padding:3px 9px 3px 4px; gap:6px; }
 body.gx-result .gacha-wallet .wl-bar i { width:17px; height:17px; font-size:0.5rem; }
 body.gx-result .gacha-mute { display:none; } /* 効果音の切り替えは引く前の画面で */
-body.gx-result .gx-title { max-width:calc(100% - var(--gx-wallet-w, 250px) - 12px); }
+body.gx-result .gx-title { max-width:100%; }
 @keyframes gxWalletIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
 /* 背景：ゆっくり動くオーロラ＋星くず＋周辺減光 */
 .gx-aurora { position:absolute; inset:-20%; pointer-events:none; filter:blur(60px); opacity:0.75; }
@@ -679,7 +679,7 @@ body.gx-result .gx-title { max-width:calc(100% - var(--gx-wallet-w, 250px) - 12p
 .gx-again:hover:not(:disabled) { transform:translateY(-3px); }
 .gx-again:disabled { filter:grayscale(1) brightness(0.6); cursor:not-allowed; }
 .gx-again-tag {
-  position:absolute; top:-11px; left:50%; transform:translateX(-50%); white-space:nowrap;
+  position:absolute; z-index:1; top:-11px; left:50%; transform:translateX(-50%); white-space:nowrap; /* ボタン画像は光らせる filter で手前に描かれるので、札を上に出す */
   padding:2px 12px; border-radius:99px; font-size:0.7rem; font-weight:900; letter-spacing:0.08em; color:#241800;
   background:linear-gradient(90deg,#ffd700,#ffb300); box-shadow:0 2px 8px rgba(255,190,0,0.5);
 }
