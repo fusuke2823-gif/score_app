@@ -106,8 +106,8 @@
       <div id="setup-alert" aria-live="polite"></div>
       <form id="setup-form" novalidate>
         <div class="form-group">
-          <label class="form-label" for="setup-name">${escHtml(t('auth.display_name'))}<small id="setup-name-count">0/12</small></label>
-          <input class="form-input" id="setup-name" type="text" maxlength="12" required autocomplete="nickname">
+          <label class="form-label" for="setup-name">${escHtml(t('auth.display_name'))}<small id="setup-name-count">0/${NAME_MAX_WIDTH}</small></label>
+          <input class="form-input" id="setup-name" type="text" maxlength="${NAME_MAX_WIDTH}" required autocomplete="nickname">
         </div>
         <div class="form-group">
           <label class="form-label" for="setup-oshi">${escHtml(t('auth.oshi'))}<small>${escHtml(t('auth.optional'))}</small></label>
@@ -136,7 +136,9 @@
     if (loginId) $('auth-copy-id').onclick = e => copyText(loginId, e.currentTarget);
     const name = $('setup-name');
     name.addEventListener('input', () => {
-      $('setup-name-count').textContent = `${name.value.length}/12`;
+      const w = nameWidth(name.value);
+      $('setup-name-count').textContent = `${w}/${NAME_MAX_WIDTH}`;
+      $('setup-name-count').style.color = w > NAME_MAX_WIDTH ? '#ff6b6b' : '';
       fieldError(name, '');
     });
     focusIfDesktop(name);
@@ -145,6 +147,7 @@
       clearAlert('#setup-alert');
       const username = name.value.trim();
       if (!username) { fieldError(name, t('auth.name_required')); name.focus(); return; }
+      if (nameWidth(username) > NAME_MAX_WIDTH) { fieldError(name, t('auth.name_too_long')); name.focus(); return; }
       const xInput = $('setup-x'), ytInput = $('setup-yt');
       const twitter = handleOf(xInput.value), youtube = handleOf(ytInput.value);
       fieldError(xInput, twitter && !/^[A-Za-z0-9_]{1,15}$/.test(twitter) ? t('auth.x_invalid') : '');

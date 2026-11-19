@@ -85,16 +85,16 @@ const _i18n = {
     'login.btn':'ログイン','login.btn_loading':'ログイン中...',
     'login.no_account':'アカウントがない方は','login.register_link':'新規登録',
     'login.expired':'セッションの有効期限が切れました。再度ログインしてください。',
-    'auth.login_lead':'スコアの投稿やガチャを楽しむにはログインしてください','auth.register_lead':'スコアを投稿してランキングに参加しましょう','auth.or_id':'またはIDとパスワードで','auth.google_note':'Googleならパスワードを覚えなくても始められます','auth.rule_id':'英数字と _ で4〜20文字（あとから変更できます）','auth.next':'次へ','auth.terms_pre':'登録すると','auth.terms':'利用規約','auth.terms_and':'と','auth.privacy':'プライバシーポリシー','auth.terms_post':'に','auth.terms_end':'同意したものとみなします','auth.forgot_pre':'パスワードを忘れた方は','auth.forgot_x':'Xの','auth.forgot_post':'へご連絡ください','auth.network':'通信できませんでした。接続を確かめてもう一度お試しください','auth.pw_show':'パスワードを表示','auth.pw_hide':'パスワードを隠す','auth.copied':'コピーしました','auth.inapp':'アプリ内ブラウザではGoogleログインを使えません。SafariやChromeで開いてください。','auth.copy_url':'URLをコピー','auth.step_account':'アカウント','auth.step_profile':'プロフィール','auth.setup_desc':'ランキングに表示される名前です。あとからプロフィールで変更できます。','auth.copy':'コピー','auth.keep_id':'次回のログインに使います。パスワードと一緒に忘れないよう保管してください。','auth.display_name':'表示名','auth.oshi':'推しキャラクター','auth.optional':'任意','auth.not_set':'選ばない','auth.sns_title':'XとYouTubeを登録する（任意）','auth.sns_note':'ご自身のアカウントで、ヘブバンのコンテンツが含まれるものに限ります。','auth.yt_handle':'YouTubeハンドル','auth.start':'はじめる','auth.saving':'保存中...','auth.name_required':'表示名を入力してください','auth.x_invalid':'X IDは英数字と _ で15文字以内です','auth.yt_invalid':'YouTubeハンドルは英数字と . - _ で3〜30文字です','auth.id_required':'ユーザー名またはログインIDを入力してください','auth.pw_required':'パスワードを入力してください','auth.id_taken':'このIDは使われています。別のIDを入力してください',
+    'auth.login_lead':'スコアの投稿やガチャを楽しむにはログインしてください','auth.register_lead':'スコアを投稿してランキングに参加しましょう','auth.or_id':'またはIDとパスワードで','auth.google_note':'Googleならパスワードを覚えなくても始められます','auth.rule_id':'英数字と _ で4〜20文字（あとから変更できます）','auth.next':'次へ','auth.terms_pre':'登録すると','auth.terms':'利用規約','auth.terms_and':'と','auth.privacy':'プライバシーポリシー','auth.terms_post':'に','auth.terms_end':'同意したものとみなします','auth.forgot_pre':'パスワードを忘れた方は','auth.forgot_x':'Xの','auth.forgot_post':'へご連絡ください','auth.network':'通信できませんでした。接続を確かめてもう一度お試しください','auth.pw_show':'パスワードを表示','auth.pw_hide':'パスワードを隠す','auth.copied':'コピーしました','auth.inapp':'アプリ内ブラウザではGoogleログインを使えません。SafariやChromeで開いてください。','auth.copy_url':'URLをコピー','auth.step_account':'アカウント','auth.step_profile':'プロフィール','auth.setup_desc':'ランキングに表示される名前です。あとからプロフィールで変更できます。','auth.copy':'コピー','auth.keep_id':'次回のログインに使います。パスワードと一緒に忘れないよう保管してください。','auth.display_name':'表示名','auth.oshi':'推しキャラクター','auth.optional':'任意','auth.not_set':'選ばない','auth.sns_title':'XとYouTubeを登録する（任意）','auth.sns_note':'ご自身のアカウントで、ヘブバンのコンテンツが含まれるものに限ります。','auth.yt_handle':'YouTubeハンドル','auth.start':'はじめる','auth.saving':'保存中...','auth.name_required':'表示名を入力してください','auth.name_too_long':'表示名は全角11文字（半角22文字）までです','auth.x_invalid':'X IDは英数字と _ で15文字以内です','auth.yt_invalid':'YouTubeハンドルは英数字と . - _ で3〜30文字です','auth.id_required':'ユーザー名またはログインIDを入力してください','auth.pw_required':'パスワードを入力してください','auth.id_taken':'このIDは使われています。別のIDを入力してください',
     'register.title':'新規登録','register.username':'ユーザー名','register.password':'パスワード',
     'register.login_id':'ログインID','register.login_id_hint':'英数字・_で4〜20文字',
     'register.login_id_desc':'ログイン時に使用するIDです。後からプロフィールで変更できます。',
-    'register.oshi':'推しキャラクター（任意）','register.username_hint':'1〜12文字',
+    'register.oshi':'推しキャラクター（任意）','register.username_hint':'全角11文字（半角22文字）まで',
     'register.password_hint':'6文字以上','register.oshi_ph':'例: 茅森月歌',
     'register.btn':'登録する','register.btn_loading':'登録中...',
     'register.has_account':'すでにアカウントがある方は','register.login_link':'ログイン',
     'register.setup_title':'表示名を設定','register.setup_desc':'このアプリで表示されるユーザー名を設定してください。',
-    'register.setup_id_memo':'（メモしておいてください）','register.setup_username_ph':'表示名（1〜12文字）',
+    'register.setup_id_memo':'（メモしておいてください）','register.setup_username_ph':'表示名（全角11文字・半角22文字まで）',
     'register.setup_btn':'登録してログイン',
     'register.login_id_unset':'未設定','register.login_id_profile_desc':'ログイン・リファラルに使用するIDです。他のユーザーには表示されません。',
     'feedback.title':'お便り箱','feedback.subtitle':'機能要望・バグ報告・その他ご意見をお送りください',
@@ -266,16 +266,16 @@ const _i18n = {
     'login.btn':'登入','login.btn_loading':'登入中...',
     'login.no_account':'沒有帳戶嗎？','login.register_link':'新增帳戶',
     'login.expired':'連線已逾時，請重新登入。',
-    'auth.login_lead':'請登入以投稿分數或遊玩轉蛋','auth.register_lead':'投稿分數，加入排行榜吧','auth.or_id':'或使用ID與密碼','auth.google_note':'使用Google不必記密碼即可開始','auth.rule_id':'英數字與 _，4～20個字元（之後可變更）','auth.next':'下一步','auth.terms_pre':'註冊即表示您同意','auth.terms':'使用條款','auth.terms_and':'與','auth.privacy':'隱私權政策','auth.terms_post':'','auth.terms_end':'','auth.forgot_pre':'忘記密碼時，','auth.forgot_x':'請透過X聯絡','auth.forgot_post':'','auth.network':'無法連線，請確認網路後再試一次','auth.pw_show':'顯示密碼','auth.pw_hide':'隱藏密碼','auth.copied':'已複製','auth.inapp':'應用程式內瀏覽器無法使用Google登入，請以Safari或Chrome開啟。','auth.copy_url':'複製網址','auth.step_account':'帳戶','auth.step_profile':'個人資料','auth.setup_desc':'這是顯示在排行榜上的名稱，之後可於個人資料變更。','auth.copy':'複製','auth.keep_id':'下次登入時使用，請與密碼一併妥善保管。','auth.display_name':'顯示名稱','auth.oshi':'最愛角色','auth.optional':'選填','auth.not_set':'不選擇','auth.sns_title':'登錄X與YouTube（選填）','auth.sns_note':'僅限您本人且含有HBR內容的帳戶。','auth.yt_handle':'YouTube帳號代碼','auth.start':'開始使用','auth.saving':'儲存中...','auth.name_required':'請輸入顯示名稱','auth.x_invalid':'X ID為英數字與 _，15個字元以內','auth.yt_invalid':'YouTube帳號代碼為英數字與 . - _，3～30個字元','auth.id_required':'請輸入使用者名稱或登入ID','auth.pw_required':'請輸入密碼','auth.id_taken':'此ID已被使用，請輸入其他ID',
+    'auth.login_lead':'請登入以投稿分數或遊玩轉蛋','auth.register_lead':'投稿分數，加入排行榜吧','auth.or_id':'或使用ID與密碼','auth.google_note':'使用Google不必記密碼即可開始','auth.rule_id':'英數字與 _，4～20個字元（之後可變更）','auth.next':'下一步','auth.terms_pre':'註冊即表示您同意','auth.terms':'使用條款','auth.terms_and':'與','auth.privacy':'隱私權政策','auth.terms_post':'','auth.terms_end':'','auth.forgot_pre':'忘記密碼時，','auth.forgot_x':'請透過X聯絡','auth.forgot_post':'','auth.network':'無法連線，請確認網路後再試一次','auth.pw_show':'顯示密碼','auth.pw_hide':'隱藏密碼','auth.copied':'已複製','auth.inapp':'應用程式內瀏覽器無法使用Google登入，請以Safari或Chrome開啟。','auth.copy_url':'複製網址','auth.step_account':'帳戶','auth.step_profile':'個人資料','auth.setup_desc':'這是顯示在排行榜上的名稱，之後可於個人資料變更。','auth.copy':'複製','auth.keep_id':'下次登入時使用，請與密碼一併妥善保管。','auth.display_name':'顯示名稱','auth.oshi':'最愛角色','auth.optional':'選填','auth.not_set':'不選擇','auth.sns_title':'登錄X與YouTube（選填）','auth.sns_note':'僅限您本人且含有HBR內容的帳戶。','auth.yt_handle':'YouTube帳號代碼','auth.start':'開始使用','auth.saving':'儲存中...','auth.name_required':'請輸入顯示名稱','auth.name_too_long':'顯示名稱最多全形11字（半形22字）','auth.x_invalid':'X ID為英數字與 _，15個字元以內','auth.yt_invalid':'YouTube帳號代碼為英數字與 . - _，3～30個字元','auth.id_required':'請輸入使用者名稱或登入ID','auth.pw_required':'請輸入密碼','auth.id_taken':'此ID已被使用，請輸入其他ID',
     'register.title':'新增帳戶','register.username':'使用者名稱','register.password':'密碼',
     'register.login_id':'登入ID','register.login_id_hint':'英數字・_，4～20個字元',
     'register.login_id_desc':'用於登入的ID，可於個人頁面變更。',
-    'register.oshi':'最愛角色（選填）','register.username_hint':'1～12個字元',
+    'register.oshi':'最愛角色（選填）','register.username_hint':'全形11字（半形22字）以內',
     'register.password_hint':'6個字元以上','register.oshi_ph':'例：茅森月歌',
     'register.btn':'註冊','register.btn_loading':'註冊中...',
     'register.has_account':'已有帳戶嗎？','register.login_link':'登入',
     'register.setup_title':'設定顯示名稱','register.setup_desc':'請設定在此應用程式顯示的使用者名稱。',
-    'register.setup_id_memo':'（請記下此ID）','register.setup_username_ph':'顯示名稱（1～12個字元）',
+    'register.setup_id_memo':'（請記下此ID）','register.setup_username_ph':'顯示名稱（全形11字・半形22字以內）',
     'register.setup_btn':'完成註冊並登入',
     'register.login_id_unset':'未設定','register.login_id_profile_desc':'此ID用於登入及邀請，不對其他使用者顯示。',
     'feedback.title':'意見箱','feedback.subtitle':'歡迎提供功能建議・錯誤回報・其他意見',
@@ -666,6 +666,18 @@ window.addEventListener('resize', () => { clearTimeout(window._fitFrameT); windo
 function mediumUrl(url) {
   if (!url || !url.includes('res.cloudinary.com')) return url;
   return url.replace(/\/upload\/[^/]+\//, '/upload/q_auto,f_auto,w_640,c_limit/');
+}
+
+// 表示名の長さは見た目の幅で数える（全角1文字=2、半角の英数字・記号・半角カナ=1）。上限は全角11文字の幅 = 22。
+// サーバーの utils/nameWidth.js と同じ数え方
+const NAME_MAX_WIDTH = 22;
+function nameWidth(s) {
+  let w = 0;
+  for (const ch of String(s)) {
+    const c = ch.codePointAt(0);
+    w += (c <= 0x7e || (c >= 0xff61 && c <= 0xff9f)) ? 1 : 2;
+  }
+  return w;
 }
 
 function escHtml(s) {

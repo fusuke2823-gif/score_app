@@ -344,6 +344,7 @@ async function load() {
     ]);
     if (meData) Object.assign(currentUser, { has_google: meData.has_google });
     document.title = `${data.username} - HBR`;
+    _profileUsername = data.username;
 
     // イベントごとにスコアをグループ化
     const eventMap = {};
@@ -377,7 +378,7 @@ async function load() {
         <div id="edit-alert"></div>
         <div class="form-group">
           <label class="form-label">${t('user.username')}</label>
-          <input class="form-input" id="edit-username" type="text" value="${escHtml(data.username)}" maxlength="12">
+          <input class="form-input" id="edit-username" type="text" value="${escHtml(data.username)}" maxlength="${NAME_MAX_WIDTH}">
         </div>
         <div class="form-group">
           <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
@@ -531,6 +532,7 @@ function toggleEditForm() {
   if (wrap) wrap.style.display = wrap.style.display === 'none' ? '' : 'none';
 }
 
+let _profileUsername = null; // 開いたときの名前（変えていなければ長さの上限を見ない）
 async function saveProfile() {
   const username = document.getElementById('edit-username')?.value.trim();
   const oshi = document.getElementById('edit-oshi')?.value.trim();
@@ -541,6 +543,11 @@ async function saveProfile() {
   const alertEl = document.getElementById('edit-alert');
   alertEl.innerHTML = '';
 
+  // 長さの上限を変える前からの長い名前は、変えなければそのまま保存できる
+  if (username !== _profileUsername && nameWidth(username) > NAME_MAX_WIDTH) {
+    alertEl.innerHTML = `<div class="alert alert-error">${t('auth.name_too_long')}</div>`;
+    return;
+  }
   if (twitterRaw && !/^[A-Za-z0-9_]{1,15}$/.test(twitterRaw)) {
     alertEl.innerHTML = `<div class="alert alert-error">${t('user.x_err')}</div>`;
     return;
@@ -554,6 +561,7 @@ async function saveProfile() {
     const res = await apiFetch('/auth/me', { method: 'PUT', body: JSON.stringify(body) });
     setAuth(res.token, res.user);
     renderNav();
+    _profileUsername = res.user.username;
     alertEl.innerHTML = `<div class="alert alert-success">${t('user.saved')}</div>`;
     // アイコン画像がないときだけ、頭文字を新しい名前に
     const avatar = document.querySelector('.pf-card .user-avatar');

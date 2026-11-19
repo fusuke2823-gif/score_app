@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../db/index');
 const { authenticateToken } = require('../middleware/auth');
+const { NAME_MAX_WIDTH, nameWidth, NAME_LENGTH_ERROR } = require('../utils/nameWidth');
 const { OAuth2Client } = require('google-auth-library');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -103,8 +104,14 @@ router.put('/me', authenticateToken, async (req, res) => {
   const { username, user_code, oshi_character, current_password, new_password, twitter_username, youtube_channel } = req.body;
 
   if (username !== undefined) {
-    if (username.length < 1 || username.length > 12)
-      return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
+    if (typeof username !== 'string' || username.length < 1)
+      return res.status(400).json({ error: 'ユーザー名を入力してください' });
+    // 長さの上限を変える前からの長い名前は、変えずに保存するならそのまま通す（ほかの欄だけ直せるように）
+    if (nameWidth(username) > NAME_MAX_WIDTH) {
+      const cur = await pool.query('SELECT username FROM users WHERE id = $1', [req.user.id]).catch(err => { console.error(err); return null; });
+      if (!cur) return res.status(500).json({ error: 'サーバーエラー' });
+      if (cur.rows[0]?.username !== username) return res.status(400).json({ error: NAME_LENGTH_ERROR });
+    }
   }
   if (user_code !== undefined && user_code !== null && user_code !== '') {
     if (!/^[A-Za-z0-9_]{4,20}$/.test(user_code))
@@ -256,8 +263,8 @@ router.post('/google/register', async (req, res) => {
     return res.status(401).json({ error: 'Googleでのログインからやり直してください' });
   }
   if (!username) return res.status(400).json({ error: 'ユーザー名を入力してください' });
-  if (username.length < 1 || username.length > 12)
-    return res.status(400).json({ error: 'ユーザー名は1〜12文字で入力してください' });
+  if (typeof username !== 'string' || nameWidth(username) > NAME_MAX_WIDTH)
+    return res.status(400).json({ error: NAME_LENGTH_ERROR });
   if (twitter_username && !/^[A-Za-z0-9_]{1,15}$/.test(twitter_username))
     return res.status(400).json({ error: 'X IDは英数字・アンダースコアのみ15文字以内で入力してください' });
   if (youtube_channel && !/^[A-Za-z0-9._-]{3,30}$/.test(youtube_channel))
