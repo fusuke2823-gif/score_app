@@ -96,11 +96,11 @@
   #ranking-content .ranking-table:has(tr.has-frame) :is(td, th):is(.col-img, .col-title, .col-rank) { padding-right:13px; }
   /* 名前の欄を広く：順位・属性・アイコンは左へ、スコア・画像は右へ少し寄せる（表の幅はそのまま） */
   #ranking-content .ranking-table th:first-child, #ranking-content .ranking-table td:first-child { width:22px; padding-left:4px; padding-right:0; }
-  #ranking-content .ranking-table:has(tr.has-frame) :is(td, th):first-child { padding-left:10px; }
+  #ranking-content .ranking-table:has(tr.has-frame) :is(td, th):first-child { padding-left:7px; }
   #ranking-content .ranking-table .col-avatar { padding-left:2px; padding-right:2px; }
   #ranking-content .ranking-table th:is(:first-child, :nth-child(2)) { font-size:0.68rem; letter-spacing:0; } /* 見出しの「順位」で列が広がらないように */
-  #ranking-content .ranking-table :is(td, th).col-img { padding-left:0; padding-right:4px; }
-  #ranking-content .ranking-table:has(tr.has-frame) :is(td, th).col-img { padding-right:10px; }
+  #ranking-content .ranking-table :is(td, th).col-img { width:40px; padding-left:0; padding-right:4px; text-align:right !important; }
+  #ranking-content .ranking-table:has(tr.has-frame) :is(td, th).col-img { padding-right:7px; }
 }
 /* ランキングのカードは左右の余白を詰めて表を広く（スマホは画面の端近くまで） */
 .rk-card { padding-left:12px; padding-right:12px; }
