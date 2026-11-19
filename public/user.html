@@ -732,7 +732,7 @@ async function loadHistory() {
     <div class="hist-graph" id="hist-graph"></div>
     <div class="hist-summary">
       <div><div class="l">直近${sm.recent_rank_count || 5}回の平均順位</div><div class="v">${sm.recent_avg_rank != null ? sm.recent_avg_rank.toFixed(1) + '位' : '-'}</div></div>
-      <div><div class="l">最高順位</div><div class="v">${sm.best_rank != null ? sm.best_rank + '位' : '-'}</div></div>
+      <div><div class="l">直近${sm.recent_rank_count || 5}回の最高順位</div><div class="v">${sm.best_rank != null ? sm.best_rank + '位' : '-'}</div></div>
       <div><div class="l">直近5回の傾向</div><div class="v" style="color:${trend ? trend[1] : 'inherit'}">${trend ? trend[0] : '-'}</div></div>
     </div>`;
   renderHistoryGraph(null);

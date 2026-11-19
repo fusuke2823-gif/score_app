@@ -214,7 +214,6 @@ router.get('/:id/history', async (req, res) => {
     const pts = joined.map(r => r.pt);
     const minPt = Math.min(...pts), maxPt = Math.max(...pts);
     const recentRanks = joined.map(r => r.rank).filter(r => r != null).slice(-HISTORY_RECENT_N);
-    const allRanks = joined.map(r => r.rank).filter(r => r != null);
 
     res.json({
       events: rows.map(({ pt, ...r }) => ({
@@ -225,7 +224,7 @@ router.get('/:id/history', async (req, res) => {
         joined_count: joined.length,
         recent_avg_rank: recentRanks.length ? recentRanks.reduce((a, b) => a + b, 0) / recentRanks.length : null,
         recent_rank_count: recentRanks.length,
-        best_rank: allRanks.length ? Math.min(...allRanks) : null,
+        best_rank: recentRanks.length ? Math.min(...recentRanks) : null, // 平均順位と同じ、参加した直近5回の中の最高
         trend: historyTrend(pts),
       },
     });
