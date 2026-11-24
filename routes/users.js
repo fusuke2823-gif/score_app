@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { IN_SEASON, rateAbove, liveSeasonKey, userProgress, currentSeason, seasonsUntil, display: seasonDisplay } = require('../utils/seasons');
+const { IN_SEASON, rateAbove, liveSeasonKey, userProgress, currentSeason, seasonsUntil, seasonByKey, display: seasonDisplay } = require('../utils/seasons');
 const pool = require('../db/index');
 const { optionalAuth, authenticateToken } = require('../middleware/auth');
 const { optimizeUrl } = require('../utils/cloudinary');
@@ -44,16 +44,21 @@ async function pastSeasonRanking(key, scopeFilter, isAdmin) {
   }).filter(r => shown.includes(r.comp_rank));
 }
 
-// シーズンの一覧（新しい順）。締めたシーズンは1位も
+// シーズンの一覧（新しい順）。締めたシーズンは1位も。
+// 今のシーズン（current）は、ランクとレートに出しているシーズン。日付で次のシーズンに入っても、
+// 前のシーズンの最後の回の最終配布がすんで締まるまでは前のシーズンのまま（tallying：集計中）。次のシーズンはまだ一覧に出さない
 router.get('/seasons', async (req, res) => {
   try {
     const now = new Date();
     const done = new Map((await pool.query(
       'SELECT d.season_key, d.winner_user_id, u.username FROM seasons_done d LEFT JOIN users u ON u.id = d.winner_user_id'
     )).rows.map(r => [r.season_key, r]));
-    res.json(seasonsUntil(now).reverse().map(s => ({
+    const live = await liveSeasonKey(pool, now);
+    const list = seasonsUntil(now);
+    const upto = list.findIndex(s => s.key === live);
+    res.json((upto >= 0 ? list.slice(0, upto + 1) : list).reverse().map(s => ({
       key: s.key, name: s.name, test: s.test, start: s.start, last_day: new Date(s.end.getTime() - 24 * 60 * 60 * 1000),
-      done: done.has(s.key), current: s.end > now,
+      done: done.has(s.key), current: s.key === live, tallying: s.key === live && s.end <= now,
       winner: done.get(s.key)?.winner_user_id ? { id: done.get(s.key).winner_user_id, username: done.get(s.key).username } : null,
     })));
   } catch (err) {
@@ -65,7 +70,8 @@ router.get('/seasons', async (req, res) => {
 // 今のレートのシーズン（名前・期間・数えた回の数）
 router.get('/season', async (req, res) => {
   try {
-    const season = currentSeason();
+    // 前のシーズンが締まるまでは前のシーズン（/seasons の current と同じ）
+    const season = seasonByKey(await liveSeasonKey(pool)) || currentSeason();
     if (!season) return res.json(null);
     const { rows } = await pool.query(
       `SELECT COUNT(*)::int AS n FROM events WHERE is_active = TRUE AND points_distributed_external = TRUE

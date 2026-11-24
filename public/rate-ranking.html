@@ -16,7 +16,6 @@
     radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--tc) 24%, transparent), transparent 55%),
     linear-gradient(110deg, rgba(26,23,52,0.86), rgba(14,12,32,0.82));
   border:1px solid rgba(255,255,255,0.1); box-shadow:0 8px 22px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06); }
-.rr-head.done { --tc:#8f8fa3; }
 .rr-head::before { content:''; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, var(--tc), transparent); opacity:0.7; }
 .rr-head-bg { position:absolute; right:10px; top:8px; z-index:-1; pointer-events:none; font-family:"Orbitron",sans-serif; font-weight:900; font-size:2.6rem; line-height:1;
   color:transparent; -webkit-text-stroke:1px color-mix(in srgb, var(--tc) 35%, transparent); opacity:0.55; }
@@ -24,13 +23,11 @@
 .rr-eyebrow { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.6rem; letter-spacing:0.22em; color:var(--tc); margin-bottom:4px; }
 .rr-name { font-size:1.45rem; font-weight:900; line-height:1.25; margin:0 0 8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .rr-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:0.74rem; color:var(--text-muted); }
+.rr-prev-btn { margin-top:14px; }
 .rr-pill { display:inline-flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:bold; padding:2px 9px; border-radius:99px; white-space:nowrap;
   color:var(--text-secondary); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); }
 .rr-pill.live { color:#6ee7a0; background:rgba(76,175,80,0.14); border-color:rgba(110,231,160,0.4); }
 .rr-pill.live::before { content:''; width:6px; height:6px; border-radius:50%; background:#6ee7a0; }
-.rr-winner { display:flex; align-items:center; gap:8px; margin-top:10px; padding:8px 10px; border-radius:9px; background:rgba(255,210,74,0.08); border:1px solid rgba(255,210,74,0.25); font-size:0.82rem; }
-.rr-winner svg { width:18px; height:18px; color:#ffd24a; flex-shrink:0; }
-.rr-winner a { color:#fff; font-weight:bold; text-decoration:none; }
 
 /* ===== 切り替え（シーズン・ランク・内部外部）：スクロールしてもナビの下に残す ===== */
 .rr-bar { position:sticky; z-index:50; display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:0 -24px 12px; padding:8px 24px;
@@ -165,7 +162,6 @@ let seasonKey = null;   // 見ているシーズン
 let rankFilter = 'all'; // all / Legend / Ex / X（管理者は S / A / B / C も）
 let rows = [];
 
-const CROWN = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>';
 const md = d => { const x = new Date(d); return `${x.getMonth() + 1}/${x.getDate()}`; };
 const viewing = () => seasons.find(s => s.key === seasonKey) || null;
 // X 以上は通しのレート、C〜S はランクの中の 0〜1000
@@ -192,7 +188,9 @@ function renderHead() {
   const el = document.getElementById('season-head');
   if (!se) { el.innerHTML = ''; return; }
   const left = Math.max(0, Math.ceil((new Date(se.last_day).getTime() + 86400000 - Date.now()) / 86400000));
-  const status = se.current
+  const status = se.tallying
+    ? `<span class="rr-pill live">${t('rate.tallying')}</span>`
+    : se.current
     ? `<span class="rr-pill live">${t('event.days_left', left)}</span>`
     : `<span class="rr-pill">${t('rate.ended')}</span>`;
   el.innerHTML = `
@@ -201,7 +199,6 @@ function renderHead() {
       <div class="rr-eyebrow">RATE SEASON</div>
       <div class="rr-name">${escHtml(se.name)}</div>
       <div class="rr-meta">${status}<span>${md(se.start)}〜${md(se.last_day)}</span>${se.events != null ? `<span>${t('rate.season_events', se.events)}</span>` : ''}</div>
-      ${se.winner ? `<div class="rr-winner">${CROWN}<span>${t('rate.winner')}</span><a href="/user.html?id=${se.winner.id}">${escHtml(se.winner.username)}</a></div>` : ''}
     </div>`;
 }
 
@@ -282,6 +279,12 @@ function renderMyCard() {
 
 function renderTable(list) {
   if (list.length === 0) {
+    // 始まったばかりのシーズン（まだ誰も数えられていない）：最初の回の最終配布のあとに出ると案内し、前のシーズンの結果へ
+    const se = viewing(), prev = seasons[seasons.indexOf(se) + 1];
+    if (rows.length === 0 && se?.current && prev) {
+      return `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.empty_new')}</p>
+        <button type="button" class="btn btn-secondary rr-prev-btn" onclick="pickSeason('${prev.key}')">${escHtml(t('rate.prev_result', prev.name))}</button></div>`;
+    }
     return `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.empty')}</p></div>`;
   }
   const meId = me ? me.id : null;
@@ -432,7 +435,9 @@ async function init() {
   // 今のシーズンには終わった回の数を足す
   const now = seasons.find(s => s.current);
   if (now && cur && cur.key === now.key) now.events = cur.events;
-  seasonKey = (now || seasons[0])?.key || null;
+  // ?season= で開いたら、そのシーズン（シーズン開幕のお知らせの「前のシーズンの結果へ」から）
+  const want = new URLSearchParams(location.search).get('season');
+  seasonKey = (seasons.find(s => s.key === want) || now || seasons[0])?.key || null;
   renderHead();
   renderSeasonTabs();
   load();

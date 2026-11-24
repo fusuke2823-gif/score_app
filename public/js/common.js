@@ -184,12 +184,12 @@ const _i18n = {
     'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
     'doc.terms':'利用規約','doc.privacy':'プライバシーポリシー',
     'doc.copy_link':'リンクをコピー','doc.copy_done':'コピーしました！','doc.copy_uid':'ユーザーIDをコピー',
-    'rn.absent':'不参加','rn.new_season':'{0} 開幕','rn.so_far':'{0} ここまでの推移','rn.prev_result':'{0}の結果','rn.start':'スタート','rn.updates':'今回の更新','rn.season_pos':'シーズン順位','rn.to_ranking':'レートランキング','rn.skip':'タップでスキップ','rn.trend':'シーズン内の推移','rn.season_events':'このシーズンの回','so.open':'開幕','so.live':'開催中','so.reward':'シーズン1位の報酬','so.tap':'タップして進む','so.end':'終了','so.winner':'シーズン1位','so.final_pos':'最終順位','so.pos_of':'位 / {0}人','so.reward_unlocked':'報酬のフレームがショップで購入できるようになりました','rn.seraph_short':'演習',
+    'rn.absent':'不参加','rn.new_season':'{0} 開幕','rn.so_far':'{0} ここまでの推移','rn.prev_result':'{0}の結果','rn.start':'スタート','rn.updates':'今回の更新','rn.season_pos':'シーズン順位','rn.to_ranking':'レートランキング','rn.to_prev':'前シーズンの結果へ','rn.skip':'タップでスキップ','rn.trend':'シーズン内の推移','rn.season_events':'このシーズンの回','so.open':'開幕','so.live':'開催中','so.reward':'シーズン1位の報酬','so.tap':'タップして進む','so.end':'終了','so.winner':'シーズン1位','so.final_pos':'最終順位','so.pos_of':'位 / {0}人','so.reward_unlocked':'報酬のフレームが\nショップで購入できるようになりました','rn.seraph_short':'演習',
     'rate.title':'レートランキング','rate.subtitle':'X・Exランクユーザーのレート順','rate.season_events':'{0}回終了','rate.live':'開催中','rate.ended':'終了','rate.winner':'シーズン1位','rate.f_all':'すべて','rate.goal_to':'{0}まで あと<b>{1}</b>','rate.goal_legend':'LEGEND <b>{0}</b>位','rate.position':'{0}位 / {1}人',
     'rate.scope_ext':'外部','rate.scope_int':'内部',
     'rate.my_label':'あなたのレート',
     'rate.th_player':'プレイヤー','rate.th_rank':'ランク','rate.th_rate':'レート',
-    'rate.empty':'該当ユーザーがいません','rate.back':'← トップ',
+    'rate.empty':'該当ユーザーがいません','rate.empty_new':'このシーズンのレートは、最初の回の最終配布のあとに出ます','rate.prev_result':'{0}の結果へ','rate.tallying':'集計中','rate.back':'← トップ',
     'rate.btn':'レートランキング',
     'submit.yt_url':'YouTube動画URL（任意）','submit.yt_hint':'YouTubeのURLのみ入力できます',
     'ranking.yt_watch':'YouTube動画を見る',
@@ -365,12 +365,12 @@ const _i18n = {
     'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
     'doc.terms':'使用條款','doc.privacy':'隱私政策',
     'doc.copy_link':'複製連結','doc.copy_done':'已複製！','doc.copy_uid':'複製用戶ID',
-    'rn.absent':'未參加','rn.new_season':'{0} 開幕','rn.so_far':'{0} 目前為止的走勢','rn.prev_result':'{0}的結果','rn.start':'起始','rn.updates':'本次更新','rn.season_pos':'賽季名次','rn.to_ranking':'評分排行榜','rn.skip':'點擊跳過','rn.trend':'賽季走勢','rn.season_events':'本賽季的場次','so.open':'開幕','so.live':'進行中','so.reward':'賽季第1名獎勵','so.tap':'點擊繼續','so.end':'結束','so.winner':'賽季第1名','so.final_pos':'最終名次','so.pos_of':'名 / {0}人','so.reward_unlocked':'獎勵外框已可在商店購買','rn.seraph_short':'演習',
+    'rn.absent':'未參加','rn.new_season':'{0} 開幕','rn.so_far':'{0} 目前為止的走勢','rn.prev_result':'{0}的結果','rn.start':'起始','rn.updates':'本次更新','rn.season_pos':'賽季名次','rn.to_ranking':'評分排行榜','rn.to_prev':'上賽季的結果','rn.skip':'點擊跳過','rn.trend':'賽季走勢','rn.season_events':'本賽季的場次','so.open':'開幕','so.live':'進行中','so.reward':'賽季第1名獎勵','so.tap':'點擊繼續','so.end':'結束','so.winner':'賽季第1名','so.final_pos':'最終名次','so.pos_of':'名 / {0}人','so.reward_unlocked':'獎勵外框已可在商店購買','rn.seraph_short':'演習',
     'rate.title':'評分排行榜','rate.subtitle':'X・Ex等級玩家評分排名','rate.season_events':'已結束{0}場','rate.live':'進行中','rate.ended':'已結束','rate.winner':'賽季第1名','rate.f_all':'全部','rate.goal_to':'距離{0}還差<b>{1}</b>','rate.goal_legend':'LEGEND 第<b>{0}</b>名','rate.position':'第{0}名 / {1}人',
     'rate.scope_ext':'外部','rate.scope_int':'內部',
     'rate.my_label':'你的評分',
     'rate.th_player':'玩家','rate.th_rank':'等級','rate.th_rate':'評分',
-    'rate.empty':'沒有符合條件的玩家','rate.back':'← 首頁',
+    'rate.empty':'沒有符合條件的玩家','rate.empty_new':'本賽季的評分將在第一場活動最終發放後顯示','rate.prev_result':'前往{0}的結果','rate.tallying':'統計中','rate.back':'← 首頁',
     'rate.btn':'評分排行榜',
     'submit.yt_url':'YouTube影片網址（選填）','submit.yt_hint':'僅限YouTube網址',
     'ranking.yt_watch':'觀看YouTube影片',
@@ -2352,6 +2352,8 @@ async function initLoginBonus() {
 
     // 特別ボーナスは別のポップアップ。デイリーバトルがまだならその後に、済んでいればすぐに出す
     const hasClaimableSpecial = specials.some(spBonusCanClaim);
+    // 結果通知とレート更新の通知（シーズンの終了・開幕も）が全部終わってから出す
+    await Promise.all([window._distNoticeFlow, window._rankUpdatePromise].filter(Boolean));
     // デイリーバトルのモーダルは非表示のまま残す（renderNav が再実行されたときに二重に確認しないための目印）
     if (status.already_claimed) {
       if (hasClaimableSpecial) openSpecialBonusModal(specials);

@@ -142,7 +142,7 @@ function playSeasonEnding(prev) {
         </div>
       </div>
       ${prev.winner && prev.reward ? `<div class="so-reward se-reward">
-        <div class="so-reward-k">${escHtml(t('so.reward_unlocked'))}</div>
+        <div class="so-reward-k">${escHtml(t('so.reward_unlocked')).replace('\n', '<br>')}</div>
         ${frameSampleHtml(prev.reward.css_class, me?.username || 'Player')}
         <div class="so-reward-name">${escHtml(prev.reward.name)}</div>
       </div>` : ''}
@@ -361,7 +361,9 @@ function openRateModal(data, mode, from, onClose) {
       ${data.position ? `<div class="rn-pos"><span>${escHtml(t('rn.season_pos'))}</span><b>${escHtml(t('rate.position', data.position, data.participants))}</b></div>` : ''}
       <div class="rn-skip">${escHtml(t('rn.skip'))}</div>
       <div class="rn-actions">
-        <a class="btn btn-secondary" href="/rate-ranking.html">${escHtml(t('rn.to_ranking'))}</a>
+        ${mode === 'new' && data.prev
+          ? `<a class="btn btn-secondary" href="/rate-ranking.html?season=${encodeURIComponent(data.prev.key)}">${escHtml(t('rn.to_prev'))}</a>`
+          : `<a class="btn btn-secondary" href="/rate-ranking.html">${escHtml(t('rn.to_ranking'))}</a>`}
         <button class="btn btn-primary" type="button" data-close>${escHtml(t('close'))}</button>
       </div>
     </div>`;
