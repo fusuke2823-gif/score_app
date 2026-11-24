@@ -832,7 +832,7 @@ function renderNav() {
                <a href="/login.html" class="au-login">${AU_ICON_LOGIN}${t('nav.login')}</a>
                <a href="/register.html" class="au-reg">${AU_ICON_REG}${t('nav.register_full')}</a>
              </div>`}
-        <div class="nm-ring"><i class="nm-fx" aria-hidden="true"></i>${nmRing(user
+        <div class="nm-ring"><i class="nm-fx" aria-hidden="true"></i>${NM_DOTS}${nmRing(user
           ? [nmTile(`/user.html?id=${user.id}`, 'account', t('nav.mypage'), currentPath === '/user.html' && new URLSearchParams(location.search).get('id') === String(user.id)),
              nmTile('/charts.html', 'charts', user.role === 'admin' ? t('nav.charts') : t('nav.wip'), currentPath === '/charts.html' || currentPath.startsWith('/chart-')), // 公開前なので管理者以外には「開発中」
              nmTile('/videos.html', 'videos', t('nav.my_videos'), currentPath === '/videos.html'),
@@ -878,6 +878,13 @@ function nmTile(href, icon, label, active) {
   return `<a href="${href}" class="nm-tile${active ? ' active' : ''}"><span class="nm-ico">${NAV_ICONS[icon] || ''}<span class="nb"></span></span><span class="nm-label">${label}</span></a>`;
 }
 // 真ん中の丸：3つと2つをずらして並べる（2つだけなら1段で真ん中に）
+// メニューの背景の点の輪：半径（間隔20px）と1周の時間（点の進む速さをどの輪も毎秒12pxにそろえる）。
+// 点は外の輪ほど少し大きく（3.0〜4.6px）、点と点の間は点の約3倍。1周に入る点の数を整数にして、回しても継ぎ目が出ないように
+// （--h：輪の太さの半分、--a：点の弧の角度、--p：点1つ分の角度）
+const NM_DOTS = `<i class="nm-dots" aria-hidden="true">${[162, 182, 202, 222, 242].map((r, i) => {
+  const d = 3 + i * 0.4, deg = 180 / Math.PI / r, n = Math.round(2 * Math.PI * r / (d * 3));
+  return `<b style="--r:${r}px;--t:${(2 * Math.PI * r / 12).toFixed(1)}s;--h:${(d / 2).toFixed(2)}px;--a:${(d * deg).toFixed(3)}deg;--p:${(360 / n).toFixed(4)}deg"></b>`;
+}).join('')}</i>`;
 function nmRing(tiles) {
   const pos = tiles.length <= 2 ? ['r2a', 'r2b'] : ['', '', '', 'r2a', 'r2b'];
   return tiles.map((h, i) => pos[i] ? h.replace('class="nm-tile', `class="nm-tile ${pos[i]}`) : h).join('');
