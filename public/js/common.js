@@ -878,13 +878,16 @@ function nmTile(href, icon, label, active) {
   return `<a href="${href}" class="nm-tile${active ? ' active' : ''}"><span class="nm-ico">${NAV_ICONS[icon] || ''}<span class="nb"></span></span><span class="nm-label">${label}</span></a>`;
 }
 // 真ん中の丸：3つと2つをずらして並べる（2つだけなら1段で真ん中に）
-// メニューの背景の点の輪：半径（間隔20px）と1周の時間（点の進む速さをどの輪も毎秒12pxにそろえる）。
-// 点は外の輪ほど少し大きく（3.0〜4.6px）、点と点の間は点の約3倍。1周に入る点の数を整数にして、回しても継ぎ目が出ないように
-// （--h：輪の太さの半分、--a：点の弧の角度、--p：点1つ分の角度）
-const NM_DOTS = `<i class="nm-dots" aria-hidden="true">${[162, 182, 202, 222, 242].map((r, i) => {
-  const d = 3 + i * 0.4, deg = 180 / Math.PI / r, n = Math.round(2 * Math.PI * r / (d * 3));
-  return `<b style="--r:${r}px;--t:${(2 * Math.PI * r / 12).toFixed(1)}s;--h:${(d / 2).toFixed(2)}px;--a:${(d * deg).toFixed(3)}deg;--p:${(360 / n).toFixed(4)}deg"></b>`;
-}).join('')}</i>`;
+// メニューの背景の点の輪：半径（間隔20px）と1周の時間（点の進む速さをどの輪も毎秒5pxにそろえる）。
+// 点は丸で、外の輪ほど少し大きく（直径3.0〜4.6px）、点と点の間は点の約3倍。各輪に約60度の切れ目。
+// 円周を360として（pathLength）破線を角度で並べる：長さ0の線に丸い線端で点にし、最後のすき間に切れ目を足す。
+// SVG は 1px の箱で、円は箱の左上（＝輪の中心）を中心にはみ出して描く
+const NM_DOTS = `<svg class="nm-dots" aria-hidden="true">${[162, 182, 202, 222, 242].map((r, i) => {
+  const d = 3 + i * 0.4, n = Math.round(2 * Math.PI * r / (d * 3));
+  const p = 360 / n, k = Math.round(300 / p); // 点の数（切れ目のぶん減らす）
+  const dash = Array.from({ length: k }, (_, j) => `0.001 ${(j === k - 1 ? 360 - (k - 1) * p - 0.001 : p - 0.001).toFixed(3)}`).join(' ');
+  return `<circle r="${r}" pathLength="360" stroke-width="${d.toFixed(1)}" stroke-dasharray="${dash}" style="--t:${(2 * Math.PI * r / 5).toFixed(1)}s"/>`;
+}).join('')}</svg>`;
 function nmRing(tiles) {
   const pos = tiles.length <= 2 ? ['r2a', 'r2b'] : ['', '', '', 'r2a', 'r2b'];
   return tiles.map((h, i) => pos[i] ? h.replace('class="nm-tile', `class="nm-tile ${pos[i]}`) : h).join('');
