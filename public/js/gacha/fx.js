@@ -200,8 +200,8 @@ function _gxTintSteps(finalTint) {
 // 最後に cardEls を並べ終える（card-visible を付ける）。画面のタップで飛ばせるのは waitTap() のあとから
 const GX_INTROS = {};
 
-// 確定演出：虹のカードが並ぶ回に1回だけ抽選して、どれか1つ（または扇の色昇格）にする。
-// 数字はその回のうちの割合（合計が1未満なら、残りは扇の色昇格）。0 なら出さない
+// 確定演出：虹のカードが並ぶ回に1回だけ抽選して、どれか1つ（または山札の色昇格）にする。
+// 数字はその回のうちの割合（合計が1未満なら、残りは山札の色昇格）。0 なら出さない
 //  pre-plain ：タップ前・演出なし（タップでいきなり虹）
 //  pre-meteor：タップ前・流れ星（タップ待ちの背景に流れ星 → タップで虹）
 //  post-scatter：タップ後・飛び散る（タップで札がいきなり飛び散り、集まると虹になっている）
@@ -214,8 +214,8 @@ function _gxPickConfirm(tint) {
 }
 
 // タップしたときに付く色と、そのあとの格上げの段階を決める。
-//  タップで付く色：単発は見た目のとおり（青か金。虹は金で出して、扇で虹に上げる）、10連はいつも金
-//  タップ前の確定演出はタップで虹。タップ後の確定演出は、その演出の中で虹にする（扇では上げない）
+//  タップで付く色：単発は見た目のとおり（青か金。虹は金で出して、山札の色昇格で虹に上げる）、10連はいつも金
+//  タップ前の確定演出はタップで虹。タップ後の確定演出は、その演出の中で虹にする（山札の色昇格では上げない）
 //  最初の色より低い段階は飛ばす（光が下がって見えないように）
 const GX_RANK = { A: 0, S: 1, SS: 2 };
 function _gxIntroSteps(tint, isMulti, confirm) {
@@ -289,11 +289,11 @@ async function _gxDealFrom(cardEls, from, { fast, onEach } = {}) {
   setTimeout(() => cardEls.forEach(c => c.classList.remove('dealt')), 500);
 }
 
-// 山札：上から落ちてくる（色なし）→ タップ待ち → 色が付く → 左右に割ってリフルシャッフル → 扇に広げる（ここで光の色が上がることがある） → 閉じる → 光を溜めて沈む → 弧を描いて配る
+// 山札：上から落ちてくる（色なし）→ タップ待ち → 色が付く → 左右に割ってリフルシャッフル → 震えて光の色が上がる（上がる回だけ） → 光を溜めて沈む → 弧を描いて配る
 GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOrSkip, fast, waitTap }) => {
   const deck = document.createElement('div');
   deck.className = 'gx-deck';
-  // 札は12枚。偶数番は左・奇数番は右の山に割り、下から交互に落として噛み合わせる。扇は真ん中から外へ光が伝わる
+  // 札は12枚。偶数番は左・奇数番は右の山に割り、下から交互に落として噛み合わせる。色が上がるときは真ん中の札から外へ光が伝わる
   const DECK_N = 12;
   const sparkColors = ['#ffd700', '#ff66cc', '#00eeff', '#7cff8a', '#b07cff'];
   deck.innerHTML = '<div class="gx-deck-bloom"></div><div class="gx-deck-aura"></div>' +
@@ -301,8 +301,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     Array.from({ length: DECK_N }, (_, k) => {
       const side = k % 2 ? 1 : -1;
       const c = k - (DECK_N - 1) / 2;
-      const fa = c * 9;                       // 扇：-49.5〜49.5度
-      return `<div class="gx-deck-card" style="--k:${k};--hx:${side * 62}%;--hr:${side * 9}deg;--md:${k * 34}ms;--fa:${fa}deg;--fd:${k * 18}ms;--wd:${Math.round(Math.abs(c) * 45)}ms"><img src="/img/logo.png" alt=""></div>`;
+      return `<div class="gx-deck-card" style="--k:${k};--hx:${side * 62}%;--hr:${side * 9}deg;--md:${k * 34}ms;--wd:${Math.round(Math.abs(c) * 45)}ms"><img src="/img/logo.png" alt=""></div>`;
     }).join('');
   stage.appendChild(deck);
   const bloom = () => _gxRestart(deck, 'bloom');
@@ -342,7 +341,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
       const ang = angs[k], dist = k % 3 === 0 ? 15 + Math.random() * 55 : 90 + Math.random() * 170;
       return { x: Math.cos(ang) * dist, y: Math.sin(ang) * dist * 0.8, r: Math.round(Math.random() * 540 - 270), up: 30 + Math.random() * 40 };
     });
-    // 回転の軸は札の真ん中に（扇用の軸＝札の下のままだと、大きく回したときに下へ寄って見えるため）
+    // 回転の軸は札の真ん中に（札の下を軸のままだと、大きく回したときに下へ寄って見えるため）
     cards.forEach(c => { c.style.transformOrigin = '50% 50%'; });
     deck.classList.add('scatter');
     _sePlay('/sounds/turn.mp3');
@@ -386,33 +385,22 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     await waitOrSkip(160);
   }
 
-  // 4. 扇に広げる。格上げがある場合は、広げたままカードが浮いて震え、真ん中から外へ光が伝わって色が上がる
-  if (!fast()) {
-    deck.classList.add('fan');
-    _sePlay('/sounds/turn.mp3');
-    await waitOrSkip(520);
-    for (const up of steps.slice(1)) {
-      if (fast()) break;
-      deck.classList.add('lift', 'shake');
-      await waitOrSkip(480);
-      deck.classList.remove('shake');
-      const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
-      setTimeout(() => _seStop(upAudio), 700);
-      setTint(up);
-      if (up === 'SS') _gxScreenFlash();
-      _gxRestart(deck, 'wave');
-      bloom();
-      await waitOrSkip(300);
-      deck.classList.remove('lift');
-      await waitOrSkip(400);
-    }
-    await waitOrSkip(180);
+  // 4. 色が上がる回だけ：山札のまま震えて、すき間から光が漏れ、真ん中の札から外へ光が伝わって色が上がる
+  for (const up of steps.slice(1)) {
+    if (fast()) break;
+    deck.classList.add('shake');
+    await waitOrSkip(450);
+    deck.classList.remove('shake');
+    const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
+    setTimeout(() => _seStop(upAudio), 700);
+    setTint(up);
+    if (up === 'SS') _gxScreenFlash();
+    _gxRestart(deck, 'wave');
+    bloom();
+    await waitOrSkip(550);
   }
+  deck.classList.remove('wave');
   setTint(tint);
-
-  // 5. 閉じる
-  deck.classList.remove('fan', 'wave');
-  if (!fast()) await waitOrSkip(300);
 
   // 6. 光を溜めながら、並ぶ場所の下へ沈む
   const wrapRect = wrap.getBoundingClientRect();
