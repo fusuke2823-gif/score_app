@@ -215,7 +215,7 @@
           <div class="fl-head">
             <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8.5V19l-4 2v-7.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
             <span id="icon-filter-title" data-i18n="shop.filter">絞り込み</span>
-            <button type="button" class="fl-x" onclick="closeIconFilter()" aria-label="閉じる"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            <button type="button" class="fl-x" onclick="closeIconFilter()" aria-label="閉じる" data-i18n-aria="close"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
           </div>
           <div class="fl-body">
             <div class="fl-label" data-i18n="shop.filter_rarity">レア度</div>
@@ -508,14 +508,14 @@ function renderShopFrames(frames) {
       <div class="shop-item frame-item ${f.css_class}">
         ${frameSample(f.css_class)}
         <div class="si-row">
-          <div class="si-main"><div class="si-name si-name-1">${escHtml(f.name)}</div></div>
+          <div class="si-main"><div class="si-name si-name-1">${escHtml(seasonLabel(f.name))}</div></div>
           ${shopItemPrice({ cost: f.point_cost })}
         </div>
-        <div class="si-conds"><div class="si-cond"><span class="si-cond-text"><span class="si-cond-dot"></span>${escHtml(t('shop.season_reward_cond', f.season_reward.name))}</span></div></div>
+        <div class="si-conds"><div class="si-cond"><span class="si-cond-text"><span class="si-cond-dot"></span>${escHtml(t('shop.season_reward_cond', seasonLabel(f.season_reward.name)))}</span></div></div>
         <div class="si-row si-action-row"><span class="si-cond-label">${t('shop.season_reward_note')}</span><button class="si-btn" disabled>${t('shop.frame_locked')}</button></div>
       </div>`;
     }
-    const item = { kind: 'frame', id: f.id, name: f.name, cost: f.point_cost, owned, equippedLabel: equipped ? t('shop.equipped_badge') : '', lockedText: p && !p.met && !f.free ? t('shop.frame_locked') : '' };
+    const item = { kind: 'frame', id: f.id, name: seasonLabel(f.name), cost: f.point_cost, owned, equippedLabel: equipped ? t('shop.equipped_badge') : '', lockedText: p && !p.met && !f.free ? t('shop.frame_locked') : '' };
     // 名前と値段の行、条件ごとの行（進み具合）、購入ボタンの行
     // 条件1つ分の行（チェックか点・条件の文・進み具合）
     const condLine = (c, pp) => `
@@ -542,13 +542,13 @@ function renderShopFrames(frames) {
         ${frameSample(f.css_class)}
         <div class="si-row">
           <div class="si-main">
-            <div class="si-name si-name-1">${escHtml(f.name)}</div>
-            ${f.description ? `<div class="si-desc">${escHtml(f.description)}</div>` : ''}
+            <div class="si-name si-name-1">${escHtml(seasonLabel(f.name))}</div>
+            ${f.description ? `<div class="si-desc">${escHtml(seasonLabel(f.description))}</div>` : ''}
           </div>
           ${shopItemPrice(item)}
         </div>
         ${conds}
-        ${f.season_reward ? `<div class="si-conds"><div class="si-cond met"><span class="si-cond-text">${SI_CHECK}${escHtml(t('shop.season_reward_won', f.season_reward.name))}</span></div></div>` : ''}
+        ${f.season_reward ? `<div class="si-conds"><div class="si-cond met"><span class="si-cond-text">${SI_CHECK}${escHtml(t('shop.season_reward_won', seasonLabel(f.season_reward.name)))}</span></div></div>` : ''}
         <div class="si-row si-action-row">${conds ? `<span class="si-cond-label">${t('shop.frame_cond_all')}</span>` : ''}${shopItemAction(item)}</div>
       </div>`;
   }).join('')}</div>`;
@@ -566,7 +566,7 @@ function renderMyFrames() {
       <div class="shop-item frame-item ${equipped ? 'equipped' : ''}">
         ${frameSample(f.css_class)}
         <div class="si-row">
-          <div class="si-main"><div class="si-name">${escHtml(f.name)}</div></div>
+          <div class="si-main"><div class="si-name">${escHtml(seasonLabel(f.name))}</div></div>
           ${equipped
             ? `<button class="title-row-btn equipped" onclick="equipFrame(null)">${t('shop.unequip')}</button>`
             : `<button class="title-row-btn" onclick="equipFrame(${f.id})">${t('shop.equip_short')}</button>`}

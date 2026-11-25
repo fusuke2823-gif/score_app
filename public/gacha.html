@@ -21,7 +21,7 @@
   <div id="alert"></div>
 
   <div class="gacha-wallet" id="gacha-wallet">
-    <button type="button" class="gacha-mute" id="gacha-mute" onclick="toggleGachaMute()" aria-label="効果音を消す" title="効果音を消す"></button>
+    <button type="button" class="gacha-mute" id="gacha-mute" onclick="toggleGachaMute()" aria-label="効果音を消す" title="効果音を消す" data-i18n-aria="gacha.mute" data-i18n-title="gacha.mute"></button>
     <div class="wl-bar"><i>pt</i><span id="my-points">---</span></div>
     <div class="wl-bar"><i class="gp">GP</i><span id="my-gp">---</span></div>
     <div class="gacha-wallet-dup" id="dup-indicator"></div>
@@ -33,11 +33,11 @@
     <span class="gacha-type-indicator" aria-hidden="true"></span>
     <button type="button" class="gacha-type-btn active" id="tab-btn-normal" onclick="switchGachaType('normal')">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M4 12h5M15 12h5"/><circle cx="12" cy="12" r="3"/></svg>
-      <span>通常ガチャ</span>
+      <span data-i18n="gacha.tab_normal">通常ガチャ</span>
     </button>
     <button type="button" class="gacha-type-btn" id="tab-btn-special" onclick="switchGachaType('special')" style="display:none">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5H20.5V9.5L10 20L4 14Z"/><path d="M13 11l-4 4"/><path d="M4 20l2.5-2.5"/></svg>
-      <span>討伐ガチャ</span>
+      <span data-i18n="gacha.tab_special">討伐ガチャ</span>
     </button>
   </div>
 
@@ -58,15 +58,15 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
       <span data-i18n="gacha.back_pool">ガチャ選択に戻る</span>
     </button>
-    <div class="gx-pooltabs" id="gx-pooltabs" role="tablist" aria-label="ガチャを選ぶ" hidden></div>
+    <div class="gx-pooltabs" id="gx-pooltabs" role="tablist" aria-label="ガチャを選ぶ" data-i18n-aria="gacha.pool_tabs" hidden></div>
     <div class="gx-hero" id="gx-hero"></div>
 
     <div class="gacha-pull-btns">
       <button class="gacha-btn gacha-btn-single" id="btn-single" onclick="doPull('single')" disabled>
-        <img src="/img/gacha_btn_single.webp" alt="単発ガチャ"><span class="gbtn-cost"></span>
+        <img src="/img/gacha_btn_single.webp" alt="単発ガチャ" data-i18n-alt="gacha.single"><span class="gbtn-cost"></span>
       </button>
       <button class="gacha-btn gacha-btn-multi" id="btn-multi" onclick="doPull('multi')" disabled>
-        <img src="/img/gacha_btn_multi.webp" alt="10連ガチャ"><span class="gbtn-cost"></span>
+        <img src="/img/gacha_btn_multi.webp" alt="10連ガチャ" data-i18n-alt="gacha.multi"><span class="gbtn-cost"></span>
       </button>
     </div>
 
@@ -119,12 +119,12 @@
       </div>
       <div class="sg-test-note" id="sg-test-note" hidden>テスト中：ポイントは使わず、本番の進み具合とは別です。討伐してもアイコンはもらえません</div>
     </div>
-    <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px">毎月1日に更新されます　※GPは入手できません</div>
+    <div style="text-align:center;font-size:0.75rem;color:rgba(232,232,240,0.65);margin-bottom:8px" data-i18n="gacha.monthly">毎月1日に更新されます　※GPは入手できません</div>
     <!-- 遊びモード中の帯 -->
     <div class="sg-play-bar" id="sg-play-bar" hidden>
-      <span class="sg-play-tag">遊びモード</span>
-      <span class="sg-play-note">10連 10pt・報酬なし</span>
-      <button type="button" class="btn btn-secondary btn-sm" onclick="startSgPlay()">最初から</button>
+      <span class="sg-play-tag" data-i18n="gacha.sg_play">遊びモード</span>
+      <span class="sg-play-note" data-i18n="gacha.sg_play_note">10連 10pt・報酬なし</span>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="startSgPlay()" data-i18n="gacha.sg_restart">最初から</button>
     </div>
     <div class="card sg-boss-card">
       <div class="sg-reward-preview">
@@ -132,13 +132,13 @@
         <img id="sg-reward-icon" alt="">
         <div class="sg-reward-label" id="sg-reward-name"></div>
       </div>
-      <div class="sg-defeated-banner" id="sg-defeated-banner" hidden>討伐済み</div>
+      <div class="sg-defeated-banner" id="sg-defeated-banner" hidden data-i18n="gacha.sg_defeated">討伐済み</div>
       <div class="sg-boss-stage">
         <div class="sg-boss-portrait-wrap" id="sg-boss-portrait-wrap"><img class="sg-boss-portrait" id="sg-boss-portrait" alt=""></div>
       </div>
       <div class="sg-boss-title">
         <span class="sg-boss-name" id="sg-boss-name">-</span>
-        <span class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span><button type="button" class="sg-tut-open" onclick="openSgTutorial()">遊び方</button></span>
+        <span class="sg-gimmick" id="sg-gimmick" hidden><span class="sg-gimmick-tag" id="sg-gimmick-tag"></span><button type="button" class="sg-tut-open" onclick="openSgTutorial()" data-i18n="gacha.sg_howto">遊び方</button></span>
       </div>
       <div class="sg-boss-bars">
         <div class="sg-shield-row" id="sg-shield-row" hidden>
@@ -158,7 +158,7 @@
 
     <div class="gacha-pull-btns sg-collapsible" id="sg-pull-wrap">
       <button class="gacha-btn gacha-btn-multi" id="sg-pull-btn" onclick="doSpecialPull()" disabled>
-        <img src="/img/gacha_btn_multi.webp" alt="討伐ガチャ 10連">
+        <img src="/img/gacha_btn_multi.webp" alt="討伐ガチャ 10連" data-i18n-alt="gacha.sg_multi_alt">
         <span class="gbtn-cost" id="sg-pull-cost">100pt</span>
         <span class="sg-chain-badge" id="sg-chain-badge" hidden></span>
         <span class="sg-free-badge" id="sg-free-badge" hidden></span>
@@ -166,7 +166,7 @@
       <button type="button" class="sg-reset-btn" id="sg-reset-btn" onclick="doSpecialPull(true)" hidden>
         <span class="sg-reset-inner">
           <svg class="sg-reset-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>
-          <b>リセットして引く</b>
+          <b data-i18n="gacha.sg_reset_pull">リセットして引く</b>
           <small id="sg-reset-cost">100pt</small>
         </span>
       </button>
@@ -175,17 +175,17 @@
     <div class="gacha-stage" id="sg-stage"></div>
     <!-- 演出の速さ（選んだものは覚えておく） -->
     <div class="sg-speed-row">
-      <span>演出</span>
+      <span data-i18n="gacha.speed">演出</span>
       <div class="pill-tabs pill-sm" id="sg-speed">
-        <button type="button" data-v="normal" onclick="setSgSpeed('normal')">ふつう</button>
-        <button type="button" data-v="fast" onclick="setSgSpeed('fast')">2倍速</button>
-        <button type="button" data-v="instant" onclick="setSgSpeed('instant')">結果だけ</button>
+        <button type="button" data-v="normal" onclick="setSgSpeed('normal')" data-i18n="gacha.speed_normal">ふつう</button>
+        <button type="button" data-v="fast" onclick="setSgSpeed('fast')" data-i18n="gacha.speed_fast">2倍速</button>
+        <button type="button" data-v="instant" onclick="setSgSpeed('instant')" data-i18n="gacha.speed_instant">結果だけ</button>
       </div>
     </div>
-    <div class="sg-battle-log" id="sg-battle-log">10連ガチャを引くと、ここに結果が表示されます</div>
+    <div class="sg-battle-log" id="sg-battle-log" data-i18n="gacha.sg_log_empty">10連ガチャを引くと、ここに結果が表示されます</div>
 
     <button class="btn btn-secondary" id="sg-rates-toggle" onclick="toggleSgRates()" style="width:100%;margin-top:6px">
-      排出内容・確率を見る <span id="sg-rates-arrow">▾</span>
+      <span data-i18n="gacha.sg_rates">排出内容・確率を見る</span> <span id="sg-rates-arrow">▾</span>
     </button>
     <div id="sg-rates-panel" class="sg-rates-panel" hidden></div>
   </div>
@@ -193,12 +193,12 @@
   <!-- 討伐ガチャ 討伐演出 -->
   <!-- 討伐ガチャ ゲージアクション（ゲージアクションのギミック用） -->
   <div id="sg-gauge-overlay" class="sg-gauge-overlay" hidden>
-    <div class="sg-gauge-box" role="dialog" aria-label="ゲージアクション">
-      <div class="sg-gauge-title">ゲージアクション <span id="sg-gauge-count"></span></div>
+    <div class="sg-gauge-box" role="dialog" aria-label="ゲージアクション" data-i18n-aria="gacha.sg_gauge">
+      <div class="sg-gauge-title"><span data-i18n="gacha.sg_gauge">ゲージアクション</span> <span id="sg-gauge-count"></span></div>
       <div class="sg-gauge-bar" id="sg-gauge-bar"><div class="sg-gauge-marker" id="sg-gauge-marker"></div></div>
       <div class="sg-gauge-result" id="sg-gauge-result"></div>
       <div class="sg-gauge-dmg" id="sg-gauge-dmg"></div>
-      <div class="sg-gauge-hint" id="sg-gauge-hint">中心に近いところでタップ！</div>
+      <div class="sg-gauge-hint" id="sg-gauge-hint" data-i18n="gacha.sg_gauge_hint">中心に近いところでタップ！</div>
     </div>
   </div>
 
@@ -208,17 +208,17 @@
       <div class="sg-tut-eyebrow">HOW TO PLAY</div>
       <div class="sg-tut-title" id="sg-tut-title"></div>
       <div class="sg-tut-body" id="sg-tut-body"></div>
-      <button type="button" class="btn btn-primary" onclick="closeSgTutorial()">わかった</button>
+      <button type="button" class="btn btn-primary" onclick="closeSgTutorial()" data-i18n="gacha.sg_ok">わかった</button>
     </div>
   </div>
   <!-- 巻き戻しギミック：10連のあとの判定（光が止まったマスが赤なら巻き戻し） -->
   <div id="sg-rwc" class="sg-rwc" hidden>
-    <div class="sg-rwc-box" role="dialog" aria-label="巻き戻しの判定">
+    <div class="sg-rwc-box" role="dialog" aria-label="巻き戻しの判定" data-i18n-aria="gacha.sg_rewind">
       <div class="sg-rwc-title">REWIND CHECK</div>
       <div class="sg-rwc-chance" id="sg-rwc-chance"></div>
       <div class="sg-rwc-strip" id="sg-rwc-strip"></div>
       <div class="sg-rwc-result" id="sg-rwc-result"></div>
-      <div class="sg-rwc-hint" id="sg-rwc-hint">タップでスキップ</div>
+      <div class="sg-rwc-hint" id="sg-rwc-hint" data-i18n="rn.skip">タップでスキップ</div>
     </div>
   </div>
   <!-- 巻き戻されたときの画面効果（ビデオの巻き戻し風） -->
@@ -237,7 +237,7 @@
       </div>
       <div class="sg-ssr-tag">SSR</div>
       <div class="sg-ssr-name" id="sg-ssr-name"></div>
-      <button class="btn btn-secondary" onclick="closeSgDefeat()">閉じる</button>
+      <button class="btn btn-secondary" onclick="closeSgDefeat()" data-i18n="close">閉じる</button>
     </div>
   </div>
 
@@ -248,7 +248,7 @@
         <div style="font-size:1rem;font-weight:bold" data-i18n="gacha.pool_modal_title">排出対象アイコン</div>
         <button onclick="closePoolModal()" style="background:none;border:none;font-size:1.4rem;color:var(--text-muted);cursor:pointer;line-height:1">×</button>
       </div>
-      <div id="pool-list"><div class="loading"><div class="spinner"></div>読み込み中...</div></div>
+      <div id="pool-list"><div class="loading"><div class="spinner"></div><span data-i18n="loading">読み込み中...</span></div></div>
     </div>
   </div>
 

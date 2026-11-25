@@ -88,7 +88,7 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
       </div>
       ${icon.is_dup ? '' : '<span class="gx-big-new">NEW</span>'}
     </div>
-    <div class="gx-cu-hint">タップで次へ</div>
+    <div class="gx-cu-hint">${t('gacha.tap_next')}</div>
     <div class="gx-flash"></div>`;
   cu.hidden = false;
   const big = cu.querySelector('.gx-big');
@@ -490,7 +490,7 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
     if (skip) return;
     const hint = document.createElement('div');
     hint.className = 'gx-tap-hint';
-    hint.textContent = 'タップ';
+    hint.textContent = t('gacha.tap');
     const ar = anchor.getBoundingClientRect(), sr = stage.getBoundingClientRect();
     hint.style.top = `${ar.bottom - sr.top + 26}px`;
     stage.appendChild(hint);
@@ -557,12 +557,12 @@ async function animatePull(results, { againType = null, title = '' } = {}) {
   const canAgain = againType && cost != null && currentPoints >= cost && !noLeft;
   const againImg = againType ? PULL_BTN_IMG[againType] : '';
   actions.innerHTML = `
-    <button type="button" class="gx-close" data-act="close" aria-label="閉じる">
+    <button type="button" class="gx-close" data-act="close" aria-label="${t('close')}">
       <span class="gx-close-ring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></span>
-      閉じる
+      ${t('close')}
     </button>
-    ${againType ? `<button type="button" class="gx-again" data-act="again"${canAgain ? '' : ` disabled title="${noLeft ? '回数の上限です' : 'ポイントが足りません'}"`} aria-label="もう一度引く（${againType === 'single' ? '単発' : '10連'} ${cost}pt）">
-      <span class="gx-again-tag">${canAgain ? 'もう一度' : noLeft ? '上限' : 'ポイント不足'}</span>
+    ${againType ? `<button type="button" class="gx-again" data-act="again"${canAgain ? '' : ` disabled title="${noLeft ? t('gacha.again_title_limit') : t('gacha.again_title_pt')}"`} aria-label="${t('gacha.again_aria', againType === 'single' ? t('gacha.single_short') : t('gacha.multi_short'), cost)}">
+      <span class="gx-again-tag">${canAgain ? t('gacha.again') : noLeft ? t('gacha.again_limit') : t('gacha.again_no_pt')}</span>
       <img src="${againImg}" alt=""><span class="gbtn-cost gbtn-${againType}">${pullCostText(againType, cost)}</span>
     </button>` : ''}`;
   actions.hidden = false;

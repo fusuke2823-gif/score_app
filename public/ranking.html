@@ -136,7 +136,7 @@
       <div id="col-toggle">
         <button class="btn btn-sm active" onclick="setColMode('score')" data-i18n="ranking.col_score">スコア</button>
         <button class="btn btn-sm" onclick="setColMode('title')" data-i18n="ranking.col_title">称号</button>
-        <button class="btn btn-sm" onclick="setColMode('rank')">ランク</button>
+        <button class="btn btn-sm" onclick="setColMode('rank')" data-i18n="ranking.col_rank">ランク</button>
       </div>
       <button id="submit-btn" class="rk-act" style="margin-left:auto" onclick="goSubmit()"><svg class="rk-act-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 20h16"/></svg><span data-i18n="ranking.submit_btn">スコア投稿</span></button>
     </div>
@@ -461,7 +461,7 @@ async function renderEventNav(event) {
     return `<a class="${cls} t-${tc}" href="/ranking.html?id=${encodeURIComponent(e.id)}" title="${escHtml(e.name)}">${cls === 'prev' ? svg : ''}${txt}${cls === 'next' ? svg : ''}</a>`;
   };
   document.getElementById('rk-nav').innerHTML =
-    btn(list[i - 1], 'prev', NAV_PREV_SVG, '前の回') + btn(list[i + 1], 'next', NAV_NEXT_SVG, '次の回');
+    btn(list[i - 1], 'prev', NAV_PREV_SVG, t('ranking.prev')) + btn(list[i + 1], 'next', NAV_NEXT_SVG, t('ranking.next'));
 }
 
 // イベントのヘッダー：トップのカードと同じ見た目（種類の色・英字の札・状態・敵画像）
@@ -584,7 +584,7 @@ async function loadRanking() {
             <th class="col-score" style="text-align:right">${t('ranking.th_score')}</th>
             <th class="col-img"></th>
             <th class="col-title" style="font-size:0.8rem">${t('ranking.th_title')}</th>
-            <th class="col-rank" style="font-size:0.8rem">ランク</th>
+            <th class="col-rank" style="font-size:0.8rem">${t('ranking.col_rank')}</th>
           </tr>
         </thead>
         <tbody>

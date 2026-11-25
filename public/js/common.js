@@ -6,6 +6,7 @@ const ATTRIBUTES = ['火', '氷', '雷', '光', '闇', '無'];
 // cond = { events:[{ event_number, name }], mode:'all'|'any', attrs:[属性], min_attrs:n, count:'per'|'total' }
 // 第○回（event_number）は管理画面だけの通し番号なので、withNo のときだけ付ける
 function entryCondText(cond, withNo = false) {
+  if (getLang() === 'zh') return entryCondTextZh(cond, withNo);
   const evs = (cond.events || []).map(e => `${withNo ? `第${e.event_number}回` : ''}「${e.name}」`);
   const join = (a, all) => a.length <= 1 ? (a[0] || '') : a.length === 2 ? `${a[0]}${all ? 'と' : 'か'}${a[1]}` : a.join('・');
   const where = evs.length <= 1 ? `${evs[0] || ''}で` : cond.mode === 'any'
@@ -22,6 +23,22 @@ function entryCondText(cond, withNo = false) {
   else if (n === 1) what = attrs.length === 1 ? `${attrs[0]}属性に投稿` : `${join(attrs, false)}${attrs.length > 2 ? 'のどれか' : ''}の属性に投稿`;
   else if (n >= attrs.length) what = `${attrs.join('・')}の${attrs.length}属性すべてに投稿`;
   else what = `${attrs.join('・')}のうち${n}属性以上に投稿`;
+  return where + what;
+}
+// 解放条件の文（中国語）
+function entryCondTextZh(cond, withNo = false) {
+  const evs = (cond.events || []).map(e => `${withNo ? `第${e.event_number}場` : ''}「${e.name}」`);
+  const attrs = cond.attrs || [], n = Math.max(1, cond.min_attrs || 1);
+  const where = evs.length <= 1 ? `在${evs[0] || ''}中` : cond.mode === 'any' ? `在${evs.join('、')}任一場中` : `在${evs.join('、')}全部場次中`;
+  if (cond.count === 'total') {
+    const place = evs.length <= 1 ? `在${evs[0] || ''}中` : `在${evs.join('、')}中`;
+    return `${place}${attrs.length ? `於${attrs.join('、')}屬性` : ''}合計投稿${n}個屬性`;
+  }
+  let what;
+  if (!attrs.length) what = n === 1 ? '投稿分數' : `投稿${n}個以上屬性`;
+  else if (n === 1) what = attrs.length === 1 ? `投稿${attrs[0]}屬性` : `投稿${attrs.join('或')}任一屬性`;
+  else if (n >= attrs.length) what = `投稿${attrs.join('、')}全部${attrs.length}個屬性`;
+  else what = `投稿${attrs.join('、')}中${n}個以上屬性`;
   return where + what;
 }
 
@@ -184,7 +201,7 @@ const _i18n = {
     'filter.destruction_rate':'破壊率','filter.no_match':'条件に一致するイベントがありません',
     'doc.terms':'利用規約','doc.privacy':'プライバシーポリシー',
     'doc.copy_link':'リンクをコピー','doc.copy_done':'コピーしました！','doc.copy_uid':'ユーザーIDをコピー',
-    'rn.absent':'不参加','rn.new_season':'{0} 開幕','rn.so_far':'{0} ここまでの推移','rn.prev_result':'{0}の結果','rn.start':'スタート','rn.updates':'今回の更新','rn.season_pos':'シーズン順位','rn.to_ranking':'レートランキング','rn.to_prev':'前シーズンの結果へ','rn.skip':'タップでスキップ','rn.trend':'シーズン内の推移','rn.season_events':'このシーズンの回','so.open':'開幕','so.live':'開催中','so.reward':'シーズン1位の報酬','so.tap':'タップして進む','so.end':'終了','so.winner':'シーズン1位','so.final_pos':'最終順位','so.pos_of':'位 / {0}人','so.reward_unlocked':'報酬のフレームが\nショップで購入できるようになりました','rn.seraph_short':'演習',
+    'rn.absent':'不参加','rn.new_season':'{0} 開幕','rn.so_far':'{0} ここまでの推移','rn.prev_result':'{0}の結果','rn.start':'スタート','rn.updates':'今回の更新','rn.season_pos':'シーズン順位','rn.to_ranking':'レートランキング','rn.to_prev':'前シーズンの結果へ','nav.logo_aria':'ヘブバン ランクボード トップへ','lb.title':'デイリーバトル','lb.preview':'確認用','lb.weapon':'武器属性','lb.element':'元素属性','lb.day7_tip':'7日目は耐性のない特別な敵。無属性で安定を取るより、通常属性を狙う方が有利かも。','lb.challenge':'挑戦する','lb.challenging':'挑戦中...','lb.helper':'武器と属性をひとつずつ選んでください','lb.flavor_m2':'相性最悪、攻撃がまったく通じていない……','lb.flavor_m1':'耐性に阻まれ、十分にダメージを与えられない。','lb.flavor_0':'決定打には欠けるが、確かに一撃を与えた。','lb.flavor_1':'弱点を1つ突き、着実にダメージを与えた。','lb.flavor_2':'弱点を完全にとらえ、大ダメージを与えた。','lb.weak':'弱点','lb.neutral':'等倍','lb.resist':'耐性','lb.void':'貫通','lb.gain':'獲得ポイント','lb.forced':'貫通クリティカルには弱点も耐性も関係なかった。','lb.defeat':'「{0}」の称号を獲得！ 次の敵が現れた','lb.damage':'{0} ダメージ','lb.hp':'残りHP {0}/{1}','top.history':'戦績グラフ','top.docs':'利用規約・プライバシーポリシー','user.oshi_none':'選択しない','user.sns_note':'ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。','user.res_title':'過去のリザルト','user.res_count':'{0}回参加','user.res_more':'もっと見る（残り{0}回）','user.attr':'属性','user.rank_n':'{0}位','user.rank_avg':'{0}位','user.people':'{0}人','user.t_sa':'スコアタ','user.t_sa_ex':'スコアアタックEX','user.yt_score':'動画投稿時のスコア: {0}','user.google_linked':'Googleアカウントを連携しました','hist.help_aria':'グラフの高さについて','hist.help_title':'戦績グラフの見方','hist.h1':'各回のベストスコア（いちばん高い属性）の推移です','hist.h2':'高さは、スコアアタック・遭遇戦・EXを同じ基準で比べられるように換算したスコアです。順位ではありません','hist.h3':'高さはこの人の中での高い・低いを表します。他の人のグラフとは比べられません','hist.h4':'点線は参加しなかった回です（直前の回の高さのまま横に伸ばしています）','hist.h5':'王冠は、その回に1〜3位を取った印です','hist.h6':'点をタップすると、イベント名・属性・スコア・順位が見られます','hist.h7':'開催中のイベントは、終了後に反映されます','hist.h8':'下の順位は公開ランキングの順位です。傾向は参加した直近5回のスコアの流れから判定しています','hist.joined':'参加 {0} 回','hist.avg':'直近{0}回の平均順位','hist.best':'直近{0}回の最高順位','hist.trend':'直近5回の傾向','hist.up':'上昇傾向','hist.flat':'維持','hist.down':'下降傾向','hist.score':'スコア','hist.rank':'順位','hist.podium':'{0}位獲得','ranking.prev':'前の回','ranking.next':'次の回','ranking.col_rank':'ランク','charts.wip1':'チャート掲示板およびチャート作成ツールは現在準備中です。','charts.wip2':'もうしばらくお待ちください。','charts.wip_title':'準備中','chat.attach':'画像を添付','gacha.tab_normal':'通常ガチャ','gacha.tab_special':'討伐ガチャ','gacha.mute':'効果音を消す','gacha.unmute':'効果音を鳴らす','gacha.single':'単発ガチャ','gacha.multi':'10連ガチャ','gacha.ss_guarantee':'SSレア確定','gacha.s_guarantee':'Sレア以上確定','gacha.entry_met':'解放条件を達成しています','gacha.entry_note':'スコアが承認されると引けるようになります','gacha.limit_chip':'1人<b>{0}回</b>まで','gacha.limit_left':'1人{0}回まで　<b>残り{1}回</b>','gacha.limit_done':'1人{0}回まで　<b>上限まで引きました</b>','gacha.locked':'解放条件あり','gacha.pool_tabs':'ガチャを選ぶ','gacha.tap_next':'タップで次へ','gacha.tap':'タップ','gacha.again':'もう一度','gacha.again_limit':'上限','gacha.again_no_pt':'ポイント不足','gacha.again_title_limit':'回数の上限です','gacha.again_title_pt':'ポイントが足りません','gacha.again_aria':'もう一度引く（{0} {1}pt）','gacha.single_short':'単発','gacha.multi_short':'10連','gacha.monthly':'毎月1日に更新されます　※GPは入手できません','gacha.speed':'演出','gacha.speed_normal':'ふつう','gacha.speed_fast':'2倍速','gacha.speed_instant':'結果だけ','gacha.sg_log_empty':'10連ガチャを引くと、ここに結果が表示されます','gacha.sg_rates':'排出内容・確率を見る','gacha.sg_play':'遊びモード','gacha.sg_play_note':'10連 10pt・報酬なし','gacha.sg_restart':'最初から','gacha.sg_defeated':'討伐済み','gacha.sg_howto':'遊び方','gacha.sg_reset_pull':'リセットして引く','gacha.sg_gauge':'ゲージアクション','gacha.sg_gauge_hint':'中心に近いところでタップ！','gacha.sg_ok':'わかった','gacha.sg_rewind':'巻き戻しの判定','gacha.sg_multi_alt':'討伐ガチャ 10連','gacha.entry_head':'解放条件','gacha.unsubmitted':'未投稿','gacha.entry_total':'合計 <b>{0}</b> / {1}属性分','gacha.after':'解放後','gacha.unowned':'未所持確定','rn.skip':'タップでスキップ','rn.trend':'シーズン内の推移','rn.season_events':'このシーズンの回','so.open':'開幕','so.live':'開催中','so.reward':'シーズン1位の報酬','so.tap':'タップして進む','so.end':'終了','so.winner':'シーズン1位','so.final_pos':'最終順位','so.pos_of':'位 / {0}人','so.reward_unlocked':'報酬のフレームが\nショップで購入できるようになりました','rn.seraph_short':'演習',
     'rate.title':'レートランキング','rate.subtitle':'X・Exランクユーザーのレート順','rate.season_events':'{0}回終了','rate.live':'開催中','rate.ended':'終了','rate.winner':'シーズン1位','rate.f_all':'すべて','rate.goal_to':'{0}まで あと<b>{1}</b>','rate.goal_legend':'LEGEND <b>{0}</b>位','rate.position':'{0}位 / {1}人',
     'rate.scope_ext':'外部','rate.scope_int':'内部',
     'rate.my_label':'あなたのレート',
@@ -222,7 +239,7 @@ const _i18n = {
     'chart.edit':'編輯','chart.delete':'刪除','chart.delete_confirm':'確定刪除此攻略圖表？',
     'nav.admin':'管理','nav.account':'帳戶','nav.logout':'登出',
     'nav.login':'登入','nav.register':'註冊','nav.register_full':'新增帳戶',
-    'nav.admin_badge':'管理員','nav.menu':'選單','nav.mypage':'我的頁面','nav.top':'首頁','nav.pickup':'精選轉蛋進行中','nav.gacha_open':'開放中','nav.rate_ranking':'積分排行','nav.wip':'開發中',
+    'nav.admin_badge':'管理員','nav.menu':'選單','nav.mypage':'我的頁面','nav.top':'首頁','nav.pickup':'精選轉蛋進行中','nav.gacha_open':'開放中','nav.rate_ranking':'評分排行榜','nav.wip':'開發中',
     'loading':'載入中...','error':'發生錯誤','close':'關閉',
     'save':'儲存','cancel':'取消','send':'送出',
     'status.pending':'待審核','status.approved':'已核准','status.rejected':'已拒絕',
@@ -318,7 +335,7 @@ const _i18n = {
     'shop.frame_cond_rank1':'獲得第1名{0}次','shop.frame_cond_rank':'進入前{0}名{1}次',
     'shop.frame_cond_attr1':'{0}屬性獲得第1名{1}次','shop.frame_cond_attr':'{0}屬性進入前{1}名{2}次',
     'shop.frame_cond_kinds':'{0}種屬性進入前{1}名','shop.frame_cond_joined':'參加排名{0}次',
-    'shop.frame_cond_all_attrs':'單次活動中投稿全部6種屬性，且每種屬性皆達成以下分數以上的成績','shop.frame_cond_all_attrs_row':'屬性第1名的{0}%以上','etype.score_attack':'分數挑戰','etype.score_attack_ex':'分數挑戰EX','etype.seraph':'遭遇戰','shop.frame_cond_all_attrs_best':'最接近的一次','shop.frame_cond_rank_attr1':'{0}屬性分數達總排名第1名水準{1}次','shop.frame_cond_rank_attr':'{0}屬性分數達總排名前{1}名水準{2}次',
+    'shop.frame_cond_all_attrs':'單次活動中投稿全部6種屬性，且每種屬性皆達成以下分數以上的成績','shop.frame_cond_all_attrs_row':'屬性第1名的{0}%以上','etype.score_attack':'積分挑戰','etype.score_attack_ex':'積分挑戰EX','etype.seraph':'熾天使遭遇戰','shop.frame_cond_all_attrs_best':'最接近的一次','shop.frame_cond_rank_attr1':'{0}屬性分數達總排名第1名水準{1}次','shop.frame_cond_rank_attr':'{0}屬性分數達總排名前{1}名水準{2}次',
     'shop.no_my_titles':'沒有擁有的稱號',
     'shop.no_my_frames':'沒有擁有的外框',
     'shop.no_icons':'沒有擁有的圖示',
@@ -358,14 +375,14 @@ const _i18n = {
     'filter.title':'篩選','filter.default':'預設',
     'filter.reset':'重置','filter.apply_close':'套用並關閉','filter.show':'顯示 {0} 個',
     'filter.event_type':'活動類型',
-    'filter.score_attack':'分數挑戰','filter.seraph':'熾天使遭遇戰演習','filter.score_attack_ex':'分數挑戰EX',
-    'filter.enemy_count':'敵人數量（僅限分數挑戰・EX）',
+    'filter.score_attack':'積分挑戰','filter.seraph':'熾天使遭遇戰演習','filter.score_attack_ex':'積分挑戰EX',
+    'filter.enemy_count':'敵人數量（僅限積分挑戰・EX）',
     'filter.single':'單體','filter.multi':'複數',
     'filter.weak_attr':'弱點屬性','filter.or':'任一','filter.and':'全部包含',
     'filter.destruction_rate':'破壞率','filter.no_match':'沒有符合條件的活動',
     'doc.terms':'使用條款','doc.privacy':'隱私政策',
     'doc.copy_link':'複製連結','doc.copy_done':'已複製！','doc.copy_uid':'複製用戶ID',
-    'rn.absent':'未參加','rn.new_season':'{0} 開幕','rn.so_far':'{0} 目前為止的走勢','rn.prev_result':'{0}的結果','rn.start':'起始','rn.updates':'本次更新','rn.season_pos':'賽季名次','rn.to_ranking':'評分排行榜','rn.to_prev':'上賽季的結果','rn.skip':'點擊跳過','rn.trend':'賽季走勢','rn.season_events':'本賽季的場次','so.open':'開幕','so.live':'進行中','so.reward':'賽季第1名獎勵','so.tap':'點擊繼續','so.end':'結束','so.winner':'賽季第1名','so.final_pos':'最終名次','so.pos_of':'名 / {0}人','so.reward_unlocked':'獎勵外框已可在商店購買','rn.seraph_short':'演習',
+    'rn.absent':'未參加','rn.new_season':'{0} 開幕','rn.so_far':'{0} 目前為止的走勢','rn.prev_result':'{0}的結果','rn.start':'起始','rn.updates':'本次更新','rn.season_pos':'賽季名次','rn.to_ranking':'評分排行榜','rn.to_prev':'上賽季的結果','nav.logo_aria':'前往HBR排行榜首頁','lb.title':'每日戰鬥','lb.preview':'預覽','lb.weapon':'武器屬性','lb.element':'元素屬性','lb.day7_tip':'第7天是沒有抗性的特別敵人。比起用無屬性求穩，瞄準一般屬性可能更有利。','lb.challenge':'挑戰','lb.challenging':'挑戰中...','lb.helper':'請各選擇一個武器與屬性','lb.flavor_m2':'相性最差，攻擊完全無效……','lb.flavor_m1':'被抗性阻擋，無法造成足夠傷害。','lb.flavor_0':'雖缺乏決定性，但確實給予了一擊。','lb.flavor_1':'擊中一個弱點，穩定造成傷害。','lb.flavor_2':'完全抓住弱點，造成大量傷害。','lb.weak':'弱點','lb.neutral':'一般','lb.resist':'抗性','lb.void':'貫通','lb.gain':'獲得點數','lb.forced':'貫通爆擊與弱點、抗性無關。','lb.defeat':'獲得「{0}」稱號！下一個敵人出現了','lb.damage':'{0} 傷害','lb.hp':'剩餘HP {0}/{1}','top.history':'戰績圖表','top.docs':'使用條款・隱私權政策','user.oshi_none':'不選擇','user.sns_note':'僅限您本人且含有HBR內容的帳戶。','user.res_title':'過往戰績','user.res_count':'參加{0}次','user.res_more':'顯示更多（剩餘{0}次）','user.attr':'屬性','user.rank_n':'第{0}名','user.rank_avg':'{0}名','user.people':'{0}人','user.t_sa':'積分挑戰','user.t_sa_ex':'積分挑戰EX','user.yt_score':'影片投稿時的分數：{0}','user.google_linked':'已連結Google帳戶','hist.help_aria':'關於圖表高度','hist.help_title':'戰績圖表說明','hist.h1':'各場的最佳分數（最高屬性）走勢','hist.h2':'高度是將積分挑戰・熾天使遭遇戰・EX換算成同一基準的分數，並非名次','hist.h3':'高度表示此玩家自身的高低，無法與其他玩家的圖表比較','hist.h4':'虛線為未參加的場次（沿用前一場的高度延伸）','hist.h5':'王冠表示該場獲得第1〜3名','hist.h6':'點擊圓點可查看活動名稱・屬性・分數・名次','hist.h7':'進行中的活動將於結束後反映','hist.h8':'下方名次為公開排行榜的名次。趨勢依參加的近5場分數走勢判定','hist.joined':'參加 {0} 次','hist.avg':'近{0}場平均名次','hist.best':'近{0}場最佳名次','hist.trend':'近5場趨勢','hist.up':'上升趨勢','hist.flat':'持平','hist.down':'下降趨勢','hist.score':'分數','hist.rank':'名次','hist.podium':'獲得第{0}名','ranking.prev':'上一場','ranking.next':'下一場','ranking.col_rank':'等級','charts.wip1':'圖表看板與圖表製作工具目前準備中。','charts.wip2':'敬請期待。','charts.wip_title':'準備中','chat.attach':'附加圖片','gacha.tab_normal':'一般轉蛋','gacha.tab_special':'討伐轉蛋','gacha.mute':'關閉音效','gacha.unmute':'開啟音效','gacha.single':'單抽','gacha.multi':'十連抽','gacha.ss_guarantee':'SS保底','gacha.s_guarantee':'S以上保底','gacha.entry_met':'已達成解鎖條件','gacha.entry_note':'分數通過審核後即可抽取','gacha.limit_chip':'每人限<b>{0}次</b>','gacha.limit_left':'每人限{0}次　<b>剩餘{1}次</b>','gacha.limit_done':'每人限{0}次　<b>已達上限</b>','gacha.locked':'有解鎖條件','gacha.pool_tabs':'選擇轉蛋','gacha.tap_next':'點擊繼續','gacha.tap':'點擊','gacha.again':'再抽一次','gacha.again_limit':'上限','gacha.again_no_pt':'點數不足','gacha.again_title_limit':'已達次數上限','gacha.again_title_pt':'點數不足','gacha.again_aria':'再抽一次（{0} {1}pt）','gacha.single_short':'單抽','gacha.multi_short':'十連','gacha.monthly':'每月1日更新　※無法獲得GP','gacha.speed':'演出','gacha.speed_normal':'普通','gacha.speed_fast':'2倍速','gacha.speed_instant':'僅結果','gacha.sg_log_empty':'抽十連後，結果會顯示在這裡','gacha.sg_rates':'查看內容與機率','gacha.sg_play':'遊玩模式','gacha.sg_play_note':'十連 10pt・無獎勵','gacha.sg_restart':'重新開始','gacha.sg_defeated':'已討伐','gacha.sg_howto':'玩法','gacha.sg_reset_pull':'重置後抽取','gacha.sg_gauge':'計量條行動','gacha.sg_gauge_hint':'在靠近中心處點擊！','gacha.sg_ok':'了解','gacha.sg_rewind':'倒轉判定','gacha.sg_multi_alt':'討伐轉蛋 十連','gacha.entry_head':'解鎖條件','gacha.unsubmitted':'未投稿','gacha.entry_total':'合計 <b>{0}</b> / {1}個屬性','gacha.after':'解鎖後','gacha.unowned':'未持有保底','rn.skip':'點擊跳過','rn.trend':'賽季走勢','rn.season_events':'本賽季的場次','so.open':'開幕','so.live':'進行中','so.reward':'賽季第1名獎勵','so.tap':'點擊繼續','so.end':'結束','so.winner':'賽季第1名','so.final_pos':'最終名次','so.pos_of':'名 / {0}人','so.reward_unlocked':'獎勵外框已可在商店購買','rn.seraph_short':'演習',
     'rate.title':'評分排行榜','rate.subtitle':'X・Ex等級玩家評分排名','rate.season_events':'已結束{0}場','rate.live':'進行中','rate.ended':'已結束','rate.winner':'賽季第1名','rate.f_all':'全部','rate.goal_to':'距離{0}還差<b>{1}</b>','rate.goal_legend':'LEGEND 第<b>{0}</b>名','rate.position':'第{0}名 / {1}人',
     'rate.scope_ext':'外部','rate.scope_int':'內部',
     'rate.my_label':'你的評分',
@@ -400,9 +417,17 @@ function t(key, ...args) {
   args.forEach((a, i) => { str = str.replace(`{${i}}`, a); });
   return str;
 }
+// シーズンの名前・シーズンのフレームの名前（サーバーが日本語で作る）を、中国語の表示では言い換える
+function seasonLabel(s) {
+  if (s == null || getLang() !== 'zh') return s;
+  return String(s).replace(/(\d{4})(冬|春|夏|秋)シーズン/g, '$1$2季賽季').replace(/フレーム/g, '外框');
+}
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
+  document.querySelectorAll('[data-i18n-alt]').forEach(el => { el.alt = t(el.dataset.i18nAlt); });
   document.documentElement.lang = getLang() === 'zh' ? 'zh-TW' : 'ja';
 }
 
@@ -809,7 +834,7 @@ function renderNav() {
 
   nav.innerHTML = `
     <div class="nav-inner">
-      <a class="nav-logo" href="/index.html" aria-label="ヘブバン ランクボード トップへ"><span class="nav-logo-mark">${NAV_LOGO_MARK}</span><span class="nav-logo-txt"><b>HBR</b><i>RANK BOARD</i></span></a>
+      <a class="nav-logo" href="/index.html" aria-label="${t('nav.logo_aria')}"><span class="nav-logo-mark">${NAV_LOGO_MARK}</span><span class="nav-logo-txt"><b>HBR</b><i>RANK BOARD</i></span></a>
       <div class="nav-links">
         <a href="/submit.html" class="${currentPath === '/submit.html' ? 'active' : ''}">${t('nav.submit')}</a>
         <span id="nav-gacha-desktop" style="display:contents"></span>
@@ -2095,11 +2120,11 @@ async function initAccountSettingsPrompt() {
 const LB_WEAPONS = ['斬', '突', '打'];
 const LB_ELEMENTS = ['火', '氷', '雷', '光', '闇', '無'];
 const LB_TIERS = {
-  '-2': { label: 'MISS', tone: 'tone-danger', flavor: '相性最悪、攻撃がまったく通じていない……' },
-  '-1': { label: 'BAD', tone: 'tone-warning', flavor: '耐性に阻まれ、十分にダメージを与えられない。' },
-  '0':  { label: 'GOOD', tone: 'tone-neutral', flavor: '決定打には欠けるが、確かに一撃を与えた。' },
-  '1':  { label: 'GREAT', tone: 'tone-success', flavor: '弱点を1つ突き、着実にダメージを与えた。' },
-  '2':  { label: 'PERFECT', tone: 'tone-jackpot', flavor: '弱点を完全にとらえ、大ダメージを与えた。' },
+  '-2': { label: 'MISS', tone: 'tone-danger', flavorKey: 'lb.flavor_m2' },
+  '-1': { label: 'BAD', tone: 'tone-warning', flavorKey: 'lb.flavor_m1' },
+  '0':  { label: 'GOOD', tone: 'tone-neutral', flavorKey: 'lb.flavor_0' },
+  '1':  { label: 'GREAT', tone: 'tone-success', flavorKey: 'lb.flavor_1' },
+  '2':  { label: 'PERFECT', tone: 'tone-jackpot', flavorKey: 'lb.flavor_2' },
 };
 const LB_REDUCE_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let _lbWeaponPick = null, _lbElementPick = null;
@@ -2348,7 +2373,7 @@ async function initLoginBonus() {
   modal.id = 'login-bonus-modal';
   modal.innerHTML = `
     <div id="login-bonus-box">
-      <div class="lb-head"><span class="lb-eyebrow">DAILY BATTLE</span><h3>デイリーバトル</h3><span class="lb-preview-tag">確認用</span></div>
+      <div class="lb-head"><span class="lb-eyebrow">DAILY BATTLE</span><h3>${t('lb.title')}</h3><span class="lb-preview-tag">${t('lb.preview')}</span></div>
       <div class="lb-day-track">
         <div class="lb-day-track-line"><div class="lb-day-track-fill" id="lb-day-track-fill"></div></div>
         <div class="lb-day-medals" id="lb-day-medals"></div>
@@ -2362,12 +2387,12 @@ async function initLoginBonus() {
         <div class="lb-hearts-wrap" id="lb-hearts-wrap"></div>
         <div class="lb-lower" id="lb-lower">
           <div class="lb-screen" id="lb-screen-picker">
-            <div class="lb-group"><div class="lb-group-label">武器属性</div><div class="lb-pick-row" id="lb-weapon-row"></div></div>
-            <div class="lb-group"><div class="lb-group-label">元素属性</div><div class="lb-pick-row" id="lb-element-row"></div></div>
-            <div class="lb-day7-tip" id="lb-day7-tip" hidden>7日目は耐性のない特別な敵。無属性で安定を取るより、通常属性を狙う方が有利かも。</div>
-            <button type="button" class="lb-cta" id="lb-challenge-btn" disabled>挑戦する</button>
-            <div class="lb-helper" id="lb-helper">武器と属性をひとつずつ選んでください</div>
-            <button type="button" class="btn btn-secondary lb-preview-cancel" id="lb-preview-cancel">閉じる</button>
+            <div class="lb-group"><div class="lb-group-label">${t('lb.weapon')}</div><div class="lb-pick-row" id="lb-weapon-row"></div></div>
+            <div class="lb-group"><div class="lb-group-label">${t('lb.element')}</div><div class="lb-pick-row" id="lb-element-row"></div></div>
+            <div class="lb-day7-tip" id="lb-day7-tip" hidden>${t('lb.day7_tip')}</div>
+            <button type="button" class="lb-cta" id="lb-challenge-btn" disabled>${t('lb.challenge')}</button>
+            <div class="lb-helper" id="lb-helper">${t('lb.helper')}</div>
+            <button type="button" class="btn btn-secondary lb-preview-cancel" id="lb-preview-cancel">${t('close')}</button>
           </div>
           <div class="lb-screen" id="lb-screen-result" aria-live="polite" hidden></div>
         </div>
@@ -2459,7 +2484,7 @@ function lbHeartsHTML(hp, maxHp = 40) {
       <span class="lb-heart-blue" style="width:${blueWidth}%">${LB_HEART}</span>
     </span>`;
   }
-  return `<div class="lb-hearts" role="img" aria-label="残りHP ${hp}/${maxHp}">${html}</div>`;
+  return `<div class="lb-hearts" role="img" aria-label="${t('lb.hp', hp, maxHp)}">${html}</div>`;
 }
 
 function renderLbEnemyCard(boss) {
@@ -2512,7 +2537,7 @@ async function lbChallenge() {
   if (!_lbWeaponPick || !_lbElementPick) return;
   const btn = document.getElementById('lb-challenge-btn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="lb-spin" aria-hidden="true"></span>挑戦中...';
+  btn.innerHTML = `<span class="lb-spin" aria-hidden="true"></span>${t('lb.challenging')}`;
   try {
     // 確認用はサーバーに送らない（ポイントも連続日数も変わらない）
     const res = _lbPreview ? lbPreviewResult(_lbWeaponPick, _lbElementPick) : await apiFetch('/auth/login-bonus', {
@@ -2524,7 +2549,7 @@ async function lbChallenge() {
   } catch (err) {
     showMessage(err.message);
     btn.disabled = false;
-    btn.textContent = '挑戦する';
+    btn.textContent = t('lb.challenge');
   }
 }
 
@@ -2532,7 +2557,7 @@ function lbJoinItems(items) {
   return items.map(it => `<span class="lb-gi ${it.picked ? 'picked' : ''}">${it.k}</span>`).join('<span class="lb-gi-sep">・</span>');
 }
 
-const LB_JUDGE_LABEL = { weak: '弱点', neutral: '等倍', resist: '耐性', void: '貫通' };
+const LB_JUDGE_LABEL = { get weak() { return t('lb.weak'); }, get neutral() { return t('lb.neutral'); }, get resist() { return t('lb.resist'); }, get void() { return t('lb.void'); } };
 const LB_ELEMENT_COLOR = { 火: 'var(--fire)', 氷: 'var(--ice)', 雷: 'var(--thunder)', 光: 'var(--light)', 闇: 'var(--dark)', 無: 'var(--none)' };
 
 function lbJudgeHTML(key, status) {
@@ -2550,9 +2575,9 @@ function showLbResult(res) {
   LB_ELEMENTS.filter(e => e !== '無').forEach(e => groups[res.element_map[e]].push({ k: e, picked: e === res.picked_element }));
 
   const rows = [];
-  if (groups.weak.length) rows.push(`<div class="lb-group-line weak"><span class="lb-gl-label">弱点</span><span class="lb-gl-items">${lbJoinItems(groups.weak)}</span></div>`);
-  if (groups.resist.length) rows.push(`<div class="lb-group-line resist"><span class="lb-gl-label">耐性</span><span class="lb-gl-items">${lbJoinItems(groups.resist)}</span></div>`);
-  if (groups.neutral.length) rows.push(`<div class="lb-group-line neutral"><span class="lb-gl-label">等倍</span><span class="lb-gl-items">${lbJoinItems(groups.neutral)}</span></div>`);
+  if (groups.weak.length) rows.push(`<div class="lb-group-line weak"><span class="lb-gl-label">${t('lb.weak')}</span><span class="lb-gl-items">${lbJoinItems(groups.weak)}</span></div>`);
+  if (groups.resist.length) rows.push(`<div class="lb-group-line resist"><span class="lb-gl-label">${t('lb.resist')}</span><span class="lb-gl-items">${lbJoinItems(groups.resist)}</span></div>`);
+  if (groups.neutral.length) rows.push(`<div class="lb-group-line neutral"><span class="lb-gl-label">${t('lb.neutral')}</span><span class="lb-gl-items">${lbJoinItems(groups.neutral)}</span></div>`);
 
   const picker = document.getElementById('lb-screen-picker');
   const result = document.getElementById('lb-screen-result');
@@ -2565,12 +2590,12 @@ function showLbResult(res) {
     </div>
     <div class="lb-verdict ${tier.tone} lb-reveal" id="lb-verdict">
       <div class="lb-tier">${tier.label}</div>
-      <div class="lb-flavor">${tier.flavor.split(/(?<=、)/).map(x => `<span>${x}</span>`).join('')}</div>
+      <div class="lb-flavor">${t(tier.flavorKey).split(/(?<=[、，])/).map(x => `<span>${x}</span>`).join('')}</div>
     </div>
-    <div class="lb-pt lb-reveal" id="lb-pt-box"><span class="lb-pt-label">獲得ポイント</span><span class="lb-pt-value">+<span id="lb-pt-num">0</span>pt</span></div>
+    <div class="lb-pt lb-reveal" id="lb-pt-box"><span class="lb-pt-label">${t('lb.gain')}</span><span class="lb-pt-value">+<span id="lb-pt-num">0</span>pt</span></div>
     <div class="lb-reveal lb-reveal-last">
-      ${res.forced ? '<div class="lb-forced-note">貫通クリティカルには弱点も耐性も関係なかった。</div>' : ''}
-      ${res.boss_defeated ? `<div class="lb-defeat-banner">${uiIconInline('trophy')}「${escHtml(res.awarded_title)}」の称号を獲得！ 次の敵が現れた</div>` : ''}
+      ${res.forced ? `<div class="lb-forced-note">${t('lb.forced')}</div>` : ''}
+      ${res.boss_defeated ? `<div class="lb-defeat-banner">${uiIconInline('trophy')}${t('lb.defeat', escHtml(res.awarded_title))}</div>` : ''}
       <div class="lb-chart">${rows.join('')}</div>
       <button class="btn btn-primary" style="width:100%" id="lb-close-btn">${t('close')}</button>
     </div>
@@ -2610,7 +2635,7 @@ function openLbPreview(opts) {
   picker.hidden = false;
   const btn = document.getElementById('lb-challenge-btn');
   btn.disabled = true;
-  btn.textContent = '挑戦する';
+  btn.textContent = t('lb.challenge');
   document.getElementById('lb-helper').hidden = false;
   renderLbEnemyCard({ ...opts.boss, hp: _lbPreview.hp, max_hp: 40 });
   renderLbDayTrack(opts.day, opts.day === 7);
@@ -2788,7 +2813,7 @@ function playLbBattle(res) {
     if (res.boss_defeated) arena.classList.add('defeated-still');
     judges.forEach(j => { j.classList.add('open'); j.classList.remove('pop'); });
     if (before != null) {
-      heartsWrap.innerHTML = lbHeartsHTML(after, res.boss_max_hp) + (damage > 0 ? `<span class="lb-damage-note">${damage} ダメージ</span>` : '');
+      heartsWrap.innerHTML = lbHeartsHTML(after, res.boss_max_hp) + (damage > 0 ? `<span class="lb-damage-note">${t('lb.damage', damage)}</span>` : '');
     }
     ptNum.textContent = res.points_earned;
     document.querySelectorAll('#lb-screen-result .lb-reveal').forEach(el => el.classList.add('on'));

@@ -71,7 +71,7 @@ async function init() {
 // 単発・10連のボタン：画像の下の帯に、選んでいるガチャのコストを重ねる
 const PULL_BTN_IMG = { single: '/img/gacha_btn_single.webp', multi: '/img/gacha_btn_multi.webp' };
 // 10連は最後の1枚の確定（S以上／SS）も添える
-const pullCostText = (type, cost, guarantee = gSettings?.last_guarantee) => (cost == null ? '' : type === 'multi' ? `${cost}pt<small>${guarantee === 'SS' ? 'SSレア確定' : 'Sレア以上確定'}</small>` : `${cost}pt`);
+const pullCostText = (type, cost, guarantee = gSettings?.last_guarantee) => (cost == null ? '' : type === 'multi' ? `${cost}pt<small>${guarantee === 'SS' ? t('gacha.ss_guarantee') : t('gacha.s_guarantee')}</small>` : `${cost}pt`);
 // 選んでいるガチャで、あと何回引けるか（回数制限がなければ Infinity）
 function pullsLeft() {
   const p = gPools.find(x => x.id === selectedPoolId);
@@ -96,32 +96,32 @@ function renderEntryBox(p) {
   const text = escHtml(entryCondText(e));
   if (e.met || e.admin_pass) {
     el.className = 'gx-entry is-met';
-    el.innerHTML = `<span class="gx-entry-ico">${CHECK_SVG}</span><span>${e.met ? '解放条件を達成しています' : '管理者なので条件を満たしていなくても引けます'}<small>${text}</small></span>`;
+    el.innerHTML = `<span class="gx-entry-ico">${CHECK_SVG}</span><span>${e.met ? t('gacha.entry_met') : '管理者なので条件を満たしていなくても引けます'}<small>${text}</small></span>`;
     return;
   }
   const need = e.min_attrs || 1;
   const total = e.count === 'total';
   el.className = 'gx-entry is-locked';
   el.innerHTML = `
-    <div class="gx-entry-head">${ENTRY_LOCK_SVG}解放条件</div>
+    <div class="gx-entry-head">${ENTRY_LOCK_SVG}${t('gacha.entry_head')}</div>
     <div class="gx-entry-text">${text}</div>
     <ul class="gx-entry-evs">${e.events.map(ev => `
       <li class="${ev.ok ? 'ok' : ''}">
         <span class="gx-entry-mark">${ev.ok ? CHECK_SVG : ''}</span>
         <span class="gx-entry-ev">${escHtml(ev.name || '')}</span>
-        <span class="gx-entry-got">${ev.attrs.length ? `${ev.attrs.map(escHtml).join('・')}${need > 1 && !total ? `（${Math.min(ev.attrs.length, need)}/${need}）` : ''}` : '未投稿'}</span>
+        <span class="gx-entry-got">${ev.attrs.length ? `${ev.attrs.map(escHtml).join('・')}${need > 1 && !total ? `（${Math.min(ev.attrs.length, need)}/${need}）` : ''}` : t('gacha.unsubmitted')}</span>
       </li>`).join('')}</ul>
-    ${total ? `<div class="gx-entry-total">合計 <b>${Math.min(e.total || 0, need)}</b> / ${need}属性分</div>` : ''}
+    ${total ? `<div class="gx-entry-total">${t('gacha.entry_total', Math.min(e.total || 0, need), need)}</div>` : ''}
     ${entryAfterHtml(p)}
-    <div class="gx-entry-note">スコアが承認されると引けるようになります</div>`;
+    <div class="gx-entry-note">${t('gacha.entry_note')}</div>`;
 }
 // 鍵のあいだは引くボタンと回数の表示を隠すので、解放後に引けるもの（値段と回数制限）を条件の箱に出す
 function entryAfterHtml(p) {
   const st = poolSettings(p);
-  const types = [['single', '単発'], ['multi', '10連']].filter(([t]) => !p.pull_types || p.pull_types === t);
-  const items = types.map(([t, l]) => `<span class="gx-entry-chip">${l}<b>${st[t + '_cost']}pt</b></span>`);
-  if (p.pull_limit != null) items.push(`<span class="gx-entry-chip">1人<b>${p.pull_limit}回</b>まで</span>`);
-  return `<div class="gx-entry-after"><span class="gx-entry-after-lb">解放後</span>${items.join('')}</div>`;
+  const types = [['single', t('gacha.single_short')], ['multi', t('gacha.multi_short')]].filter(([ty]) => !p.pull_types || p.pull_types === ty);
+  const items = types.map(([ty, l]) => `<span class="gx-entry-chip">${l}<b>${st[ty + '_cost']}pt</b></span>`);
+  if (p.pull_limit != null) items.push(`<span class="gx-entry-chip">${t('gacha.limit_chip', p.pull_limit)}</span>`);
+  return `<div class="gx-entry-after"><span class="gx-entry-after-lb">${t('gacha.after')}</span>${items.join('')}</div>`;
 }
 // ボタンの押せる・押せないと、回数制限の表示（引ける種類以外のボタンは隠す）
 function refreshPullButtons() {
@@ -142,7 +142,7 @@ function refreshPullButtons() {
     document.querySelector('.gacha-pull-btns').insertAdjacentElement('afterend', el);
   }
   el.hidden = !(p && p.pull_limit != null) || locked;
-  if (!el.hidden) el.innerHTML = left > 0 ? `1人${p.pull_limit}回まで　<b>残り${left}回</b>` : `1人${p.pull_limit}回まで　<b>上限まで引きました</b>`;
+  if (!el.hidden) el.innerHTML = left > 0 ? t('gacha.limit_left', p.pull_limit, left) : t('gacha.limit_done', p.pull_limit);
 }
 function updatePullButtons() {
   if (!gSettings) return;
@@ -150,7 +150,7 @@ function updatePullButtons() {
     const btn = document.getElementById(id);
     const cost = gSettings[type + '_cost'];
     btn.querySelector('.gbtn-cost').innerHTML = pullCostText(type, cost);
-    btn.querySelector('img').alt = `${type === 'multi' ? '10連' : '単発'}ガチャ ${cost}pt`;
+    btn.querySelector('img').alt = `${type === 'multi' ? t('gacha.multi') : t('gacha.single')} ${cost}pt`;
   });
   refreshPullButtons();
 }
@@ -261,7 +261,7 @@ function poolBannerHTML(p, idx) {
       ${poolTimeChip(p.end_at)}
       <div class="pool-bottom">
         <div style="min-width:0;flex:1">
-          ${isLocked(p) || p.last_unowned ? `<div class="pool-tags">${isLocked(p) ? `<span class="pool-lock">${ENTRY_LOCK_SVG}解放条件あり</span>` : ''}${p.last_unowned ? `<span class="pool-unowned">${UNOWNED_SVG}未所持確定</span>` : ''}</div>` : ''}
+          ${isLocked(p) || p.last_unowned ? `<div class="pool-tags">${isLocked(p) ? `<span class="pool-lock">${ENTRY_LOCK_SVG}${t('gacha.locked')}</span>` : ''}${p.last_unowned ? `<span class="pool-unowned">${UNOWNED_SVG}${t('gacha.unowned')}</span>` : ''}</div>` : ''}
           <div class="pool-name">${escHtml(p.name)}</div>
           ${p.description ? `<div class="pool-desc">${escHtml(p.description)}</div>` : ''}
         </div>
@@ -455,7 +455,7 @@ async function confirmExchange() {
     renderMyIcons(myData.icons);
     loadExchangeList();
   } catch (err) {
-    showGpToast(err.message || 'エラーが発生しました', true);
+    showGpToast(err.message || t('error'), true);
   } finally {
     isPulling = false;
     updateGpDisplay(currentGp);

@@ -476,7 +476,7 @@ function setSgMode(mode) {
   document.getElementById('sg-rates-panel').hidden = true;
   document.getElementById('sg-rates-panel').classList.remove('open');
   document.getElementById('sg-stage').innerHTML = '';
-  document.getElementById('sg-battle-log').textContent = '10連ガチャを引くと、ここに結果が表示されます';
+  document.getElementById('sg-battle-log').textContent = t('gacha.sg_log_empty');
   loadSpecialGacha();
 }
 async function startSgTest() {

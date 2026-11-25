@@ -24,7 +24,7 @@ try { _gachaMuted = localStorage.getItem(GACHA_MUTE_KEY) === '1'; } catch (_) {}
 function renderGachaMute() {
   const btn = document.getElementById('gacha-mute');
   btn.classList.toggle('is-muted', _gachaMuted);
-  const label = _gachaMuted ? '効果音を鳴らす' : '効果音を消す';
+  const label = _gachaMuted ? t('gacha.unmute') : t('gacha.mute');
   btn.setAttribute('aria-label', label);
   btn.title = label;
   btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5L6 9H3v6h3l5 4z" fill="currentColor" fill-opacity="0.25"/>${_gachaMuted

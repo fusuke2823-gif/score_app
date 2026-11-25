@@ -197,7 +197,7 @@ function renderHead() {
     <div class="rr-head ${se.current ? '' : 'done'}">
       <span class="rr-head-bg">SEASON</span>
       <div class="rr-eyebrow">RATE SEASON</div>
-      <div class="rr-name">${escHtml(se.name)}</div>
+      <div class="rr-name">${escHtml(seasonLabel(se.name))}</div>
       <div class="rr-meta">${status}<span>${md(se.start)}〜${md(se.last_day)}</span>${se.events != null ? `<span>${t('rate.season_events', se.events)}</span>` : ''}</div>
     </div>`;
 }
@@ -215,7 +215,7 @@ function renderSeasonTabs() {
     <button type="button" class="rr-pick-btn" onclick="togglePick(event)">${cur?.current ? '<i class="dot"></i>' : ''}<span>${escHtml(cur?.name || '')}</span>${CHEV}</button>
     <div class="rr-pick-menu">${[...byYear].map(([y, list]) => `
       <div class="rr-pick-year">${y}</div>
-      ${list.map(s => `<button type="button" class="rr-pick-item ${s.key === seasonKey ? 'active' : ''}" onclick="pickSeason('${s.key}')">${s.current ? '<i class="dot"></i>' : ''}${escHtml(s.name)}<small>${s.current ? t('rate.live') : `${md(s.start)}〜`}</small></button>`).join('')}`).join('')}
+      ${list.map(s => `<button type="button" class="rr-pick-item ${s.key === seasonKey ? 'active' : ''}" onclick="pickSeason('${s.key}')">${s.current ? '<i class="dot"></i>' : ''}${escHtml(seasonLabel(s.name))}<small>${s.current ? t('rate.live') : `${md(s.start)}〜`}</small></button>`).join('')}`).join('')}
     </div>`;
 }
 function togglePick(e) {
@@ -283,7 +283,7 @@ function renderTable(list) {
     const se = viewing(), prev = seasons[seasons.indexOf(se) + 1];
     if (rows.length === 0 && se?.current && prev) {
       return `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.empty_new')}</p>
-        <button type="button" class="btn btn-secondary rr-prev-btn" onclick="pickSeason('${prev.key}')">${escHtml(t('rate.prev_result', prev.name))}</button></div>`;
+        <button type="button" class="btn btn-secondary rr-prev-btn" onclick="pickSeason('${prev.key}')">${escHtml(t('rate.prev_result', seasonLabel(prev.name)))}</button></div>`;
     }
     return `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.empty')}</p></div>`;
   }

@@ -238,7 +238,7 @@
     <div id="modal-yt-score" style="font-size:0.8rem;color:rgba(255,255,255,0.6);margin-bottom:6px"></div>
     <a id="modal-yt-link" href="" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;color:#ff4444;font-size:0.95rem;font-weight:bold;text-decoration:underline">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-      YouTube動画を見る
+      <span data-i18n="ranking.yt_watch">YouTube動画を見る</span>
     </a>
   </div>
 </div>
@@ -391,16 +391,16 @@ async function load() {
         <div class="form-group">
           <label class="form-label">${t('user.oshi_field')}</label>
           <select class="form-input" id="edit-oshi">
-            <option value="">選択しない</option>
+            <option value="">${t('user.oshi_none')}</option>
           </select>
         </div>
         <div style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-card2);border-radius:8px;padding:8px 12px;margin-bottom:4px">
-          ご自身のアカウントかつヘブバンのコンテンツが含まれることを条件とします。
+          ${t('user.sns_note')}
         </div>
         <div class="form-group">
           <label class="form-label" style="display:flex;justify-content:space-between;align-items:baseline">
             <span data-i18n="user.x_id">X (Twitter) ID</span>
-            <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.x_hint_short">英数字・アンダースコアのみ</span>
+            <span style="font-size:0.75rem;color:var(--text-muted)" data-i18n="user.x_hint_short">${t('user.x_hint_short')}</span>
           </label>
           <div style="display:flex;align-items:center;gap:6px">
             <span style="color:var(--text-muted);font-size:0.9rem">@</span>
@@ -442,15 +442,15 @@ async function load() {
       <div id="history-card"></div>
 
       <div class="res-head">
-        <div class="res-title">過去のリザルト</div>
-        ${events.length ? `<div class="res-count">${events.length}回参加</div>` : ''}
+        <div class="res-title">${t('user.res_title')}</div>
+        ${events.length ? `<div class="res-count">${t('user.res_count', events.length)}</div>` : ''}
       </div>
       ${events.length === 0
         ? `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('user.no_scores')}</p></div>`
         : `<div class="res-list" id="res-list">
             ${events.map((e, idx) => resultCardHTML(e, data, idx >= RES_INITIAL)).join('')}
           </div>
-          ${events.length > RES_INITIAL ? `<button type="button" class="res-more" id="res-more" onclick="showAllResults()">もっと見る（残り${events.length - RES_INITIAL}回）</button>` : ''}`
+          ${events.length > RES_INITIAL ? `<button type="button" class="res-more" id="res-more" onclick="showAllResults()">${t('user.res_more', events.length - RES_INITIAL)}</button>` : ''}`
       }
     `;
   loadHistory();
@@ -477,8 +477,8 @@ async function load() {
 // ===== 過去のリザルト =====
 const RES_INITIAL = 5; // 最初に見せる回数（残りは「もっと見る」）
 const RES_TYPES = {
-  score_attack: { label: 'スコアタ', color: '#ff6b80' },
-  seraph: { label: '遭遇戦', color: '#4fc3f7' },
+  score_attack: { get label() { return t('user.t_sa'); }, color: '#ff6b80' },
+  seraph: { get label() { return t('etype.seraph'); }, color: '#4fc3f7' },
   score_attack_ex: { label: 'EX', color: '#b46cff' },
 };
 const RES_PODIUM = { 1: '#ffd700', 2: '#c0c0c0', 3: '#cd7f32' };
@@ -502,7 +502,7 @@ function resultCardHTML(e, data, hidden) {
       <div class="res-row${k === 0 ? ' is-best' : ''}">
         ${attrBadge(s.attribute, true)}
         <span class="res-score">${formatScore(s.approved_score)}</span>
-        <span class="res-attr-rank">${attrRank ? `<span>属性 <b>${attrRank}</b>位${attrTotal ? `<i> / ${attrTotal}人</i>` : ''}</span>` : ''}</span>
+        <span class="res-attr-rank">${attrRank ? `<span>${t('user.attr')} <b>${t('user.rank_n', attrRank)}</b>${attrTotal ? `<i> / ${t('user.people', attrTotal)}</i>` : ''}</span>` : ''}</span>
         ${thumb}
       </div>`;
   }).join('');
@@ -514,8 +514,8 @@ function resultCardHTML(e, data, hidden) {
           <a href="/ranking.html?id=${e.event_id}" class="res-name">${escHtml(e.event_name)}</a>
         </div>
         ${rank ? `<div class="res-rank">
-          ${podium ? RES_CROWN(podium) : ''}<span class="res-rank-num">${rank}</span><span class="res-rank-unit">位</span>
-          ${total ? `<span class="res-rank-total">/ ${total}人</span>` : ''}
+          ${podium ? RES_CROWN(podium) : ''}${getLang() === 'zh' ? '<span class="res-rank-unit">第</span>' : ''}<span class="res-rank-num">${rank}</span><span class="res-rank-unit">${getLang() === 'zh' ? '名' : '位'}</span>
+          ${total ? `<span class="res-rank-total">/ ${t('user.people', total)}</span>` : ''}
         </div>` : ''}
       </header>
       <div class="res-rows">${rows}</div>
@@ -614,7 +614,7 @@ async function handleGoogleLinkProfile(response) {
     });
     document.getElementById('google-link-btn-profile').style.display = 'none';
     localStorage.setItem('google_link_dismissed', '1');
-    showToast('Googleアカウントを連携しました');
+    showToast(t('user.google_linked'));
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -650,7 +650,7 @@ function openModal(url, ytUrl, ytScore) {
   if (ytUrl) {
     ytLink.href = ytUrl;
     const scoreEl = document.getElementById('modal-yt-score');
-    scoreEl.textContent = ytScore ? `動画投稿時のスコア: ${formatScore(ytScore)}` : '';
+    scoreEl.textContent = ytScore ? t('user.yt_score', formatScore(ytScore)) : '';
     ytDiv.style.display = '';
   } else {
     ytDiv.style.display = 'none';
@@ -681,14 +681,14 @@ document.addEventListener('click', e => {
 // ===== 戦績グラフ =====
 // 縦軸はpt換算（非公開）なので数値を出さず、APIもユーザー内で正規化した高さ(y)だけを返す
 const HIST_TYPES = {
-  score_attack: { label: 'スコアアタック', color: '#ff6b80', shape: 'circle' },
-  seraph: { label: '遭遇戦', color: '#4fc3f7', shape: 'diamond' },
-  score_attack_ex: { label: 'スコアアタックEX', color: '#b46cff', shape: 'triangle' },
+  score_attack: { get label() { return t('etype.score_attack'); }, color: '#ff6b80', shape: 'circle' },
+  seraph: { get label() { return t('etype.seraph'); }, color: '#4fc3f7', shape: 'diamond' },
+  score_attack_ex: { get label() { return t('user.t_sa_ex'); }, color: '#b46cff', shape: 'triangle' },
 };
 // 上位3位の王冠の色（ランキング表示の金・銀・銅と揃える）
 const HIST_PODIUM = { 1: '#ffd700', 2: '#c0c0c0', 3: '#cd7f32' };
 const histCrown = (x, y, color) => `<g transform="translate(${x},${y})"><path d="M-7 3L-7 -3L-3.5 0L0 -5L3.5 0L7 -3L7 3Z" fill="${color}" stroke="#241800" stroke-width="0.8"/></g>`;
-const HIST_TREND = { up: ['上昇傾向', '#49d6a8'], flat: ['維持', 'var(--text-primary)'], down: ['下降傾向', '#ff8a80'] };
+const HIST_TREND = { get up() { return [t('hist.up'), '#49d6a8']; }, get flat() { return [t('hist.flat'), 'var(--text-primary)']; }, get down() { return [t('hist.down'), '#ff8a80']; } };
 let _hist = null;
 
 function histShape(shape, x, y, r, color, extra = '') {
@@ -716,32 +716,32 @@ async function loadHistory() {
   card.innerHTML = `
     <div class="hist-head">
       <span class="hist-title-wrap">
-        <span class="hist-title">戦績グラフ</span>
-        <span class="title-tooltip-wrap hist-help" tabindex="0" role="button" aria-label="グラフの高さについて"
+        <span class="hist-title">${t('top.history')}</span>
+        <span class="title-tooltip-wrap hist-help" tabindex="0" role="button" aria-label="${t('hist.help_aria')}"
               onclick="event.stopPropagation(); this.classList.toggle('tt-open')"
               onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); this.classList.toggle('tt-open'); }">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.7-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17" r="0.6" fill="currentColor"/></svg>
           <span class="title-tooltip">
-            <span class="hist-help-title">戦績グラフの見方</span>
-            <span class="hist-help-item">各回のベストスコア（いちばん高い属性）の推移です</span>
-            <span class="hist-help-item">高さは、スコアアタック・遭遇戦・EXを同じ基準で比べられるように換算したスコアです。順位ではありません</span>
-            <span class="hist-help-item">高さはこの人の中での高い・低いを表します。他の人のグラフとは比べられません</span>
-            <span class="hist-help-item">点線は参加しなかった回です（直前の回の高さのまま横に伸ばしています）</span>
-            <span class="hist-help-item">王冠は、その回に1〜3位を取った印です</span>
-            <span class="hist-help-item">点をタップすると、イベント名・属性・スコア・順位が見られます</span>
-            <span class="hist-help-item">開催中のイベントは、終了後に反映されます</span>
-            <span class="hist-help-item">下の順位は公開ランキングの順位です。傾向は参加した直近5回のスコアの流れから判定しています</span>
+            <span class="hist-help-title">${t('hist.help_title')}</span>
+            <span class="hist-help-item">${t('hist.h1')}</span>
+            <span class="hist-help-item">${t('hist.h2')}</span>
+            <span class="hist-help-item">${t('hist.h3')}</span>
+            <span class="hist-help-item">${t('hist.h4')}</span>
+            <span class="hist-help-item">${t('hist.h5')}</span>
+            <span class="hist-help-item">${t('hist.h6')}</span>
+            <span class="hist-help-item">${t('hist.h7')}</span>
+            <span class="hist-help-item">${t('hist.h8')}</span>
           </span>
         </span>
       </span>
-      <span class="hist-sub">参加 ${sm.joined_count} 回</span>
+      <span class="hist-sub">${t('hist.joined', sm.joined_count)}</span>
     </div>
     <div class="hist-legend">${legend}</div>
     <div class="hist-graph" id="hist-graph"></div>
     <div class="hist-summary">
-      <div><div class="l">直近${sm.recent_rank_count || 5}回の平均順位</div><div class="v">${sm.recent_avg_rank != null ? sm.recent_avg_rank.toFixed(1) + '位' : '-'}</div></div>
-      <div><div class="l">直近${sm.recent_rank_count || 5}回の最高順位</div><div class="v">${sm.best_rank != null ? sm.best_rank + '位' : '-'}</div></div>
-      <div><div class="l">直近5回の傾向</div><div class="v" style="color:${trend ? trend[1] : 'inherit'}">${trend ? trend[0] : '-'}</div></div>
+      <div><div class="l">${t('hist.avg', sm.recent_rank_count || 5)}</div><div class="v">${sm.recent_avg_rank != null ? t('user.rank_avg', sm.recent_avg_rank.toFixed(1)) : '-'}</div></div>
+      <div><div class="l">${t('hist.best', sm.recent_rank_count || 5)}</div><div class="v">${sm.best_rank != null ? t('user.rank_n', sm.best_rank) : '-'}</div></div>
+      <div><div class="l">${t('hist.trend')}</div><div class="v" style="color:${trend ? trend[1] : 'inherit'}">${trend ? trend[0] : '-'}</div></div>
     </div>`;
   renderHistoryGraph(null);
   if (location.hash === '#history') card.scrollIntoView({ behavior: 'smooth' });
@@ -796,16 +796,16 @@ function renderHistoryGraph(openIdx) {
     h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
   });
   if (openIdx == null) return;
-  const e = evs[openIdx], t = HIST_TYPES[e.event_type] || HIST_TYPES.score_attack;
+  const e = evs[openIdx], ty = HIST_TYPES[e.event_type] || HIST_TYPES.score_attack;
   const tip = document.createElement('div');
   tip.className = 'hist-tip';
   tip.innerHTML = `
-    <div class="hist-tip-ev" style="color:${t.color}">${t.label}</div>
+    <div class="hist-tip-ev" style="color:${ty.color}">${ty.label}</div>
     <div class="hist-tip-name">${escHtml(e.name)}</div>
-    <div class="hist-tip-row">属性 ${attrBadge(e.attribute, true)}</div>
-    <div class="hist-tip-row">スコア <b>${formatScore(e.score)}</b></div>
-    <div class="hist-tip-row">順位 <b>${e.rank != null ? e.rank + '位' : '-'}</b></div>
-    ${HIST_PODIUM[e.rank] ? `<span class="hist-tip-best" style="background:${HIST_PODIUM[e.rank]}">${e.rank}位獲得</span>` : ''}`;
+    <div class="hist-tip-row">${t('user.attr')} ${attrBadge(e.attribute, true)}</div>
+    <div class="hist-tip-row">${t('hist.score')} <b>${formatScore(e.score)}</b></div>
+    <div class="hist-tip-row">${t('hist.rank')} <b>${e.rank != null ? t('user.rank_n', e.rank) : '-'}</b></div>
+    ${HIST_PODIUM[e.rank] ? `<span class="hist-tip-best" style="background:${HIST_PODIUM[e.rank]}">${t('hist.podium', e.rank)}</span>` : ''}`;
   el.appendChild(tip);
   // 点の横（右に入らなければ左）に、縦はグラフ内に収まる位置で出す
   const px = X(openIdx) - sc.scrollLeft, py = Y(e.y), tw = tip.offsetWidth, th = tip.offsetHeight;

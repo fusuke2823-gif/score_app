@@ -83,13 +83,13 @@ function playSeasonOpening(data, mode) {
     <div class="so-body">
       <div class="so-line"></div>
       <div class="so-eyebrow">${mode === 'new' ? 'SEASON START' : 'RATE SEASON'}</div>
-      <div class="so-name">${escHtml(se.name)}</div>
+      <div class="so-name">${escHtml(seasonLabel(se.name))}</div>
       <div class="so-sub">${escHtml(mode === 'new' ? t('so.open') : t('so.live'))}</div>
       <div class="so-period">${md(se.start)} 〜 ${md(se.last_day)}</div>
       ${se.reward ? `<div class="so-reward">
         <div class="so-reward-k">${escHtml(t('so.reward'))}</div>
         ${frameSampleHtml(se.reward.css_class, me?.username || 'Player')}
-        <div class="so-reward-name">${escHtml(se.reward.name)}</div>
+        <div class="so-reward-name">${escHtml(seasonLabel(se.reward.name))}</div>
       </div>` : ''}
       <div class="so-tap">${escHtml(t('so.tap'))}</div>
     </div>`;
@@ -130,7 +130,7 @@ function playSeasonEnding(prev) {
     <div class="so-body">
       <div class="so-line"></div>
       <div class="so-eyebrow">SEASON RESULT</div>
-      <div class="so-name">${escHtml(prev.name)}</div>
+      <div class="so-name">${escHtml(seasonLabel(prev.name))}</div>
       <div class="so-sub">${escHtml(t('so.end'))}</div>
       <div class="se-result" style="--pc:${pc}">
         ${prev.winner ? `<div class="se-win">${CROWN}<span>${escHtml(t('so.winner'))}</span></div>` : ''}
@@ -144,7 +144,7 @@ function playSeasonEnding(prev) {
       ${prev.winner && prev.reward ? `<div class="so-reward se-reward">
         <div class="so-reward-k">${escHtml(t('so.reward_unlocked')).replace('\n', '<br>')}</div>
         ${frameSampleHtml(prev.reward.css_class, me?.username || 'Player')}
-        <div class="so-reward-name">${escHtml(prev.reward.name)}</div>
+        <div class="so-reward-name">${escHtml(seasonLabel(prev.reward.name))}</div>
       </div>` : ''}
       <div class="so-tap">${escHtml(t('so.tap'))}</div>
     </div>`;
@@ -336,15 +336,15 @@ function openRateModal(data, mode, from, onClose) {
     : { cls: 'rk', txt: `→ ${rkName(s.after.rank)}` };
 
   const banner = mode === 'new'
-    ? `<div class="rn-banner">${escHtml(t('rn.new_season', data.season.name))}</div>
+    ? `<div class="rn-banner">${escHtml(t('rn.new_season', seasonLabel(data.season.name)))}</div>
        <div class="rn-arrow">${escHtml(t('rn.start'))} ${data.start.rank} ${data.start.rate}</div>`
-    : mode === 'first' ? `<div class="rn-banner">${escHtml(t('rn.so_far', data.season.name))}</div>` : '';
+    : mode === 'first' ? `<div class="rn-banner">${escHtml(t('rn.so_far', seasonLabel(data.season.name)))}</div>` : '';
 
   const modal = document.createElement('div');
   modal.id = 'rate-modal';
   modal.innerHTML = `
     <div class="rn-box" style="--pc:${RN_COLOR[first.rank]}">
-      <div class="rn-head"><span class="rn-eyebrow">RATE UPDATE</span><span class="rn-season">${escHtml(data.season.name)}</span></div>
+      <div class="rn-head"><span class="rn-eyebrow">RATE UPDATE</span><span class="rn-season">${escHtml(seasonLabel(data.season.name))}</span></div>
       ${banner}
       <div class="rn-hero">
         <div class="rn-badge-wrap"><div class="rn-burst"></div><img class="rn-badge" src="${rnBadge(first, data.now.rank === 'Legend' && first.rank === 'Legend' ? data.legend_rank : null)}" alt=""><div class="rn-flash"></div></div>
