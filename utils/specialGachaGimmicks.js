@@ -72,6 +72,18 @@ const GIMMICKS = {
       pStep: 0.10,  // 連続1回ごとの巻き戻しの確率（連続k回目の10連のあと k×10%、100%以上＝10回連続で回復なしでリセット）
     },
   },
+  roulette: {
+    label: 'ルーレット',
+    description: '10連の前に「赤・黒・奇数・偶数」から1つか2つ選んで賭ける。10連を引くとまずルーレットが回り、止まった数字でこの10連のダメージの倍率が決まる。1つに賭けて当たれば×2.5（外れ×0.5）、2つ重ねて両方当たれば×6（外れ×0.25）。0（緑）に止まれば、賭けていれば×10。賭けなければ×1',
+    // 賭けると平均が上がるぶん、HPを高くして平均回数を揃えている。シミュレーション（各1500回）で
+    // いつも1つ 平均22.6回（1割17〜9割29）、いつも2つ 22.1回（14〜30）、状況で変える 21.3回、賭けない 31.5回
+    max_hp: 50000,
+    roulette: {
+      single: { win: 2.5, lose: 0.5 }, // 1つに賭ける（当たり約1/2）
+      double: { win: 6, lose: 0.25 },  // 2つ重ねる（当たり約1/4）
+      zero: 10,                        // 0（緑）：賭けていれば大当たり
+    },
+  },
 };
 
 function getGimmick(key) {
@@ -91,6 +103,7 @@ function gimmickSummary(key) {
       p_step: g.rewind.pStep,
       mults: Array.from({ length: Math.ceil(1 / g.rewind.pStep - 1e-9) + 1 }, (_, k) => g.rewind.multAt(k)),
     } : null,
+    roulette: g.roulette || null,
   };
 }
 

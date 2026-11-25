@@ -18,6 +18,39 @@ const DESTRUCTION_MAX = 999.0;
 const DESTRUCTION_INC = { destruction_25: 25.0, destruction_50: 50.0, destruction_100: 100.0 };
 const HEAL_AMOUNT = { heal_small: 300, heal_large: 800 };
 
+// ルーレットギミック：0〜36。1〜36は4で割った余りが1・2なら赤、それ以外は黒（赤奇数・赤偶数・黒奇数・黒偶数が9コマずつ）。
+// 画面の円盤も同じ決まりで色を塗る
+const ROULETTE_CELLS = 37;
+const rouletteColor = n => (n === 0 ? 'green' : n % 4 === 1 || n % 4 === 2 ? 'red' : 'black');
+const BET_KEYS = ['red', 'black', 'odd', 'even'];
+// 賭け（['red','odd'] など）を確かめる。赤と黒、奇数と偶数は同時に選べない。おかしければ null
+function parseBet(raw) {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw) || raw.length > 2) return null;
+  const bet = [...new Set(raw)];
+  if (bet.length !== raw.length || !bet.every(k => BET_KEYS.includes(k))) return null;
+  if (bet.includes('red') && bet.includes('black')) return null;
+  if (bet.includes('odd') && bet.includes('even')) return null;
+  return bet;
+}
+// ルーレットを回して、この10連の倍率を決める
+function spinRoulette(rl, bet) {
+  const number = crypto.randomInt(ROULETTE_CELLS);
+  const color = rouletteColor(number);
+  const parity = number === 0 ? null : number % 2 ? 'odd' : 'even';
+  let mult = 1, outcome = 'none';
+  if (bet.length) {
+    if (number === 0) { mult = rl.zero; outcome = 'zero'; }
+    else {
+      const win = bet.every(k => k === color || k === parity);
+      const t = bet.length === 2 ? rl.double : rl.single;
+      mult = win ? t.win : t.lose;
+      outcome = win ? 'win' : 'lose';
+    }
+  }
+  return { number, color, parity, bet, mult, outcome };
+}
+
 const CAT = [
   { name: 'damage', p: 0.70, label: 'ダメージリソース' },
   { name: 'favorable', p: 0.10, label: '有利アイテム' },
@@ -93,7 +126,7 @@ function rollOne(state, gimmick, tables = tablesFor(gimmick)) {
     // ゲージアクション：ダメージカードの一部がゲージ攻撃（10連の最後に発動）に置き換わる。
     // 基本ダメージは引いた時点の倍率で確定し、発動時にタイミングの倍率を掛ける
     if (gimmick.gauge && Math.random() < gimmick.gauge.p) {
-      const mult0 = (1 + allyBonus0) * (1 + debuffBonus0) * Math.max(0, 1 - enemyPenalty0) * (state.destruction_rate / 100) * (state.rewind_mult || 1);
+      const mult0 = (1 + allyBonus0) * (1 + debuffBonus0) * Math.max(0, 1 - enemyPenalty0) * (state.destruction_rate / 100) * (state.rewind_mult || 1) * (state.roulette_mult || 1);
       decrementAll(state);
       return { category: 'gauge', key: 'gauge_attack', label: 'ゲージ攻撃', dmg: 0, gauge_base: Math.max(1, Math.round(gimmick.gauge.base * mult0)) };
     }
@@ -113,8 +146,8 @@ function rollOne(state, gimmick, tables = tablesFor(gimmick)) {
     const allyBonus = (state.ally_small > 0 ? 0.5 : 0) + (state.ally_large > 0 ? 2.0 : 0);
     const debuffBonus = (state.debuff_small > 0 ? 0.5 : 0) + (state.debuff_large > 0 ? 2.0 : 0);
     const enemyPenalty = (state.enemybuff_small > 0 ? 0.2 : 0) + (state.enemybuff_large > 0 ? 0.5 : 0);
-    // rewind_mult：巻き戻しギミックの連続による倍率（ほかのギミックでは無し）
-    const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100) * (state.rewind_mult || 1);
+    // rewind_mult：巻き戻しギミックの連続による倍率、roulette_mult：ルーレットギミックのこの10連の倍率（ほかのギミックでは無し）
+    const mult = (1 + allyBonus) * (1 + debuffBonus) * Math.max(0, 1 - enemyPenalty) * (state.destruction_rate / 100) * (state.rewind_mult || 1) * (state.roulette_mult || 1);
     const dmg = Math.round(roll.dmg * mult);
     decrementAll(state);
     // シールド中はダメージの代わりにシールドを1削る（防がれたダメージ量は演出用に返す）
@@ -211,7 +244,17 @@ router.get('/rates', async (req, res) => {
         items: [{ label: 'ゲージ攻撃', p: 1, detail: `10連の最後に発動。${gimmick.gauge.tiers.map(t => `${t.name}×${t.mult}`).join(' / ')}（基本${gimmick.gauge.base}ダメージ）` }],
       });
     }
-    res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(key), categories });
+    // ルーレットは10連ごとの倍率なので、カードの表とは別に出す
+    let roulette = null;
+    if (gimmick.roulette) {
+      const rl = gimmick.roulette;
+      roulette = [
+        { label: '1つに賭ける（赤・黒・奇数・偶数のどれか）', p: 18 / ROULETTE_CELLS, detail: `当たり×${rl.single.win}・外れ×${rl.single.lose}` },
+        { label: '2つ重ねる（色と奇数・偶数）', p: 9 / ROULETTE_CELLS, detail: `当たり×${rl.double.win}・外れ×${rl.double.lose}` },
+        { label: '0（緑）', p: 1 / ROULETTE_CELLS, detail: `賭けていれば×${rl.zero}（賭けなければ×1）` },
+      ];
+    }
+    res.json({ pull_cost: PULL_COST, gimmick: gimmickSummary(key), categories, roulette });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
@@ -254,7 +297,8 @@ router.get('/current', async (req, res) => {
 
 // 10連1回分の抽選。progress（DBの行か、テスト用の同じ形のオブジェクト）は書き換えず、結果と次の状態を返す。
 // 本番の /pull と管理者のテスト（/test/pull）で同じものを使う
-function playTen(progress, gimmick, maxHp, reset) {
+// bet：ルーレットギミックの賭け（parseBet を通したもの）
+function playTen(progress, gimmick, maxHp, reset, bet = []) {
   // 前回発動しないまま残ったゲージ攻撃は、MISS（1倍）で先に発動させる
   const leftoverDmg = (progress.pending_gauge || []).reduce((s, g) => s + g.base, 0);
   const state = {};
@@ -269,6 +313,9 @@ function playTen(progress, gimmick, maxHp, reset) {
   let streak = progress.rewind_streak || 0, streakDmg = progress.rewind_dmg || 0;
   if (rw && reset) { streak = 0; streakDmg = 0; }
   if (rw) state.rewind_mult = rw.multAt(streak);
+  // ルーレットギミック：引く前に回して、この10連のダメージの倍率を決める
+  const roulette = gimmick.roulette ? spinRoulette(gimmick.roulette, bet) : null;
+  if (roulette) state.roulette_mult = roulette.mult;
   const hpStart = hp;
 
   const results = [];
@@ -324,8 +371,8 @@ function playTen(progress, gimmick, maxHp, reset) {
   }
 
   return {
-    results, hp, state, leftoverDmg, rewind, rewindCheck,
-    next: { ...state, rewind_mult: undefined, current_hp: hp, pending_gauge: pendingGauge, rewind_streak: streak, rewind_dmg: Math.round(streakDmg) },
+    results, hp, state, leftoverDmg, rewind, rewindCheck, roulette,
+    next: { ...state, rewind_mult: undefined, roulette_mult: undefined, current_hp: hp, pending_gauge: pendingGauge, rewind_streak: streak, rewind_dmg: Math.round(streakDmg) },
   };
 }
 
@@ -397,7 +444,9 @@ router.post('/pull', async (req, res) => {
       await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -cost, '討伐ガチャ（10連）']);
     }
 
-    const play = playTen(progress, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true);
+    const bet = parseBet(req.body && req.body.bet);
+    if (!bet) { await client.query('ROLLBACK'); return res.status(400).json({ error: '賭け方が正しくありません' }); }
+    const play = playTen(progress, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true, bet);
     const { results, hp, state, rewind } = play;
 
     let defeated = false;
@@ -435,6 +484,7 @@ router.post('/pull', async (req, res) => {
       leftover_gauge_damage: play.leftoverDmg,
       rewind,
       rewind_check: play.rewindCheck,
+      roulette: play.roulette,
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -551,13 +601,15 @@ testRouter.post('/pull', async (req, res) => {
     if (!r) { await client.query('ROLLBACK'); return res.status(400).json({ error: '先にギミックを選んで始めてください' }); }
     if (r.progress.defeated_at) { await client.query('ROLLBACK'); return res.status(400).json({ error: '討伐済みです。「最初から」で始め直してください' }); }
     const g = getGimmick(r.gimmick);
-    const play = playTen(r.progress, g, g.max_hp, req.body && req.body.reset === true);
+    const bet = parseBet(req.body && req.body.bet);
+    if (!bet) { await client.query('ROLLBACK'); return res.status(400).json({ error: '賭け方が正しくありません' }); }
+    const play = playTen(r.progress, g, g.max_hp, req.body && req.body.reset === true, bet);
     const defeated = play.hp <= 0;
     const progress = { ...r.progress, ...play.next, pull_count: (r.progress.pull_count || 0) + 1, defeated_at: defeated ? new Date().toISOString() : null };
     await client.query('UPDATE special_gacha_tests SET progress=$2, updated_at=NOW() WHERE user_id=$1', [req.user.id, progress]);
     const points = (await client.query('SELECT points FROM users WHERE id=$1', [req.user.id])).rows[0].points;
     await client.query('COMMIT');
-    res.json({ results: play.results, progress, new_points: points, defeated, awarded_icon: null, leftover_gauge_damage: play.leftoverDmg, rewind: play.rewind, rewind_check: play.rewindCheck });
+    res.json({ results: play.results, progress, new_points: points, defeated, awarded_icon: null, leftover_gauge_damage: play.leftoverDmg, rewind: play.rewind, rewind_check: play.rewindCheck, roulette: play.roulette });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);
@@ -657,11 +709,13 @@ playRouter.post('/pull', async (req, res) => {
     const row = (await client.query('SELECT progress FROM special_gacha_plays WHERE user_id=$1 AND enemy_id=$2 FOR UPDATE', [req.user.id, enemy.id])).rows[0];
     const cur = row ? row.progress : newPlayProgress(enemy);
     if (cur.defeated_at) { await client.query('ROLLBACK'); return res.status(400).json({ error: '討伐済みです。「最初から」で始め直してください' }); }
+    const bet = parseBet(req.body && req.body.bet);
+    if (!bet) { await client.query('ROLLBACK'); return res.status(400).json({ error: '賭け方が正しくありません' }); }
     const userResult = await client.query('SELECT points FROM users WHERE id=$1 FOR UPDATE', [req.user.id]);
     if (userResult.rows[0].points < PLAY_COST) { await client.query('ROLLBACK'); return res.status(400).json({ error: `ポイントが不足しています（必要: ${PLAY_COST}pt）` }); }
     await client.query('UPDATE users SET points=points-$1 WHERE id=$2', [PLAY_COST, req.user.id]);
     await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1,$2,$3)', [req.user.id, -PLAY_COST, '討伐ガチャ（遊びモード）']);
-    const play = playTen(cur, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true);
+    const play = playTen(cur, getGimmick(enemy.gimmick), enemy.max_hp, req.body && req.body.reset === true, bet);
     const defeated = play.hp <= 0;
     const progress = { ...cur, ...play.next, pull_count: (cur.pull_count || 0) + 1, defeated_at: defeated ? new Date().toISOString() : null };
     await client.query(
@@ -670,7 +724,7 @@ playRouter.post('/pull', async (req, res) => {
       [req.user.id, enemy.id, progress]
     );
     await client.query('COMMIT');
-    res.json({ results: play.results, progress, new_points: userResult.rows[0].points - PLAY_COST, defeated, awarded_icon: null, leftover_gauge_damage: play.leftoverDmg, rewind: play.rewind, rewind_check: play.rewindCheck });
+    res.json({ results: play.results, progress, new_points: userResult.rows[0].points - PLAY_COST, defeated, awarded_icon: null, leftover_gauge_damage: play.leftoverDmg, rewind: play.rewind, rewind_check: play.rewindCheck, roulette: play.roulette });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error(err);

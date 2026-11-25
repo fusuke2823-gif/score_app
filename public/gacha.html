@@ -154,6 +154,7 @@
       <div class="sg-effects-row" id="sg-effects-row"></div>
       <!-- 巻き戻しギミック：連続の状態（次の10連の倍率・巻き戻しの確率・巻き戻されたときのHP） -->
       <div class="sg-rewind" id="sg-rewind" hidden></div>
+      <div class="sg-bet" id="sg-bet" hidden></div>
     </div>
 
     <div class="gacha-pull-btns sg-collapsible" id="sg-pull-wrap">
@@ -219,6 +220,19 @@
       <div class="sg-rwc-strip" id="sg-rwc-strip"></div>
       <div class="sg-rwc-result" id="sg-rwc-result"></div>
       <div class="sg-rwc-hint" id="sg-rwc-hint" data-i18n="rn.skip">タップでスキップ</div>
+    </div>
+  </div>
+  <!-- ルーレットギミック：10連の前に回る円盤（止まる数字はサーバーの抽選） -->
+  <div id="sg-rl" class="sg-rl" hidden>
+    <div class="sg-rl-box" role="dialog" aria-label="ルーレット">
+      <div class="sg-rl-title">ROULETTE</div>
+      <div class="sg-rl-bet" id="sg-rl-bet"></div>
+      <div class="sg-rl-wheel">
+        <svg viewBox="0 0 360 360" id="sg-rl-svg" aria-hidden="true"></svg>
+        <div class="sg-rl-center"><div class="sg-rl-num" id="sg-rl-num">?</div><div class="sg-rl-tags" id="sg-rl-tags"></div></div>
+      </div>
+      <div class="sg-rl-res" id="sg-rl-res"></div>
+      <div class="sg-rl-hint" id="sg-rl-hint"></div>
     </div>
   </div>
   <!-- 巻き戻されたときの画面効果（ビデオの巻き戻し風） -->

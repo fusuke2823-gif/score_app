@@ -170,6 +170,19 @@ async function sgPlayIntro(enemy, gimmick) {
 let sgTutGimmick = null;
 // 巻き戻しは絵つきで、ほかのギミックは説明文で
 function sgTutorialHtml(g) {
+  if (g.key === 'roulette' && g.roulette) {
+    const r = g.roulette;
+    const st = (n, title, text, visual = '') => `
+    <div class="sg-tut-step"><div class="sg-tut-num">${n}</div><div class="sg-tut-main"><b>${title}</b><p>${text}</p>${visual}</div></div>`;
+    return [
+      st(1, '10連の前に賭ける', '「赤・黒・奇数・偶数」から1つか2つ選びます。選んだ賭けは次の10連にも引き継がれます。',
+        `<div class="sg-tut-vis">${sgBetPill('red')}${sgBetPill('black')}${sgBetPill('odd')}${sgBetPill('even')}</div>`),
+      st(2, '当たればダメージが上がる', `1つに賭けて当たれば×${r.single.win}（外れ×${r.single.lose}）。2つ重ねて両方当たれば×${r.double.win}（外れ×${r.double.lose}）。`,
+        `<div class="sg-tut-vis"><span class="sg-tut-chip">1つ ×${r.single.win}</span><span class="sg-tut-chip">2つ ×${r.double.win}</span></div>`),
+      st(3, '0（緑）は大当たり', `0に止まると、賭けていれば×${r.zero}。賭けていないと×1のままです。`),
+      st(4, '堅く行くか、勝負するか', '1つなら約1/2で当たり、2つ重ねると約1/4。敵のHPが残り少ないときは1つにする、などの使い分けが勝負どころです。'),
+    ].join('');
+  }
   if (g.key !== 'rewind') return `<p class="sg-tut-text">${escHtml(g.description || '')}</p>`;
   const step = (n, title, text, visual) => `
     <div class="sg-tut-step"><div class="sg-tut-num">${n}</div><div class="sg-tut-main"><b>${title}</b><p>${text}</p>${visual}</div></div>`;
@@ -447,9 +460,194 @@ async function sgPlayRewind(rw, check, progress) {
   await sgSleep(sgT(500));
 }
 
+// ===== ルーレットギミック =====
+// 10連の前に「赤・黒・奇数・偶数」から1つか2つ選んで賭ける。引くとまずルーレットが回り、止まった数字でこの10連の倍率が決まる。
+// 止まる数字はサーバーの抽選。画面の円盤は同じ決まり（4で割った余りが1・2なら赤）で塗り、そのコマに玉が収まるように動きを逆算する
+let sgRoulette = null; // { single:{win,lose}, double:{win,lose}, zero }（ルーレットの敵のときだけ）
+const SG_BET = { red: { t: '赤', en: 'RED', c: 'red' }, black: { t: '黒', en: 'BLACK', c: 'black' }, odd: { t: '奇数', en: 'ODD', c: 'par' }, even: { t: '偶数', en: 'EVEN', c: 'par' } };
+const SG_BET_OPP = { red: 'black', black: 'red', odd: 'even', even: 'odd' };
+const sgIsRed = n => n > 0 && (n % 4 === 1 || n % 4 === 2);
+// 前回の賭けをこの端末に覚えておく
+let sgBet = (() => {
+  try {
+    const b = JSON.parse(localStorage.getItem('sgBet') || '[]');
+    const ok = Array.isArray(b) ? b.filter(k => SG_BET[k]).slice(0, 2) : [];
+    return ok.length === 2 && SG_BET_OPP[ok[0]] === ok[1] ? [] : ok;
+  } catch (_) { return []; }
+})();
+const sgBetPill = k => `<span class="sg-bet-pill ${SG_BET[k].c}">${SG_BET[k].t}</span>`;
+function sgToggleBet(k) {
+  if (document.getElementById('sg-bet').classList.contains('is-busy')) return;
+  if (sgBet.includes(k)) sgBet = sgBet.filter(x => x !== k);
+  else sgBet = [...sgBet.filter(x => x !== SG_BET_OPP[k]), k].slice(-2);
+  // 色・奇数偶数の順に並べる
+  sgBet.sort((a, b) => Object.keys(SG_BET).indexOf(a) - Object.keys(SG_BET).indexOf(b));
+  try { localStorage.setItem('sgBet', JSON.stringify(sgBet)); } catch (_) {}
+  renderSgBet(sgLastProgress);
+}
+function sgClearBet() { sgBet = []; try { localStorage.setItem('sgBet', '[]'); } catch (_) {} renderSgBet(sgLastProgress); }
+function renderSgBet(progress) {
+  const el = document.getElementById('sg-bet');
+  const on = !!sgRoulette && !(progress && progress.defeated_at);
+  el.hidden = !on;
+  if (!on) return;
+  const n = sgBet.length;
+  const t = n === 2 ? sgRoulette.double : sgRoulette.single;
+  const chips = Object.keys(SG_BET).map(k => `<button type="button" class="sg-chip ${SG_BET[k].c}${sgBet.includes(k) ? ' on' : ''}${sgBet.includes(SG_BET_OPP[k]) ? ' dis' : ''}" onclick="sgToggleBet('${k}')" aria-pressed="${sgBet.includes(k)}">${SG_BET[k].t}<small>${SG_BET[k].en}</small></button>`).join('');
+  const mode = n === 0
+    ? `賭けると、当たればダメージが上がります（1つ ×${sgRoulette.single.win}・2つ重ね ×${sgRoulette.double.win}）`
+    : n === 1 ? `<b>1つに賭ける</b>：${sgBetPill(sgBet[0])} が出れば当たり（約1/2）`
+    : `<b>2つ重ね</b>：${sgBetPill(sgBet[0])} かつ ${sgBetPill(sgBet[1])} で当たり（約1/4）`;
+  el.innerHTML = `
+    <div class="sg-bet-head">
+      <span class="sg-bet-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>ROULETTE BET</span>
+      <button type="button" class="sg-bet-clear${n ? '' : ' on'}" onclick="sgClearBet()">賭けない</button>
+    </div>
+    <div class="sg-bet-grid">${chips}</div>
+    <div class="sg-bet-mode">${mode}</div>
+    ${n ? `<div class="sg-bet-odds">
+      <div class="sg-odd win"><span>当たり</span><b>×${t.win}</b></div>
+      <div class="sg-odd lose"><span>外れ</span><b>×${t.lose}</b></div>
+      <div class="sg-odd zero"><span>0（緑）</span><b>×${sgRoulette.zero}</b></div>
+    </div>` : ''}`;
+}
+
+// 円盤：0のあとに赤・黒を交互に並べる（並びは毎回同じ）
+const SG_RL_ORDER = (() => {
+  const reds = [], blacks = [];
+  for (let n = 1; n <= 36; n++) (sgIsRed(n) ? reds : blacks).push(n);
+  const mix = a => a.map((v, i) => [(i * 7) % a.length, v]).sort((x, y) => x[0] - y[0]).map(x => x[1]);
+  const R = mix(reds), B = mix(blacks), order = [0];
+  for (let i = 0; i < 18; i++) order.push(R[i], B[i]);
+  return order;
+})();
+const SG_RL = { N: 37, C: 180, OUT: 176, TRACK: 164, NUM_O: 150, NUM_I: 120, POCKET: 111, POCKET_I: 98 };
+const sgRlPt = (r, d) => { const a = (d - 90) * Math.PI / 180; return [SG_RL.C + r * Math.cos(a), SG_RL.C + r * Math.sin(a)]; };
+function sgRlBuild() {
+  const svg = document.getElementById('sg-rl-svg');
+  if (svg.dataset.built) return;
+  svg.dataset.built = '1';
+  const { N, C, OUT, NUM_O, NUM_I, POCKET_I } = SG_RL, STEP = 360 / N;
+  const P = (r, d) => sgRlPt(r, d).map(v => v.toFixed(2)).join(',');
+  let rot = '';
+  SG_RL_ORDER.forEach((n, i) => {
+    const a0 = i * STEP - STEP / 2, a1 = a0 + STEP;
+    const col = n === 0 ? '#169c5a' : sgIsRed(n) ? '#c42840' : '#16161e';
+    rot += `<path d="M${P(NUM_I, a0)} L${P(NUM_O, a0)} A${NUM_O},${NUM_O} 0 0 1 ${P(NUM_O, a1)} L${P(NUM_I, a1)} A${NUM_I},${NUM_I} 0 0 0 ${P(NUM_I, a0)}Z" fill="${col}" stroke="#d9b45a" stroke-width="0.8"/>`;
+    const [tx, ty] = sgRlPt((NUM_O + NUM_I) / 2, i * STEP).map(v => v.toFixed(2));
+    rot += `<text x="${tx}" y="${ty}" transform="rotate(${i * STEP} ${tx} ${ty})">${n}</text>`;
+    rot += `<path d="M${P(POCKET_I, a0)} L${P(NUM_I, a0)} A${NUM_I},${NUM_I} 0 0 1 ${P(NUM_I, a1)} L${P(POCKET_I, a1)} A${POCKET_I},${POCKET_I} 0 0 0 ${P(POCKET_I, a0)}Z" fill="#241a2e" stroke="#d9b45a" stroke-width="0.6"/>`;
+  });
+  svg.innerHTML = `
+    <defs><radialGradient id="sgRlRim" cx="50%" cy="50%" r="50%"><stop offset="0.85" stop-color="#2a1a14"/><stop offset="1" stop-color="#5a3a1a"/></radialGradient>
+      <radialGradient id="sgRlBall" cx="35%" cy="30%"><stop offset="0" stop-color="#fff"/><stop offset="0.6" stop-color="#e6e6ee"/><stop offset="1" stop-color="#9a9aaa"/></radialGradient></defs>
+    <circle cx="${C}" cy="${C}" r="${OUT}" fill="url(#sgRlRim)" stroke="#d9b45a" stroke-width="2"/>
+    <circle cx="${C}" cy="${C}" r="${NUM_O + 1}" fill="none" stroke="#d9b45a" stroke-width="1"/>
+    <g id="sg-rl-rotor" class="sg-rl-rotor">${rot}</g>
+    <circle id="sg-rl-ball" class="sg-rl-ball" r="6.5" fill="url(#sgRlBall)"/>`;
+}
+let sgRlWheel = Math.random() * 360; // 円盤の向き（回し終わった所から次を始める）
+// 円盤は右回りにゆっくり減速。玉は外側のふちを左回りに回り、減速して内側へ落ち、仕切りに当たって跳ねながら狙いのコマに収まる
+function sgRouletteSpin(rl) {
+  if (!rl) return Promise.resolve();
+  sgRlBuild();
+  const { N, C, TRACK, POCKET } = SG_RL, STEP = 360 / N;
+  const ov = document.getElementById('sg-rl');
+  const rotor = document.getElementById('sg-rl-rotor'), ball = document.getElementById('sg-rl-ball');
+  const num = document.getElementById('sg-rl-num'), tags = document.getElementById('sg-rl-tags');
+  const res = document.getElementById('sg-rl-res'), hint = document.getElementById('sg-rl-hint');
+  const setRotor = a => rotor.setAttribute('transform', `rotate(${a} ${C} ${C})`);
+  const setBall = (r, a) => { const [x, y] = sgRlPt(r, a); ball.setAttribute('cx', x.toFixed(2)); ball.setAttribute('cy', y.toFixed(2)); };
+  document.getElementById('sg-rl-bet').innerHTML = rl.bet.length
+    ? `賭け：${rl.bet.map(sgBetPill).join('×')}　当たり ×${rl.bet.length === 2 ? sgRoulette.double.win : sgRoulette.single.win}`
+    : '<span class="sg-rl-nobet">賭けなし（×1）</span>';
+  num.textContent = '?'; num.className = 'sg-rl-num'; tags.innerHTML = ''; res.innerHTML = '';
+  hint.textContent = 'タップでスキップ';
+  ov.className = 'sg-rl';
+  ov.hidden = false;
+  const pocketA = SG_RL_ORDER.indexOf(rl.number) * STEP;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches || sgSpeed === 'instant';
+  const sp = sgSpeed === 'fast' ? 0.5 : 1;
+  const T = 4600 * sp, tDrop = 0.34 * T, tLand = 0.46 * T, tEnd = T + 900 * sp;
+  const w0 = sgRlWheel, wTurn = 260 + Math.random() * 120;
+  const wheelAt = t => w0 + wTurn * (1 - Math.pow(1 - Math.min(1, t / tEnd), 2.2));
+  // 着いたときは狙いから3〜5コマずれていて、行ったり戻ったりしながら収まる
+  const off0 = (Math.random() < 0.5 ? 1 : -1) * STEP * (3 + Math.random() * 2);
+  const freq = 2.6 + Math.random() * 0.8;
+  const rel = s => off0 * Math.exp(-3.4 * s) * Math.cos(Math.PI * freq * s);
+  const hop = s => 8 * Math.abs(Math.sin(Math.PI * freq * s)) * Math.exp(-3 * s);
+  const landAbs = wheelAt(tLand) + pocketA + off0;
+  const b0 = Math.random() * 360;
+  const travel = ((b0 - landAbs) % 360 + 360) % 360 + 360 * (4 + Math.floor(Math.random() * 2));
+  const ease = u => 1 - Math.pow(1 - u, 2.4) * (1 - 0.12 * u);
+  setRotor(w0); setBall(TRACK, b0);
+  return new Promise(resolve => {
+    let done = false, lastSlot = null, landed = false, t0 = 0;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      ov.removeEventListener('pointerdown', finish);
+      sgRlWheel = wheelAt(tEnd) % 360;
+      setRotor(sgRlWheel); setBall(POCKET, sgRlWheel + pocketA);
+      // 結果：真ん中に数字と、賭けの表示と同じ色の札（当たった札を光らせる）
+      num.textContent = rl.number;
+      num.className = 'sg-rl-num ' + rl.color + ' pop';
+      const keys = rl.number === 0 ? [] : [rl.color, rl.parity];
+      tags.innerHTML = rl.number === 0 ? '<span class="sg-bet-pill zero hit">0</span>'
+        : keys.map(k => `<span class="sg-bet-pill ${SG_BET[k].c}${rl.bet.includes(k) ? ' hit' : ''}">${SG_BET[k].t}</span>`).join('');
+      const big = { zero: ['JACKPOT', 'is-jack'], win: ['WIN', 'is-win'], lose: ['LOSE', 'is-lose'] }[rl.outcome];
+      res.innerHTML = big ? `<b class="${big[1]}">${big[0]} ×${rl.mult}</b><small>この10連のダメージが${rl.mult}倍</small>` : '<small>賭けなし（×1）</small>';
+      ov.classList.add('end-' + rl.outcome);
+      hint.textContent = '';
+      rolling.stop();
+      sgRlSound.result(rl.outcome);
+      setTimeout(() => { ov.hidden = true; resolve(); }, sgSpeed === 'instant' ? 600 : sgT(rl.outcome === 'zero' ? 1500 : 1100));
+    };
+    const rolling = reduced ? { speed() {}, stop() {} } : sgRlSound.roll();
+    if (reduced) { finish(); return; }
+    setTimeout(() => { if (!done) ov.addEventListener('pointerdown', finish); }, 250);
+    const frame = now => {
+      if (done) return;
+      if (!t0) t0 = now;
+      const t = now - t0;
+      if (t >= tEnd) return finish();
+      const w = wheelAt(t);
+      setRotor(w);
+      let r, a;
+      if (t < tLand) {
+        const u = t / tLand;
+        a = b0 - travel * ease(u);
+        // 転がる音は玉の速さに合わせて低く小さく
+        rolling.speed(Math.max(0, 1 - u) ** 0.8);
+        if (t < tDrop) r = TRACK + Math.sin(t / 90) * 0.6;
+        else {
+          const v = (t - tDrop) / (tLand - tDrop); r = TRACK - (TRACK - POCKET) * v * v;
+          // 落ちていく途中も、数字の輪の仕切りを越えるたびにカチカチ
+          const slot = Math.floor((((a - w) % 360) + 360) % 360 / STEP);
+          if (slot !== lastSlot) { sgRlSound.click(0.25 + 0.3 * v); lastSlot = slot; }
+        }
+      } else if (t < T) {
+        if (!landed) { landed = true; rolling.stop(); sgRlSound.land(); lastSlot = null; }
+        const s = (t - tLand) / (T - tLand);
+        a = w + pocketA + rel(s);
+        r = POCKET + hop(s);
+        // 跳ねながら仕切りを越えるたびにカチッ（跳ねが小さくなるほど弱く）
+        const slot = Math.round(rel(s) / STEP);
+        if (lastSlot !== null && slot !== lastSlot) sgRlSound.click(Math.min(1, hop(s) / 6 + 0.15));
+        lastSlot = slot;
+      } else { a = w + pocketA; r = POCKET; }
+      setBall(r, a);
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+}
+
 function renderSgGimmick(gimmick) {
   const el = document.getElementById('sg-gimmick');
   sgRewind = gimmick && gimmick.rewind ? gimmick.rewind : null;
+  sgRoulette = gimmick && gimmick.roulette ? gimmick.roulette : null;
+  if (sgRoulette) sgRlSound.preload();
   sgMaxShield = gimmick ? gimmick.max_shield : 0;
   sgGaugeTiers = gimmick && gimmick.gauge ? gimmick.gauge.tiers : null;
   if (gimmick && gimmick.gauge) sgGaugeAuto = gimmick.gauge.auto_accuracy;
@@ -574,6 +772,7 @@ function applySgData(data) {
   renderSgEffects(data.progress);
   updateSgDefeatedUi(!!data.progress.defeated_at);
   renderSgRewind(data.progress);
+  renderSgBet(data.progress);
   updatePointsDisplay(data.points);
   currentPoints = data.points;
   document.getElementById('sg-pull-btn').disabled = !!data.progress.defeated_at;
@@ -709,6 +908,7 @@ async function finishSgTurn(progress, defeated, awardedIcon) {
   renderSgEffects(progress);
   updateSgDefeatedUi(!!progress.defeated_at);
   renderSgRewind(progress);
+  renderSgBet(progress);
   document.getElementById('sg-pull-btn').disabled = !!progress.defeated_at;
   document.getElementById('sg-reset-btn').disabled = !!progress.defeated_at;
   if (!progress.defeated_at) setSgPullCollapsed(false);
@@ -736,7 +936,16 @@ async function toggleSgRates() {
       const gimmickNote = data.gimmick && data.gimmick.key !== 'normal'
         ? `<div class="sg-rates-group"><div class="sg-rates-group-title">ギミック: ${escHtml(data.gimmick.label)}</div><div class="sg-rates-group-p">${escHtml(data.gimmick.description)}</div></div>`
         : '';
-      panel.innerHTML = gimmickNote + data.categories.map(cat => `
+      const rouletteNote = data.roulette ? `
+        <div class="sg-rates-group">
+          <div class="sg-rates-group-title">ルーレット（10連ごとの倍率）</div>
+          ${data.roulette.map(it => `
+            <div class="sg-rates-row">
+              <span class="rlabel">${escHtml(it.label)}<br><span class="rdetail">${escHtml(it.detail)}</span></span>
+              <span class="rp">${(it.p * 100).toFixed(1)}%</span>
+            </div>`).join('')}
+        </div>` : '';
+      panel.innerHTML = gimmickNote + rouletteNote + data.categories.map(cat => `
         <div class="sg-rates-group">
           <div class="sg-rates-group-title">${escHtml(cat.label)}</div>
           <div class="sg-rates-group-p">1段階目の抽選率: ${(cat.p * 100).toFixed(0)}%</div>
@@ -844,7 +1053,7 @@ async function animateSpecialPull(results) {
     const { icon, val } = sgCardVisual(r);
     const card = document.createElement('div');
     card.className = 'g-card';
-    const multTag = sgRwMultNow > 1 && r.category === 'damage' && r.dmg > 0 && !r.blocked ? `<span class="sg-mult-tag">×${sgRwMultNow}</span>` : '';
+    const multTag = sgRwMultNow !== 1 && r.category === 'damage' && r.dmg > 0 && !r.blocked ? `<span class="sg-mult-tag${sgRwMultNow < 1 ? ' is-down' : ''}">×${sgRwMultNow}</span>` : '';
     card.innerHTML = `
       <div class="g-card-inner" id="sg-gc-${i}">
         <div class="g-card-front"><img src="/img/logo.png" alt="" style="width:70%;height:70%;object-fit:contain;opacity:0.7"></div>
@@ -954,8 +1163,12 @@ async function doSpecialPull(reset = false) {
   }
   // この10連で削る分も巻き戻しの対象なので、仮のバーの上端は連続が始まったときのHP
   if (sgRewind && sgLastProgress) sgRwTop = sgLastProgress.current_hp + (reset ? 0 : sgLastProgress.rewind_dmg || 0);
+  const betEl = document.getElementById('sg-bet');
+  betEl.classList.add('is-busy');
   try {
-    const data = await apiFetch(sgApi('/pull'), { method: 'POST', body: JSON.stringify({ reset: reset === true }) });
+    const data = await apiFetch(sgApi('/pull'), { method: 'POST', body: JSON.stringify({ reset: reset === true, ...(sgRoulette ? { bet: sgBet } : {}) }) });
+    // ルーレット：カードをめくる前に回して、この10連の倍率を決める
+    if (data.roulette) { await sgRouletteSpin(data.roulette); sgRwMultNow = data.roulette.mult; }
     await animateSpecialPull(data.results);
     await sgPlayTotal(data.results.reduce((n, r) => n + (r.dmg > 0 && !r.overkill ? r.dmg : 0), 0));
     await sgRewindCheck(data.rewind_check);
@@ -970,6 +1183,12 @@ async function doSpecialPull(reset = false) {
     const overkillDmg = data.results.reduce((s, r) => s + (r.dmg > 0 && r.overkill ? r.dmg : 0), 0);
     const blockedCount = data.results.filter(r => r.blocked).length;
     const notes = [];
+    if (data.roulette) {
+      const rl = data.roulette;
+      const what = rl.number === 0 ? '0（緑）' : `${rl.number}（${SG_BET[rl.color].t}・${SG_BET[rl.parity].t}）`;
+      const word = { zero: 'JACKPOT', win: 'WIN', lose: 'LOSE' }[rl.outcome];
+      notes.push(`ルーレット ${what} ${word ? `${word} ×${rl.mult}` : '賭けなし'}`);
+    }
     if (blockedCount) notes.push(`シールドに ${blockedCount} 回防がれた`);
     if (gauge.total) notes.push(`ゲージ攻撃 ${gauge.total.toLocaleString('ja-JP')}`);
     if (data.leftover_gauge_damage) notes.push(`前回のゲージ攻撃 ${data.leftover_gauge_damage.toLocaleString('ja-JP')}`);
@@ -981,7 +1200,9 @@ async function doSpecialPull(reset = false) {
     updatePointsDisplay(currentPoints);
     if (data.free_left !== undefined) renderSgCost(undefined, data.free_left);
     await finishSgTurn(progress, defeated, awardedIcon);
+    betEl.classList.remove('is-busy');
   } catch (err) {
+    betEl.classList.remove('is-busy');
     showToast(err.message, 'error');
     btn.disabled = false;
     document.getElementById('sg-reset-btn').disabled = false;

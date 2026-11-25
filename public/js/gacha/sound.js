@@ -54,3 +54,81 @@ function _seStop(node) {
   if (!node) return;
   try { node.stop(); } catch (e) {}
 }
+
+// ===== ルーレットの音（音のファイルを使わず、その場で作る） =====
+// 転がる音（雑音を帯域で絞った連続音）・仕切りに当たる音・収まる音・結果の音。ミュート中は鳴らさない
+const sgRlSound = (() => {
+  let noiseBuf = null;
+  const noise = ctx => {
+    if (noiseBuf) return noiseBuf;
+    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    return noiseBuf;
+  };
+  const on = () => !_gachaMuted;
+  // 玉が転がる音。speed（0〜1）で高さと大きさが変わる
+  function roll() {
+    if (!on()) return { speed() {}, stop() {} };
+    const ctx = _getAudioCtx();
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx); src.loop = true;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.4;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+    const g = ctx.createGain(); g.gain.value = 0;
+    // 細かいゴロゴロ感：音量を速く揺らす
+    const lfo = ctx.createOscillator(), lfoG = ctx.createGain();
+    lfo.frequency.value = 28; lfoG.gain.value = 0.02;
+    lfo.connect(lfoG).connect(g.gain);
+    src.connect(bp).connect(lp).connect(g).connect(ctx.destination);
+    src.start(); lfo.start();
+    return {
+      speed(v) {
+        const t = ctx.currentTime;
+        bp.frequency.setTargetAtTime(260 + 900 * v, t, 0.05);
+        lfo.frequency.setTargetAtTime(10 + 30 * v, t, 0.05);
+        g.gain.setTargetAtTime(0.025 + 0.06 * v, t, 0.05);
+      },
+      stop() {
+        const t = ctx.currentTime;
+        g.gain.cancelScheduledValues(t); g.gain.setTargetAtTime(0, t, 0.04);
+        setTimeout(() => { try { src.stop(); lfo.stop(); } catch (_) {} }, 300);
+      },
+    };
+  }
+  // 仕切りに当たる「カチッ」（強さ 0〜1）
+  function click(v = 0.5) {
+    if (!on()) return;
+    const ctx = _getAudioCtx(), t = ctx.currentTime;
+    const src = ctx.createBufferSource(); src.buffer = noise(ctx);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600 + Math.random() * 900; bp.Q.value = 6;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.05 + 0.25 * v, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    src.connect(bp).connect(g).connect(ctx.destination);
+    src.start(t, Math.random()); src.stop(t + 0.05);
+  }
+  // ポケットに落ちた瞬間：仕切りに当たる「カチッ」を強めに2回（別の音は足さない）
+  function land() {
+    click(1);
+    setTimeout(() => click(0.7), 45);
+  }
+  // 結果の音（効果音の素材）。ルーレットの敵を開いたときに読み込んでおく
+  const RESULT = { win: '/sounds/roulette_win.mp3', zero: '/sounds/roulette_jackpot.mp3', lose: '/sounds/roulette_lose.mp3' };
+  const preload = () => Object.values(RESULT).forEach(_sePreload);
+  // 大当たりの音は長いので、2秒で止める（最後の0.2秒で小さくしていく）
+  const CUT = { zero: 2 };
+  function result(kind) {
+    const src = RESULT[kind];
+    if (!src || !on() || !_audioBuffers[src]) return;
+    const ctx = _getAudioCtx(), t = ctx.currentTime;
+    const node = ctx.createBufferSource(), g = ctx.createGain();
+    node.buffer = _audioBuffers[src];
+    node.connect(g).connect(ctx.destination);
+    const cut = CUT[kind];
+    if (cut) {
+      g.gain.setValueAtTime(1, t + cut - 0.2);
+      g.gain.linearRampToValueAtTime(0, t + cut);
+      node.start(t); node.stop(t + cut);
+    } else node.start(t);
+  }
+  return { roll, click, land, result, preload };
+})();

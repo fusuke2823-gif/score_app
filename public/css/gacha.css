@@ -1188,3 +1188,71 @@ body.sg-vhs-on #special-gacha-screen { filter:saturate(0.55) hue-rotate(-12deg) 
 /* 最初の2回無料の札（10連ボタンの左上） */
 .sg-free-badge { position:absolute; top:6px; left:6px; z-index:2; padding:2px 8px; border-radius:99px; font-size:calc(var(--bw) * 0.07); font-weight:900; color:#fff; background:linear-gradient(135deg, #ff4d65, #a03070); box-shadow:0 0 10px rgba(255,77,101,0.8); white-space:nowrap; }
 .sg-free-badge[hidden] { display:none; }
+
+/* ===== ルーレットギミック ===== */
+/* 賭けのパネル（敵のカードの中、HPの下） */
+.sg-bet { margin-top:12px; padding:12px; border-radius:12px; background:linear-gradient(160deg, rgba(40,14,24,0.85), rgba(14,12,30,0.85)); border:1px solid rgba(255,77,101,0.35); }
+.sg-bet[hidden] { display:none; }
+.sg-bet.is-busy { pointer-events:none; opacity:0.7; }
+.sg-bet-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.sg-bet-title { font-family:"Orbitron",sans-serif; font-weight:800; font-size:0.72rem; letter-spacing:0.2em; color:#ff8a9b; display:flex; align-items:center; gap:6px; }
+.sg-bet-title svg { width:16px; height:16px; }
+.sg-bet-clear { font-size:0.7rem; color:var(--text-muted); background:none; border:1px solid rgba(255,255,255,0.15); border-radius:99px; padding:3px 10px; cursor:pointer; }
+.sg-bet-clear.on { color:#fff; border-color:rgba(255,255,255,0.5); }
+.sg-bet-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; max-width:440px; margin:0 auto; }
+.sg-chip { position:relative; height:54px; border-radius:10px; border:1.5px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.04); color:#e8e8f0;
+  font:inherit; font-weight:800; font-size:0.95rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; cursor:pointer; transition:transform .12s, opacity .15s; }
+.sg-chip:active { transform:scale(0.96); }
+.sg-chip small { font-family:"Orbitron",sans-serif; font-size:0.52rem; letter-spacing:0.12em; opacity:0.6; font-weight:700; }
+.sg-chip.red { color:#ff6b7f; } .sg-chip.black { color:#d6d6e6; }
+.sg-chip.red.on { background:linear-gradient(160deg,#e23a52,#8e1830); border-color:#ff9aa8; color:#fff; box-shadow:0 0 14px rgba(255,77,101,0.55); }
+.sg-chip.black.on { background:linear-gradient(160deg,#3a3a4a,#111118); border-color:#c9c9d8; color:#fff; box-shadow:0 0 14px rgba(200,200,230,0.35); }
+.sg-chip.par.on { background:linear-gradient(160deg,#2c5a8a,#16284a); border-color:#8fc4ff; color:#fff; box-shadow:0 0 14px rgba(120,180,255,0.45); }
+.sg-chip.on::after { content:""; position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #ffe08a, #e0a020 60%, #8a5a00); border:2px dashed rgba(255,255,255,0.75); box-shadow:0 2px 6px rgba(0,0,0,0.5); }
+.sg-chip.dis { opacity:0.35; }
+.sg-bet-mode { margin-top:9px; font-size:0.74rem; text-align:center; color:#cfcde6; line-height:1.7; }
+.sg-bet-mode b { color:#fff; }
+.sg-bet-odds { margin:8px auto 0; display:flex; gap:8px; max-width:440px; }
+.sg-odd { flex:1; border-radius:8px; padding:6px 8px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); text-align:center; }
+.sg-odd span { display:block; font-size:0.62rem; color:var(--text-muted); }
+.sg-odd b { font-family:"Orbitron",sans-serif; font-size:1.05rem; }
+.sg-odd.win b { color:#ffd36b; } .sg-odd.lose b { color:#8f8fa8; } .sg-odd.zero b { color:#3ee08a; }
+/* 賭けの札（パネル・ルーレット・結果で同じ色） */
+.sg-bet-pill { display:inline-block; padding:1px 8px; border-radius:99px; font-size:0.7rem; font-weight:800; color:#fff; margin:0 2px; line-height:1.6; }
+.sg-bet-pill.red { background:#c42840; } .sg-bet-pill.black { background:#2b2b36; box-shadow:inset 0 0 0 1px #8a8aa0; } .sg-bet-pill.par { background:#2c5a8a; } .sg-bet-pill.zero { background:#169c5a; }
+.sg-mult-tag.is-down { background:#6a6a80; color:#fff; }
+
+/* ルーレットの演出 */
+.sg-rl { position:fixed; inset:0; z-index:3100; display:flex; align-items:center; justify-content:center; padding:16px; background:radial-gradient(circle at 50% 45%, rgba(60,10,25,0.9), rgba(0,0,0,0.95)); }
+.sg-rl[hidden] { display:none; }
+.sg-rl-box { width:min(92vw,400px); text-align:center; }
+.sg-rl-title { font-family:"Orbitron",sans-serif; font-weight:800; letter-spacing:0.3em; font-size:0.8rem; color:#ff8a9b; margin-bottom:6px; }
+.sg-rl-bet { font-size:0.8rem; color:#e8e8f0; margin-bottom:12px; min-height:22px; }
+.sg-rl-nobet { opacity:0.65; }
+.sg-rl-wheel { position:relative; width:min(84vw,340px); aspect-ratio:1; margin:0 auto; }
+.sg-rl-wheel svg { width:100%; height:100%; display:block; filter:drop-shadow(0 0 24px rgba(255,77,101,0.35)); }
+.sg-rl-rotor text { fill:#fff; font-size:12px; font-weight:800; font-family:"Orbitron",sans-serif; text-anchor:middle; dominant-baseline:central; }
+.sg-rl-ball { filter:drop-shadow(0 0 4px rgba(255,255,255,0.8)); }
+.sg-rl-center { position:absolute; inset:33%; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none;
+  background:radial-gradient(circle at 40% 35%, #2a2245, #0e0b1c); border:2px solid rgba(255,211,107,0.55); box-shadow:inset 0 0 20px rgba(0,0,0,0.8); }
+.sg-rl-num { font-family:"Orbitron",sans-serif; font-weight:900; font-size:2.4rem; line-height:1; color:rgba(255,255,255,0.3); }
+.sg-rl-num.red { color:#ff5a70; text-shadow:0 0 16px rgba(255,77,101,0.9); }
+.sg-rl-num.black { color:#fff; text-shadow:0 0 12px rgba(255,255,255,0.6); }
+.sg-rl-num.green { color:#3ee08a; text-shadow:0 0 16px rgba(62,224,138,0.9); }
+.sg-rl-num.pop { animation:sgRlPop 0.35s ease; }
+@keyframes sgRlPop { 40% { transform:scale(1.3); } }
+.sg-rl-tags { margin-top:5px; display:flex; gap:2px; }
+.sg-rl-tags:empty { display:none; }
+.sg-rl-tags .sg-bet-pill { font-size:0.64rem; opacity:0.35; }
+.sg-rl-tags .sg-bet-pill.hit { opacity:1; box-shadow:0 0 0 2px #ffd36b, 0 0 10px rgba(255,211,107,0.8); }
+.sg-rl-res { margin-top:14px; min-height:60px; }
+.sg-rl-res b { display:block; font-family:"Orbitron",sans-serif; font-weight:900; font-size:1.9rem; letter-spacing:0.08em; animation:sgRlPop 0.4s ease; }
+.sg-rl-res b.is-win { color:#ffd36b; text-shadow:0 0 18px rgba(255,211,107,0.8); }
+.sg-rl-res b.is-jack { color:#3ee08a; text-shadow:0 0 22px rgba(62,224,138,0.9); font-size:2.2rem; }
+.sg-rl-res b.is-lose { color:#8f8fa8; }
+.sg-rl-res small { font-size:0.78rem; color:#e8e8f0; }
+.sg-rl.end-zero .sg-rl-wheel svg { filter:drop-shadow(0 0 34px rgba(62,224,138,0.75)); }
+.sg-rl.end-win .sg-rl-wheel svg { filter:drop-shadow(0 0 30px rgba(255,211,107,0.6)); }
+.sg-rl-hint { margin-top:6px; font-size:0.7rem; color:var(--text-muted); min-height:16px; }
+@media (prefers-reduced-motion: reduce) { .sg-rl-num.pop, .sg-rl-res b { animation:none; } }
