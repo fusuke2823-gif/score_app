@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { rateLimitKey } = require('./utils/clientIp');
 
 const app = express();
@@ -34,11 +36,51 @@ app.use((req, res, next) => {
 });
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+// HTML の中の /js/・/css/ に版の印（中身のハッシュ ?v=）を付けて返す。印つきの JS・CSS はブラウザに1年覚えさせ、
+// ページを移るたびに「変わっていないか」をサーバーに確かめる待ち（約0.1秒）をなくす。中身が変わると印も変わるので、デプロイ後は読み直される。
+// HTML は毎回確かめる。本番ではハッシュと書き換えた HTML を覚えておく（デプロイで入れ替わる）、手元では毎回読み直す
+const PUBLIC_DIR = path.join(__dirname, 'public');
+const CACHE_PAGES = process.env.NODE_ENV === 'production';
+const assetHashes = new Map();
+function assetHash(urlPath) {
+  if (CACHE_PAGES && assetHashes.has(urlPath)) return assetHashes.get(urlPath);
+  let h = null;
+  try { h = crypto.createHash('md5').update(fs.readFileSync(path.join(PUBLIC_DIR, urlPath))).digest('hex').slice(0, 10); } catch {}
+  assetHashes.set(urlPath, h);
+  return h;
+}
+const pageCache = new Map();
+function versionedPage(file) {
+  if (CACHE_PAGES && pageCache.has(file)) return pageCache.get(file);
+  let html = null;
+  try {
+    html = fs.readFileSync(file, 'utf8').replace(/((?:src|href)=")(\/(?:js|css)\/[^"?#]+\.(?:js|css))"/g, (m, a, u) => {
+      const h = assetHash(u);
+      return h ? `${a}${u}?v=${h}"` : m;
+    });
+  } catch {}
+  pageCache.set(file, html);
+  return html;
+}
+app.use((req, res, next) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  let p = req.path;
+  if (p.endsWith('/')) p += 'index.html';
+  if (!p.endsWith('.html')) return next();
+  const file = path.join(PUBLIC_DIR, p);
+  if (!file.startsWith(PUBLIC_DIR + path.sep)) return next();
+  const html = versionedPage(file);
+  if (html == null) return next();
+  res.setHeader('Cache-Control', 'no-cache');
+  res.type('html').send(html);
+});
+
 // 画像は中身がほとんど変わらないので、ブラウザに30日覚えさせる（デプロイのたびに全員が読み直して転送量が増えないように）。
-// 画像を差し替えるときはファイル名を変える。HTML・CSS・JS はこれまでどおり毎回確かめる
-app.use(express.static(path.join(__dirname, 'public'), {
+// 画像を差し替えるときはファイル名を変える。印（?v=）つきの JS・CSS は1年。それ以外の HTML・CSS・JS は毎回確かめる
+app.use(express.static(PUBLIC_DIR, {
   setHeaders: (res, filePath) => {
     if (/[\\/]img[\\/]/.test(filePath)) res.setHeader('Cache-Control', 'public, max-age=2592000');
+    else if (/\.(js|css)$/.test(filePath) && res.req && res.req.query && res.req.query.v) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   },
 }));
 

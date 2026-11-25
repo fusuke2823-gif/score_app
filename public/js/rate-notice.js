@@ -9,7 +9,7 @@ const RN_ORDER = ['C', 'B', 'A', 'S', 'X', 'Ex', 'Legend'];
 const RN_TIER = ['C', 'B', 'A', 'S', 'X', 'Ex'];
 
 const rnBadge = (v, legendRank) => v.rank === 'Legend'
-  ? `/img/legend${legendRank || 1}.png` : `/img/rank_${v.rank.toLowerCase()}.png`;
+  ? `/img/legend${legendRank || 1}.webp` : `/img/rank_${v.rank.toLowerCase()}.webp`;
 const rnRankText = (v, d) => v.rank === 'Legend' ? `LEGEND${d?.legend_rank ? ` <small>${d.legend_rank}位</small>` : ''}` : v.rank;
 // 回の短い名前（グラフの下と一覧で使う）
 function rnShort(step) {

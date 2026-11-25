@@ -248,8 +248,8 @@ function renderMyCard() {
   const my = rows[idx];
   const rate = rateOf(my) != null ? Math.floor(rateOf(my)) : '-';
   const badge = my.comp_rank === 'Legend'
-    ? `<img src="/img/legend${my.legend_rank}.png" alt="LEGEND ${my.legend_rank}">`
-    : `<img class="sq" src="/img/rank_${my.comp_rank.toLowerCase()}.png" alt="${my.comp_rank}">`;
+    ? `<img src="/img/legend${my.legend_rank}.webp" alt="LEGEND ${my.legend_rank}">`
+    : `<img class="sq" src="/img/rank_${my.comp_rank.toLowerCase()}.webp" alt="${my.comp_rank}">`;
   let goal = '';
   if (viewing()?.current) {
     const x = my.x_rate || 0;
@@ -297,8 +297,8 @@ function renderTable(list) {
     const fc = r.equipped_frame || '';
     const rankLabel = `<span class="rr-rank-label">
       ${r.comp_rank === 'Legend'
-        ? `<img src="/img/legend${r.legend_rank}.png" alt="LEGEND ${r.legend_rank}">`
-        : `<img src="/img/rank_${r.comp_rank.toLowerCase()}.png" alt="${r.comp_rank}" style="width:28px">`}
+        ? `<img src="/img/legend${r.legend_rank}.webp" alt="LEGEND ${r.legend_rank}">`
+        : `<img src="/img/rank_${r.comp_rank.toLowerCase()}.webp" alt="${r.comp_rank}" style="width:28px">`}
       ${(r.comp_rank === 'Ex' && r.ex_rank != null) ? `<span class="rr-exn">${r.ex_rank}位</span>` : ''}
     </span>`;
     const avatarInner = r.equipped_icon_url && showImages
