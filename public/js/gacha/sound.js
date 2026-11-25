@@ -55,6 +55,29 @@ function _seStop(node) {
   try { node.stop(); } catch (e) {}
 }
 
+// 音量を絞れる形で鳴らす（あとで _seFadeOut で小さくしながら止められる）
+function _sePlayFadable(src) {
+  if (_gachaMuted) return null;
+  const ctx = _getAudioCtx();
+  const buf = _audioBuffers[src];
+  if (!buf) return null;
+  const node = ctx.createBufferSource(), gain = ctx.createGain();
+  node.buffer = buf;
+  node.connect(gain).connect(ctx.destination);
+  node.start(0);
+  return { node, gain };
+}
+// after 秒待ってから fade 秒かけて小さくし、止める
+function _seFadeOut(h, after = 0, fade = 0.5) {
+  if (!h) return;
+  const ctx = _getAudioCtx(), t = ctx.currentTime + after;
+  try {
+    h.gain.gain.setValueAtTime(1, t);
+    h.gain.gain.linearRampToValueAtTime(0, t + fade);
+    h.node.stop(t + fade + 0.02);
+  } catch (e) {}
+}
+
 // ===== ルーレットの音（音のファイルを使わず、その場で作る） =====
 // 転がる音（雑音を帯域で絞った連続音）・仕切りに当たる音・収まる音・結果の音。ミュート中は鳴らさない
 const sgRlSound = (() => {

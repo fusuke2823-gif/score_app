@@ -118,7 +118,7 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
   }
   cu.addEventListener('click', onTap);
   // SKIPボタンから今の1枚を閉じられるようにしておく
-  _gxActiveReveal = { rarity: r, close: () => { jumped = true; if (wakeUp) wakeUp(); _seStop(audio); _seStop(nameAudio); finish(); } };
+  _gxActiveReveal = { rarity: r, close: () => { jumped = true; if (wakeUp) wakeUp(); _seStop(audio); _seFadeOut(nameAudio, 0, 0.2); finish(); } };
   finishedP.then(() => { _gxActiveReveal = null; });
   requestAnimationFrame(() => cu.classList.add('show'));
 
@@ -155,12 +155,12 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
     }
     if (!jumped) {
       intro.classList.add('in');
-      nameAudio = cfg.nameSound ? _sePlay(cfg.nameSound) : null;
+      nameAudio = cfg.nameSound ? _sePlayFadable(cfg.nameSound) : null;
       await wait(1400);
     }
     intro.classList.add('out');
-    // 名前の部分が終わったら名前の音を止める
-    _seStop(nameAudio);
+    // 名前の部分が終わったら、名前の音を少し流してからフェードアウトして止める
+    _seFadeOut(nameAudio, 0.8, 0.6);
     cu.classList.remove('dim');
     ov.classList.remove('cu-name');
     if (!jumped) await wait(400);
