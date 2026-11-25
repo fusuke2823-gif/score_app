@@ -78,6 +78,23 @@ function _seFadeOut(h, after = 0, fade = 0.5) {
   } catch (e) {}
 }
 
+// ===== リフルシャッフルの音 =====
+// 札が1枚ずつ噛み合うたびに put_card を鳴らす。count 回を startMs 後から gapMs ごとに（重なるので少し小さめに）
+function _seRiffle(count, gapMs, startMs = 0) {
+  if (_gachaMuted) return;
+  const buf = _audioBuffers['/sounds/put_card.mp3'];
+  if (!buf) return;
+  const ctx = _getAudioCtx();
+  const t0 = ctx.currentTime + startMs / 1000;
+  for (let k = 0; k < count; k++) {
+    const node = ctx.createBufferSource(), g = ctx.createGain();
+    node.buffer = buf;
+    g.gain.value = 0.55;
+    node.connect(g).connect(ctx.destination);
+    node.start(t0 + k * gapMs / 1000);
+  }
+}
+
 // ===== ルーレットの音（音のファイルを使わず、その場で作る） =====
 // 転がる音（雑音を帯域で絞った連続音）・仕切りに当たる音・収まる音・結果の音。ミュート中は鳴らさない
 const sgRlSound = (() => {

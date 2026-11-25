@@ -386,6 +386,8 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     deck.classList.add('split');
     await waitOrSkip(320);
     _sePlay('/sounds/put_card.mp3');
+    // 札が1枚ずつ落ちて噛み合うたびに put_card を続けて鳴らす（札は34msずつずれて、0.16秒で落ちる）
+    _seRiffle(DECK_N, 34, 160);
     deck.classList.add('merge');
     deck.classList.remove('split');
     await waitOrSkip(DECK_N * 34 + 200);
