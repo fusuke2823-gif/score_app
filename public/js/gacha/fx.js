@@ -99,6 +99,7 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
   // 音は見えている色のものを鳴らす（昇格する前に本来の音が鳴るとばれるため）
   const shownSound = (GX_REVEAL[shownRarity] || GX_REVEAL.A).sound;
   let audio = shownSound ? _sePlay(shownSound) : null;
+  let nameAudio = null;
   let jumped = false, revealed = false, finished = false, finishResolve;
   const finishedP = new Promise(res => { finishResolve = res; });
   let wakeUp = null;
@@ -117,7 +118,7 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
   }
   cu.addEventListener('click', onTap);
   // SKIPボタンから今の1枚を閉じられるようにしておく
-  _gxActiveReveal = { rarity: r, close: () => { jumped = true; if (wakeUp) wakeUp(); _seStop(audio); finish(); } };
+  _gxActiveReveal = { rarity: r, close: () => { jumped = true; if (wakeUp) wakeUp(); _seStop(audio); _seStop(nameAudio); finish(); } };
   finishedP.then(() => { _gxActiveReveal = null; });
   requestAnimationFrame(() => cu.classList.add('show'));
 
@@ -154,10 +155,12 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
     }
     if (!jumped) {
       intro.classList.add('in');
-      if (cfg.nameSound) _sePlay(cfg.nameSound);
+      nameAudio = cfg.nameSound ? _sePlay(cfg.nameSound) : null;
       await wait(1400);
     }
     intro.classList.add('out');
+    // 名前の部分が終わったら名前の音を止める
+    _seStop(nameAudio);
     cu.classList.remove('dim');
     ov.classList.remove('cu-name');
     if (!jumped) await wait(400);
@@ -350,7 +353,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     // 回転の軸は札の真ん中に（札の下を軸のままだと、大きく回したときに下へ寄って見えるため）
     cards.forEach(c => { c.style.transformOrigin = '50% 50%'; });
     deck.classList.add('scatter');
-    _sePlay('/sounds/turn.mp3');
+    _sePlay('/sounds/put_card.mp3');
     const out = cards.map((c, k) => {
       const p = spots[k];
       return c.animate([
@@ -382,7 +385,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
   if (!fast()) {
     deck.classList.add('split');
     await waitOrSkip(320);
-    _sePlay('/sounds/turn.mp3');
+    _sePlay('/sounds/put_card.mp3');
     deck.classList.add('merge');
     deck.classList.remove('split');
     await waitOrSkip(DECK_N * 34 + 200);
