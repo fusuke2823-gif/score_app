@@ -735,7 +735,7 @@ async function load() {
   try {
     // サーバーが HTML に埋め込んだ一覧があれば使う（なければ取りに行く）
     const pre = window.__EVENTS__; window.__EVENTS__ = null;
-    allEvents = (Array.isArray(pre) ? pre : await apiFetch('/events')).filter(e => e.event_type !== 'media_only');
+    allEvents = (Array.isArray(pre) ? (getLang() === 'zh' ? zhLabels(pre) : pre) : await apiFetch('/events')).filter(e => e.event_type !== 'media_only');
     const el = document.getElementById('content');
     if (allEvents.length === 0) {
       el.innerHTML = `<div class="empty-state">

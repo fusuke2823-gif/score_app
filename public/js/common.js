@@ -422,6 +422,20 @@ function seasonLabel(s) {
   if (s == null || getLang() !== 'zh') return s;
   return String(s).replace(/(\d{4})(冬|春|夏|秋)シーズン/g, '$1$2季賽季').replace(/フレーム/g, '外框');
 }
+// イベント名（管理画面で日本語で入れている）を、中国語の表示では公式の繁体字の呼び名に言い換える。
+// 決まった形（スコアアタック#105、セラフ遭遇戦演習#8 など）だけで、ほかの名前はそのまま
+function eventLabel(s) {
+  if (s == null || getLang() !== 'zh' || typeof s !== 'string') return s;
+  return s.replace(/セラフ遭遇戦演習/g, '熾天使遭遇戰演習').replace(/セラフ遭遇戦/g, '熾天使遭遇戰').replace(/スコアアタック/g, '積分挑戰');
+}
+// API の中身の文字列を全部 eventLabel にかける（イベント名・称号の名前・お知らせの見出しなどに含まれる呼び名も変わる）
+function zhLabels(v) {
+  if (typeof v === 'string') return /スコアアタック|セラフ遭遇戦/.test(v) ? eventLabel(v) : v;
+  if (Array.isArray(v)) return v.map(zhLabels);
+  // 人の名前は変えない（プロフィールの編集欄に入って、そのまま保存されないように）
+  if (v && typeof v === 'object' && v.constructor === Object) { for (const k in v) if (k !== 'username') v[k] = zhLabels(v[k]); }
+  return v;
+}
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
@@ -487,7 +501,7 @@ function _handleAuthError(res, data) {
 // 人ごとに分ける。fn は結果を返す関数（失敗したら覚えない）
 async function cachedFor(name, ttlMs, fn) {
   const u = getUser();
-  const key = `hbr_c_${u ? u.id : 0}_${name}`;
+  const key = `hbr_c_${u ? u.id : 0}_${getLang()}_${name}`;
   try { const c = JSON.parse(sessionStorage.getItem(key) || 'null'); if (c && Date.now() - c.t < ttlMs) return c.v; } catch {}
   const v = await fn();
   try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); } catch {}
@@ -495,7 +509,7 @@ async function cachedFor(name, ttlMs, fn) {
 }
 function forgetCached(name) {
   const u = getUser();
-  try { sessionStorage.removeItem(`hbr_c_${u ? u.id : 0}_${name}`); } catch {}
+  try { sessionStorage.removeItem(`hbr_c_${u ? u.id : 0}_${getLang()}_${name}`); } catch {}
 }
 
 async function apiFetch(path, options = {}) {
@@ -505,6 +519,8 @@ async function apiFetch(path, options = {}) {
     if (_handleAuthError(res, data)) return;
     throw new Error(data.error || t('error'));
   }
+  // 中国語の表示では、読み込んだ中身のイベント名・称号などを言い換える（管理画面と書き込みは元のまま。編集した名前が中国語で保存されないように）
+  if (getLang() === 'zh' && (!options.method || options.method === 'GET') && !location.pathname.startsWith('/admin')) return zhLabels(data);
   return data;
 }
 
@@ -1029,7 +1045,7 @@ async function initAnnouncementCheck() {
   try {
     const token = getToken();
     // お知らせは5分覚えておく
-    const list = await cachedFor('announcements', 5 * 60 * 1000, () => fetch(API + '/announcements', { headers: token ? { Authorization: 'Bearer ' + token } : {} }).then(r => r.json()));
+    const list = await cachedFor('announcements', 5 * 60 * 1000, () => fetch(API + '/announcements', { headers: token ? { Authorization: 'Bearer ' + token } : {} }).then(r => r.json()).then(d => getLang() === 'zh' ? zhLabels(d) : d));
     if (!Array.isArray(list) || list.length === 0) return;
     // お知らせのリンクで別のページへ移ったときは、残りの未読はTOPに戻るまで出さない
     const onTop = ['/', '/index.html'].includes(location.pathname);
