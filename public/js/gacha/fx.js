@@ -61,8 +61,9 @@ function closeGxOverlay() {
 let _gxActiveReveal = null;
 const GX_REVEAL = {
   A:  { charge: 350, hold: 1100, sound: null },
-  S:  { charge: 650, hold: 1500, sound: '/sounds/s_sound.mp3' },
-  SS: { charge: 900, hold: 3500, sound: '/sounds/ss_sound.mp3' },
+  S:  { charge: 650, hold: 1500, sound: '/sounds/s_sound2.mp3' },
+  // SS：カードが出たときに ss_sound2_1、名前が出るところで ss_sound2_2
+  SS: { charge: 900, hold: 3500, sound: '/sounds/ss_sound2_1.mp3', nameSound: '/sounds/ss_sound2_2.mp3' },
 };
 async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = null } = {}) {
   const r = icon.rarity;
@@ -153,6 +154,7 @@ async function _gxReveal(icon, shownRarity, { onUpgrade = null, onRevealed = nul
     }
     if (!jumped) {
       intro.classList.add('in');
+      if (cfg.nameSound) _sePlay(cfg.nameSound);
       await wait(1400);
     }
     intro.classList.add('out');
@@ -204,8 +206,9 @@ const GX_INTROS = {};
 // 数字はその回のうちの割合（合計が1未満なら、残りは山札の色昇格）。0 なら出さない
 //  pre-plain ：タップ前・演出なし（タップでいきなり虹）
 //  pre-meteor：タップ前・流れ星（タップ待ちの背景に流れ星 → タップで虹）
+//  pre-sound ：タップ前・確定音（山札が着地したところで確定音が鳴る → タップで虹）
 //  post-scatter：タップ後・飛び散る（タップで札がいきなり飛び散り、集まると虹になっている）
-const GX_CONFIRM_RATES = { 'pre-plain': 0.25, 'pre-meteor': 0.25, 'post-scatter': 0.25 };
+const GX_CONFIRM_RATES = { 'pre-plain': 0.2, 'pre-meteor': 0.2, 'pre-sound': 0.2, 'post-scatter': 0.2 };
 function _gxPickConfirm(tint) {
   if (tint !== 'SS') return null;
   let r = Math.random();
@@ -270,7 +273,7 @@ async function _gxDealFrom(cardEls, from, { fast, onEach } = {}) {
     const dx = (f.left + f.width / 2) - (r.left + r.width / 2), dy = (f.top + f.height / 2) - (r.top + r.height / 2);
     const sc = (f.width / r.width).toFixed(3);
     const rot = (Math.random() * 24 - 12).toFixed(1);
-    _sePlay('/sounds/putcard.mp3');
+    _sePlay('/sounds/put_card.mp3');
     // 飛んでいる間は山札の札と同じ見た目にし、着地したところで色（見せかけのレアリティ）を付ける
     setTimeout(() => card.classList.remove('in-flight'), 340);
     // 札と同じ位置・大きさから持ち上げて、弧を描いて飛ぶ
@@ -311,12 +314,15 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
   setTint('none');
   requestAnimationFrame(() => deck.classList.add('in'));
   await waitOrSkip(480);
-  if (!fast()) { _sePlay('/sounds/putcard.mp3'); _gxRestart(stage, 'gx-quake'); }
+  if (!fast()) { _sePlay('/sounds/put_card.mp3'); _gxRestart(stage, 'gx-quake'); }
 
   // 2. タップを待つ（山札の下に「タップ」が点滅）。流れ星の確定演出はこの間に出す
   const stopMeteors = confirm === 'pre-meteor' && !fast() ? _gxMeteors(ov, stage) : null;
+  // 確定音の確定演出：タップ待ちの間に確定音を鳴らす（タップしたら止める）
+  const kakutei = confirm === 'pre-sound' && !fast() ? _sePlay('/sounds/kakutei.mp3') : null;
   await waitTap(deck);
   if (stopMeteors) stopMeteors();
+  _seStop(kakutei);
   // タップで色が付く。タップ前の確定演出ならここで虹（フラッシュ）
   setTint(steps[0]);
   if (!fast()) {
@@ -366,7 +372,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     out.concat(back).forEach(an => an.cancel());
     cards.forEach(c => { c.style.transformOrigin = ''; });
     deck.classList.remove('scatter');
-    _sePlay('/sounds/putcard.mp3');
+    _sePlay('/sounds/put_card.mp3');
     setTint('SS');
     _gxScreenFlash(); bloom();
     await waitOrSkip(700);
@@ -381,7 +387,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     deck.classList.remove('split');
     await waitOrSkip(DECK_N * 34 + 200);
     deck.classList.remove('merge');
-    _sePlay('/sounds/putcard.mp3');
+    _sePlay('/sounds/put_card.mp3');
     await waitOrSkip(160);
   }
 
@@ -391,7 +397,7 @@ GX_INTROS.deck = async ({ ov, stage, wrap, cardEls, tint, steps, confirm, waitOr
     deck.classList.add('shake');
     await waitOrSkip(450);
     deck.classList.remove('shake');
-    const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound.mp3' : '/sounds/s_sound.mp3');
+    const upAudio = _sePlay(up === 'SS' ? '/sounds/ss_sound2_1.mp3' : '/sounds/s_sound2.mp3');
     setTimeout(() => _seStop(upAudio), 700);
     setTint(up);
     if (up === 'SS') _gxScreenFlash();

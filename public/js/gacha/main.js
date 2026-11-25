@@ -28,7 +28,7 @@ let selectedPoolId = null;
 let gPools = [];
 
 async function init() {
-  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/s_sound.mp3','/sounds/putcard.mp3','/sounds/gauge_hit.mp3'].forEach(_sePreload);
+  ['/sounds/turn.mp3','/sounds/ss_sound.mp3','/sounds/ss_sound2_1.mp3','/sounds/ss_sound2_2.mp3','/sounds/s_sound.mp3','/sounds/s_sound2.mp3','/sounds/put_card.mp3','/sounds/gauge_hit.mp3','/sounds/kakutei.mp3'].forEach(_sePreload);
   try {
     const [settings, myData, pools] = await Promise.all([
       apiFetch('/gacha/settings'),

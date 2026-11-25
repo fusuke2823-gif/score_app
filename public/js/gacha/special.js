@@ -410,7 +410,7 @@ function sgRewindCheck(check) {
     const tick = () => {
       if (done) return;
       light(i % N);
-      if (i % 4 === 0) _sePlay('/sounds/putcard.mp3');
+      if (i % 4 === 0) _sePlay('/sounds/put_card.mp3');
       if (i >= steps) return finish();
       const left = steps - i;
       i++;
@@ -1096,7 +1096,7 @@ async function animateSpecialPull(results) {
     };
     const showNext = () => {
       if (done) return;
-      _sePlay('/sounds/putcard.mp3');
+      _sePlay('/sounds/put_card.mp3');
       cardEls[idx].classList.add('card-visible');
       idx++;
       if (idx >= results.length) {
