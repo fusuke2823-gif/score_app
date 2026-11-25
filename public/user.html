@@ -502,7 +502,7 @@ function resultCardHTML(e, data, hidden) {
       <div class="res-row${k === 0 ? ' is-best' : ''}">
         ${attrBadge(s.attribute, true)}
         <span class="res-score">${formatScore(s.approved_score)}</span>
-        <span class="res-attr-rank">${attrRank ? `<span>${t('user.attr')} <b>${t('user.rank_n', attrRank)}</b>${attrTotal ? `<i> / ${t('user.people', attrTotal)}</i>` : ''}</span>` : ''}</span>
+        <span class="res-attr-rank">${attrRank ? `<span>${t('user.attr')} ${getLang() === 'zh' ? `第<b>${attrRank}</b>名` : `<b>${attrRank}</b>位`}${attrTotal ? `<i> / ${t('user.people', attrTotal)}</i>` : ''}</span>` : ''}</span>
         ${thumb}
       </div>`;
   }).join('');

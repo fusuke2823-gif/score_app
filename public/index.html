@@ -532,8 +532,9 @@ const filterState = {
 
 function getEventType(e) {
   if (e.event_type === 'score_attack_ex') return 'ex';
-  if (e.name.includes('スコアアタック')) return 'score';
-  if (e.name.includes('セラフ') || e.name.includes('遭遇戦')) return 'seraph';
+  // 中国語の表示ではイベント名が公式の呼び名（積分挑戰・熾天使遭遇戰）に置き換わっているので、そちらでも見分ける
+  if (/スコアアタック|積分挑戰/.test(e.name)) return 'score';
+  if (/セラフ|遭遇戦|熾天使|遭遇戰/.test(e.name)) return 'seraph';
   return 'other';
 }
 
