@@ -420,10 +420,13 @@ function clearAuth() {
   localStorage.removeItem('user');
 }
 
-// ページロード時にDBから最新のis_internalを同期
+// ページロード時にDBから最新のis_internalを同期。/auth/me はページごとに1回だけ呼び、結果を _meOnLoad で使い回す（Google連携の確認など）
+window._meOnLoad = getToken()
+  ? fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } })
+      .then(r => r.ok ? r.json() : null).catch(() => null)
+  : Promise.resolve(null);
 if (getToken()) {
-  fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' } })
-    .then(r => r.ok ? r.json() : null)
+  window._meOnLoad
     .then(data => {
       if (data) {
         const user = getUser();
@@ -453,6 +456,21 @@ function _handleAuthError(res, data) {
     return true;
   }
   return false;
+}
+
+// ページを移るたびに呼ぶ共通の確認のうち、変わりにくいものは、このタブで少しの間だけ覚えておく（サーバーへの問い合わせを減らす）。
+// 人ごとに分ける。fn は結果を返す関数（失敗したら覚えない）
+async function cachedFor(name, ttlMs, fn) {
+  const u = getUser();
+  const key = `hbr_c_${u ? u.id : 0}_${name}`;
+  try { const c = JSON.parse(sessionStorage.getItem(key) || 'null'); if (c && Date.now() - c.t < ttlMs) return c.v; } catch {}
+  const v = await fn();
+  try { sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), v })); } catch {}
+  return v;
+}
+function forgetCached(name) {
+  const u = getUser();
+  try { sessionStorage.removeItem(`hbr_c_${u ? u.id : 0}_${name}`); } catch {}
 }
 
 async function apiFetch(path, options = {}) {
@@ -912,7 +930,7 @@ function loadNavMenu() {
     const el = document.getElementById('nm-rank');
     if (el) {
       const img = el.querySelector('img');
-      img.src = rank === 'Legend' && d.legend_rank ? `/img/legend${d.legend_rank}.png` : `/img/rank_${rank.toLowerCase()}.png`;
+      img.src = rank === 'Legend' && d.legend_rank ? `/img/legend${d.legend_rank}.webp` : `/img/rank_${rank.toLowerCase()}.webp`;
       img.alt = rank;
       img.classList.toggle('is-legend', rank === 'Legend');
       img.hidden = false;
@@ -985,7 +1003,8 @@ renderNav = function() {
 async function initAnnouncementCheck() {
   try {
     const token = getToken();
-    const list = await fetch(API + '/announcements', { headers: token ? { Authorization: 'Bearer ' + token } : {} }).then(r => r.json());
+    // お知らせは5分覚えておく
+    const list = await cachedFor('announcements', 5 * 60 * 1000, () => fetch(API + '/announcements', { headers: token ? { Authorization: 'Bearer ' + token } : {} }).then(r => r.json()));
     if (!Array.isArray(list) || list.length === 0) return;
     // お知らせのリンクで別のページへ移ったときは、残りの未読はTOPに戻るまで出さない
     const onTop = ['/', '/index.html'].includes(location.pathname);
@@ -1153,7 +1172,9 @@ async function updateFeedbackBadge() {
   const user = getUser();
   if (!user) return;
   try {
-    const data = await apiFetch('/feedback/unread-reply-count');
+    // 未読の数は1分覚えておく（お便り箱のページでは毎回確かめる）
+    if (location.pathname === '/feedback.html') forgetCached('fb_unread');
+    const data = await cachedFor('fb_unread', 60 * 1000, () => apiFetch('/feedback/unread-reply-count'));
     if (!data.count) return;
     const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
     document.querySelectorAll('a[href="/feedback.html"]').forEach(a => {
@@ -1167,7 +1188,8 @@ async function updateAdminFeedbackBadge() {
   const user = getUser();
   if (!user || user.role !== 'admin') return;
   try {
-    const data = await apiFetch('/feedback/admin-unread-count');
+    if (location.pathname.startsWith('/admin')) forgetCached('fb_admin_unread');
+    const data = await cachedFor('fb_admin_unread', 60 * 1000, () => apiFetch('/feedback/admin-unread-count'));
     if (!data.count) return;
     const badge = `<span style="display:inline-block;min-width:16px;height:16px;line-height:16px;font-size:0.65rem;font-weight:bold;background:#ef5350;color:#fff;border-radius:8px;text-align:center;padding:0 4px;margin-left:4px;vertical-align:middle">${data.count}</span>`;
     document.querySelectorAll('a[href="/admin_index.html"]').forEach(a => {
@@ -1291,7 +1313,8 @@ async function initInterimDistributionNotice() {
   let opened = false;
   try {
     // 配布は外部最終配布のみ（内部・中間配布は廃止）
-    const final = await apiFetch('/events/final-distributions/recent').catch(() => []);
+    // 最終配布の一覧は3分覚えておく（見たかどうかは interim_dist_seen_at で毎回しぼる）
+    const final = await cachedFor('final_dist', 3 * 60 * 1000, () => apiFetch('/events/final-distributions/recent')).catch(() => []);
     const seenAt = localStorage.getItem('interim_dist_seen_at');
     const isNew = d => !seenAt || new Date(d.distributed_at) > new Date(seenAt);
     const unseen = (final || []).filter(isNew).filter(d => d.user_rank != null)
@@ -2354,6 +2377,9 @@ async function initLoginBonus() {
   document.getElementById('lb-challenge-btn').addEventListener('click', lbChallenge);
   document.getElementById('lb-preview-cancel').addEventListener('click', lbEndPreview);
 
+  // その日のデイリーバトルが済んでいて、受け取れる特別ボーナスもなかったら、10分は確かめ直さない
+  const u0 = getUser(), lbDoneKey = `hbr_lb_done_${u0 ? u0.id : 0}`;
+  try { if (Date.now() - parseInt(sessionStorage.getItem(lbDoneKey) || '0', 10) < 10 * 60 * 1000) return; } catch {}
   try {
     const [status, specials] = await Promise.all([
       apiFetch('/auth/login-bonus'),
@@ -2367,6 +2393,7 @@ async function initLoginBonus() {
     // デイリーバトルのモーダルは非表示のまま残す（renderNav が再実行されたときに二重に確認しないための目印）
     if (status.already_claimed) {
       if (hasClaimableSpecial) openSpecialBonusModal(specials);
+      else try { sessionStorage.setItem(lbDoneKey, String(Date.now())); } catch {}
       return;
     }
     window._lbPendingSpecials = hasClaimableSpecial ? specials : null;
@@ -3054,11 +3081,15 @@ async function checkGoogleLink() {
   if (localStorage.getItem('google_link_dismissed')) return;
   if (/Line\/|FBAN|FBAV|Instagram|MicroMessenger|WebView|wv\b|Twitter|TwitterAndroid/i.test(navigator.userAgent)) return;
   try {
-    const me = await apiFetch('/auth/me').catch(() => null);
+    const me = await window._meOnLoad;
     if (!me || me.has_google) return;
 
-    // Google SDK のクライアントID取得
-    const { client_id } = await fetch('/api/auth/google/client-id').then(r => r.json()).catch(() => ({}));
+    // Google SDK のクライアントID取得（変わらないので、開いている間は覚えておく）
+    let client_id = sessionStorage.getItem('google_client_id');
+    if (!client_id) {
+      ({ client_id } = await fetch('/api/auth/google/client-id').then(r => r.json()).catch(() => ({})));
+      if (client_id) sessionStorage.setItem('google_client_id', client_id);
+    }
     if (!client_id) return;
 
     // バナー挿入
