@@ -33,6 +33,11 @@
 .top-ver { font-family:"Orbitron",sans-serif; font-weight:700; font-size:0.66rem; letter-spacing:0.08em; padding:3px 9px; border-radius:99px; cursor:pointer;
   border:1px solid rgba(255,255,255,0.22); background:rgba(0,0,0,0.3); color:#e8e8f0; }
 .top-ver:hover { border-color:var(--accent); }
+.top-ver { position:relative; }
+.top-ver.has-new { border-color:rgba(255,77,101,0.7); }
+.top-ver-new { position:absolute; top:-8px; right:-10px; font-size:0.5rem; letter-spacing:0.08em; padding:1px 5px; border-radius:99px;
+  background:var(--accent-grad); color:#fff; box-shadow:0 0 8px rgba(255,77,101,0.7); animation:verNewPulse 1.6s ease-in-out infinite; }
+@keyframes verNewPulse { 50% { box-shadow:0 0 14px rgba(255,77,101,1); } }
 .top-actions { display:flex; justify-content:flex-end; gap:10px; margin:6px 0 14px; }
 /* メニュー（デンチョ風）の丸いボタンと同じ見た目：水色に光る丸に、名前を丸の下の縁に重ねる */
 .top-act { --nmg:94,226,255; position:relative; display:flex; flex-direction:column; align-items:center; gap:0; text-decoration:none; color:#e8fbff;
@@ -569,7 +574,16 @@ document.addEventListener('click', () => {
 (() => {
   const latest = document.querySelector('#version-list > div > div');
   const el = document.getElementById('app-version');
-  if (el && latest) el.textContent = latest.textContent.trim();
+  if (el && latest) {
+    el.textContent = latest.textContent.trim();
+    // 新しい版を履歴でまだ見ていなければ NEW を付ける（履歴を開いたら消える）
+    try {
+      if (localStorage.getItem('hbr_ver_seen') !== el.textContent) {
+        el.classList.add('has-new');
+        el.insertAdjacentHTML('beforeend', '<span class="top-ver-new">NEW</span>');
+      }
+    } catch (_) {}
+  }
 })();
 
 // 履歴の表示：下の一覧（書き足すのはこちら）をタイムラインに組み直して出す
@@ -594,6 +608,10 @@ function buildVersionHistory() {
 
 function openVersionModal() {
   buildVersionHistory();
+  const vb = document.getElementById('app-version');
+  try { localStorage.setItem('hbr_ver_seen', vb.firstChild.textContent.trim()); } catch (_) {}
+  vb.classList.remove('has-new');
+  vb.querySelector('.top-ver-new')?.remove();
   const m = document.getElementById('version-modal');
   m.style.display = 'flex';
   lockBodyScroll();
