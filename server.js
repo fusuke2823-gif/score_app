@@ -62,16 +62,24 @@ function versionedPage(file) {
   pageCache.set(file, html);
   return html;
 }
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return next();
   let p = req.path;
   if (p.endsWith('/')) p += 'index.html';
   if (!p.endsWith('.html')) return next();
   const file = path.join(PUBLIC_DIR, p);
   if (!file.startsWith(PUBLIC_DIR + path.sep)) return next();
-  const html = versionedPage(file);
+  let html = versionedPage(file);
   if (html == null) return next();
   res.setHeader('Cache-Control', 'no-cache');
+  // TOP はイベント一覧を最初から埋め込む（JS を読み終えたらすぐ一覧を描ける。/api/events の往復を待たない）。失敗したらこれまでどおり画面から取りに行く
+  if (p === '/index.html') {
+    try {
+      const events = await require('./routes/events').listEvents();
+      const json = JSON.stringify(events).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+      html = html.replace('<script src="/js/common.js', `<script>window.__EVENTS__=${json};</script>\n<script src="/js/common.js`);
+    } catch (err) { console.error('TOP のイベント一覧の埋め込みに失敗:', err.message); }
+  }
   res.type('html').send(html);
 });
 
