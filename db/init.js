@@ -864,6 +864,9 @@ const initDB = async () => {
       -- 同じレートのときの順位の決め方：シーズン内の合計（各回の成績を線形変換したものの合計）
       ALTER TABLE season_states ADD COLUMN IF NOT EXISTS total_pt DOUBLE PRECISION NOT NULL DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS season_total DOUBLE PRECISION;
+      -- シーズンを締めたときに渡した報酬（最終ランクに応じたポイント・LEGEND の称号）。終了の演出で見せる
+      ALTER TABLE season_states ADD COLUMN IF NOT EXISTS reward_points INTEGER;
+      ALTER TABLE season_states ADD COLUMN IF NOT EXISTS reward_title VARCHAR(100);
     `);
 
     // フレームの種類（utils/frames.js）を frames テーブルにそろえる

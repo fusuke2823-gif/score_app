@@ -120,7 +120,6 @@ function playSeasonEnding(prev) {
   const tint = SEASON_TINT[(prev.key.split('-')[1] || '')] || '#ffd24a';
   const pc = RN_COLOR[prev.rank];
   const me = getUser();
-  const CROWN = '<svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 18h18l-1.6-9.5-4.4 3.8L12 5l-3 7.3-4.4-3.8z" fill="currentColor"/><rect x="3" y="19.4" width="18" height="2" rx="1" fill="currentColor"/></svg>';
   const el = document.createElement('div');
   el.id = 'season-open';
   el.className = 'end';
@@ -133,7 +132,6 @@ function playSeasonEnding(prev) {
       <div class="so-name">${escHtml(seasonLabel(prev.name))}</div>
       <div class="so-sub">${escHtml(t('so.end'))}</div>
       <div class="se-result" style="--pc:${pc}">
-        ${prev.winner ? `<div class="se-win">${CROWN}<span>${escHtml(t('so.winner'))}</span></div>` : ''}
         <div class="se-badge"><div class="rn-burst"></div><img src="${rnBadge(prev, prev.position)}" alt=""></div>
         <div class="se-rank">${prev.rank === 'Legend' ? `LEGEND <small>${prev.position}位</small>` : prev.rank}</div>
         <div class="se-row">
@@ -141,6 +139,11 @@ function playSeasonEnding(prev) {
           <div><div class="rn-k">${escHtml(t('so.final_pos'))}</div><div class="se-pos"><b>${prev.position}</b>${escHtml(t('so.pos_of', prev.participants))}</div></div>
         </div>
       </div>
+      ${prev.season_reward ? `<div class="se-sreward">
+        <div class="so-reward-k">${escHtml(t('so.season_reward'))}</div>
+        <div class="se-sreward-pt">+${prev.season_reward.points.toLocaleString('ja-JP')}<small>pt</small></div>
+        ${prev.season_reward.title ? `<div class="se-sreward-title">${escHtml(t('so.title_get', seasonLabel(prev.season_reward.title)))}</div>` : ''}
+      </div>` : ''}
       ${prev.winner && prev.reward ? `<div class="so-reward se-reward">
         <div class="so-reward-k">${escHtml(t('so.reward_unlocked')).replace('\n', '<br>')}</div>
         ${frameSampleHtml(prev.reward.css_class, me?.username || 'Player')}
@@ -252,7 +255,6 @@ function rnStyle() {
   .se-result { position:relative; margin-top:18px; padding:16px 14px 14px; border-radius:16px; background:rgba(12,10,26,0.82);
     border:1px solid color-mix(in srgb, var(--pc) 45%, transparent); box-shadow:0 0 30px color-mix(in srgb, var(--pc) 18%, transparent);
     opacity:0; transform:scale(0.92); animation:soUp 0.6s cubic-bezier(.2,1.3,.4,1) 1.7s forwards; }
-  .se-win { display:inline-flex; align-items:center; gap:6px; margin-bottom:4px; padding:3px 12px; border-radius:99px; color:#ffd24a; font-weight:900; font-size:0.85rem;
     background:rgba(255,210,74,0.12); border:1px solid rgba(255,210,74,0.5); box-shadow:0 0 16px rgba(255,210,74,0.35); }
   .se-badge { position:relative; height:92px; display:flex; align-items:center; justify-content:center; }
   .se-badge img { height:86px; width:auto; max-width:210px; object-fit:contain; filter:drop-shadow(0 0 14px color-mix(in srgb, var(--pc) 60%, transparent));
@@ -263,7 +265,12 @@ function rnStyle() {
   .se-num { font-family:"Orbitron",sans-serif; font-weight:900; font-size:2rem; line-height:1.05; color:#fff; font-variant-numeric:tabular-nums; text-shadow:0 0 14px color-mix(in srgb, var(--pc) 55%, transparent); }
   .se-pos { font-size:0.85rem; color:rgba(255,255,255,0.7); line-height:1.05; }
   .se-pos b { font-family:"Orbitron",sans-serif; font-size:2rem; color:#fff; margin-right:2px; }
-  .se-reward { animation-delay:2.9s; margin-top:16px; }
+  .se-reward { animation-delay:3.1s; margin-top:16px; }
+  .se-sreward { margin-top:18px; padding:10px 14px; border-radius:14px; background:rgba(12,10,26,0.82); border:1px solid color-mix(in srgb, var(--sc) 35%, transparent); opacity:0; transform:translateY(16px); animation:soUp 0.7s cubic-bezier(.2,1.2,.4,1) 2.6s forwards; }
+  .se-sreward-pt { font-family:"Orbitron",sans-serif; font-weight:900; font-size:1.6rem; color:#ffd24a; text-shadow:0 0 14px rgba(255,210,74,0.6); }
+  .se-sreward-pt small { font-size:0.8rem; margin-left:2px; }
+  .se-sreward-title { margin-top:4px; font-size:0.8rem; font-weight:bold; color:#fff; }
+  #season-open.skip .se-sreward { animation-delay:0s !important; animation-duration:0.01s !important; }
   #season-open.end .so-tap { animation-delay:3.4s; }
   #season-open.skip .se-result, #season-open.skip .se-badge img, #season-open.skip .se-reward { animation-delay:0s !important; animation-duration:0.01s !important; }
   #season-open.skip .so-line, #season-open.skip .so-eyebrow, #season-open.skip .so-name, #season-open.skip .so-sub, #season-open.skip .so-period, #season-open.skip .so-reward {

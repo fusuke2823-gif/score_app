@@ -11,6 +11,8 @@ const LEVELS = [['C', 0], ['B', 100], ['A', 300], ['S', 500], ['X', 1500], ['Ex'
 const LEVEL_OF = Object.fromEntries(LEVELS);
 const LEGEND_MIN_RATE = 2000;
 const LEGEND_TOP_N = 10;
+// シーズンを締めたときの報酬：参加した人全員に最終ランクに応じたポイント、LEGEND には称号 I am LEGEND "2026秋"
+const SEASON_REWARD_POINTS = { Legend: 2000, Ex: 1200, X: 800, S: 600, A: 400, B: 250, C: 150 };
 
 // firstUp：そのシーズンで初めて参加した回だけの上限（みんなが同じ上限で並ばないように）
 // EX は中位以下の成績がばらつくので、EX の回では下がらない（上がるだけ）。EX・遭遇戦の換算は通常との順位の割合に合わせたもの（rankUtils）。
@@ -228,7 +230,36 @@ async function finalizeSeason(client, season) {
   )).rows[0];
   await client.query('INSERT INTO seasons_done (season_key, winner_user_id) VALUES ($1, $2)', [season.key, top?.user_id ?? null]);
   // シーズンのフレームは渡さず、1位の人だけがショップで買えるようになる（routes/shop.js）
+  await grantSeasonRewards(client, season);
   return true;
+}
+
+// 参加した人全員に最終ランクに応じたポイントを、LEGEND の人には称号を渡す（締めるときに1回だけ。seasons_done で二重にならない）
+async function grantSeasonRewards(client, season) {
+  const rows = (await client.query('SELECT user_id, final_rank FROM season_states WHERE season_key = $1 AND events > 0', [season.key])).rows;
+  let titleId = null;
+  // 称号の名前：I am LEGEND "2026秋"（シーズン名から「シーズン」を外す）
+  const titleName = `I am LEGEND "${season.name.replace(/シーズン$/, '')}"`;
+  for (const r of rows) {
+    const pts = SEASON_REWARD_POINTS[r.final_rank] || 0;
+    if (pts > 0) {
+      await client.query('UPDATE users SET points = points + $2 WHERE id = $1', [r.user_id, pts]);
+      await client.query('INSERT INTO point_history (user_id, amount, reason) VALUES ($1, $2, $3)', [r.user_id, pts, `${season.name}の報酬（最終ランク ${r.final_rank}）`]);
+    }
+    let title = null;
+    if (r.final_rank === 'Legend') {
+      if (!titleId) {
+        const t = (await client.query("SELECT id FROM titles WHERE name = $1 AND scope = 'external'", [titleName])).rows[0];
+        titleId = t ? t.id : (await client.query(
+          "INSERT INTO titles (name, description, point_cost, is_active, scope) VALUES ($1, $2, NULL, TRUE, 'external') RETURNING id",
+          [titleName, `${season.name}をLEGEND（レート上位${LEGEND_TOP_N}人）で終えた`]
+        )).rows[0].id;
+      }
+      await client.query('INSERT INTO user_titles (user_id, title_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [r.user_id, titleId]);
+      title = titleName;
+    }
+    await client.query('UPDATE season_states SET reward_points = $3, reward_title = $4 WHERE season_key = $1 AND user_id = $2', [season.key, r.user_id, pts, title]);
+  }
 }
 
 // 終わったシーズンを締め、今のシーズンを計算し直す（最終配布のあと・起動時・1時間ごとに呼ぶ）
@@ -332,7 +363,7 @@ async function userProgress(client, userId, now = new Date()) {
   // 前のシーズンの結果（締めてあり、参加していれば）
   let prevResult = null;
   if (prev && (await client.query('SELECT 1 FROM seasons_done WHERE season_key = $1', [prev.key])).rows.length) {
-    const ps = (await client.query('SELECT level, total_pt, final_rank, events FROM season_states WHERE season_key = $1 AND user_id = $2', [prev.key, userId])).rows[0];
+    const ps = (await client.query('SELECT level, total_pt, final_rank, events, reward_points, reward_title FROM season_states WHERE season_key = $1 AND user_id = $2', [prev.key, userId])).rows[0];
     if (ps && ps.events > 0) {
       prevResult = { key: prev.key, name: prev.name, ...view(ps.level, ps.final_rank === 'Legend'), ...(await placeOf(client, prev.key, ps, userId)) };
       // 1位（記録された1位）なら、そのシーズンのフレームが買えるようになったことも知らせる
@@ -340,6 +371,7 @@ async function userProgress(client, userId, now = new Date()) {
       const pdef = FRAMES.find(f => f.season === prev.key);
       const pfr = won && pdef && (await client.query('SELECT name FROM frames WHERE css_class = $1', [pdef.cls])).rows[0];
       prevResult.winner = won;
+      prevResult.season_reward = ps.reward_points ? { points: ps.reward_points, title: ps.reward_title } : null;
       prevResult.reward = pfr ? { css_class: pdef.cls, name: pfr.name } : null;
     }
   }
@@ -354,4 +386,4 @@ async function userProgress(client, userId, now = new Date()) {
 
 const seasonByKey = key => seasonsUntil(new Date('2100-01-01')).find(s => s.key === key) || null;
 
-module.exports = { IN_SEASON, rateAbove, liveSeasonKey, userProgress, placesAfterEvents, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
+module.exports = { SEASON_REWARD_POINTS, IN_SEASON, rateAbove, liveSeasonKey, userProgress, placesAfterEvents, seasonByKey, LEVELS, LEGEND_MIN_RATE, seasonsUntil, currentSeason, display, step, recomputeSeason, finalizeSeason, syncSeasons };
