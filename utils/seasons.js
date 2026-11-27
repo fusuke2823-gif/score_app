@@ -33,9 +33,11 @@ const jst = d => new Date(`${d}T00:00:00+09:00`);
 // イベントは2週間ごと（金曜11時に始まる）。この周期の始まりをシーズンの区切りにする
 const CYCLE_ANCHOR = new Date('2026-10-02T11:00:00+09:00');
 const CYCLE_MS = 14 * 24 * 60 * 60 * 1000;
-const cycleStartAt = d => new Date(CYCLE_ANCHOR.getTime() + Math.floor((d - CYCLE_ANCHOR) / CYCLE_MS) * CYCLE_MS);
+// d に一番近い回の始まり（前でも後でも）。シーズンの区切りに使う
+const cycleNearest = d => new Date(CYCLE_ANCHOR.getTime() + Math.round((d - CYCLE_ANCHOR) / CYCLE_MS) * CYCLE_MS);
 // シーズン：冬 12〜2月、春 3〜5月、夏 6〜8月、秋 9〜11月。2026年9月の秋から
-//   各シーズンはその最初の月の1日を含む回から始まる（2026冬なら 11/27 に始まる回から）
+//   各シーズンはその最初の月の1日に一番近い回の始まりから（2026冬は 11/27〜2027/3/5。2月を全部含むように、
+//   2026/11/27 に「1日を含む回から」から変えた。どのシーズンも6回か7回＝12週か14週）
 const SEASON_NAMES = { 12: '冬', 3: '春', 6: '夏', 9: '秋' };
 function regularSeason(year, month) {
   const endMonth = month + 3 > 12 ? month + 3 - 12 : month + 3;
@@ -43,7 +45,7 @@ function regularSeason(year, month) {
   const pad = n => String(n).padStart(2, '0');
   return {
     key: `${year}-${pad(month)}`, name: `${year}${SEASON_NAMES[month]}シーズン`,
-    start: cycleStartAt(jst(`${year}-${pad(month)}-01`)), end: cycleStartAt(jst(`${endYear}-${pad(endMonth)}-01`)),
+    start: cycleNearest(jst(`${year}-${pad(month)}-01`)), end: cycleNearest(jst(`${endYear}-${pad(endMonth)}-01`)),
     test: false, params: REGULAR_PARAMS, startMap: REGULAR_START,
   };
 }
