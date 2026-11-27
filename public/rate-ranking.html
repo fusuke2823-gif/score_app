@@ -51,6 +51,7 @@
 .rr-pick-item small { margin-left:auto; font-size:0.66rem; color:var(--text-muted); }
 .rr-pick-item .dot { width:6px; height:6px; border-radius:50%; background:#6ee7a0; flex-shrink:0; }
 /* 光の板が動く切り替え（ランキング画面と同じ） */
+.seg[hidden], .rr-bar[hidden] { display:none; }
 .seg { --n:4; position:relative; display:grid; grid-template-columns:repeat(var(--n), auto); padding:3px; border-radius:99px; isolation:isolate;
   background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); }
 .seg::before { content:''; position:absolute; z-index:-1; top:3px; bottom:3px; left:var(--x, 3px); width:var(--w, 0); border-radius:99px;
@@ -413,8 +414,19 @@ function renderList() {
 async function load() {
   const el = document.getElementById('rate-ranking-content');
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>${t('loading')}</span></div>`;
+  const se = viewing();
+  // 集計中（シーズンは終わったが、最後の回の最終配布がまだ）：一覧・自分のカード・絞り込みを出さず、何もない状態に
+  const seg = document.getElementById('rank-seg');
+  seg.hidden = !!se?.tallying;
+  // 絞り込みもシーズンの選択もないときは、帯ごと隠す（空の帯が残らないように）
+  document.getElementById('rr-bar').hidden = seg.hidden && document.getElementById('season-pick').hidden;
+  if (se?.tallying) {
+    rows = [];
+    document.getElementById('my-rate-area').innerHTML = '';
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${uiIcon('chart')}</div><p>${t('rate.tallying_note').replace('\n', '<br>')}</p></div>`;
+    return;
+  }
   try {
-    const se = viewing();
     rows = await apiFetch(`/users/rate-ranking${se && !se.current ? `?season=${encodeURIComponent(se.key)}` : ''}`);
     renderMyCard();
     renderRankSeg();
